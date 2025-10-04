@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Send, DollarSign, CheckCircle, XCircle, Clock, Receipt, TrendingUp, Users, Shield } from 'lucide-react';
+import { Send, DollarSign, CheckCircle, XCircle, Clock, Receipt, TrendingUp, Users, Shield, Zap } from 'lucide-react';
 
 const ExpenseManagementAgent = () => {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello! I\'m your AI Expense Management Agent. I can help you submit, review, and approve business expenses automatically. Try asking me to "submit a new expense" or "review pending expenses".' }
+    { role: 'assistant', content: 'Hello! I\'m your AI Expense Management Agent. I can help you submit, review, and approve business expenses automatically. Use the quick action buttons below or type your request.' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -96,7 +96,7 @@ const ExpenseManagementAgent = () => {
       setShowExpenseForm(true);
     } else if (lowerInput.includes('review') || lowerInput.includes('pending')) {
       const pendingExpenses = expenses.filter(e => e.status === 'pending');
-      response = `You have ${pendingExpenses.length} pending expenses totaling $${pendingExpenses.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}. Would you like me to process any of them using AP2 secure payment protocol?`;
+      response = `You have ${pendingExpenses.length} pending expenses totaling $${pendingExpenses.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}. Click "Approve" on any expense card or use the quick action button to process them via AP2.`;
     } else if (lowerInput.includes('approve') || lowerInput.includes('process')) {
       const expenseToApprove = expenses.find(e => e.status === 'pending');
       if (expenseToApprove) {
@@ -120,10 +120,41 @@ const ExpenseManagementAgent = () => {
       const approved = expenses.filter(e => e.status === 'approved').length;
       response = `Expense Analytics:\n\n• Total Expenses: $${total.toFixed(2)}\n• Approved: ${approved}\n• Pending: ${expenses.length - approved}\n• Average: $${(total / expenses.length).toFixed(2)}\n\nTop Category: ${expenses[0].category}`;
     } else {
-      response = 'I can help you with:\n\n• Submit new expenses\n• Review pending expenses\n• Approve and process payments via AP2\n• Generate expense reports\n• View analytics\n\nWhat would you like to do?';
+      response = 'I can help you with:\n\n• Submit new expenses\n• Review pending expenses\n• Approve and process payments via AP2\n• Generate expense reports\n• View analytics\n\nUse the quick action buttons below for common tasks!';
     }
 
     setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+    setLoading(false);
+  };
+
+  const handleQuickAction = async (action) => {
+    setInput(action);
+    await handleSubmit();
+  };
+
+  const handleApproveExpense = async (expense) => {
+    const userMessage = { role: 'user', content: `Approve ${expense.id}` };
+    setMessages(prev => [...prev, userMessage]);
+    setLoading(true);
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    let response = `Processing ${expense.id} for $${expense.amount} using AP2 protocol...`;
+    setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+
+    const result = await processAP2Payment(expense);
+
+    if (result.success) {
+      setExpenses(prev => prev.map(e => 
+        e.id === expense.id 
+          ? { ...e, status: 'approved', transactionId: result.transactionId }
+          : e
+      ));
+
+      response = `Payment completed successfully!\n\nTransaction ID: ${result.transactionId}\n\nAP2 Verification:\n• Intent Mandate: ${result.mandates.intent.id}\n• Cart Mandate: ${result.mandates.cart.id}\n• Payment Mandate: ${result.mandates.payment.id}`;
+      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+    }
+
     setLoading(false);
   };
 
@@ -261,6 +292,43 @@ const ExpenseManagementAgent = () => {
               )}
             </div>
 
+            <div className="border-t bg-gray-50 p-3">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="w-4 h-4 text-indigo-600" />
+                <p className="text-xs font-medium text-gray-700">Quick Actions:</p>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <button
+                  onClick={() => handleQuickAction("review pending expenses")}
+                  disabled={loading}
+                  className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 disabled:opacity-50 transition-colors"
+                >
+                  Review Pending
+                </button>
+                <button
+                  onClick={() => handleQuickAction("approve expense")}
+                  disabled={loading}
+                  className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200 disabled:opacity-50 transition-colors"
+                >
+                  Approve Next
+                </button>
+                <button
+                  onClick={() => handleQuickAction("analytics")}
+                  disabled={loading}
+                  className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-200 disabled:opacity-50 transition-colors"
+                >
+                  Analytics
+                </button>
+                <button
+                  onClick={() => setShowExpenseForm(true)}
+                  disabled={loading}
+                  className="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium hover:bg-indigo-200 disabled:opacity-50 transition-colors"
+                >
+                  New Expense
+                </button>
+              </div>
+            </div>
+
             <div className="p-4 border-t">
               <div className="flex gap-2">
                 <input
@@ -268,8 +336,8 @@ const ExpenseManagementAgent = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                  placeholder="Ask me about expenses..."
-                  className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Or type your request here..."
+                  className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                   disabled={loading}
                 />
                 <button
@@ -308,6 +376,7 @@ const ExpenseManagementAgent = () => {
                     value={newExpense.amount}
                     onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    placeholder="0.00"
                   />
                 </div>
                 <div>
@@ -331,6 +400,7 @@ const ExpenseManagementAgent = () => {
                     value={newExpense.vendor}
                     onChange={(e) => setNewExpense({...newExpense, vendor: e.target.value})}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Vendor name"
                   />
                 </div>
                 <div>
@@ -340,11 +410,12 @@ const ExpenseManagementAgent = () => {
                     onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                     rows="2"
+                    placeholder="Expense description"
                   />
                 </div>
                 <button
                   onClick={handleExpenseSubmit}
-                  className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700"
+                  className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 font-medium"
                 >
                   Submit Expense
                 </button>
@@ -370,7 +441,7 @@ const ExpenseManagementAgent = () => {
                       <p className="text-sm text-gray-600">{expense.description}</p>
                       <p className="text-xs text-gray-500 mt-1">{expense.vendor} • {expense.date}</p>
                       {expense.transactionId && (
-                        <p className="text-xs text-blue-600 mt-1">TX: {expense.transactionId}</p>
+                        <p className="text-xs text-blue-600 mt-1 font-mono">TX: {expense.transactionId}</p>
                       )}
                     </div>
                     <div className="text-right">
@@ -378,6 +449,17 @@ const ExpenseManagementAgent = () => {
                       <p className="text-xs text-gray-500">{expense.category}</p>
                     </div>
                   </div>
+                  
+                  {expense.status === 'pending' && (
+                    <button
+                      onClick={() => handleApproveExpense(expense)}
+                      disabled={loading || paymentProcessing}
+                      className="mt-2 w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Approve via AP2
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

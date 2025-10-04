@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "your-secret-key-change-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expiration_minutes: int = 60
-    cors_origins: list = ["http://localhost:3000", "http://localhost:5173", "http://localhost"]
+    cors_origins: str = "http://localhost:3000,http://localhost:5173,http://localhost"
     environment: str = "development"
     debug: bool = True
     
