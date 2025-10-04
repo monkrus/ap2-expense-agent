@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Setup script for AP2 Expense Management authentication system
 This script initializes the database and creates a default admin user
 """
 import sys
 import os
+
+# Fix Windows console encoding
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 from src.database import init_db, SessionLocal
@@ -25,13 +33,14 @@ def create_default_admin():
             return
 
         # Create default admin
+        password = "Admin123!"[:72]  # Bcrypt limit
         admin = User(
             id=str(uuid.uuid4()),
             email="admin@ap2expense.com",
             username="admin",
             full_name="System Administrator",
-            hashed_password=AuthService.hash_password("Admin123!"),
-            role=UserRole.ADMIN,
+            hashed_password=AuthService.hash_password(password),
+            role="admin",  # Store as string for SQLite
             is_active=True,
             is_verified=True
         )

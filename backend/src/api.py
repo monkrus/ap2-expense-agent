@@ -4,12 +4,19 @@ from pydantic import BaseModel
 from typing import Optional
 import os
 
-from .agent import ExpenseManagementAgent
 from .config import settings
 from .routes import auth_router, users_router, oauth_router
 from .database import init_db
 from .auth import get_current_active_user
 from .models import User
+
+# Try to import agent, but don't fail if Google AI dependencies are missing
+try:
+    from .agent import ExpenseManagementAgent
+    AGENT_AVAILABLE = True
+except ImportError:
+    AGENT_AVAILABLE = False
+    print("Warning: Google AI dependencies not installed. Agent features will be disabled.")
 
 app = FastAPI(
     title="AP2 Expense Management Agent",
@@ -35,10 +42,14 @@ app.include_router(oauth_router)
 async def startup_event():
     init_db()
 
-agent = ExpenseManagementAgent(
-    api_key=settings.google_api_key or os.getenv("GOOGLE_API_KEY", ""),
-    project_id=settings.google_cloud_project or os.getenv("GOOGLE_CLOUD_PROJECT", "")
-)
+# Initialize agent if available
+if AGENT_AVAILABLE:
+    agent = ExpenseManagementAgent(
+        api_key=settings.google_api_key or os.getenv("GOOGLE_API_KEY", ""),
+        project_id=settings.google_cloud_project or os.getenv("GOOGLE_CLOUD_PROJECT", "")
+    )
+else:
+    agent = None
 
 class ExpenseSubmission(BaseModel):
     user_id: str

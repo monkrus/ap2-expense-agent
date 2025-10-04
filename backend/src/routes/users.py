@@ -4,7 +4,7 @@ from typing import List, Optional
 import uuid
 
 from ..database import get_db
-from ..models import User, UserSession, UserRole
+from ..models import User, Session as UserSession, UserRole
 from ..schemas import UserResponse, UserUpdate, UserCreate, SessionResponse
 from ..auth import (
     get_current_active_user,
@@ -276,3 +276,4 @@ async def revoke_session(
     )
 
     return {"message": "Session revoked successfully"}
+
