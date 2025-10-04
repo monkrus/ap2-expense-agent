@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(python:*)",
+      "Bash(chmod:*)",
+      "Bash(cmd /c quick_start.bat)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
