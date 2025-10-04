@@ -6,7 +6,12 @@
       "Bash(git push:*)",
       "Bash(python:*)",
       "Bash(chmod:*)",
-      "Bash(cmd /c quick_start.bat)"
+      "Bash(cmd /c quick_start.bat)",
+      "Bash(pip install:*)",
+      "Bash(alembic upgrade:*)",
+      "Bash(uvicorn:*)",
+      "Bash(curl:*)",
+      "Read(//c/Users/robot/Desktop/**)"
     ],
     "deny": [],
     "ask": []
