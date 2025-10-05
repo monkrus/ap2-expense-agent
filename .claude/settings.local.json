@@ -11,7 +11,14 @@
       "Bash(alembic upgrade:*)",
       "Bash(uvicorn:*)",
       "Bash(curl:*)",
-      "Read(//c/Users/robot/Desktop/**)"
+      "Read(//c/Users/robot/Desktop/**)",
+      "Bash(cat:*)",
+      "Bash(alembic revision:*)",
+      "Bash(DATABASE_URL=\"sqlite:///./test.db\" python -m pytest tests/ -v --tb=short)",
+      "Bash(set DATABASE_URL=sqlite:///./test.db)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(git clone:*)"
     ],
     "deny": [],
     "ask": []

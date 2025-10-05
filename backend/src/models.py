@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, Enum, Table, Text
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, Enum, Table, Text, Numeric, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -94,3 +94,64 @@ class AuditLog(Base):
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+# ============================================================================
+# AP2 Protocol Mandate Models
+# ============================================================================
+
+class IntentMandate(Base):
+    """AP2 Intent Mandate - User's authorization constraints"""
+    __tablename__ = "intent_mandates"
+
+    id = Column(String(255), primary_key=True)
+    user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
+    constraints = Column(Text, nullable=False)  # JSON stored as text
+    timestamp = Column(DateTime, nullable=False)
+    expiration = Column(DateTime, nullable=False)
+    signature = Column(Text, nullable=True)
+    status = Column(String(50), nullable=False, default="active", index=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    user = relationship("User", backref="intent_mandates")
+    cart_mandates = relationship("CartMandate", back_populates="intent_mandate", cascade="all, delete-orphan")
+
+
+class CartMandate(Base):
+    """AP2 Cart Mandate - Specific items for approval"""
+    __tablename__ = "cart_mandates"
+
+    id = Column(String(255), primary_key=True)
+    intent_mandate_id = Column(String(255), ForeignKey("intent_mandates.id"), nullable=False, index=True)
+    items = Column(Text, nullable=False)  # JSON stored as text
+    total = Column(Numeric(10, 2), nullable=False)
+    merchant = Column(String(255), nullable=False)
+    timestamp = Column(DateTime, nullable=False)
+    user_signature = Column(Text, nullable=False)
+    status = Column(String(50), nullable=False, default="pending")
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    intent_mandate = relationship("IntentMandate", back_populates="cart_mandates")
+    payment_mandates = relationship("PaymentMandate", back_populates="cart_mandate", cascade="all, delete-orphan")
+
+
+class PaymentMandate(Base):
+    """AP2 Payment Mandate - Payment execution record"""
+    __tablename__ = "payment_mandates"
+
+    id = Column(String(255), primary_key=True)
+    cart_mandate_id = Column(String(255), ForeignKey("cart_mandates.id"), nullable=False, index=True)
+    payment_method = Column(String(100), nullable=False)
+    status = Column(String(50), nullable=False, default="pending", index=True)
+    audit_trail = Column(Text, nullable=False)  # JSON stored as text
+    timestamp = Column(DateTime, nullable=False)
+    payment_processor_response = Column(Text, nullable=True)  # JSON stored as text
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    cart_mandate = relationship("CartMandate", back_populates="payment_mandates")

@@ -8,3 +8,20 @@ dist/
 *.log
 .pytest_cache/
 .coverage
+
+# Database files (should never be in git)
+*.db
+*.sqlite
+*.sqlite3
+
+# Test artifacts
+nul
+
+# Strategy documents (keep private)
+*_ROADMAP.md
+*_CHECKLIST.md
+*_ANALYSIS.md
+*_SUMMARY.md
+*_PLAN.md
+*_AUDIT.md
+CLEANUP_PLAN.md
