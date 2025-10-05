@@ -17,13 +17,15 @@ from ..auth import (
     AuthService, TOTPService, get_current_active_user,
     require_admin
 )
+from ..rate_limit import limiter, RateLimits
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit(RateLimits.REGISTER)
 async def register(
-    user_data: UserCreate,
     request: Request,
+    user_data: UserCreate,
     db: Session = Depends(get_db)
 ):
     """Register a new user"""
@@ -67,19 +69,50 @@ async def register(
     return user
 
 @router.post("/login", response_model=LoginResponse)
+@limiter.limit(RateLimits.LOGIN)
 async def login(
-    login_data: LoginRequest,
     request: Request,
+    login_data: LoginRequest,
     db: Session = Depends(get_db)
 ):
     """Login with username and password"""
     # Find user
     user = db.query(User).filter(User.username == login_data.username).first()
 
-    if not user or not AuthService.verify_password(login_data.password, user.hashed_password):
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Check if account is locked
+    if user.locked_until and user.locked_until > datetime.utcnow():
+        lockout_minutes = (user.locked_until - datetime.utcnow()).total_seconds() / 60
+        raise HTTPException(
+            status_code=status.HTTP_423_LOCKED,
+            detail=f"Account locked due to too many failed attempts. Try again in {int(lockout_minutes)} minutes."
+        )
+
+    # Verify password
+    if not AuthService.verify_password(login_data.password, user.hashed_password):
+        # Increment failed attempts
+        user.failed_login_attempts += 1
+        user.last_failed_login = datetime.utcnow()
+
+        # Lock account if threshold exceeded (5 attempts)
+        if user.failed_login_attempts >= 5:
+            user.locked_until = datetime.utcnow() + timedelta(minutes=30)
+            db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_423_LOCKED,
+                detail="Account locked due to too many failed login attempts. Try again in 30 minutes."
+            )
+
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Incorrect username or password. {5 - user.failed_login_attempts} attempts remaining.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -88,6 +121,12 @@ async def login(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive"
         )
+
+    # Reset failed attempts on successful login
+    if user.failed_login_attempts > 0:
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        user.last_failed_login = None
 
     # Check 2FA if enabled
     if user.totp_enabled:
@@ -154,7 +193,9 @@ async def login_form(
     return await login(login_data, request, db)
 
 @router.post("/refresh", response_model=TokenResponse)
+@limiter.limit(RateLimits.REFRESH_TOKEN)
 async def refresh_token(
+    request: Request,
     refresh_data: RefreshTokenRequest,
     db: Session = Depends(get_db)
 ):
@@ -195,9 +236,10 @@ async def logout(
     return {"message": "Successfully logged out"}
 
 @router.post("/password/reset-request")
+@limiter.limit(RateLimits.PASSWORD_RESET)
 async def request_password_reset(
-    reset_data: PasswordResetRequest,
     request: Request,
+    reset_data: PasswordResetRequest,
     db: Session = Depends(get_db)
 ):
     """Request a password reset"""

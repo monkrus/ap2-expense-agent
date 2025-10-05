@@ -11,6 +11,16 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://ap2user:changeme@localhost:5432/expenses"
     redis_url: str = "redis://localhost:6379/0"
 
+    # Database Connection Pooling
+    db_pool_size: int = 5  # Number of connections to keep open
+    db_max_overflow: int = 10  # Max connections beyond pool_size
+    db_pool_recycle: int = 3600  # Recycle connections after 1 hour
+
+    # Data Retention (in days)
+    audit_log_retention_days: int = 90
+    session_retention_days: int = 30
+    revoked_token_retention_days: int = 7
+
     # JWT & Authentication
     jwt_secret: str = "your-secret-key-change-in-production"
     jwt_algorithm: str = "HS256"

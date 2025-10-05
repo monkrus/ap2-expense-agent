@@ -1,14 +1,17 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import os
 
 from .config import settings
-from .routes import auth_router, users_router, oauth_router
+from .routes import auth_router, users_router, oauth_router, admin_router
 from .database import init_db
 from .auth import get_current_active_user
 from .models import User
+from .rate_limit import limiter, rate_limit_handler
+from slowapi.errors import RateLimitExceeded
+from .security_middleware import SecurityHeadersMiddleware, RequestIDMiddleware, HTTPSRedirectMiddleware
 
 # Try to import agent, but don't fail if Google AI dependencies are missing
 try:
@@ -24,18 +27,29 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Add rate limiter state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+
+# Add security middleware
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestIDMiddleware)
+# HTTPS redirect (enable in production)
+# app.add_middleware(HTTPSRedirectMiddleware, enabled=(settings.environment == "production"))
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins.split(","),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # Include authentication routers
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(oauth_router)
+app.include_router(admin_router)
 
 # Initialize database on startup
 @app.on_event("startup")
