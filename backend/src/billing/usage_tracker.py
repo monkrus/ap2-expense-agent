@@ -64,7 +64,7 @@ class UsageTracker:
             quantity=quantity,
             billable=billable,
             fee=fee,
-            metadata=str(metadata) if metadata else None
+            extra_data=str(metadata) if metadata else None
         )
 
         self.db.add(usage_record)

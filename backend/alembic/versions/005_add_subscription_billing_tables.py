@@ -63,8 +63,8 @@ def upgrade() -> None:
         sa.Column('billable', sa.Boolean, nullable=False, server_default='false'),
         sa.Column('fee', sa.Numeric(10, 4), nullable=True),
 
-        # Metadata
-        sa.Column('metadata', sa.Text, nullable=True),
+        # Additional data
+        sa.Column('extra_data', sa.Text, nullable=True),
 
         # Timestamps
         sa.Column('created_at', sa.DateTime, server_default=sa.func.now())

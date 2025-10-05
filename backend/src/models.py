@@ -219,8 +219,8 @@ class UsageRecord(Base):
     billable = Column(Boolean, nullable=False, default=False)  # Is this over the tier limit?
     fee = Column(Numeric(10, 4), nullable=True)  # Fee charged for this usage
 
-    # Metadata
-    metadata = Column(Text, nullable=True)  # JSON stored as text
+    # Additional data
+    extra_data = Column(Text, nullable=True)  # JSON stored as text for additional metadata
 
     # Timestamps
     created_at = Column(DateTime, server_default=func.now(), index=True)

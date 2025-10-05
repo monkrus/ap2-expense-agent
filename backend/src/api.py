@@ -6,6 +6,9 @@ import os
 
 from .config import settings
 from .routes import auth_router, users_router, oauth_router, admin_router
+from .routes.billing import router as billing_router
+from .routes.ap2 import router as ap2_router
+from .routes.webhooks import router as webhooks_router
 from .database import init_db
 from .auth import get_current_active_user
 from .models import User
@@ -50,6 +53,11 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(oauth_router)
 app.include_router(admin_router)
+
+# Include billing and payment routers
+app.include_router(billing_router)
+app.include_router(ap2_router)
+app.include_router(webhooks_router)
 
 # Initialize database on startup
 @app.on_event("startup")
