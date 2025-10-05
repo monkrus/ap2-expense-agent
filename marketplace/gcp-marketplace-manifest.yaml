@@ -1,0 +1,299 @@
+# Google Cloud Marketplace Manifest
+# For AI Agent listing in Google Cloud Marketplace
+
+apiVersion: v1
+kind: Marketplace
+metadata:
+  name: ap2-expense-agent
+  displayName: "AP2 Expense Agent - AI-Powered Expense Management"
+  version: "1.0.0"
+  category: "AI Agents"
+  subcategory: "Finance & Accounting"
+
+product:
+  name: "AP2 Expense Agent"
+  shortDescription: "AI-powered expense management with Google's AP2 Protocol for automated, cryptographically-verified payments"
+
+  longDescription: |
+    Transform your expense management with the AP2 Expense Agent - the first AI-native expense tracking system
+    built on Google's Agent Payments Protocol (AP2).
+
+    KEY FEATURES:
+
+    ✅ AP2 Protocol Integration
+    - Cryptographic payment verification (Intent → Cart → Payment mandates)
+    - Fraud-proof audit trails
+    - Multi-payment method support (cards, crypto, bank transfers)
+    - Non-repudiable transaction records
+
+    ✅ AI-Powered Intelligence
+    - Automatic expense categorization using Google AI
+    - Receipt OCR with 95%+ accuracy
+    - Fraud detection and anomaly identification
+    - Smart approval workflows
+
+    ✅ Enterprise-Ready Security
+    - JWT authentication with 2FA/TOTP
+    - Role-based access control (Admin, Manager, Accountant, Employee)
+    - SOC 2 Type II compliance ready
+    - GDPR and PCI DSS compliant
+
+    ✅ Seamless Integrations
+    - Native Google Cloud integration
+    - Google Workspace SSO
+    - Stripe payment processing
+    - Export to major accounting systems
+
+    WHAT MAKES US DIFFERENT:
+
+    Unlike traditional expense tools (Expensify, Concur), AP2 Expense Agent leverages Google's breakthrough
+    Agent Payments Protocol to provide cryptographic proof of authorization for every transaction. This
+    eliminates disputes, reduces fraud, and provides unprecedented transparency.
+
+    IDEAL FOR:
+    - Small to medium businesses (10-500 employees)
+    - Enterprise organizations requiring compliance
+    - Companies using Google Cloud ecosystem
+    - Finance teams seeking automation
+
+    DEPLOYMENT:
+    - Fully managed on Google Cloud Run
+    - PostgreSQL database on Cloud SQL
+    - Auto-scaling and high availability
+    - 99.9% uptime SLA
+
+  documentation:
+    quickstart: "https://github.com/monkrus/ap2-expense-agent/blob/main/README.md"
+    userGuide: "https://docs.ap2expense.com/user-guide"
+    apiReference: "https://docs.ap2expense.com/api"
+    troubleshooting: "https://docs.ap2expense.com/troubleshooting"
+
+  support:
+    email: "support@ap2expense.com"
+    documentation: "https://docs.ap2expense.com"
+    slack: "https://ap2expense.slack.com"
+    tier: "Professional"  # Starter/Professional/Enterprise
+
+  media:
+    logo: "gs://ap2-expense-agent-assets/logo-512.png"
+    icon: "gs://ap2-expense-agent-assets/icon-128.png"
+    screenshots:
+      - title: "Dashboard Overview"
+        url: "gs://ap2-expense-agent-assets/screenshot-dashboard.png"
+      - title: "AP2 Payment Flow"
+        url: "gs://ap2-expense-agent-assets/screenshot-ap2-flow.png"
+      - title: "Receipt OCR"
+        url: "gs://ap2-expense-agent-assets/screenshot-ocr.png"
+      - title: "Analytics & Reporting"
+        url: "gs://ap2-expense-agent-assets/screenshot-analytics.png"
+      - title: "Admin Panel"
+        url: "gs://ap2-expense-agent-assets/screenshot-admin.png"
+    video: "https://youtube.com/watch?v=demo-video-id"
+
+pricing:
+  model: "SUBSCRIPTION"
+  tiers:
+    - name: "Starter"
+      displayName: "Starter Plan"
+      price:
+        amount: 29.00
+        currency: "USD"
+        period: "MONTH"
+      features:
+        - "Up to 25 users"
+        - "100 expenses/month"
+        - "Basic receipt OCR"
+        - "AI categorization (500/month)"
+        - "30-day data retention"
+        - "Standard support"
+      limits:
+        users: 25
+        expenses: 100
+        ai_categorizations: 500
+        ap2_transactions: 0
+
+    - name: "Professional"
+      displayName: "Professional Plan"
+      price:
+        amount: 99.00
+        currency: "USD"
+        period: "MONTH"
+      features:
+        - "Up to 100 users"
+        - "Unlimited expenses"
+        - "Advanced receipt OCR"
+        - "AI categorization (5,000/month)"
+        - "AP2 automated payments (100/month)"
+        - "90-day data retention"
+        - "Priority support"
+        - "Custom approval workflows"
+      limits:
+        users: 100
+        expenses: null
+        ai_categorizations: 5000
+        ap2_transactions: 100
+      recommended: true
+
+    - name: "Enterprise"
+      displayName: "Enterprise Plan"
+      price:
+        amount: 399.00
+        currency: "USD"
+        period: "MONTH"
+      features:
+        - "Up to 500 users"
+        - "Unlimited everything"
+        - "Unlimited AI categorization"
+        - "Unlimited AP2 transactions"
+        - "365-day data retention"
+        - "Dedicated support"
+        - "Custom integrations"
+        - "SSO/SAML"
+        - "SLA guarantee (99.9%)"
+      limits:
+        users: 500
+        expenses: null
+        ai_categorizations: null
+        ap2_transactions: null
+
+    - name: "Enterprise Plus"
+      displayName: "Enterprise Plus"
+      price:
+        contact: true
+      features:
+        - "Unlimited users"
+        - "White-label options"
+        - "On-premise deployment"
+        - "Custom SLA (99.95%+)"
+        - "Dedicated account manager"
+        - "Custom feature development"
+
+  trial:
+    enabled: true
+    days: 14
+    description: "14-day free trial, no credit card required"
+
+  usage_charges:
+    - type: "ap2_transaction"
+      name: "AP2 Automated Payment"
+      price: 0.10
+      unit: "transaction"
+      description: "Charged for AP2 transactions exceeding tier limit"
+
+    - type: "ai_categorization"
+      name: "AI Expense Categorization"
+      price: 0.05
+      unit: "request"
+      description: "Charged for AI categorizations exceeding tier limit"
+
+    - type: "ocr_scan"
+      name: "Receipt OCR Scan"
+      price: 0.02
+      unit: "scan"
+      description: "Charged for OCR scans exceeding tier limit"
+
+deployment:
+  type: "CLOUD_RUN"
+  region: "us-central1"
+  services:
+    - name: "backend"
+      image: "gcr.io/ap2-expense-agent/backend:latest"
+      port: 8080
+      resources:
+        memory: "1Gi"
+        cpu: "1"
+      scaling:
+        minInstances: 1
+        maxInstances: 100
+
+    - name: "frontend"
+      image: "gcr.io/ap2-expense-agent/frontend:latest"
+      port: 80
+      resources:
+        memory: "512Mi"
+        cpu: "0.5"
+      scaling:
+        minInstances: 1
+        maxInstances: 50
+
+  database:
+    type: "CLOUD_SQL"
+    version: "POSTGRES_15"
+    tier: "db-custom-2-8192"
+    storage: "100GB"
+    backups: true
+    highAvailability: true
+
+  dependencies:
+    - "Cloud Run"
+    - "Cloud SQL for PostgreSQL"
+    - "Secret Manager"
+    - "Cloud Storage"
+    - "Cloud Monitoring"
+    - "Cloud Logging"
+
+compliance:
+  - "GDPR"
+  - "SOC 2 Type II (In Progress)"
+  - "PCI DSS Level 1"
+  - "ISO 27001 (Planned)"
+
+security:
+  authentication:
+    - "JWT with refresh tokens"
+    - "OAuth 2.0"
+    - "2FA/TOTP"
+    - "SSO/SAML (Enterprise)"
+
+  encryption:
+    - "TLS 1.3 in transit"
+    - "AES-256 at rest"
+    - "End-to-end for sensitive data"
+
+  monitoring:
+    - "Real-time threat detection"
+    - "Audit logging"
+    - "Anomaly detection"
+
+integrations:
+  google:
+    - "Google Cloud IAM"
+    - "Google Workspace"
+    - "Google AI (Gemini)"
+    - "Google Cloud Billing"
+
+  payments:
+    - "Stripe"
+    - "AP2 Protocol"
+    - "Crypto wallets (via AP2)"
+
+  accounting:
+    - "QuickBooks (Planned)"
+    - "Xero (Planned)"
+    - "NetSuite (Enterprise)"
+    - "SAP (Enterprise)"
+
+tags:
+  - "AI Agent"
+  - "Expense Management"
+  - "AP2 Protocol"
+  - "Automated Payments"
+  - "Finance"
+  - "Accounting"
+  - "Receipt OCR"
+  - "Google Cloud"
+  - "FinTech"
+
+sla:
+  uptime: "99.9%"
+  support_response:
+    starter: "48 hours"
+    professional: "24 hours"
+    enterprise: "4 hours"
+    enterprise_plus: "1 hour"
+
+  features:
+    - "Automated backups"
+    - "Disaster recovery"
+    - "Multi-region deployment (Enterprise+)"
+    - "24/7 monitoring"

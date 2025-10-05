@@ -40,6 +40,21 @@ class Settings(BaseSettings):
     smtp_password: Optional[str] = None
     smtp_from_email: Optional[str] = "noreply@ap2expense.com"
 
+    # Stripe Payment Configuration
+    stripe_secret_key: Optional[str] = None
+    stripe_publishable_key: Optional[str] = None
+    stripe_webhook_secret: Optional[str] = None
+    stripe_price_id_starter: Optional[str] = None  # Stripe Price ID for Starter tier
+    stripe_price_id_professional: Optional[str] = None  # Stripe Price ID for Professional tier
+    stripe_price_id_enterprise: Optional[str] = None  # Stripe Price ID for Enterprise tier
+
+    # Subscription & Monetization
+    enable_billing: bool = False  # Enable/disable billing features
+    trial_period_days: int = 14  # Free trial period
+    ap2_transaction_fee: float = 0.10  # Fee per AP2 transaction
+    ai_categorization_fee: float = 0.05  # Fee per AI categorization (over limit)
+    ocr_scan_fee: float = 0.02  # Fee per OCR scan (over limit)
+
     # CORS
     cors_origins: str = "http://localhost:3000,http://localhost:5173,http://localhost"
 
