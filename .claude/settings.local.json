@@ -18,7 +18,9 @@
       "Bash(set DATABASE_URL=sqlite:///./test.db)",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "Bash(git clone:*)"
+      "Bash(git clone:*)",
+      "Bash(where psql)",
+      "Bash(pg_isready:*)"
     ],
     "deny": [],
     "ask": []
