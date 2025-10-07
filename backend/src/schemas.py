@@ -126,3 +126,68 @@ class OAuth2TokenResponse(BaseModel):
     expires_in: int
     refresh_token: Optional[str] = None
     scope: str
+
+
+# ============================================================================
+# Organization Schemas (Multi-Tenancy)
+# ============================================================================
+
+class OrganizationCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    slug: str = Field(..., min_length=3, max_length=255, pattern="^[a-z0-9-]+$")
+    description: Optional[str] = None
+    currency: Optional[str] = "USD"
+    timezone: Optional[str] = "UTC"
+    max_members: Optional[int] = 25
+
+
+class OrganizationUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    currency: Optional[str] = None
+    timezone: Optional[str] = None
+
+
+class OrganizationResponse(BaseModel):
+    id: str
+    name: str
+    slug: str
+    description: Optional[str]
+    currency: str
+    timezone: str
+    max_members: int
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class OrganizationMemberResponse(BaseModel):
+    id: str
+    user_id: str
+    email: str
+    full_name: Optional[str]
+    role: str
+    joined_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class OrganizationInvitationCreate(BaseModel):
+    email: EmailStr
+    role: Optional[str] = "member"
+
+
+class OrganizationInvitationResponse(BaseModel):
+    id: str
+    organization_id: str
+    email: str
+    role: str
+    status: str
+    expires_at: datetime
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

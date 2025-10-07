@@ -5,13 +5,25 @@ from datetime import datetime, timedelta
 import secrets
 import uuid
 from typing import Optional
+import httpx
+import os
 
 from ..database import get_db
-from ..models import User
+from ..models import User, UserRole
 from ..schemas import OAuth2AuthorizeRequest, OAuth2TokenRequest, OAuth2TokenResponse
 from ..auth import AuthService, get_current_active_user
+from ..config import settings
 
 router = APIRouter(prefix="/api/v1/oauth2", tags=["OAuth2"])
+
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", settings.google_api_key or "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:5173/auth/google/callback")
+
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 # In-memory storage for OAuth2 authorization codes (use Redis in production)
 authorization_codes = {}
@@ -306,3 +318,213 @@ async def consent_page(
     """
 
     return HTMLResponse(content=html_content)
+
+
+# ============================================================================
+# GOOGLE OAUTH 2.0 INTEGRATION
+# ============================================================================
+
+@router.get("/google/login")
+async def google_login(state: Optional[str] = None):
+    """Initiate Google OAuth login"""
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables."
+        )
+
+    # Build authorization URL
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "consent"
+    }
+
+    if state:
+        params["state"] = state
+
+    auth_url = f"{GOOGLE_AUTH_URL}?{'&'.join([f'{k}={v}' for k, v in params.items()])}"
+
+    return RedirectResponse(url=auth_url)
+
+
+@router.get("/google/callback")
+async def google_callback(
+    code: str,
+    state: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Handle Google OAuth callback"""
+    if not code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Authorization code is required"
+        )
+
+    # Exchange code for tokens
+    async with httpx.AsyncClient() as client:
+        token_response = await client.post(
+            GOOGLE_TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "redirect_uri": GOOGLE_REDIRECT_URI,
+                "grant_type": "authorization_code"
+            }
+        )
+
+        if token_response.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to exchange authorization code for tokens"
+            )
+
+        tokens = token_response.json()
+        access_token = tokens.get("access_token")
+
+        # Get user info from Google
+        userinfo_response = await client.get(
+            GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        if userinfo_response.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to fetch user information from Google"
+            )
+
+        google_user = userinfo_response.json()
+
+    # Check if user exists
+    user = db.query(User).filter(User.email == google_user["email"]).first()
+
+    if not user:
+        # Create new user
+        user = User(
+            id=str(uuid.uuid4()),
+            email=google_user["email"],
+            username=google_user["email"].split("@")[0] + "_" + str(uuid.uuid4())[:8],
+            full_name=google_user.get("name", ""),
+            hashed_password=AuthService.hash_password(secrets.token_urlsafe(32)),  # Random password
+            role=UserRole.EMPLOYEE,
+            is_active=True,
+            is_verified=True  # Google accounts are pre-verified
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    # Update last login
+    user.last_login = datetime.utcnow()
+    db.commit()
+
+    # Create tokens
+    app_access_token = AuthService.create_access_token(
+        data={"sub": user.id, "username": user.username, "role": user.role.value}
+    )
+    refresh_token = AuthService.create_refresh_token(user_id=user.id, db=db)
+
+    # Redirect to frontend with tokens
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    redirect_url = f"{frontend_url}/auth/google/success?access_token={app_access_token}&refresh_token={refresh_token}"
+
+    if state:
+        redirect_url += f"&state={state}"
+
+    return RedirectResponse(url=redirect_url)
+
+
+@router.post("/google/token")
+async def google_token_exchange(
+    code: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Exchange Google authorization code for app tokens (for mobile/SPA)
+    """
+    if not code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Authorization code is required"
+        )
+
+    # Exchange code for Google tokens
+    async with httpx.AsyncClient() as client:
+        token_response = await client.post(
+            GOOGLE_TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "redirect_uri": GOOGLE_REDIRECT_URI,
+                "grant_type": "authorization_code"
+            }
+        )
+
+        if token_response.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to exchange authorization code"
+            )
+
+        tokens = token_response.json()
+        access_token = tokens.get("access_token")
+
+        # Get user info
+        userinfo_response = await client.get(
+            GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        if userinfo_response.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to fetch user information"
+            )
+
+        google_user = userinfo_response.json()
+
+    # Find or create user
+    user = db.query(User).filter(User.email == google_user["email"]).first()
+
+    if not user:
+        user = User(
+            id=str(uuid.uuid4()),
+            email=google_user["email"],
+            username=google_user["email"].split("@")[0] + "_" + str(uuid.uuid4())[:8],
+            full_name=google_user.get("name", ""),
+            hashed_password=AuthService.hash_password(secrets.token_urlsafe(32)),
+            role=UserRole.EMPLOYEE,
+            is_active=True,
+            is_verified=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    user.last_login = datetime.utcnow()
+    db.commit()
+
+    # Create app tokens
+    app_access_token = AuthService.create_access_token(
+        data={"sub": user.id, "username": user.username, "role": user.role.value}
+    )
+    refresh_token = AuthService.create_refresh_token(user_id=user.id, db=db)
+
+    return {
+        "access_token": app_access_token,
+        "refresh_token": refresh_token,
+        "expires_in": 3600,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "full_name": user.full_name,
+            "role": user.role.value
+        }
+    }

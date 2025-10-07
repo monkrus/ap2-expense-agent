@@ -18,6 +18,7 @@ from ..auth import (
     require_admin
 )
 from ..rate_limit import limiter, RateLimits
+from ..email_service import EmailService
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
@@ -55,6 +56,28 @@ async def register(
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Create email verification token
+    verification_token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(hours=24)
+
+    # Store verification token in password_reset_tokens table (reusing for verification)
+    token_entry = PasswordResetToken(
+        id=str(uuid.uuid4()),
+        user_id=user.id,
+        token=verification_token,
+        expires_at=expires_at,
+        used=False
+    )
+    db.add(token_entry)
+    db.commit()
+
+    # Send verification email
+    EmailService.send_verification_email(
+        to_email=user.email,
+        username=user.username,
+        verification_token=verification_token
+    )
 
     # Log audit event
     AuthService.log_audit(
@@ -263,6 +286,13 @@ async def request_password_reset(
     db.add(reset_token)
     db.commit()
 
+    # Send password reset email
+    EmailService.send_password_reset_email(
+        to_email=user.email,
+        username=user.username,
+        reset_token=token
+    )
+
     # Log audit event
     AuthService.log_audit(
         db=db,
@@ -273,12 +303,8 @@ async def request_password_reset(
         request=request
     )
 
-    # TODO: Send email with reset link
-    # In production, you would send an email here
-    # For now, we'll just return the token (DO NOT do this in production)
     return {
-        "message": "If the email exists, a reset link has been sent",
-        "reset_token": token  # ONLY FOR DEVELOPMENT
+        "message": "If the email exists, a reset link has been sent"
     }
 
 @router.post("/password/reset-confirm")
@@ -501,3 +527,106 @@ async def verify_2fa(
         return {"valid": True}
     else:
         return {"valid": False}
+
+
+# ============================================================================
+# EMAIL VERIFICATION ENDPOINTS
+# ============================================================================
+
+@router.post("/verify-email")
+async def verify_email(
+    token: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Verify email address with token"""
+    # Find token
+    token_entry = db.query(PasswordResetToken).filter(
+        PasswordResetToken.token == token,
+        PasswordResetToken.used == False
+    ).first()
+
+    if not token_entry:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token"
+        )
+
+    if token_entry.expires_at < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification token has expired"
+        )
+
+    # Get user and verify
+    user = db.query(User).filter(User.id == token_entry.user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Mark as verified
+    user.is_verified = True
+    token_entry.used = True
+    db.commit()
+
+    # Send welcome email
+    EmailService.send_welcome_email(
+        to_email=user.email,
+        username=user.username,
+        full_name=user.full_name
+    )
+
+    # Log audit event
+    AuthService.log_audit(
+        db=db,
+        user_id=user.id,
+        action="user.email_verified",
+        resource_type="user",
+        resource_id=user.id,
+        request=request
+    )
+
+    return {"message": "Email verified successfully"}
+
+
+@router.post("/resend-verification")
+@limiter.limit(RateLimits.PASSWORD_RESET)
+async def resend_verification(
+    request: Request,
+    email: str,
+    db: Session = Depends(get_db)
+):
+    """Resend verification email"""
+    user = db.query(User).filter(User.email == email).first()
+
+    if not user:
+        # Don't reveal if user exists
+        return {"message": "If the email exists and is unverified, a verification link has been sent"}
+
+    if user.is_verified:
+        return {"message": "Email is already verified"}
+
+    # Create new verification token
+    verification_token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(hours=24)
+
+    token_entry = PasswordResetToken(
+        id=str(uuid.uuid4()),
+        user_id=user.id,
+        token=verification_token,
+        expires_at=expires_at,
+        used=False
+    )
+    db.add(token_entry)
+    db.commit()
+
+    # Send verification email
+    EmailService.send_verification_email(
+        to_email=user.email,
+        username=user.username,
+        verification_token=verification_token
+    )
+
+    return {"message": "If the email exists and is unverified, a verification link has been sent"}

@@ -12,6 +12,103 @@ class UserRole(str, enum.Enum):
     EMPLOYEE = "employee"
     ACCOUNTANT = "accountant"
 
+
+class OrganizationRole(str, enum.Enum):
+    OWNER = "owner"
+    ADMIN = "admin"
+    MANAGER = "manager"
+    MEMBER = "member"
+
+
+# ============================================================================
+# Multi-Tenancy Models
+# ============================================================================
+
+class Organization(Base):
+    """Organization/Tenant for multi-tenancy"""
+    __tablename__ = "organizations"
+
+    id = Column(String(255), primary_key=True)
+    name = Column(String(255), nullable=False)
+    slug = Column(String(255), unique=True, nullable=False, index=True)  # URL-friendly identifier
+    description = Column(Text, nullable=True)
+
+    # Settings
+    currency = Column(String(10), nullable=False, default="USD")
+    timezone = Column(String(50), nullable=False, default="UTC")
+
+    # Subscription
+    subscription_id = Column(String(255), ForeignKey("subscriptions.id"), nullable=True)
+
+    # Limits
+    max_members = Column(Integer, nullable=False, default=25)
+    max_expenses_per_month = Column(Integer, nullable=True)
+
+    # Status
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    members = relationship("OrganizationMember", back_populates="organization", cascade="all, delete-orphan")
+    invitations = relationship("OrganizationInvitation", back_populates="organization", cascade="all, delete-orphan")
+    expenses = relationship("Expense", back_populates="organization", cascade="all, delete-orphan")
+
+
+class OrganizationMember(Base):
+    """User membership in an organization"""
+    __tablename__ = "organization_members"
+
+    id = Column(String(255), primary_key=True)
+    organization_id = Column(String(255), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String(255), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(Enum(OrganizationRole, name='organizationrole'), nullable=False, default=OrganizationRole.MEMBER)
+
+    # Status
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    # Timestamps
+    joined_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    organization = relationship("Organization", back_populates="members")
+    user = relationship("User", backref="organization_memberships")
+
+    # Unique constraint: user can only be member once per organization
+    from sqlalchemy import UniqueConstraint
+    __table_args__ = (
+        UniqueConstraint('organization_id', 'user_id', name='unique_org_user'),
+    )
+
+
+class OrganizationInvitation(Base):
+    """Pending invitations to join an organization"""
+    __tablename__ = "organization_invitations"
+
+    id = Column(String(255), primary_key=True)
+    organization_id = Column(String(255), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    email = Column(String(255), nullable=False, index=True)
+    role = Column(Enum(OrganizationRole, name='organizationrole'), nullable=False, default=OrganizationRole.MEMBER)
+
+    # Invitation details
+    invited_by = Column(String(255), ForeignKey("users.id"), nullable=False)
+    token = Column(String(255), unique=True, nullable=False, index=True)  # Unique invitation token
+
+    # Status
+    status = Column(String(50), nullable=False, default="pending", index=True)  # pending, accepted, expired, revoked
+    expires_at = Column(DateTime, nullable=False)
+    accepted_at = Column(DateTime, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    organization = relationship("Organization", back_populates="invitations")
+    inviter = relationship("User")
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -94,6 +191,68 @@ class AuditLog(Base):
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+# ============================================================================
+# Expense Models
+# ============================================================================
+
+class ExpenseStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    PROCESSING = "processing"
+
+
+class ExpenseCategory(str, enum.Enum):
+    TRAVEL = "Travel"
+    MEALS = "Meals"
+    SOFTWARE = "Software"
+    OFFICE_SUPPLIES = "Office Supplies"
+    OTHER = "Other"
+
+
+class Expense(Base):
+    """Expense submission record"""
+    __tablename__ = "expenses"
+
+    id = Column(String(255), primary_key=True)
+    organization_id = Column(String(255), ForeignKey("organizations.id"), nullable=False, index=True)  # Multi-tenancy
+    user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
+    amount = Column(Numeric(10, 2), nullable=False)
+    vendor = Column(String(255), nullable=False)
+    category = Column(Enum(ExpenseCategory, name='expensecategory'), nullable=False)
+    description = Column(Text, nullable=False)
+    status = Column(Enum(ExpenseStatus, name='expensestatus'), nullable=False, default=ExpenseStatus.PENDING, index=True)
+    date = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    # Approval tracking
+    approved_by = Column(String(255), ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    rejection_reason = Column(Text, nullable=True)
+
+    # AP2 Integration
+    transaction_id = Column(String(255), nullable=True, index=True)  # Payment mandate ID
+    intent_mandate_id = Column(String(255), ForeignKey("intent_mandates.id"), nullable=True)
+    cart_mandate_id = Column(String(255), ForeignKey("cart_mandates.id"), nullable=True)
+    payment_mandate_id = Column(String(255), ForeignKey("payment_mandates.id"), nullable=True)
+
+    # AI Analysis
+    ai_analysis = Column(Text, nullable=True)  # JSON stored as text
+    risk_level = Column(String(50), nullable=True)
+    compliance_check = Column(Boolean, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    organization = relationship("Organization", back_populates="expenses")
+    user = relationship("User", foreign_keys=[user_id], backref="expenses")
+    approver = relationship("User", foreign_keys=[approved_by])
+    intent_mandate = relationship("IntentMandate", backref="expenses")
+    cart_mandate = relationship("CartMandate", backref="expenses")
+    payment_mandate = relationship("PaymentMandate", backref="expenses")
 
 
 # ============================================================================

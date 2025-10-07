@@ -1,14 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import Register from './components/Register';
 import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 import App from './App';
+import GoogleCallback from './pages/GoogleCallback';
 import { LogOut, User as UserIcon, Shield, Settings } from 'lucide-react';
 
 const AppContent = () => {
   const [showAuth, setShowAuth] = useState('login');
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const { isAuthenticated, user, logout, loading } = useAuth();
+
+  // Simple client-side routing
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Check if we're on Google OAuth callback page
+  if (currentPath === '/auth/google/success' || window.location.pathname === '/auth/google/success') {
+    return <GoogleCallback />;
+  }
 
   if (loading) {
     return (
@@ -85,9 +102,11 @@ const AppContent = () => {
 
 const AppWrapper = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 
