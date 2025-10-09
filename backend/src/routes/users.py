@@ -5,7 +5,7 @@ import uuid
 
 from ..database import get_db
 from ..models import User, Session as UserSession, UserRole
-from ..schemas import UserResponse, UserUpdate, UserCreate, SessionResponse
+from ..schemas import UserResponse, UserUpdate, UserCreate, SessionResponse, PasswordChange
 from ..auth import (
     get_current_active_user,
     require_admin,
@@ -276,4 +276,35 @@ async def revoke_session(
     )
 
     return {"message": "Session revoked successfully"}
+
+@router.post("/me/change-password")
+async def change_password(
+    password_data: PasswordChange,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Change the current user's password"""
+    # Verify old password
+    if not AuthService.verify_password(password_data.old_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password"
+        )
+
+    # Hash and update new password
+    current_user.hashed_password = AuthService.hash_password(password_data.new_password)
+    db.commit()
+
+    # Log audit event
+    AuthService.log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="password.change",
+        resource_type="user",
+        resource_id=current_user.id,
+        request=request
+    )
+
+    return {"message": "Password changed successfully"}
 
