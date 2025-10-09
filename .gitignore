@@ -25,3 +25,13 @@ nul
 *_PLAN.md
 *_AUDIT.md
 CLEANUP_PLAN.md
+
+# Google Cloud credentials - NEVER COMMIT THESE!
+github-actions-key.json
+*-key.json
+credentials.json
+service-account*.json
+gcloud-key*.json
+
+# Claude Code settings
+.claude/settings.local.json
