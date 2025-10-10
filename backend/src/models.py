@@ -254,6 +254,34 @@ class Expense(Base):
     intent_mandate = relationship("IntentMandate", backref="expenses")
     cart_mandate = relationship("CartMandate", backref="expenses")
     payment_mandate = relationship("PaymentMandate", backref="expenses")
+    receipts = relationship("Receipt", back_populates="expense", cascade="all, delete-orphan")
+
+
+class Receipt(Base):
+    """Receipt/attachment for an expense"""
+    __tablename__ = "receipts"
+
+    id = Column(String(255), primary_key=True)
+    expense_id = Column(String(255), ForeignKey("expenses.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # File information
+    filename = Column(String(255), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False)  # Local path or Cloud Storage URL
+    file_size = Column(Integer, nullable=False)  # Size in bytes
+    content_type = Column(String(100), nullable=False)  # MIME type
+
+    # Optional OCR/AI extracted data
+    ocr_text = Column(Text, nullable=True)
+    extracted_amount = Column(Numeric(10, 2), nullable=True)
+    extracted_vendor = Column(String(255), nullable=True)
+    extracted_date = Column(DateTime, nullable=True)
+
+    # Timestamps
+    uploaded_at = Column(DateTime, server_default=func.now(), index=True)
+
+    # Relationships
+    expense = relationship("Expense", back_populates="receipts")
 
 
 # ============================================================================

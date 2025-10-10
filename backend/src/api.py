@@ -11,6 +11,7 @@ from .routes.billing import router as billing_router
 from .routes.ap2 import router as ap2_router
 from .routes.webhooks import router as webhooks_router
 from .routes.organizations import router as organizations_router
+from .routes.receipts import router as receipts_router
 from .database import init_db, get_db
 from .auth import get_current_active_user
 from .models import User
@@ -79,6 +80,7 @@ app.include_router(organizations_router)
 app.include_router(billing_router)
 app.include_router(ap2_router)
 app.include_router(webhooks_router)
+app.include_router(receipts_router)
 
 # Initialize database on startup
 @app.on_event("startup")
