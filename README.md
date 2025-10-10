@@ -35,7 +35,7 @@ AI-powered expense management application implementing Google's AP2 Protocol for
 ### Installation
 
 **Backend:**
-\`\`\`bash
+```bash
 cd backend
 python -m venv venv
 venv\Scripts\activate  # Windows
@@ -49,15 +49,15 @@ cp .env.example .env
 alembic upgrade head
 
 # Start server
-uvicorn src.api:app --reload
-\`\`\`
+uvicorn src.api:app --reload --port 8000
+```
 
 **Frontend:**
-\`\`\`bash
+```bash
 cd frontend
 npm install
 npm run dev
-\`\`\`
+```
 
 **Access:**
 - Frontend: http://localhost:5173
