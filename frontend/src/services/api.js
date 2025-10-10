@@ -83,10 +83,44 @@ export const expenseAPI = {
     });
   },
 
+  // Reject an expense
+  rejectExpense: async (expenseId, approverId, rejectionReason = null) => {
+    return request('/expenses/reject', {
+      method: 'POST',
+      body: JSON.stringify({
+        expense_id: expenseId,
+        approver_id: approverId,
+        rejection_reason: rejectionReason,
+      }),
+    });
+  },
+
+  // Withdraw an expense (employee only, pending expenses)
+  withdrawExpense: async (expenseId) => {
+    return request(`/expenses/${expenseId}/withdraw`, {
+      method: 'DELETE',
+    });
+  },
+
   // Get expense report
   getExpenseReport: async (userId = null) => {
     const queryParam = userId ? `?user_id=${userId}` : '';
     return request(`/expenses/report${queryParam}`, {
+      method: 'GET',
+    });
+  },
+
+  // Get all pending expenses (admin only)
+  getAllPendingExpenses: async () => {
+    return request('/expenses/all-pending', {
+      method: 'GET',
+    });
+  },
+
+  // Get all expenses with optional status filter (admin only)
+  getAllExpenses: async (status = null) => {
+    const queryParam = status ? `?status=${status}` : '';
+    return request(`/admin/expenses${queryParam}`, {
       method: 'GET',
     });
   },

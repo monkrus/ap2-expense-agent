@@ -463,3 +463,76 @@ async def unlock_user_account(
         "message": f"User account '{user.username}' unlocked successfully",
         "user_id": user.id
     }
+
+
+@router.get("/expenses")
+async def get_all_expenses(
+    status: Optional[str] = Query(None),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all expenses from all users with optional status filter (admin only)"""
+    from ..models import Expense, ExpenseStatus, User as UserModel
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"[admin.get_all_expenses] Called with status filter: {status}")
+
+    # Build query - exclude withdrawn by default
+    query = db.query(Expense).filter(Expense.status != ExpenseStatus.WITHDRAWN)
+
+    # Apply status filter if provided
+    if status and status != "all":
+        try:
+            status_enum = ExpenseStatus(status.lower())
+            logger.info(f"[admin.get_all_expenses] Filtering by status enum: {status_enum}")
+            query = query.filter(Expense.status == status_enum)
+        except ValueError:
+            logger.warning(f"[admin.get_all_expenses] Invalid status value: {status}")
+            pass  # Invalid status, ignore filter
+
+    # Get all expenses ordered by creation date (newest first)
+    expenses = query.order_by(Expense.created_at.desc()).all()
+    logger.info(f"[admin.get_all_expenses] Found {len(expenses)} expenses")
+
+    # Get user details for each expense and include approver info
+    result = []
+    for e in expenses:
+        user = db.query(UserModel).filter(UserModel.id == e.user_id).first()
+        approver = None
+        if e.approved_by:
+            approver = db.query(UserModel).filter(UserModel.id == e.approved_by).first()
+
+        result.append({
+            "id": e.id,
+            "amount": float(e.amount),
+            "vendor": e.vendor,
+            "category": e.category,
+            "description": e.description,
+            "status": e.status.value,
+            "date": e.date.isoformat() if e.date else None,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+            "approved_at": e.approved_at.isoformat() if e.approved_at else None,
+            "transaction_id": e.transaction_id,
+            "rejection_reason": e.rejection_reason,
+            "user_id": e.user_id,
+            "user_email": user.email if user else "Unknown",
+            "user_name": user.full_name if user else "Unknown",
+            "approved_by_name": approver.full_name if approver else None,
+            "approved_by_email": approver.email if approver else None
+        })
+
+    # Calculate stats
+    total_amount = sum(e["amount"] for e in result)
+    pending_count = sum(1 for e in result if e["status"] == "pending")
+    approved_count = sum(1 for e in result if e["status"] == "approved")
+    rejected_count = sum(1 for e in result if e["status"] == "rejected")
+
+    return {
+        "total_count": len(result),
+        "total_amount": total_amount,
+        "pending_count": pending_count,
+        "approved_count": approved_count,
+        "rejected_count": rejected_count,
+        "expenses": result
+    }
