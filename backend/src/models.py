@@ -202,6 +202,7 @@ class ExpenseStatus(str, enum.Enum):
     APPROVED = "approved"
     REJECTED = "rejected"
     PROCESSING = "processing"
+    WITHDRAWN = "withdrawn"
 
 
 class ExpenseCategory(str, enum.Enum):

@@ -5,6 +5,7 @@ steps:
       - 'build'
       - '-t'
       - 'gcr.io/$PROJECT_ID/ap2-expense-backend:$COMMIT_SHA'
+      
       - '-t'
       - 'gcr.io/$PROJECT_ID/ap2-expense-backend:latest'
       - '-f'

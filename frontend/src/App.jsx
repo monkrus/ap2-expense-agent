@@ -5,10 +5,34 @@ import { useToast } from './hooks/useToast';
 import { ToastContainer } from './components/Toast';
 import { useAuth } from './contexts/AuthContext';
 import ChangePassword from './components/ChangePassword';
+import EmployeeDashboard from './components/EmployeeDashboard';
+import AdminDashboard from './components/AdminDashboard';
 
 const ExpenseManagementAgent = () => {
   const { user } = useAuth();
   const { toasts, removeToast, success, error: showError, info } = useToast();
+
+  // Route to correct dashboard based on user role
+  if (user) {
+    if (user.role === 'admin' || user.role === 'manager' || user.role === 'accountant') {
+      return (
+        <>
+          <ToastContainer toasts={toasts} onClose={removeToast} />
+          <AdminDashboard />
+        </>
+      );
+    } else {
+      return (
+        <>
+          <ToastContainer toasts={toasts} onClose={removeToast} />
+          <EmployeeDashboard />
+        </>
+      );
+    }
+  }
+
+  // Legacy dashboard code below (kept for fallback)
+  const legacyUser = { role: 'legacy' };
 
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hello! I\'m your AI Expense Management Agent. I can help you submit, review, and approve business expenses automatically. Use the quick action buttons below or type your request.' }
@@ -136,9 +160,65 @@ const ExpenseManagementAgent = () => {
     setLoading(false);
   };
 
-  const handleQuickAction = async (action) => {
-    setInput(action);
-    setTimeout(() => handleSubmit(), 0);
+  const handleQuickAction = (action) => {
+    // Don't rely on state update - directly submit with the action
+    const userMessage = { role: 'user', content: action };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setLoading(true);
+
+    // Process the action immediately
+    setTimeout(async () => {
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      let response = '';
+      const lowerInput = action.toLowerCase();
+
+      if (lowerInput.includes('submit') || lowerInput.includes('new expense')) {
+        response = 'I will help you submit a new expense. Please fill out the form below with the expense details.';
+        setShowExpenseForm(true);
+      } else if (lowerInput.includes('review') || lowerInput.includes('pending')) {
+        const pendingExpenses = expenses.filter(e => e.status === 'pending');
+        response = `You have ${pendingExpenses.length} pending expenses totaling $${pendingExpenses.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}. Click "Approve" on any expense card or use the quick action button to process them via AP2.`;
+      } else if (lowerInput.includes('approve') || lowerInput.includes('process')) {
+        const expenseToApprove = expenses.find(e => e.status === 'pending');
+        if (expenseToApprove) {
+          response = `Processing ${expenseToApprove.id} for $${expenseToApprove.amount} using AP2 protocol with cryptographic mandates...`;
+          setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+
+          try {
+            const result = await processAP2Payment(expenseToApprove);
+
+            if (result.success) {
+              // Optimistic update
+              setExpenses(prev => prev.map(e =>
+                e.id === expenseToApprove.id
+                  ? { ...e, status: 'approved', transaction_id: result.transactionId }
+                  : e
+              ));
+
+              response = `Payment completed successfully!\n\nTransaction ID: ${result.transactionId}\n\nAP2 Verification:\n• Intent Mandate: ${result.mandates.intent.id}\n• Cart Mandate: ${result.mandates.cart.id}\n• Payment Mandate: ${result.mandates.payment.id}\n\nFull cryptographic audit trail available for compliance.`;
+              success('Payment processed successfully!');
+            }
+          } catch (err) {
+            const errorMsg = err instanceof APIError ? err.message : 'Failed to process payment';
+            response = `Error: ${errorMsg}`;
+            showError(errorMsg);
+          }
+        } else {
+          response = 'No pending expenses to process at the moment.';
+        }
+      } else if (lowerInput.includes('analytics') || lowerInput.includes('report')) {
+        const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+        const approved = expenses.filter(e => e.status === 'approved').length;
+        response = `Expense Analytics:\n\n• Total Expenses: $${total.toFixed(2)}\n• Approved: ${approved}\n• Pending: ${expenses.length - approved}\n• Average: $${(total / expenses.length).toFixed(2)}\n\nTop Category: ${expenses[0]?.category || 'N/A'}`;
+      } else {
+        response = 'I can help you with:\n\n• Submit new expenses\n• Review pending expenses\n• Approve and process payments via AP2\n• Generate expense reports\n• View analytics\n\nUse the quick action buttons below for common tasks!';
+      }
+
+      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      setLoading(false);
+    }, 0);
   };
 
   const handleApproveExpense = async (expense) => {
