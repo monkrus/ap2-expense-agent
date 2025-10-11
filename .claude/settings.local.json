@@ -44,7 +44,8 @@
       "Bash(tasklist)",
       "Bash(....venvScriptsactivate)",
       "Bash(.venvScriptsActivate.ps1)",
-      "Bash(...venvScriptspython.exe ..test_pending_filter.py)"
+      "Bash(...venvScriptspython.exe ..test_pending_filter.py)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

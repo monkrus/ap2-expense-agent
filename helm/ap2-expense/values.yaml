@@ -1,0 +1,183 @@
+# Default values for ap2-expense
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global settings
+global:
+  projectId: "YOUR_PROJECT_ID"
+  region: "us-central1"
+
+# Image configuration
+images:
+  backend:
+    repository: us-central1-docker.pkg.dev/YOUR_PROJECT_ID/ap2-expense/backend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: us-central1-docker.pkg.dev/YOUR_PROJECT_ID/ap2-expense/frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+# Backend configuration
+backend:
+  replicaCount: 3
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+
+  env:
+    ENVIRONMENT: "production"
+    LOG_LEVEL: "info"
+
+# Frontend configuration
+frontend:
+  replicaCount: 2
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+
+# Database configuration (Cloud SQL)
+database:
+  enabled: true
+  type: cloudsql
+  instanceConnectionName: "YOUR_PROJECT_ID:us-central1:ap2-expense-db"
+  databaseName: "ap2_expense"
+  username: "ap2user"
+  # Password should be stored in secrets
+
+# Redis configuration (optional)
+redis:
+  enabled: false
+  host: "redis-service"
+  port: 6379
+  database: 0
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "gce"
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: "ap2-expense-ip"
+    networking.gke.io/managed-certificates: "ap2-expense-cert"
+    cloud.google.com/cdn-enabled: "true"
+    cloud.google.com/neg: '{"ingress": true}'
+    cloud.google.com/armor-config: '{"ap2-expense-security-policy": "ap2-expense-policy"}'
+  hosts:
+    - host: your-domain.com
+      paths:
+        - path: /api/*
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: backend-service
+              port: 8000
+        - path: /*
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: frontend-service
+              port: 80
+
+# TLS/SSL configuration
+tls:
+  enabled: true
+  managedCertificate:
+    enabled: true
+    domains:
+      - your-domain.com
+      - www.your-domain.com
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations:
+    iam.gke.io/gcp-service-account: "ap2-expense@YOUR_PROJECT_ID.iam.gserviceaccount.com"
+  name: "ap2-expense-sa"
+
+# RBAC
+rbac:
+  create: true
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Pod security context
+podSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+
+# Network policies
+networkPolicy:
+  enabled: false
+
+# Monitoring
+monitoring:
+  enabled: true
+  scrapeInterval: 30s
+
+# Secrets (use external secret management in production)
+secrets:
+  jwtSecretKey: ""  # Override with actual secret
+  jwtRefreshSecretKey: ""  # Override with actual secret
+  databasePassword: ""  # Override with actual secret
+  stripeSecretKey: ""  # Optional
+
+# Backup configuration
+backup:
+  enabled: false
+  schedule: "0 3 * * *"  # Daily at 3 AM
+  retention: 30  # days
+
+# Billing and metering (for Google Cloud Marketplace)
+billing:
+  enabled: false
+  reportingSecret: ""
+  reportingEndpoint: "https://cloudcommerceprocurement.googleapis.com/v1"
+  metrics:
+    api_calls:
+      enabled: true
+      type: "gauge"
+    storage_gb:
+      enabled: true
+      type: "gauge"
+    active_users:
+      enabled: true
+      type: "gauge"

@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: ap2-expense
+  labels:
+    app.kubernetes.io/name: ap2-expense-agent
+    app.kubernetes.io/component: backend
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ap2-expense-agent
+    app.kubernetes.io/component: backend
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+    protocol: TCP
+  sessionAffinity: None

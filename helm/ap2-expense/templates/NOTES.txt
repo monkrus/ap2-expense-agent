@@ -1,0 +1,68 @@
+🎉 AP2 Expense Management Agent has been deployed! 🎉
+
+Your release is named: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+📋 Next Steps:
+
+1. Check the deployment status:
+   kubectl get pods -n {{ .Release.Namespace }}
+
+2. Wait for all pods to be ready:
+   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=ap2-expense -n {{ .Release.Namespace }} --timeout=300s
+
+3. Get the application URL:
+{{- if .Values.ingress.enabled }}
+   {{- range .Values.ingress.hosts }}
+   http{{ if $.Values.tls.enabled }}s{{ end }}://{{ .host }}
+   {{- end }}
+{{- else }}
+   kubectl port-forward svc/frontend-service 8080:80 -n {{ .Release.Namespace }}
+   Then visit http://localhost:8080
+{{- end }}
+
+4. View backend logs:
+   kubectl logs -f deployment/backend -n {{ .Release.Namespace }}
+
+5. View frontend logs:
+   kubectl logs -f deployment/frontend -n {{ .Release.Namespace }}
+
+📊 Monitoring:
+
+- Backend health: http{{ if .Values.tls.enabled }}s{{ end }}://{{ (index .Values.ingress.hosts 0).host }}/api/v1/health
+- API docs: http{{ if .Values.tls.enabled }}s{{ end }}://{{ (index .Values.ingress.hosts 0).host }}/docs
+
+{{- if .Values.autoscaling.enabled }}
+
+🔄 Auto-scaling is enabled:
+- Backend: {{ .Values.backend.autoscaling.minReplicas }} - {{ .Values.backend.autoscaling.maxReplicas }} replicas
+- Frontend: {{ .Values.frontend.autoscaling.minReplicas }} - {{ .Values.frontend.autoscaling.maxReplicas }} replicas
+{{- end }}
+
+⚠️  Important:
+
+1. Update your DNS to point to the Ingress IP:
+   kubectl get ingress -n {{ .Release.Namespace }}
+
+2. Make sure secrets are properly configured:
+   kubectl get secrets -n {{ .Release.Namespace }}
+
+3. Run database migrations (if needed):
+   kubectl exec -it deployment/backend -n {{ .Release.Namespace }} -- alembic upgrade head
+
+📚 Documentation:
+
+- README: https://github.com/yourusername/ap2-expense-agent
+- API Docs: /docs endpoint
+- Support: your-email@example.com
+
+🔒 Security:
+
+This deployment includes:
+- JWT authentication
+- Role-based access control (RBAC)
+- Complete AP2 protocol audit trails
+- Multi-tenancy support
+- Cloud Armor DDoS protection (if enabled)
+
+Happy expense management! 🚀

@@ -1,0 +1,22 @@
+apiVersion: v2
+name: ap2-expense
+description: AP2 Protocol-compliant Expense Management Agent with complete audit trails
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - expense-management
+  - ap2-protocol
+  - audit-trail
+  - fintech
+  - compliance
+home: https://github.com/yourusername/ap2-expense-agent
+sources:
+  - https://github.com/yourusername/ap2-expense-agent
+maintainers:
+  - name: Your Name
+    email: your-email@example.com
+icon: https://your-domain.com/logo.png
+annotations:
+  # Google Cloud Marketplace annotations
+  marketplace.cloud.google.com/deploy-info: '{"partner_id": "YOUR_PARTNER_ID", "product_id": "ap2-expense", "partner_name": "Your Company"}'
