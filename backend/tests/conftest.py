@@ -381,3 +381,64 @@ def cleanup_cache():
             cache.redis_client.flushdb()
         except:
             pass
+
+
+# ============================================================================
+# Additional Fixtures for New Tests
+# ============================================================================
+
+@pytest.fixture
+def employee_headers(auth_headers):
+    """Alias for employee authentication headers"""
+    return auth_headers
+
+
+@pytest.fixture
+def sample_user(db_session):
+    """Factory fixture to create users with specific attributes"""
+    def _create_user(email=None, role=UserRole.EMPLOYEE, **kwargs):
+        email = email or f"user_{uuid.uuid4().hex[:8]}@test.com"
+        user = User(
+            id=str(uuid.uuid4()),
+            email=email,
+            username=email.split('@')[0],
+            full_name=kwargs.get('full_name', 'Test User'),
+            hashed_password=AuthService.hash_password(kwargs.get('password', 'TestPass123!')),
+            role=role,
+            is_active=kwargs.get('is_active', True),
+            is_verified=kwargs.get('is_verified', True),
+            failed_login_attempts=0,
+            locked_until=None,
+            last_failed_login=None
+        )
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
+        return user
+    return _create_user
+
+
+@pytest.fixture
+def sample_expense(db_session, test_user, test_organization):
+    """Factory fixture to create expenses with specific attributes"""
+    from src.models import ExpenseStatus, ExpenseCategory
+
+    def _create_expense(user=None, status=ExpenseStatus.PENDING, **kwargs):
+        user = user or test_user
+        expense = Expense(
+            id=f"exp_{uuid.uuid4().hex[:8]}",
+            organization_id=kwargs.get('organization_id', test_organization.id),
+            user_id=user.id,
+            amount=kwargs.get('amount', 100.00),
+            vendor=kwargs.get('vendor', 'Test Vendor'),
+            category=kwargs.get('category', ExpenseCategory.TRAVEL),
+            description=kwargs.get('description', 'Test expense'),
+            status=status,
+            date=kwargs.get('date', datetime.utcnow()),
+            created_at=datetime.utcnow()
+        )
+        db_session.add(expense)
+        db_session.commit()
+        db_session.refresh(expense)
+        return expense
+    return _create_expense
