@@ -1,0 +1,218 @@
+# Google Cloud Monitoring Alert Policies
+# Deploy with: gcloud alpha monitoring policies create --policy-from-file=alert-policies.yaml
+
+---
+# High Error Rate Alert
+displayName: "AP2 Expense - High Error Rate"
+documentation:
+  content: "API error rate is above 5% for more than 5 minutes"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "Error rate > 5%"
+    conditionThreshold:
+      filter: |
+        resource.type = "k8s_pod"
+        AND resource.labels.namespace_name = "ap2-expense"
+        AND metric.type = "logging.googleapis.com/user/api_errors"
+      comparison: COMPARISON_GT
+      thresholdValue: 0.05
+      duration: 300s
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_MEAN
+combiner: OR
+enabled: true
+notificationChannels:
+  - projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID
+alertStrategy:
+  autoClose: 604800s  # 7 days
+
+---
+# Backend Pod Down Alert
+displayName: "AP2 Expense - Backend Pod Down"
+documentation:
+  content: "One or more backend pods are not running"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "Backend pods < 3"
+    conditionThreshold:
+      filter: |
+        resource.type = "k8s_pod"
+        AND resource.labels.namespace_name = "ap2-expense"
+        AND resource.labels.pod_name = starts_with("backend")
+        AND metric.type = "kubernetes.io/pod/uptime"
+      comparison: COMPARISON_LT
+      thresholdValue: 3
+      duration: 180s
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_MAX
+          crossSeriesReducer: REDUCE_COUNT
+combiner: OR
+enabled: true
+notificationChannels:
+  - projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID
+alertStrategy:
+  autoClose: 86400s  # 1 day
+
+---
+# High CPU Usage Alert
+displayName: "AP2 Expense - High CPU Usage"
+documentation:
+  content: "Backend CPU usage is above 80% for more than 10 minutes"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "CPU usage > 80%"
+    conditionThreshold:
+      filter: |
+        resource.type = "k8s_container"
+        AND resource.labels.namespace_name = "ap2-expense"
+        AND resource.labels.container_name = "backend"
+        AND metric.type = "kubernetes.io/container/cpu/core_usage_time"
+      comparison: COMPARISON_GT
+      thresholdValue: 0.8
+      duration: 600s
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_MEAN
+combiner: OR
+enabled: true
+notificationChannels:
+  - projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID
+alertStrategy:
+  autoClose: 3600s  # 1 hour
+
+---
+# High Memory Usage Alert
+displayName: "AP2 Expense - High Memory Usage"
+documentation:
+  content: "Backend memory usage is above 90% for more than 5 minutes"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "Memory usage > 90%"
+    conditionThreshold:
+      filter: |
+        resource.type = "k8s_container"
+        AND resource.labels.namespace_name = "ap2-expense"
+        AND resource.labels.container_name = "backend"
+        AND metric.type = "kubernetes.io/container/memory/used_bytes"
+      comparison: COMPARISON_GT
+      thresholdValue: 966367641.6  # 90% of 1Gi = 966367641.6 bytes
+      duration: 300s
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_MEAN
+          crossSeriesReducer: REDUCE_MEAN
+combiner: OR
+enabled: true
+notificationChannels:
+  - projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID
+alertStrategy:
+  autoClose: 3600s
+
+---
+# Database Connection Pool Alert
+displayName: "AP2 Expense - High Database Connections"
+documentation:
+  content: "Database connection count is above 80% of max connections"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "DB connections > 80%"
+    conditionThreshold:
+      filter: |
+        resource.type = "cloudsql_database"
+        AND metric.type = "cloudsql.googleapis.com/database/postgresql/num_backends"
+      comparison: COMPARISON_GT
+      thresholdValue: 80
+      duration: 300s
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_MAX
+combiner: OR
+enabled: true
+notificationChannels:
+  - projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID
+
+---
+# High Latency Alert
+displayName: "AP2 Expense - High API Latency"
+documentation:
+  content: "API response time (p95) is above 2 seconds for more than 5 minutes"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "P95 latency > 2s"
+    conditionThreshold:
+      filter: |
+        resource.type = "https_lb_rule"
+        AND metric.type = "loadbalancing.googleapis.com/https/backend_latencies"
+      comparison: COMPARISON_GT
+      thresholdValue: 2000
+      duration: 300s
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_DELTA
+          crossSeriesReducer: REDUCE_PERCENTILE_95
+combiner: OR
+enabled: true
+notificationChannels:
+  - projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID
+
+---
+# Billing CronJob Failed Alert
+displayName: "AP2 Expense - Billing CronJob Failed"
+documentation:
+  content: "Usage reporting CronJob has failed"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "CronJob failed"
+    conditionThreshold:
+      filter: |
+        resource.type = "k8s_pod"
+        AND resource.labels.namespace_name = "ap2-expense"
+        AND resource.labels.pod_name = starts_with("billing-usage-reporter")
+        AND metric.type = "kubernetes.io/container/restart_count"
+      comparison: COMPARISON_GT
+      thresholdValue: 0
+      duration: 60s
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_SUM
+combiner: OR
+enabled: true
+notificationChannels:
+  - projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID
+alertStrategy:
+  autoClose: 86400s
+
+---
+# Organization Approaching Limit Alert
+displayName: "AP2 Expense - Organization Approaching Usage Limit"
+documentation:
+  content: "An organization is approaching their usage limit (>80%)"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "Usage > 80% of limit"
+    conditionThreshold:
+      filter: |
+        resource.type = "k8s_pod"
+        AND resource.labels.namespace_name = "ap2-expense"
+        AND metric.type = "custom.googleapis.com/usage_percentage"
+      comparison: COMPARISON_GT
+      thresholdValue: 80
+      duration: 300s
+      aggregations:
+        - alignmentPeriod: 300s
+          perSeriesAligner: ALIGN_MEAN
+          crossSeriesReducer: REDUCE_MAX
+          groupByFields:
+            - resource.labels.organization_id
+            - metric.labels.metric_type
+combiner: OR
+enabled: true
+notificationChannels:
+  - projects/YOUR_PROJECT_ID/notificationChannels/YOUR_CHANNEL_ID
+alertStrategy:
+  autoClose: 86400s
