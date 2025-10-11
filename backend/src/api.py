@@ -19,6 +19,7 @@ from .rate_limit import limiter, rate_limit_handler
 from slowapi.errors import RateLimitExceeded
 from .security_middleware import SecurityHeadersMiddleware, RequestIDMiddleware, HTTPSRedirectMiddleware
 from .tenant_context import tenant_middleware
+from .error_handlers import register_exception_handlers
 
 # Try to import database-integrated agent, fallback to in-memory agent
 try:
@@ -45,6 +46,9 @@ app = FastAPI(
     version="1.0.0"
 )
 # Force reload - auth routes should be available
+
+# Register global error handlers
+register_exception_handlers(app)
 
 # Add rate limiter state
 app.state.limiter = limiter

@@ -1,11 +1,49 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 class APIError extends Error {
-  constructor(message, status, data) {
+  constructor(message, status, data, errorCode = null) {
     super(message);
     this.name = 'APIError';
     this.status = status;
     this.data = data;
+    this.errorCode = errorCode;
+
+    // Extract validation errors if present
+    if (data?.error?.details?.errors) {
+      this.validationErrors = data.error.details.errors;
+    }
+  }
+
+  // User-friendly error message
+  getUserMessage() {
+    // Use specific error messages for common scenarios
+    if (this.status === 401) {
+      return 'Your session has expired. Please log in again.';
+    }
+    if (this.status === 403) {
+      return 'You do not have permission to perform this action.';
+    }
+    if (this.status === 404) {
+      return 'The requested resource was not found.';
+    }
+    if (this.status === 409) {
+      return 'This resource already exists or conflicts with an existing resource.';
+    }
+    if (this.status === 422) {
+      return 'Please check your input and try again.';
+    }
+    if (this.status === 429) {
+      return 'Too many requests. Please slow down and try again.';
+    }
+    if (this.status >= 500) {
+      return 'A server error occurred. Please try again later.';
+    }
+    if (this.status === 0) {
+      return 'Network error. Please check your internet connection.';
+    }
+
+    // Return the actual error message if available
+    return this.message || 'An error occurred. Please try again.';
   }
 }
 
@@ -21,19 +59,34 @@ const handleResponse = async (response) => {
   const data = isJson ? await response.json() : await response.text();
 
   if (!response.ok) {
-    const errorMessage = isJson ? (data.detail || data.message || 'Request failed') : 'Request failed';
-    throw new APIError(errorMessage, response.status, data);
+    // Handle new error format from backend
+    let errorMessage = 'Request failed';
+    let errorCode = null;
+
+    if (isJson && data.error) {
+      // New error format: { error: { message, code, status, details } }
+      errorMessage = data.error.message || errorMessage;
+      errorCode = data.error.code;
+    } else if (isJson) {
+      // Legacy format: { detail, message }
+      errorMessage = data.detail || data.message || errorMessage;
+    }
+
+    throw new APIError(errorMessage, response.status, data, errorCode);
   }
 
   return data;
 };
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 const request = async (endpoint, options = {}) => {
+  const { retries = 0, retryDelay = 1000, ...fetchOptions } = options;
   const token = getAuthToken();
 
   const headers = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...fetchOptions.headers,
   };
 
   if (token) {
@@ -41,19 +94,42 @@ const request = async (endpoint, options = {}) => {
   }
 
   const config = {
-    ...options,
+    ...fetchOptions,
     headers,
   };
 
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    return await handleResponse(response);
-  } catch (error) {
-    if (error instanceof APIError) {
-      throw error;
+  let lastError;
+
+  // Retry logic for failed requests
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+      return await handleResponse(response);
+    } catch (error) {
+      lastError = error;
+
+      // Don't retry on client errors (4xx) except 429 (rate limit)
+      if (error instanceof APIError) {
+        if (error.status >= 400 && error.status < 500 && error.status !== 429) {
+          throw error;
+        }
+      }
+
+      // Don't retry on last attempt
+      if (attempt < retries) {
+        // Exponential backoff
+        const delay = retryDelay * Math.pow(2, attempt);
+        console.log(`Request failed, retrying in ${delay}ms... (Attempt ${attempt + 1}/${retries + 1})`);
+        await sleep(delay);
+      }
     }
-    throw new APIError('Network error. Please check your connection.', 0, null);
   }
+
+  // If we got here, all retries failed
+  if (lastError instanceof APIError) {
+    throw lastError;
+  }
+  throw new APIError('Network error. Please check your connection.', 0, null);
 };
 
 // Expense API
