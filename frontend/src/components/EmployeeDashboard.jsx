@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter } from 'lucide-react';
+import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
 import ChangePassword from './ChangePassword';
+import ReceiptUpload from './ReceiptUpload';
+import ExpenseEdit from './ExpenseEdit';
+import ExpenseExport from './ExpenseExport';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
@@ -14,6 +17,10 @@ const EmployeeDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showReceiptUpload, setShowReceiptUpload] = useState(false);
+  const [showExpenseEdit, setShowExpenseEdit] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all'); // for history tab
   const [newExpense, setNewExpense] = useState({
     amount: '',
@@ -178,6 +185,13 @@ const EmployeeDashboard = () => {
               <p className="text-gray-600 mt-2">Submit and track your expense requests</p>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowExport(true)}
+                className="flex items-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-medium"
+              >
+                <Download className="w-5 h-5" />
+                Export
+              </button>
               <button
                 onClick={() => setShowChangePassword(true)}
                 className="flex items-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
@@ -434,14 +448,38 @@ const EmployeeDashboard = () => {
                         <p className="text-xs text-gray-500">{expense.category}</p>
                       </div>
                       {expense.status === 'pending' && !expense._optimistic && (
-                        <button
-                          onClick={() => handleWithdrawExpense(expense)}
-                          className="flex items-center gap-1 px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                          title="Withdraw this expense"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          Withdraw
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedExpense(expense);
+                              setShowExpenseEdit(true);
+                            }}
+                            className="flex items-center gap-1 px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                            title="Edit this expense"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedExpense(expense);
+                              setShowReceiptUpload(true);
+                            }}
+                            className="flex items-center gap-1 px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors"
+                            title="Upload receipt"
+                          >
+                            <Upload className="w-3 h-3" />
+                            Receipt
+                          </button>
+                          <button
+                            onClick={() => handleWithdrawExpense(expense)}
+                            className="flex items-center gap-1 px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                            title="Withdraw this expense"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Withdraw
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -459,6 +497,54 @@ const EmployeeDashboard = () => {
               success('Password changed successfully!');
               setShowChangePassword(false);
             }}
+          />
+        )}
+
+        {/* Receipt Upload Modal */}
+        {showReceiptUpload && selectedExpense && (
+          <ReceiptUpload
+            expenseId={selectedExpense.id}
+            onSuccess={(data) => {
+              success('Receipt uploaded successfully!');
+              setShowReceiptUpload(false);
+              setSelectedExpense(null);
+              // Refresh expenses to show updated data
+              setExpenses(prev => prev.map(e =>
+                e.id === selectedExpense.id ? { ...e, receipt_url: data.receipt_url } : e
+              ));
+            }}
+            onCancel={() => {
+              setShowReceiptUpload(false);
+              setSelectedExpense(null);
+            }}
+          />
+        )}
+
+        {/* Expense Edit Modal */}
+        {showExpenseEdit && selectedExpense && (
+          <ExpenseEdit
+            expense={selectedExpense}
+            onSuccess={(updatedExpense) => {
+              success('Expense updated successfully!');
+              setShowExpenseEdit(false);
+              setSelectedExpense(null);
+              // Update the expense in the list
+              setExpenses(prev => prev.map(e =>
+                e.id === updatedExpense.id ? updatedExpense : e
+              ));
+            }}
+            onCancel={() => {
+              setShowExpenseEdit(false);
+              setSelectedExpense(null);
+            }}
+          />
+        )}
+
+        {/* Export Modal */}
+        {showExport && (
+          <ExpenseExport
+            expenses={expenses}
+            onClose={() => setShowExport(false)}
           />
         )}
       </div>
