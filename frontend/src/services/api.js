@@ -171,6 +171,20 @@ export const expenseAPI = {
     });
   },
 
+  // Update an expense (employee only, pending expenses)
+  updateExpense: async (expenseId, expenseData) => {
+    return request(`/expenses/${expenseId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        user_id: expenseData.user_id,
+        amount: parseFloat(expenseData.amount),
+        vendor: expenseData.vendor,
+        category: expenseData.category,
+        description: expenseData.description,
+      }),
+    });
+  },
+
   // Withdraw an expense (employee only, pending expenses)
   withdrawExpense: async (expenseId) => {
     return request(`/expenses/${expenseId}/withdraw`, {

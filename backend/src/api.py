@@ -281,6 +281,68 @@ async def reject_expense(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.put("/api/v1/expenses/{expense_id}")
+async def update_expense(
+    expense_id: str,
+    data: ExpenseSubmission,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update a pending expense (employee only, must own the expense)"""
+    try:
+        from .models import Expense, ExpenseStatus
+        from datetime import datetime
+
+        # Get the expense from database
+        expense = db.query(Expense).filter(Expense.id == expense_id).first()
+        if not expense:
+            raise HTTPException(status_code=404, detail="Expense not found")
+
+        # Check ownership - only the expense owner can edit
+        if expense.user_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only edit your own expenses"
+            )
+
+        # Can only edit pending expenses
+        if expense.status != ExpenseStatus.PENDING:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot edit expense with status: {expense.status.value}. Only pending expenses can be edited."
+            )
+
+        # Update expense fields
+        expense.amount = data.amount
+        expense.vendor = data.vendor
+        expense.category = data.category
+        expense.description = data.description
+        expense.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(expense)
+
+        return {
+            "success": True,
+            "message": "Expense updated successfully",
+            "expense": {
+                "id": expense.id,
+                "amount": float(expense.amount),
+                "vendor": expense.vendor,
+                "category": expense.category,
+                "description": expense.description,
+                "status": expense.status.value,
+                "date": expense.date.isoformat(),
+                "user_id": expense.user_id
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.delete("/api/v1/expenses/{expense_id}/withdraw")
 async def withdraw_expense(
     expense_id: str,
