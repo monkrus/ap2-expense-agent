@@ -177,11 +177,18 @@ async def approve_expense(
     try:
         # Get organization context for multi-tenancy
         from .tenant_context import TenantContext
-        from .models import Expense, ExpenseStatus
+        from .models import Expense, ExpenseStatus, UserRole
+        from .services.audit_service import AuditService
         from datetime import datetime
-        import uuid
 
         organization_id = TenantContext.get_organization()
+
+        # Only admins, managers, and accountants can approve expenses
+        if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to approve expenses"
+            )
 
         # Get the expense from database
         expense = db.query(Expense).filter(Expense.id == data.expense_id).first()
@@ -191,33 +198,29 @@ async def approve_expense(
         if expense.status != ExpenseStatus.PENDING:
             raise HTTPException(status_code=400, detail=f"Expense is already {expense.status.value}")
 
-        # Generate AP2 mandate IDs for tracking
-        intent_id = f"intent_{uuid.uuid4().hex[:16]}"
-        cart_id = f"cart_{uuid.uuid4().hex[:16]}"
-        payment_id = f"payment_{uuid.uuid4().hex[:16]}"
-
-        # Update expense status and link to AP2 mandates
+        # Update expense status
         expense.status = ExpenseStatus.APPROVED
         expense.approved_by = current_user.id
         expense.approved_at = datetime.utcnow()
-        expense.intent_mandate_id = intent_id
-        expense.cart_mandate_id = cart_id
-        expense.payment_mandate_id = payment_id
-        expense.transaction_id = payment_id  # Use payment mandate as transaction ID
 
-        db.commit()
-        db.refresh(expense)
+        # Create complete AP2 audit trail with all mandates
+        audit_service = AuditService(db)
+        audit_trail = audit_service.create_complete_audit_trail(
+            expense=expense,
+            approver=current_user,
+            action="approve"
+        )
 
         return {
             "success": True,
             "result": {
                 "expense_id": expense.id,
                 "status": expense.status.value,
-                "transaction_id": payment_id,
+                "transaction_id": audit_trail["transaction_id"],
                 "mandates": {
-                    "intent": {"id": intent_id},
-                    "cart": {"id": cart_id},
-                    "payment": {"id": payment_id}
+                    "intent": audit_trail["intent_mandate"],
+                    "cart": audit_trail["cart_mandate"],
+                    "payment": audit_trail["payment_mandate"]
                 }
             }
         }
@@ -236,8 +239,10 @@ async def reject_expense(
     try:
         # Get organization context for multi-tenancy
         from .tenant_context import TenantContext
-        from .models import Expense, ExpenseStatus, UserRole
+        from .models import Expense, ExpenseStatus, UserRole, AuditLog
         from datetime import datetime
+        import uuid
+        import json
 
         organization_id = TenantContext.get_organization()
 
@@ -261,6 +266,23 @@ async def reject_expense(
         expense.approved_by = current_user.id  # Track who rejected it
         expense.approved_at = datetime.utcnow()  # Track when rejected
         expense.rejection_reason = data.rejection_reason  # Save rejection reason
+
+        # Create audit log entry for rejection
+        audit_log = AuditLog(
+            id=str(uuid.uuid4()),
+            user_id=current_user.id,
+            action="expense_reject",
+            resource_type="expense",
+            resource_id=expense.id,
+            details=json.dumps({
+                "amount": float(expense.amount),
+                "vendor": expense.vendor,
+                "category": expense.category.value,
+                "rejection_reason": data.rejection_reason,
+                "status_change": "PENDING -> REJECTED"
+            })
+        )
+        db.add(audit_log)
 
         db.commit()
         db.refresh(expense)
@@ -575,18 +597,21 @@ async def get_audit(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    """Get complete AP2 audit trail for a transaction"""
     try:
-        # Initialize database-integrated agent
-        if AGENT_DB_AVAILABLE:
-            agent = DBAgent(
-                db=db,
-                api_key=settings.google_api_key or os.getenv("GOOGLE_API_KEY", ""),
-                project_id=settings.google_cloud_project or os.getenv("GOOGLE_CLOUD_PROJECT", "")
-            )
-        else:
-            raise HTTPException(status_code=503, detail="Agent service unavailable")
+        from .services.audit_service import AuditService
 
-        audit = agent.get_audit_trail(transaction_id)
+        audit_service = AuditService(db)
+        audit = audit_service.get_complete_audit_trail(transaction_id)
+
+        if not audit:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Audit trail not found for transaction {transaction_id}"
+            )
+
         return audit
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error retrieving audit trail: {str(e)}")
