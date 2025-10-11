@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     google_genai_use_vertexai: bool = False
 
     # Database
-    database_url: str = "postgresql://ap2user:changeme@localhost:5432/expenses"
+    # Default to SQLite for development, override with DATABASE_URL env var for production
+    database_url: str = "sqlite:///./test.db"
     redis_url: str = "redis://localhost:6379/0"
 
     # Database Connection Pooling
