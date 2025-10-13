@@ -23,6 +23,7 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel }) => {
 
     try {
       const updatedData = {
+        user_id: expense.user_id,  // Include user_id from original expense
         amount: parseFloat(formData.amount),
         category: formData.category,
         vendor: formData.vendor,

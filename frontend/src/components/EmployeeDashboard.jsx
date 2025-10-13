@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download } from 'lucide-react';
+import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +22,8 @@ const EmployeeDashboard = () => {
   const [showExport, setShowExport] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all'); // for history tab
+  const [sortField, setSortField] = useState('date'); // 'date', 'amount', 'category'
+  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
   const [newExpense, setNewExpense] = useState({
     amount: '',
     category: 'Travel',
@@ -156,6 +158,47 @@ const EmployeeDashboard = () => {
     );
   };
 
+  // Sorting function
+  const handleSort = (field) => {
+    if (sortField === field) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, default to descending
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const sortExpenses = (expensesList) => {
+    return [...expensesList].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortField) {
+        case 'date':
+          aValue = new Date(a.date || a.created_at);
+          bValue = new Date(b.date || b.created_at);
+          break;
+        case 'amount':
+          aValue = parseFloat(a.amount);
+          bValue = parseFloat(b.amount);
+          break;
+        case 'category':
+          aValue = (a.category || '').toLowerCase();
+          bValue = (b.category || '').toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (sortDirection === 'asc') {
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+      } else {
+        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+      }
+    });
+  };
+
   // Filter expenses based on active tab and filters
   const activeExpenses = expenses.filter(e => e.status === 'pending');
   const historyExpenses = expenses.filter(e => {
@@ -163,7 +206,7 @@ const EmployeeDashboard = () => {
     return e.status === statusFilter;
   });
 
-  const currentExpenses = activeTab === 'active' ? activeExpenses : historyExpenses;
+  const currentExpenses = sortExpenses(activeTab === 'active' ? activeExpenses : historyExpenses);
 
   const stats = {
     total: expenses.reduce((sum, e) => sum + e.amount, 0),
@@ -384,7 +427,7 @@ const EmployeeDashboard = () => {
 
         {/* Expense List */}
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800">
               {activeTab === 'active' ? 'Active Expenses' : 'Expense History'}
             </h2>
@@ -394,6 +437,52 @@ const EmployeeDashboard = () => {
               </span>
             )}
           </div>
+
+          {/* Sort Controls */}
+          {currentExpenses.length > 0 && (
+            <div className="flex items-center gap-2 mb-4 pb-4 border-b">
+              <span className="text-sm font-medium text-gray-700">Sort by:</span>
+              <button
+                onClick={() => handleSort('date')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  sortField === 'date'
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Date
+                {sortField === 'date' && (
+                  sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                )}
+              </button>
+              <button
+                onClick={() => handleSort('amount')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  sortField === 'amount'
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Amount
+                {sortField === 'amount' && (
+                  sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                )}
+              </button>
+              <button
+                onClick={() => handleSort('category')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  sortField === 'category'
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Category
+                {sortField === 'category' && (
+                  sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+          )}
 
           {loading ? (
             <div className="flex items-center justify-center py-12">

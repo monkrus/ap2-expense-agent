@@ -253,7 +253,7 @@ export const authAPI = {
   },
 
   getCurrentUser: async () => {
-    return request('/users/me', {
+    return request('/auth/me', {
       method: 'GET',
     });
   },

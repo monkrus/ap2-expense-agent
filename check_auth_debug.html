@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Debug</title>
+</head>
+<body>
+    <h1>Authentication Debug Tool</h1>
+    <button onclick="checkStorage()">Check LocalStorage</button>
+    <button onclick="clearStorage()">Clear LocalStorage</button>
+    <button onclick="testLogin()">Test Login</button>
+    <pre id="output"></pre>
+
+    <script>
+        function log(msg) {
+            document.getElementById('output').textContent += msg + '\n';
+        }
+
+        function checkStorage() {
+            document.getElementById('output').textContent = '';
+            log('=== LocalStorage Contents ===');
+            log('access_token: ' + (localStorage.getItem('access_token') || 'NOT SET'));
+            log('refresh_token: ' + (localStorage.getItem('refresh_token') || 'NOT SET'));
+            log('user: ' + (localStorage.getItem('user') || 'NOT SET'));
+        }
+
+        function clearStorage() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            log('Storage cleared!');
+            checkStorage();
+        }
+
+        async function testLogin() {
+            document.getElementById('output').textContent = '';
+            log('Testing login...');
+
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'emptest',
+                        password: 'AgentTest!'
+                    })
+                });
+
+                log('Status: ' + response.status);
+                const data = await response.json();
+                log('Response: ' + JSON.stringify(data, null, 2));
+
+                if (data.access_token) {
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('refresh_token', data.refresh_token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    log('\nTokens saved to localStorage!');
+
+                    // Test API call with token
+                    log('\nTesting API call with token...');
+                    const testResponse = await fetch('http://localhost:8000/api/v1/expenses/report', {
+                        headers: {
+                            'Authorization': 'Bearer ' + data.access_token
+                        }
+                    });
+                    log('API Status: ' + testResponse.status);
+                    const testData = await testResponse.json();
+                    log('API Response: ' + JSON.stringify(testData, null, 2));
+                }
+            } catch (error) {
+                log('Error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

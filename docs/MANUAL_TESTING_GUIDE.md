@@ -3,7 +3,7 @@
 Complete step-by-step guide to manually test all newly implemented features.
 
 ## Prerequisites
-
+HOW TO START------->
 ### 1. Start the Backend Server
 
 ```bash
@@ -28,6 +28,7 @@ You'll need these users (create if they don't exist):
 
 **Employee**: `emptest` / `employee@test.com`
 **Admin**: `admintest` / `admin@test.com`
+**Passwords for all accounts" `AdminTest!`
 
 ---
 

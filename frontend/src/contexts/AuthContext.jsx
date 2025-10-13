@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password, totpCode = null) => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+      const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/register', {
+      const response = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       if (refreshToken) {
-        await fetch('http://localhost:8000/api/v1/auth/logout', {
+        await fetch('/api/v1/auth/logout', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }) => {
 
   const refreshAccessToken = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/refresh', {
+      const response = await fetch('/api/v1/auth/refresh', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
