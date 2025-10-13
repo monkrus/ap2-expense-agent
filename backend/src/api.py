@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import Optional
 from sqlalchemy.orm import Session
 import os
@@ -103,8 +103,17 @@ class ExpenseSubmission(BaseModel):
     user_id: str
     amount: float
     vendor: str
-    category: str
+    category: str  # Will be validated against ExpenseCategory enum values
     description: str
+
+    @validator('category')
+    def validate_category(cls, v):
+        from .models import ExpenseCategory
+        # Check if the value matches any of the enum values
+        valid_categories = [e.value for e in ExpenseCategory]
+        if v not in valid_categories:
+            raise ValueError(f'Category must be one of: {", ".join(valid_categories)}')
+        return v
 
 class ExpenseApproval(BaseModel):
     expense_id: str
@@ -538,9 +547,13 @@ async def update_expense(
     db: Session = Depends(get_db)
 ):
     """Update a pending expense (employee only, must own the expense)"""
-    print(f"[UPDATE_EXPENSE] Route called for expense_id: {expense_id} - reload trigger")
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[UPDATE_EXPENSE] Route called for expense_id: {expense_id}")
+    logger.info(f"[UPDATE_EXPENSE] Data received: user_id={data.user_id}, amount={data.amount}, vendor={data.vendor}, category={data.category}, description={data.description}")
+
     try:
-        from .models import Expense, ExpenseStatus
+        from .models import Expense, ExpenseStatus, ExpenseCategory
         from datetime import datetime
 
         # Get the expense from database
@@ -562,10 +575,20 @@ async def update_expense(
                 detail=f"Cannot edit expense with status: {expense.status.value}. Only pending expenses can be edited."
             )
 
+        # Convert category string to enum if needed
+        try:
+            category_enum = ExpenseCategory(data.category)
+        except ValueError as e:
+            logger.error(f"[UPDATE_EXPENSE] Invalid category: {data.category}")
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid category '{data.category}'. Must be one of: {', '.join([e.value for e in ExpenseCategory])}"
+            )
+
         # Update expense fields
         expense.amount = data.amount
         expense.vendor = data.vendor
-        expense.category = data.category
+        expense.category = category_enum
         expense.description = data.description
         expense.updated_at = datetime.utcnow()
 
