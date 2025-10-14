@@ -410,7 +410,7 @@ async def google_callback(
             email=google_user["email"],
             username=google_user["email"].split("@")[0] + "_" + str(uuid.uuid4())[:8],
             full_name=google_user.get("name", ""),
-            hashed_password=AuthService.hash_password(secrets.token_urlsafe(32)),  # Random password
+            hashed_password=AuthService.hash_password(secrets.token_urlsafe(24)),  # Random password (24 chars for bcrypt)
             role=UserRole.EMPLOYEE,
             is_active=True,
             is_verified=True  # Google accounts are pre-verified
@@ -498,7 +498,7 @@ async def google_token_exchange(
             email=google_user["email"],
             username=google_user["email"].split("@")[0] + "_" + str(uuid.uuid4())[:8],
             full_name=google_user.get("name", ""),
-            hashed_password=AuthService.hash_password(secrets.token_urlsafe(32)),
+            hashed_password=AuthService.hash_password(secrets.token_urlsafe(24)),  # Random password (24 chars for bcrypt)
             role=UserRole.EMPLOYEE,
             is_active=True,
             is_verified=True

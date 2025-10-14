@@ -17,8 +17,12 @@ from .config import settings
 from .models import User, RefreshToken, Session as UserSession, AuditLog, UserRole
 from .database import get_db
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing - configure bcrypt to handle longer passwords
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__ident="2b"  # Use bcrypt 2b variant
+)
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -29,7 +33,10 @@ class AuthService:
 
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash a password"""
+        """Hash a password (truncate to 72 bytes for bcrypt compatibility)"""
+        # Bcrypt has a 72-byte limit, truncate if necessary
+        if len(password) > 72:
+            password = password[:72]
         return pwd_context.hash(password)
 
     @staticmethod
