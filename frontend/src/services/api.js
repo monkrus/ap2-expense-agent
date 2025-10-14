@@ -173,10 +173,12 @@ export const expenseAPI = {
 
   // Update an expense (employee only, pending expenses)
   updateExpense: async (expenseId, expenseData) => {
+    console.log('Updating expense:', expenseId, expenseData); // Debug log
+    
     return request(`/expenses/${expenseId}`, {
       method: 'PUT',
       body: JSON.stringify({
-        user_id: expenseData.user_id,
+        user_id: expenseData.user_id, // Backend requires user_id
         amount: parseFloat(expenseData.amount),
         vendor: expenseData.vendor,
         category: expenseData.category,

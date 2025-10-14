@@ -23,20 +23,34 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel }) => {
 
     try {
       const updatedData = {
-        user_id: expense.user_id,  // Include user_id from original expense
+        user_id: expense.user_id, // Backend requires user_id
         amount: parseFloat(formData.amount),
         category: formData.category,
         vendor: formData.vendor,
         description: formData.description
       };
 
+      console.log('Submitting update:', updatedData); // Debug log
+
       const result = await expenseAPI.updateExpense(expense.id, updatedData);
 
       success('Expense updated successfully');
       onSuccess(result.expense);
     } catch (err) {
-      const errorMsg = err instanceof APIError ? err.message : 'Failed to update expense';
+      console.error('Update error:', err); // Debug log
+      console.error('Full error data:', err.data); // Log full error response
+      
+      const errorMsg = err instanceof APIError ? err.getUserMessage() : 'Failed to update expense';
       showError(errorMsg);
+      
+      // Log validation errors if present
+      if (err.validationErrors) {
+        console.error('Validation errors:', err.validationErrors);
+        // Log each validation error detail
+        err.validationErrors.forEach((error, index) => {
+          console.error(`Validation error ${index + 1}:`, error);
+        });
+      }
     } finally {
       setSaving(false);
     }

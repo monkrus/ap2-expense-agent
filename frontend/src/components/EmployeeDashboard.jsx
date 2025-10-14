@@ -613,6 +613,7 @@ const EmployeeDashboard = () => {
         {showExpenseEdit && selectedExpense && (
           <ExpenseEdit
             expense={selectedExpense}
+            currentUser={user}
             onSuccess={(updatedExpense) => {
               success('Expense updated successfully!');
               setShowExpenseEdit(false);
