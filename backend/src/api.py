@@ -1,29 +1,30 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from typing import Optional
+
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, validator
-from typing import Optional
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
-import os
 
-from .config import settings
-from .routes import auth_router, users_router, oauth_router, admin_router
-from .routes.billing import router as billing_router
-from .routes.ap2 import router as ap2_router
-from .routes.webhooks import router as webhooks_router
-from .routes.organizations import router as organizations_router
-from .routes.receipts import router as receipts_router
-from .database import init_db, get_db
 from .auth import get_current_active_user
+from .config import settings
+from .database import get_db, init_db
+from .error_handlers import register_exception_handlers
 from .models import User
 from .rate_limit import limiter, rate_limit_handler
-from slowapi.errors import RateLimitExceeded
-from .security_middleware import SecurityHeadersMiddleware, RequestIDMiddleware, HTTPSRedirectMiddleware
+from .routes import admin_router, auth_router, oauth_router, users_router
+from .routes.ap2 import router as ap2_router
+from .routes.billing import router as billing_router
+from .routes.organizations import router as organizations_router
+from .routes.receipts import router as receipts_router
+from .routes.webhooks import router as webhooks_router
+from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
 from .tenant_context import tenant_middleware
-from .error_handlers import register_exception_handlers
 
 # Try to import database-integrated agent, fallback to in-memory agent
 try:
-    from .agent_db import ExpenseManagementAgent as DBAgent
+    from .agent_db import ExpenseManagementAgent as DBAgent  # noqa: F401
+
     AGENT_DB_AVAILABLE = True
 except ImportError:
     AGENT_DB_AVAILABLE = False
@@ -32,18 +33,21 @@ except ImportError:
 # Fallback to in-memory agent if DB agent not available
 if not AGENT_DB_AVAILABLE:
     try:
-        from .agent import ExpenseManagementAgent
+        from .agent import ExpenseManagementAgent  # noqa: F401
+
         AGENT_AVAILABLE = True
     except ImportError:
         AGENT_AVAILABLE = False
-        print("Warning: Google AI dependencies not installed. Agent features will be disabled.")
+        print(
+            "Warning: Google AI dependencies not installed. Agent features will be disabled."
+        )
 else:
     AGENT_AVAILABLE = True
 
 app = FastAPI(
     title="AP2 Expense Management Agent",
     description="AI-powered expense management with AP2 protocol",
-    version="1.0.0"
+    version="1.0.0",
 )
 # Force reload - auth routes should be available
 
@@ -65,7 +69,11 @@ app.add_middleware(
     allow_origins=settings.cors_origins.split(","),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allow_headers=["Authorization", "Content-Type", "X-Organization-Id"],  # Added X-Organization-Id for multi-tenancy
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-Organization-Id",
+    ],  # Added X-Organization-Id for multi-tenancy
 )
 
 # Add tenant middleware for multi-tenancy support
@@ -86,18 +94,23 @@ app.include_router(ap2_router)
 app.include_router(webhooks_router)
 app.include_router(receipts_router)
 
+
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
     init_db()
     print("[STARTUP] Registered routes:")
     for route in app.routes:
-        if hasattr(route, 'path'):
-            print(f"  {route.methods if hasattr(route, 'methods') else 'N/A'} {route.path}")
+        if hasattr(route, "path"):
+            print(
+                f"  {route.methods if hasattr(route, 'methods') else 'N/A'} {route.path}"
+            )
+
 
 # Agent will be initialized per-request with database session
 # This is more appropriate for database-backed operations
 agent = None
+
 
 class ExpenseSubmission(BaseModel):
     user_id: str
@@ -106,44 +119,50 @@ class ExpenseSubmission(BaseModel):
     category: str  # Will be validated against ExpenseCategory enum values
     description: str
 
-    @validator('category')
+    @validator("category")
     def validate_category(cls, v):
         from .models import ExpenseCategory
+
         # Check if the value matches any of the enum values
         valid_categories = [e.value for e in ExpenseCategory]
         if v not in valid_categories:
             raise ValueError(f'Category must be one of: {", ".join(valid_categories)}')
         return v
 
+
 class ExpenseApproval(BaseModel):
     expense_id: str
     approver_id: str
     rejection_reason: Optional[str] = None
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "AP2 Expense Management Agent"}
+
 
 @app.post("/api/v1/expenses")
 async def submit_expense(
     data: ExpenseSubmission,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-    request: Request = None
+    request: Request = None,
 ):
     try:
         # Get organization context for multi-tenancy
-        from .tenant_context import TenantContext
-        from .models import Expense, ExpenseStatus, ExpenseCategory
-        from datetime import datetime
         import uuid
+        from datetime import datetime
 
-        organization_id = TenantContext.get_organization()
+        from .models import Expense, ExpenseStatus
+        from .tenant_context import TenantContext
+
+        organization_id = TenantContext.get_organization()  # noqa: F841
 
         # Create expense directly in database (simplified version without AI agent)
         expense = Expense(
             id=str(uuid.uuid4()),
-            organization_id=organization_id or str(uuid.uuid4()),  # Create temp org if none
+            organization_id=organization_id
+            or str(uuid.uuid4()),  # Create temp org if none
             user_id=current_user.id,
             amount=data.amount,
             vendor=data.vendor,
@@ -153,7 +172,7 @@ async def submit_expense(
             date=datetime.utcnow(),
             ai_analysis="Manual submission - AI analysis not available",
             risk_level="LOW",
-            compliance_check=True
+            compliance_check=True,
         )
 
         db.add(expense)
@@ -170,33 +189,38 @@ async def submit_expense(
                 "description": expense.description,
                 "status": expense.status.value,
                 "date": expense.date.isoformat(),
-                "user_id": expense.user_id
-            }
+                "user_id": expense.user_id,
+            },
         }
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @app.post("/api/v1/expenses/approve")
 async def approve_expense(
     data: ExpenseApproval,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     try:
         # Get organization context for multi-tenancy
-        from .tenant_context import TenantContext
-        from .models import Expense, ExpenseStatus, UserRole
-        from .services.audit_service import AuditService
         from datetime import datetime
 
-        organization_id = TenantContext.get_organization()
+        from .models import Expense, ExpenseStatus, UserRole
+        from .services.audit_service import AuditService
+        from .tenant_context import TenantContext
+
+        organization_id = TenantContext.get_organization()  # noqa: F841
 
         # Only admins, managers, and accountants can approve expenses
-        if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]:
+        if current_user.role not in [
+            UserRole.ADMIN,
+            UserRole.MANAGER,
+            UserRole.ACCOUNTANT,
+        ]:
             raise HTTPException(
-                status_code=403,
-                detail="Not authorized to approve expenses"
+                status_code=403, detail="Not authorized to approve expenses"
             )
 
         # Get the expense from database
@@ -205,7 +229,9 @@ async def approve_expense(
             raise HTTPException(status_code=404, detail="Expense not found")
 
         if expense.status != ExpenseStatus.PENDING:
-            raise HTTPException(status_code=400, detail=f"Expense is already {expense.status.value}")
+            raise HTTPException(
+                status_code=400, detail=f"Expense is already {expense.status.value}"
+            )
 
         # Update expense status
         expense.status = ExpenseStatus.APPROVED
@@ -215,9 +241,7 @@ async def approve_expense(
         # Create complete AP2 audit trail with all mandates
         audit_service = AuditService(db)
         audit_trail = audit_service.create_complete_audit_trail(
-            expense=expense,
-            approver=current_user,
-            action="approve"
+            expense=expense, approver=current_user, action="approve"
         )
 
         return {
@@ -229,9 +253,9 @@ async def approve_expense(
                 "mandates": {
                     "intent": audit_trail["intent_mandate"],
                     "cart": audit_trail["cart_mandate"],
-                    "payment": audit_trail["payment_mandate"]
-                }
-            }
+                    "payment": audit_trail["payment_mandate"],
+                },
+            },
         }
     except HTTPException:
         raise
@@ -239,27 +263,32 @@ async def approve_expense(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @app.post("/api/v1/expenses/reject")
 async def reject_expense(
     data: ExpenseApproval,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     try:
         # Get organization context for multi-tenancy
-        from .tenant_context import TenantContext
-        from .models import Expense, ExpenseStatus, UserRole, AuditLog
-        from datetime import datetime
-        import uuid
         import json
+        import uuid
+        from datetime import datetime
 
-        organization_id = TenantContext.get_organization()
+        from .models import AuditLog, Expense, ExpenseStatus, UserRole
+        from .tenant_context import TenantContext
+
+        organization_id = TenantContext.get_organization()  # noqa: F841
 
         # Only admins, managers, and accountants can reject expenses
-        if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]:
+        if current_user.role not in [
+            UserRole.ADMIN,
+            UserRole.MANAGER,
+            UserRole.ACCOUNTANT,
+        ]:
             raise HTTPException(
-                status_code=403,
-                detail="Not authorized to reject expenses"
+                status_code=403, detail="Not authorized to reject expenses"
             )
 
         # Get the expense from database
@@ -268,7 +297,9 @@ async def reject_expense(
             raise HTTPException(status_code=404, detail="Expense not found")
 
         if expense.status != ExpenseStatus.PENDING:
-            raise HTTPException(status_code=400, detail=f"Expense is already {expense.status.value}")
+            raise HTTPException(
+                status_code=400, detail=f"Expense is already {expense.status.value}"
+            )
 
         # Update expense status to rejected
         expense.status = ExpenseStatus.REJECTED
@@ -283,13 +314,15 @@ async def reject_expense(
             action="expense_reject",
             resource_type="expense",
             resource_id=expense.id,
-            details=json.dumps({
-                "amount": float(expense.amount),
-                "vendor": expense.vendor,
-                "category": expense.category.value,
-                "rejection_reason": data.rejection_reason,
-                "status_change": "PENDING -> REJECTED"
-            })
+            details=json.dumps(
+                {
+                    "amount": float(expense.amount),
+                    "vendor": expense.vendor,
+                    "category": expense.category.value,
+                    "rejection_reason": data.rejection_reason,
+                    "status_change": "PENDING -> REJECTED",
+                }
+            ),
         )
         db.add(audit_log)
 
@@ -303,8 +336,8 @@ async def reject_expense(
                 "status": expense.status.value,
                 "rejected_by": current_user.id,
                 "rejected_at": expense.approved_at.isoformat(),
-                "rejection_reason": expense.rejection_reason
-            }
+                "rejection_reason": expense.rejection_reason,
+            },
         }
     except HTTPException:
         raise
@@ -317,12 +350,13 @@ async def reject_expense(
 async def withdraw_expense(
     expense_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Withdraw a pending expense (employee only, must own the expense)"""
     try:
-        from .models import Expense, ExpenseStatus
         from datetime import datetime
+
+        from .models import Expense, ExpenseStatus
 
         # Get the expense from database
         expense = db.query(Expense).filter(Expense.id == expense_id).first()
@@ -332,15 +366,17 @@ async def withdraw_expense(
         # Check ownership - only the expense owner can withdraw
         if expense.user_id != current_user.id:
             raise HTTPException(
-                status_code=403,
-                detail="You can only withdraw your own expenses"
+                status_code=403, detail="You can only withdraw your own expenses"
             )
 
         # Can only withdraw pending expenses
         if expense.status != ExpenseStatus.PENDING:
             raise HTTPException(
                 status_code=400,
-                detail=f"Cannot withdraw expense with status: {expense.status.value}. Only pending expenses can be withdrawn."
+                detail=(
+                    f"Cannot withdraw expense with status: {expense.status.value}. "
+                    "Only pending expenses can be withdrawn."
+                ),
             )
 
         # Mark as withdrawn (soft delete)
@@ -353,7 +389,7 @@ async def withdraw_expense(
         return {
             "success": True,
             "message": "Expense withdrawn successfully",
-            "expense_id": expense.id
+            "expense_id": expense.id,
         }
     except HTTPException:
         raise
@@ -361,19 +397,24 @@ async def withdraw_expense(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @app.get("/api/v1/expenses/all-pending")
 async def get_all_pending_expenses(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """Get all pending expenses from all users (admin/manager only)"""
-    from .models import UserRole, Expense, ExpenseStatus, User as UserModel
+    from .models import Expense, ExpenseStatus
+    from .models import User as UserModel
+    from .models import UserRole
 
     # Only admins, managers, and accountants can view all expenses
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]:
+    if current_user.role not in [
+        UserRole.ADMIN,
+        UserRole.MANAGER,
+        UserRole.ACCOUNTANT,
+    ]:
         raise HTTPException(
-            status_code=403,
-            detail="Not authorized to view all expenses"
+            status_code=403, detail="Not authorized to view all expenses"
         )
 
     # Get all pending expenses with user information
@@ -383,45 +424,54 @@ async def get_all_pending_expenses(
     result = []
     for e in expenses:
         user = db.query(UserModel).filter(UserModel.id == e.user_id).first()
-        result.append({
-            "id": e.id,
-            "amount": float(e.amount),
-            "vendor": e.vendor,
-            "category": e.category,
-            "description": e.description,
-            "status": e.status.value,
-            "date": e.date.isoformat() if e.date else None,
-            "created_at": e.created_at.isoformat() if e.created_at else None,
-            "user_id": e.user_id,
-            "user_email": user.email if user else "Unknown",
-            "user_name": user.full_name if user else "Unknown"
-        })
+        result.append(
+            {
+                "id": e.id,
+                "amount": float(e.amount),
+                "vendor": e.vendor,
+                "category": e.category,
+                "description": e.description,
+                "status": e.status.value,
+                "date": e.date.isoformat() if e.date else None,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+                "user_id": e.user_id,
+                "user_email": user.email if user else "Unknown",
+                "user_name": user.full_name if user else "Unknown",
+            }
+        )
 
     return {
         "pending_count": len(result),
         "total_amount": sum(e["amount"] for e in result),
-        "expenses": result
+        "expenses": result,
     }
+
 
 @app.get("/api/v1/expenses/all")
 async def get_all_expenses(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-    status: Optional[str] = None
+    status: Optional[str] = None,
 ):
     """Get all expenses from all users with optional status filter (admin/manager only)"""
     # Reload trigger
-    from .models import UserRole, Expense, ExpenseStatus, User as UserModel
     import logging
+
+    from .models import Expense, ExpenseStatus
+    from .models import User as UserModel
+    from .models import UserRole
 
     logger = logging.getLogger(__name__)
     logger.info(f"[get_all_expenses] Called with status filter: {status}")
 
     # Only admins, managers, and accountants can view all expenses
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]:
+    if current_user.role not in [
+        UserRole.ADMIN,
+        UserRole.MANAGER,
+        UserRole.ACCOUNTANT,
+    ]:
         raise HTTPException(
-            status_code=403,
-            detail="Not authorized to view all expenses"
+            status_code=403, detail="Not authorized to view all expenses"
         )
 
     # Build query - exclude withdrawn by default
@@ -449,24 +499,26 @@ async def get_all_expenses(
         if e.approved_by:
             approver = db.query(UserModel).filter(UserModel.id == e.approved_by).first()
 
-        result.append({
-            "id": e.id,
-            "amount": float(e.amount),
-            "vendor": e.vendor,
-            "category": e.category,
-            "description": e.description,
-            "status": e.status.value,
-            "date": e.date.isoformat() if e.date else None,
-            "created_at": e.created_at.isoformat() if e.created_at else None,
-            "approved_at": e.approved_at.isoformat() if e.approved_at else None,
-            "transaction_id": e.transaction_id,
-            "rejection_reason": e.rejection_reason,
-            "user_id": e.user_id,
-            "user_email": user.email if user else "Unknown",
-            "user_name": user.full_name if user else "Unknown",
-            "approved_by_name": approver.full_name if approver else None,
-            "approved_by_email": approver.email if approver else None
-        })
+        result.append(
+            {
+                "id": e.id,
+                "amount": float(e.amount),
+                "vendor": e.vendor,
+                "category": e.category,
+                "description": e.description,
+                "status": e.status.value,
+                "date": e.date.isoformat() if e.date else None,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+                "approved_at": e.approved_at.isoformat() if e.approved_at else None,
+                "transaction_id": e.transaction_id,
+                "rejection_reason": e.rejection_reason,
+                "user_id": e.user_id,
+                "user_email": user.email if user else "Unknown",
+                "user_name": user.full_name if user else "Unknown",
+                "approved_by_name": approver.full_name if approver else None,
+                "approved_by_email": approver.email if approver else None,
+            }
+        )
 
     # Calculate stats
     total_amount = sum(e["amount"] for e in result)
@@ -480,33 +532,39 @@ async def get_all_expenses(
         "pending_count": pending_count,
         "approved_count": approved_count,
         "rejected_count": rejected_count,
-        "expenses": result
+        "expenses": result,
     }
+
 
 @app.get("/api/v1/expenses/report")
 async def get_report(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-    user_id: Optional[str] = None
+    user_id: Optional[str] = None,
 ):
     # Regular users can only see their own reports
     # Managers and admins can see all reports
-    from .models import UserRole, Expense, ExpenseStatus
-    from sqlalchemy import func
+    from .models import Expense, ExpenseStatus, UserRole
 
     if user_id and user_id != current_user.id:
-        if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]:
+        if current_user.role not in [
+            UserRole.ADMIN,
+            UserRole.MANAGER,
+            UserRole.ACCOUNTANT,
+        ]:
             raise HTTPException(
-                status_code=403,
-                detail="Not authorized to view other users' reports"
+                status_code=403, detail="Not authorized to view other users' reports"
             )
 
     # Query expenses directly from database (exclude withdrawn expenses)
     target_user_id = user_id or current_user.id
-    expenses = db.query(Expense).filter(
-        Expense.user_id == target_user_id,
-        Expense.status != ExpenseStatus.WITHDRAWN
-    ).all()
+    expenses = (
+        db.query(Expense)
+        .filter(
+            Expense.user_id == target_user_id, Expense.status != ExpenseStatus.WITHDRAWN
+        )
+        .all()
+    )
 
     # Calculate stats
     total_expenses = len(expenses)
@@ -533,28 +591,35 @@ async def get_report(
                 "date": e.date.isoformat() if e.date else None,
                 "created_at": e.created_at.isoformat() if e.created_at else None,
                 "transaction_id": e.transaction_id,
-                "rejection_reason": e.rejection_reason
+                "rejection_reason": e.rejection_reason,
             }
             for e in expenses
-        ]
+        ],
     }
+
 
 @app.put("/api/v1/expenses/{expense_id}")
 async def update_expense(
     expense_id: str,
     data: ExpenseSubmission,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update a pending expense (employee only, must own the expense)"""
     import logging
+
     logger = logging.getLogger(__name__)
     logger.info(f"[UPDATE_EXPENSE] Route called for expense_id: {expense_id}")
-    logger.info(f"[UPDATE_EXPENSE] Data received: user_id={data.user_id}, amount={data.amount}, vendor={data.vendor}, category={data.category}, description={data.description}")
+    logger.info(
+        f"[UPDATE_EXPENSE] Data received: user_id={data.user_id}, "
+        f"amount={data.amount}, vendor={data.vendor}, category={data.category}, "
+        f"description={data.description}"
+    )
 
     try:
-        from .models import Expense, ExpenseStatus, ExpenseCategory
         from datetime import datetime
+
+        from .models import Expense, ExpenseCategory, ExpenseStatus
 
         # Get the expense from database
         expense = db.query(Expense).filter(Expense.id == expense_id).first()
@@ -564,25 +629,28 @@ async def update_expense(
         # Check ownership - only the expense owner can edit
         if expense.user_id != current_user.id:
             raise HTTPException(
-                status_code=403,
-                detail="You can only edit your own expenses"
+                status_code=403, detail="You can only edit your own expenses"
             )
 
         # Can only edit pending expenses
         if expense.status != ExpenseStatus.PENDING:
             raise HTTPException(
                 status_code=400,
-                detail=f"Cannot edit expense with status: {expense.status.value}. Only pending expenses can be edited."
+                detail=(
+                    f"Cannot edit expense with status: {expense.status.value}. "
+                    "Only pending expenses can be edited."
+                ),
             )
 
         # Convert category string to enum if needed
         try:
             category_enum = ExpenseCategory(data.category)
-        except ValueError as e:
+        except ValueError:
             logger.error(f"[UPDATE_EXPENSE] Invalid category: {data.category}")
+            valid_cats = ", ".join([e.value for e in ExpenseCategory])
             raise HTTPException(
                 status_code=422,
-                detail=f"Invalid category '{data.category}'. Must be one of: {', '.join([e.value for e in ExpenseCategory])}"
+                detail=f"Invalid category '{data.category}'. Must be one of: {valid_cats}",
             )
 
         # Update expense fields
@@ -606,8 +674,8 @@ async def update_expense(
                 "description": expense.description,
                 "status": expense.status.value,
                 "date": expense.date.isoformat(),
-                "user_id": expense.user_id
-            }
+                "user_id": expense.user_id,
+            },
         }
     except HTTPException:
         raise
@@ -615,11 +683,12 @@ async def update_expense(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @app.get("/api/v1/audit/{transaction_id}")
 async def get_audit(
     transaction_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get complete AP2 audit trail for a transaction"""
     try:
@@ -631,11 +700,13 @@ async def get_audit(
         if not audit:
             raise HTTPException(
                 status_code=404,
-                detail=f"Audit trail not found for transaction {transaction_id}"
+                detail=f"Audit trail not found for transaction {transaction_id}",
             )
 
         return audit
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving audit trail: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error retrieving audit trail: {str(e)}"
+        )
