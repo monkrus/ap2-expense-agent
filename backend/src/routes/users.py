@@ -43,8 +43,8 @@ async def get_user(
     db: Session = Depends(get_db)
 ):
     """Get a specific user"""
-    # Users can view their own profile, managers can view all
-    if current_user.id != user_id and current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+    # Users can view their own profile, managers/accountants can view all
+    if current_user.id != user_id and current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to view this user"
@@ -214,8 +214,8 @@ async def get_user_sessions(
     db: Session = Depends(get_db)
 ):
     """Get all sessions for a user"""
-    # Users can only view their own sessions
-    if current_user.id != user_id and current_user.role != UserRole.ADMIN:
+    # Users can only view their own sessions, admins/managers/accountants can view all
+    if current_user.id != user_id and current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to view these sessions"
@@ -244,8 +244,8 @@ async def revoke_session(
     db: Session = Depends(get_db)
 ):
     """Revoke a specific session"""
-    # Users can only revoke their own sessions
-    if current_user.id != user_id and current_user.role != UserRole.ADMIN:
+    # Users can only revoke their own sessions, admins/managers/accountants can revoke any
+    if current_user.id != user_id and current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to revoke this session"

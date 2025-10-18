@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`,
           },
-          body: JSON.stringify(refreshToken),
+          body: JSON.stringify({ refresh_token: refreshToken }),
         });
       }
     } catch (error) {

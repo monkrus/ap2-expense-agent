@@ -3,7 +3,7 @@ import { Edit2, X, Save } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
 
-const ExpenseEdit = ({ expense, onSuccess, onCancel }) => {
+const ExpenseEdit = ({ expense, onSuccess, onCancel, currentUser }) => {
   const { success, error: showError } = useToast();
   const [formData, setFormData] = useState({
     amount: expense.amount.toString(),
@@ -13,9 +13,18 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel }) => {
   });
   const [saving, setSaving] = useState(false);
 
+  // Get user_id from expense or current user
+  const userId = expense.user_id || currentUser?.id;
+
   const handleSubmit = async () => {
     if (!formData.amount || !formData.vendor || !formData.description) {
       showError('Please fill in all required fields');
+      return;
+    }
+
+    if (!userId) {
+      showError('User ID is missing. Please try refreshing the page.');
+      console.error('Missing user_id - expense:', expense, 'currentUser:', currentUser);
       return;
     }
 
@@ -23,7 +32,7 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel }) => {
 
     try {
       const updatedData = {
-        user_id: expense.user_id, // Backend requires user_id
+        user_id: userId, // Use the userId from expense or current user
         amount: parseFloat(formData.amount),
         category: formData.category,
         vendor: formData.vendor,
@@ -83,7 +92,7 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel }) => {
             </label>
             <input
               type="number"
-              step="0.01"
+              step="1"
               value={formData.amount}
               onChange={(e) => setFormData({...formData, amount: e.target.value})}
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"

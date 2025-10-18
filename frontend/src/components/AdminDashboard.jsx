@@ -24,11 +24,11 @@ const AdminDashboard = () => {
   // Fetch pending expenses
   useEffect(() => {
     if (activeTab === 'pending') {
-      fetchPendingExpenses();
+      fetchPendingExpenses(true); // Initial load
 
-      // Auto-refresh every 10 seconds
+      // Auto-refresh every 10 seconds (silent)
       const interval = setInterval(() => {
-        fetchPendingExpenses();
+        fetchPendingExpenses(false);
       }, 10000);
 
       return () => clearInterval(interval);
@@ -38,20 +38,23 @@ const AdminDashboard = () => {
   // Fetch all expenses
   useEffect(() => {
     if (activeTab === 'all') {
-      fetchAllExpenses();
+      fetchAllExpenses(true); // Initial load
 
-      // Auto-refresh every 10 seconds
+      // Auto-refresh every 10 seconds (silent)
       const interval = setInterval(() => {
-        fetchAllExpenses();
+        fetchAllExpenses(false);
       }, 10000);
 
       return () => clearInterval(interval);
     }
   }, [activeTab, statusFilter]);
 
-  const fetchPendingExpenses = async () => {
+  const fetchPendingExpenses = async (isInitialLoad = false) => {
     try {
-      setLoading(true);
+      // Only show loading spinner on initial load
+      if (isInitialLoad) {
+        setLoading(true);
+      }
       const data = await expenseAPI.getAllPendingExpenses();
       if (data.expenses && Array.isArray(data.expenses)) {
         setPendingExpenses(data.expenses);
@@ -62,17 +65,23 @@ const AdminDashboard = () => {
         showError('Session expired. Please login again.');
       } else if (err instanceof APIError && err.status === 403) {
         showError('You do not have permission to view all expenses.');
-      } else {
+      } else if (isInitialLoad) {
+        // Only show error on initial load
         showError('Failed to load pending expenses.');
       }
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setLoading(false);
+      }
     }
   };
 
-  const fetchAllExpenses = async () => {
+  const fetchAllExpenses = async (isInitialLoad = false) => {
     try {
-      setLoading(true);
+      // Only show loading spinner on initial load
+      if (isInitialLoad) {
+        setLoading(true);
+      }
       console.log('[AdminDashboard] Fetching all expenses with statusFilter:', statusFilter);
       const filterValue = statusFilter !== 'all' ? statusFilter : null;
       console.log('[AdminDashboard] Sending filter value to API:', filterValue);
@@ -99,12 +108,15 @@ const AdminDashboard = () => {
         showError('Session expired. Please login again.');
       } else if (err instanceof APIError && err.status === 403) {
         showError('You do not have permission to view all expenses.');
-      } else {
+      } else if (isInitialLoad) {
+        // Only show error on initial load
         showError('Failed to load expenses.');
       }
       setAllExpenses([]);
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setLoading(false);
+      }
     }
   };
 

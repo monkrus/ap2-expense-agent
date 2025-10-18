@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown, User, LogOut } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,7 +10,7 @@ import ExpenseExport from './ExpenseExport';
 import ReceiptList from './ReceiptList';
 
 const EmployeeDashboard = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { success, error: showError } = useToast();
 
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'history'
@@ -229,7 +229,7 @@ const EmployeeDashboard = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
                 <Receipt className="w-8 h-8 text-indigo-600" />
@@ -237,33 +237,60 @@ const EmployeeDashboard = () => {
               </h1>
               <p className="text-gray-600 mt-2">Submit and track your expense requests</p>
             </div>
-            <div className="flex items-center gap-3">
+
+            {/* User Profile Section */}
+            <div className="flex items-center gap-4">
+              <div className="text-right border-r border-gray-300 pr-4">
+                <div className="flex items-center gap-2 justify-end">
+                  <User className="w-4 h-4 text-gray-600" />
+                  <p className="text-sm font-semibold text-gray-800">
+                    {user?.full_name || user?.username || 'User'}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase() : 'Employee'}
+                </p>
+                <p className="text-xs text-gray-400">{user?.email}</p>
+              </div>
               <button
-                onClick={() => setShowExport(true)}
-                className="flex items-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-medium"
-              >
-                <Download className="w-5 h-5" />
-                Export
-              </button>
-              <button
-                onClick={() => setShowChangePassword(true)}
-                className="flex items-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-              >
-                <Key className="w-5 h-5" />
-                Change Password
-              </button>
-              <button
-                onClick={() => {
-                  // Set today's date when opening the form
-                  setNewExpense(prev => ({ ...prev, date: new Date().toISOString().split('T')[0] }));
-                  setShowExpenseForm(true);
+                onClick={async () => {
+                  await logout();
+                  window.location.href = '/login';
                 }}
-                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Logout"
               >
-                <Plus className="w-5 h-5" />
-                New Expense
+                <LogOut className="w-4 h-4" />
               </button>
             </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
+            <button
+              onClick={() => setShowExport(true)}
+              className="flex items-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-medium"
+            >
+              <Download className="w-5 h-5" />
+              Export
+            </button>
+            <button
+              onClick={() => setShowChangePassword(true)}
+              className="flex items-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+            >
+              <Key className="w-5 h-5" />
+              Change Password
+            </button>
+            <button
+              onClick={() => {
+                // Set today's date when opening the form
+                setNewExpense(prev => ({ ...prev, date: new Date().toISOString().split('T')[0] }));
+                setShowExpenseForm(true);
+              }}
+              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            >
+              <Plus className="w-5 h-5" />
+              New Expense
+            </button>
           </div>
         </div>
 
@@ -535,86 +562,122 @@ const EmployeeDashboard = () => {
               )}
             </div>
           ) : (
-            <div className="space-y-3">
-              {currentExpenses.map((expense) => (
-                <div
-                  key={expense.id}
-                  className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${expense._optimistic ? 'opacity-60' : ''}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-gray-800">{expense.id}</span>
-                        {getStatusBadge(expense.status)}
-                        {expense.receipt_count > 0 && (
-                          <button
-                            onClick={() => {
-                              setSelectedExpense(expense);
-                              setShowReceiptList(true);
-                            }}
-                            className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 flex items-center gap-1 hover:bg-green-200 transition-colors cursor-pointer"
-                            title="Click to view receipt details"
-                          >
-                            <Receipt className="w-3 h-3" />
-                            {expense.receipt_count} {expense.receipt_count === 1 ? 'Receipt' : 'Receipts'}
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600">{expense.description}</p>
-                      <p className="text-xs text-gray-500 mt-1">{expense.vendor} • {formatDate(expense.date)}</p>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">ID</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Category</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Vendor</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Description</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentExpenses.map((expense) => (
+                    <React.Fragment key={expense.id}>
+                      <tr className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${expense._optimistic ? 'opacity-60' : ''}`}>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-800 truncate max-w-[120px]" title={expense.id}>
+                              {expense.id}
+                            </span>
+                            {expense.receipt_count > 0 && (
+                              <button
+                                onClick={() => {
+                                  setSelectedExpense(expense);
+                                  setShowReceiptList(true);
+                                }}
+                                className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-800 flex items-center gap-1 hover:bg-green-200 transition-colors cursor-pointer flex-shrink-0"
+                                title="Click to view receipt details"
+                              >
+                                <Receipt className="w-3 h-3" />
+                                {expense.receipt_count}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
+                          {formatDate(expense.date)}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-700">
+                          {expense.category}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-700">
+                          {expense.vendor}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-600 max-w-[250px]">
+                          <div className="truncate" title={expense.description}>
+                            {expense.description}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-right text-sm font-semibold text-gray-800 whitespace-nowrap">
+                          ${expense.amount.toFixed(2)}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          {getStatusBadge(expense.status)}
+                        </td>
+                        <td className="py-3 px-4">
+                          {expense.status === 'pending' && !expense._optimistic && (
+                            <div className="flex gap-1 justify-center">
+                              <button
+                                onClick={() => {
+                                  setSelectedExpense(expense);
+                                  setShowExpenseEdit(true);
+                                }}
+                                className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                                title="Edit this expense"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedExpense(expense);
+                                  setShowReceiptUpload(true);
+                                }}
+                                className="p-1.5 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors"
+                                title="Upload receipt"
+                              >
+                                <Upload className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleWithdrawExpense(expense)}
+                                className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                                title="Withdraw this expense"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                      {/* Transaction ID row */}
                       {expense.transaction_id && (
-                        <p className="text-xs text-green-600 mt-1 font-mono">Approved - TX: {expense.transaction_id}</p>
+                        <tr className="border-b border-gray-100">
+                          <td colSpan="8" className="py-2 px-4 bg-green-50">
+                            <p className="text-xs text-green-700 font-mono">
+                              <span className="font-semibold">Transaction ID:</span> {expense.transaction_id}
+                            </p>
+                          </td>
+                        </tr>
                       )}
+                      {/* Rejection reason row */}
                       {expense.status === 'rejected' && expense.rejection_reason && (
-                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
-                          <p className="text-xs font-medium text-red-800 mb-1">Rejection Reason:</p>
-                          <p className="text-xs text-red-700">{expense.rejection_reason}</p>
-                        </div>
+                        <tr className="border-b border-gray-100">
+                          <td colSpan="8" className="py-2 px-4 bg-red-50">
+                            <p className="text-xs text-red-700">
+                              <span className="font-semibold">Rejection Reason:</span> {expense.rejection_reason}
+                            </p>
+                          </td>
+                        </tr>
                       )}
-                    </div>
-                    <div className="text-right flex flex-col items-end gap-2">
-                      <div>
-                        <p className="text-lg font-bold text-gray-800">${expense.amount.toFixed(2)}</p>
-                        <p className="text-xs text-gray-500">{expense.category}</p>
-                      </div>
-                      {expense.status === 'pending' && !expense._optimistic && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedExpense(expense);
-                              setShowExpenseEdit(true);
-                            }}
-                            className="flex items-center gap-1 px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                            title="Edit this expense"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedExpense(expense);
-                              setShowReceiptUpload(true);
-                            }}
-                            className="flex items-center gap-1 px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors"
-                            title="Upload receipt"
-                          >
-                            <Upload className="w-3 h-3" />
-                            Receipt
-                          </button>
-                          <button
-                            onClick={() => handleWithdrawExpense(expense)}
-                            className="flex items-center gap-1 px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                            title="Withdraw this expense"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            Withdraw
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

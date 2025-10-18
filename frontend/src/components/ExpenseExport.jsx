@@ -27,12 +27,21 @@ const ExpenseExport = ({ expenses, onClose }) => {
     }
   };
 
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   const exportCSV = () => {
     // Create CSV content
     const headers = ['ID', 'Date', 'Category', 'Vendor', 'Description', 'Amount', 'Status'];
     const rows = expenses.map(expense => [
       expense.id,
-      expense.date,
+      formatDate(expense.date),
       expense.category,
       expense.vendor,
       expense.description,
@@ -125,7 +134,7 @@ const ExpenseExport = ({ expenses, onClose }) => {
             ${expenses.map(expense => `
               <tr>
                 <td>${expense.id}</td>
-                <td>${expense.date}</td>
+                <td>${formatDate(expense.date)}</td>
                 <td>${expense.category}</td>
                 <td>${expense.vendor}</td>
                 <td>${expense.description}</td>

@@ -35,3 +35,21 @@ gcloud-key*.json
 
 # Claude Code settings
 .claude/settings.local.json
+
+# Debug and temporary files
+*_debug.html
+check_*.html
+
+# Malformed path files (Windows issues)
+C:Users*
+*:*
+
+# Backend temporary files
+backend/expenses.db
+backend/*.log
+backend/logs/*.log
+backend/nul
+
+# Frontend temporary files
+frontend/*.log
+frontend/nul

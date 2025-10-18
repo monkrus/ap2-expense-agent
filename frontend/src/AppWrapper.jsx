@@ -6,12 +6,11 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import App from './App';
 import GoogleCallback from './pages/GoogleCallback';
-import { LogOut, User as UserIcon, Shield, Settings } from 'lucide-react';
 
 const AppContent = () => {
   const [showAuth, setShowAuth] = useState('login');
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const { isAuthenticated, user, logout, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   // Simple client-side routing
   useEffect(() => {
@@ -57,46 +56,9 @@ const AppContent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation Bar */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Shield className="w-8 h-8 text-indigo-600" />
-              <span className="ml-2 text-xl font-bold text-gray-800">
-                AP2 Expense Management
-              </span>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-                <UserIcon className="w-5 h-5 text-gray-600" />
-                <div className="text-left">
-                  <p className="text-sm font-medium text-gray-800">
-                    {user?.full_name || user?.username}
-                  </p>
-                  <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
-                </div>
-              </div>
-
-              <button
-                onClick={logout}
-                className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <LogOut className="w-5 h-5" />
-                <span className="font-medium">Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <ProtectedRoute>
-        <App />
-      </ProtectedRoute>
-    </div>
+    <ProtectedRoute>
+      <App />
+    </ProtectedRoute>
   );
 };
 

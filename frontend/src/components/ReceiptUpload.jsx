@@ -129,17 +129,18 @@ const ReceiptUpload = ({ expenseId, onSuccess, onCancel }) => {
             </div>
           ) : file ? (
             <div className="flex items-center justify-center gap-3">
-              <Image className="w-12 h-12 text-gray-400" />
+              <Image className="w-12 h-12 text-green-500" />
               <div className="text-left">
                 <p className="text-sm font-medium text-gray-800">{file.name}</p>
-                <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                <p className="text-xs text-green-600 font-medium">✓ Ready to upload • {(file.size / 1024).toFixed(1)} KB</p>
               </div>
               <button
                 onClick={() => {
                   setFile(null);
                   setPreview(null);
                 }}
-                className="p-1 bg-red-100 text-red-600 rounded-full hover:bg-red-200"
+                className="p-1 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200"
+                title="Remove file and choose another"
               >
                 <X className="w-4 h-4" />
               </button>

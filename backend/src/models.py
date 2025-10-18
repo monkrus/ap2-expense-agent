@@ -118,6 +118,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String)
     role = Column(Enum(UserRole, name='userrole'), default=UserRole.EMPLOYEE, nullable=False)  # PostgreSQL ENUM
+    department_id = Column(String(255), nullable=True, index=True)  # Department for filtering (managers see their department)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -282,6 +283,26 @@ class Receipt(Base):
 
     # Relationships
     expense = relationship("Expense", back_populates="receipts")
+
+
+class ExpenseComment(Base):
+    """Comments/notes on expenses for communication between employees and managers"""
+    __tablename__ = "expense_comments"
+
+    id = Column(String(255), primary_key=True)
+    expense_id = Column(String(255), ForeignKey("expenses.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
+
+    # Comment content
+    comment = Column(Text, nullable=False)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    expense = relationship("Expense", backref="comments")
+    user = relationship("User", backref="expense_comments")
 
 
 # ============================================================================

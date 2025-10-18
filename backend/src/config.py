@@ -34,12 +34,13 @@ class Settings(BaseSettings):
     max_login_attempts: int = 5
     lockout_duration_minutes: int = 30
 
-    # Email (for password reset)
-    smtp_host: Optional[str] = None
+    # Email Configuration
+    smtp_server: Optional[str] = None  # SMTP server (e.g., smtp.gmail.com)
     smtp_port: int = 587
     smtp_username: Optional[str] = None
     smtp_password: Optional[str] = None
-    smtp_from_email: Optional[str] = "noreply@ap2expense.com"
+    from_email: Optional[str] = "noreply@ap2expense.com"
+    notifications_enabled: bool = False  # Enable/disable email notifications
 
     # Stripe Payment Configuration
     stripe_secret_key: Optional[str] = None
