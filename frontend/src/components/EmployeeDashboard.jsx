@@ -7,6 +7,7 @@ import ChangePassword from './ChangePassword';
 import ReceiptUpload from './ReceiptUpload';
 import ExpenseEdit from './ExpenseEdit';
 import ExpenseExport from './ExpenseExport';
+import ReceiptList from './ReceiptList';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ const EmployeeDashboard = () => {
   const [showReceiptUpload, setShowReceiptUpload] = useState(false);
   const [showExpenseEdit, setShowExpenseEdit] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showReceiptList, setShowReceiptList] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all'); // for history tab
   const [sortField, setSortField] = useState('date'); // 'date', 'amount', 'category'
@@ -28,14 +30,18 @@ const EmployeeDashboard = () => {
     amount: '',
     category: 'Travel',
     vendor: '',
-    description: ''
+    description: '',
+    date: '' // Will be set when form opens
   });
 
   // Fetch user's expenses
   useEffect(() => {
-    const fetchExpenses = async () => {
+    const fetchExpenses = async (isInitialLoad = false) => {
       try {
-        setLoading(true);
+        // Only show loading spinner on initial load
+        if (isInitialLoad) {
+          setLoading(true);
+        }
         const report = await expenseAPI.getExpenseReport(user?.id);
         if (report.expenses && Array.isArray(report.expenses)) {
           setExpenses(report.expenses);
@@ -44,20 +50,23 @@ const EmployeeDashboard = () => {
         console.error('Error fetching expenses:', err);
         if (err instanceof APIError && err.status === 401) {
           showError('Session expired. Please login again.');
-        } else {
+        } else if (isInitialLoad) {
+          // Only show error on initial load to avoid spam
           showError('Failed to load expenses.');
         }
       } finally {
-        setLoading(false);
+        if (isInitialLoad) {
+          setLoading(false);
+        }
       }
     };
 
     if (user) {
-      fetchExpenses();
+      fetchExpenses(true); // Initial load with loading spinner
 
-      // Auto-refresh every 10 seconds
+      // Auto-refresh every 10 seconds (silent update)
       const interval = setInterval(() => {
-        fetchExpenses();
+        fetchExpenses(false);
       }, 10000);
 
       // Cleanup on unmount
@@ -85,7 +94,7 @@ const EmployeeDashboard = () => {
   };
 
   const handleExpenseSubmit = async () => {
-    if (!newExpense.amount || !newExpense.vendor || !newExpense.description) {
+    if (!newExpense.amount || !newExpense.vendor || !newExpense.description || !newExpense.date) {
       showError('Please fill in all required fields');
       return;
     }
@@ -97,7 +106,7 @@ const EmployeeDashboard = () => {
       category: newExpense.category,
       vendor: newExpense.vendor,
       status: 'pending',
-      date: new Date().toISOString().split('T')[0],
+      date: newExpense.date,
       description: newExpense.description,
       _optimistic: true
     };
@@ -111,7 +120,8 @@ const EmployeeDashboard = () => {
       amount: parseFloat(newExpense.amount),
       category: newExpense.category,
       vendor: newExpense.vendor,
-      description: newExpense.description
+      description: newExpense.description,
+      date: newExpense.date
     };
 
     try {
@@ -122,7 +132,7 @@ const EmployeeDashboard = () => {
         e.id === tempId ? { ...result.expense, _optimistic: false } : e
       ));
 
-      setNewExpense({ amount: '', category: 'Travel', vendor: '', description: '' });
+      setNewExpense({ amount: '', category: 'Travel', vendor: '', description: '', date: '' });
       success('Expense submitted successfully! Awaiting approval.');
     } catch (err) {
       // Rollback optimistic update
@@ -243,7 +253,11 @@ const EmployeeDashboard = () => {
                 Change Password
               </button>
               <button
-                onClick={() => setShowExpenseForm(true)}
+                onClick={() => {
+                  // Set today's date when opening the form
+                  setNewExpense(prev => ({ ...prev, date: new Date().toISOString().split('T')[0] }));
+                  setShowExpenseForm(true);
+                }}
                 className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
               >
                 <Plus className="w-5 h-5" />
@@ -349,11 +363,25 @@ const EmployeeDashboard = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Expense Date <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={newExpense.date}
+                    onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
+                    max={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Amount ($) <span className="text-red-600">*</span>
                   </label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
                     value={newExpense.amount}
                     onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
@@ -518,6 +546,19 @@ const EmployeeDashboard = () => {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold text-gray-800">{expense.id}</span>
                         {getStatusBadge(expense.status)}
+                        {expense.receipt_count > 0 && (
+                          <button
+                            onClick={() => {
+                              setSelectedExpense(expense);
+                              setShowReceiptList(true);
+                            }}
+                            className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 flex items-center gap-1 hover:bg-green-200 transition-colors cursor-pointer"
+                            title="Click to view receipt details"
+                          >
+                            <Receipt className="w-3 h-3" />
+                            {expense.receipt_count} {expense.receipt_count === 1 ? 'Receipt' : 'Receipts'}
+                          </button>
+                        )}
                       </div>
                       <p className="text-sm text-gray-600">{expense.description}</p>
                       <p className="text-xs text-gray-500 mt-1">{expense.vendor} • {formatDate(expense.date)}</p>
@@ -593,14 +634,19 @@ const EmployeeDashboard = () => {
         {showReceiptUpload && selectedExpense && (
           <ReceiptUpload
             expenseId={selectedExpense.id}
-            onSuccess={(data) => {
+            onSuccess={async (data) => {
               success('Receipt uploaded successfully!');
               setShowReceiptUpload(false);
               setSelectedExpense(null);
-              // Refresh expenses to show updated data
-              setExpenses(prev => prev.map(e =>
-                e.id === selectedExpense.id ? { ...e, receipt_url: data.receipt_url } : e
-              ));
+              // Refresh expense data to get updated receipt count
+              try {
+                const report = await expenseAPI.getExpenseReport(user?.id);
+                if (report.expenses && Array.isArray(report.expenses)) {
+                  setExpenses(report.expenses);
+                }
+              } catch (err) {
+                console.error('Error refreshing expenses:', err);
+              }
             }}
             onCancel={() => {
               setShowReceiptUpload(false);
@@ -635,6 +681,17 @@ const EmployeeDashboard = () => {
           <ExpenseExport
             expenses={expenses}
             onClose={() => setShowExport(false)}
+          />
+        )}
+
+        {/* Receipt List Modal */}
+        {showReceiptList && selectedExpense && (
+          <ReceiptList
+            receipts={selectedExpense.receipts || []}
+            onClose={() => {
+              setShowReceiptList(false);
+              setSelectedExpense(null);
+            }}
           />
         )}
       </div>

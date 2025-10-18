@@ -118,6 +118,7 @@ class ExpenseSubmission(BaseModel):
     vendor: str
     category: str  # Will be validated against ExpenseCategory enum values
     description: str
+    date: Optional[str] = None  # ISO format date string (YYYY-MM-DD), defaults to today if not provided
 
     @validator("category")
     def validate_category(cls, v):
@@ -128,6 +129,19 @@ class ExpenseSubmission(BaseModel):
         if v not in valid_categories:
             raise ValueError(f'Category must be one of: {", ".join(valid_categories)}')
         return v
+
+    @validator("date")
+    def validate_date(cls, v):
+        if v is None:
+            return None
+        # Validate date format
+        from datetime import datetime
+        try:
+            datetime.fromisoformat(v)
+            return v
+        except ValueError:
+            raise ValueError('Date must be in YYYY-MM-DD format')
+
 
 
 class ExpenseApproval(BaseModel):
@@ -158,6 +172,12 @@ async def submit_expense(
 
         organization_id = TenantContext.get_organization()  # noqa: F841
 
+        # Parse expense date or use current date
+        if data.date:
+            expense_date = datetime.fromisoformat(data.date)
+        else:
+            expense_date = datetime.utcnow()
+
         # Create expense directly in database (simplified version without AI agent)
         expense = Expense(
             id=str(uuid.uuid4()),
@@ -169,7 +189,7 @@ async def submit_expense(
             category=data.category,
             description=data.description,
             status=ExpenseStatus.PENDING,
-            date=datetime.utcnow(),
+            date=expense_date,
             ai_analysis="Manual submission - AI analysis not available",
             risk_level="LOW",
             compliance_check=True,
@@ -573,6 +593,39 @@ async def get_report(
     approved = sum(1 for e in expenses if e.status == ExpenseStatus.APPROVED)
     rejected = sum(1 for e in expenses if e.status == ExpenseStatus.REJECTED)
 
+    # Get receipt details for each expense
+    from .models import Receipt
+
+    expense_list = []
+    for e in expenses:
+        # Fetch all receipts for this expense
+        receipts = db.query(Receipt).filter(Receipt.expense_id == e.id).all()
+        receipt_list = [
+            {
+                "id": r.id,
+                "filename": r.original_filename,
+                "file_size": r.file_size,
+                "content_type": r.content_type,
+                "uploaded_at": r.uploaded_at.isoformat() if r.uploaded_at else None,
+            }
+            for r in receipts
+        ]
+
+        expense_list.append({
+            "id": e.id,
+            "amount": float(e.amount),
+            "vendor": e.vendor,
+            "category": e.category,
+            "description": e.description,
+            "status": e.status.value,
+            "date": e.date.isoformat() if e.date else None,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+            "transaction_id": e.transaction_id,
+            "rejection_reason": e.rejection_reason,
+            "receipt_count": len(receipt_list),
+            "receipts": receipt_list,
+        })
+
     return {
         "user_id": target_user_id,
         "total_expenses": total_expenses,
@@ -580,21 +633,7 @@ async def get_report(
         "pending": pending,
         "approved": approved,
         "rejected": rejected,
-        "expenses": [
-            {
-                "id": e.id,
-                "amount": float(e.amount),
-                "vendor": e.vendor,
-                "category": e.category,
-                "description": e.description,
-                "status": e.status.value,
-                "date": e.date.isoformat() if e.date else None,
-                "created_at": e.created_at.isoformat() if e.created_at else None,
-                "transaction_id": e.transaction_id,
-                "rejection_reason": e.rejection_reason,
-            }
-            for e in expenses
-        ],
+        "expenses": expense_list,
     }
 
 

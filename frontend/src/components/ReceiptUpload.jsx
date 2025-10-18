@@ -50,10 +50,10 @@ const ReceiptUpload = ({ expenseId, onSuccess, onCancel }) => {
 
     try {
       const formData = new FormData();
-      formData.append('receipt', file);
+      formData.append('file', file);
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/v1/expenses/${expenseId}/receipt`, {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`/api/v1/receipts/upload/${expenseId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
