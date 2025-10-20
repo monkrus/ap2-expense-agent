@@ -128,58 +128,53 @@ Approval Limit: $5,000 per expense
 Department Scope: Can only approve expenses from their department (when set)
 
 
-🔵 ACCOUNTANT
--------------
-Purpose: Financial oversight and reporting
-
-Can (All employee permissions +):
-  ✅ View all expenses (read-only)
-  ✅ View all reports
-  ✅ Export financial data
-  ✅ View audit logs
-  ✅ Access billing information
-
-Cannot:
-  ❌ Approve/reject expenses
-  ❌ Manage users
-  ❌ Access system settings
-
-
 🔴 ADMIN
 --------
-Purpose: System administration
+Purpose: System administration and user management
 
 Can:
   ✅ ALL permissions (superuser)
   ✅ Approve expenses of any amount
   ✅ Approve expenses from any department
-  ✅ Manage users (create, suspend, delete, change roles)
+  ✅ Manage users via User Management Dashboard:
+      • Create new user accounts (email, username, password, role, department)
+      • Edit user roles (EMPLOYEE, MANAGER, ADMIN)
+      • Assign users to departments for filtering
+      • Suspend/activate user accounts
+      • Delete user accounts (with self-protection)
+      • View user permissions by role
   ✅ Configure system settings
   ✅ Perform database maintenance
   ✅ Access all data
 
 No restrictions
 
+Admin Dashboard Features:
+  📊 Three-tab interface:
+     1. Pending Approvals - Review and approve/reject pending expenses
+     2. All Expenses - View all expenses with status filtering
+     3. User Management - Complete CRUD operations for user accounts
+
 
 ═══════════════════════════════════════════════════════════════
  📊 PERMISSION MATRIX
 ═══════════════════════════════════════════════════════════════
 
-| Permission                  | Employee | Manager | Accountant | Admin |
-|-----------------------------|----------|---------|------------|-------|
-| EXPENSE_SUBMIT              |    ✅     |    ✅    |     ✅      |   ✅   |
-| EXPENSE_VIEW_OWN            |    ✅     |    ✅    |     ✅      |   ✅   |
-| EXPENSE_VIEW_DEPARTMENT     |    ❌     |    ✅    |     ❌      |   ✅   |
-| EXPENSE_VIEW_ALL            |    ❌     |    ❌    |     ✅      |   ✅   |
-| EXPENSE_EDIT_OWN            |    ✅     |    ✅    |     ✅      |   ✅   |
-| EXPENSE_EDIT_DEPARTMENT     |    ❌     |    ✅    |     ❌      |   ✅   |
-| EXPENSE_APPROVE_DEPARTMENT  |    ❌     |    ✅    |     ❌      |   ✅   |
-| EXPENSE_APPROVE_ALL         |    ❌     |    ❌    |     ❌      |   ✅   |
-| EXPENSE_BULK_APPROVE        |    ❌     |    ✅    |     ❌      |   ✅   |
-| USER_CREATE                 |    ❌     |    ❌    |     ❌      |   ✅   |
-| USER_CHANGE_ROLE            |    ❌     |    ❌    |     ❌      |   ✅   |
-| SYSTEM_CONFIGURE            |    ❌     |    ❌    |     ❌      |   ✅   |
-| REPORT_EXPORT               |    ❌     |    ✅    |     ✅      |   ✅   |
+| Permission                  | Employee | Manager | Admin |
+|-----------------------------|----------|---------|-------|
+| EXPENSE_SUBMIT              |    ✅     |    ✅    |   ✅   |
+| EXPENSE_VIEW_OWN            |    ✅     |    ✅    |   ✅   |
+| EXPENSE_VIEW_DEPARTMENT     |    ❌     |    ✅    |   ✅   |
+| EXPENSE_VIEW_ALL            |    ❌     |    ❌    |   ✅   |
+| EXPENSE_EDIT_OWN            |    ✅     |    ✅    |   ✅   |
+| EXPENSE_EDIT_DEPARTMENT     |    ❌     |    ✅    |   ✅   |
+| EXPENSE_APPROVE_DEPARTMENT  |    ❌     |    ✅    |   ✅   |
+| EXPENSE_APPROVE_ALL         |    ❌     |    ❌    |   ✅   |
+| EXPENSE_BULK_APPROVE        |    ❌     |    ✅    |   ✅   |
+| USER_CREATE                 |    ❌     |    ❌    |   ✅   |
+| USER_CHANGE_ROLE            |    ❌     |    ❌    |   ✅   |
+| SYSTEM_CONFIGURE            |    ❌     |    ❌    |   ✅   |
+| REPORT_EXPORT               |    ❌     |    ✅    |   ✅   |
 
 See backend/PERMISSIONS.md for complete permission list (50+ permissions)
 
@@ -238,10 +233,151 @@ Email Format:
    ├─> Withdraw (if PENDING) → Status: WITHDRAWN
    └─> Add comments (any time)
 
-4. ACCOUNTANT ACTIONS
-   └─> View all expenses (read-only)
-   └─> Export reports
-   └─> View audit trails
+
+═══════════════════════════════════════════════════════════════
+ 🔐 SESSION MANAGEMENT & CONCURRENT LOGIN LIMITS
+═══════════════════════════════════════════════════════════════
+
+The application enforces role-based concurrent session limits to balance security
+and user convenience. When a user exceeds their session limit, the oldest session
+is automatically revoked.
+
+CONCURRENT SESSION LIMITS BY ROLE:
+
+🟢 EMPLOYEE (1 Session Limit)
+  - Can only be logged in on ONE device at a time
+  - Logging in from a new device/browser will log out the previous session
+  - Use case: Single workstation access for security
+  - Example: If logged in on Desktop, logging in on Mobile will log out Desktop
+
+🟡 MANAGER (2 Sessions Limit)
+  - Can be logged in on up to TWO devices simultaneously
+  - Common scenario: Desktop at office + Mobile device
+  - 3rd login will automatically revoke the oldest session
+  - Example: Desktop + Mobile = OK, Desktop + Mobile + Tablet = Desktop logged out
+
+🔴 ADMIN (Unlimited Sessions)
+  - No session limit - can log in from unlimited devices
+  - Maximum flexibility for system administrators
+  - Example: Desktop + Laptop + Mobile + Tablet = All stay logged in
+
+HOW IT WORKS:
+
+1. User logs in from Browser/Device A
+   └─> Session 1 created
+
+2. User logs in from Browser/Device B (while still logged in on A)
+   └─> Session 2 created
+   └─> For EMPLOYEE: Session 1 is revoked (logged out)
+   └─> For MANAGER: Both sessions remain active
+   └─> For ADMIN: Both sessions remain active
+
+3. Manager logs in from Browser/Device C (while logged in on A & B)
+   └─> Session 3 created
+   └─> Session 1 (oldest) is automatically revoked
+   └─> Sessions 2 and 3 remain active
+
+TECHNICAL DETAILS:
+
+- Sessions expire after 24 hours of inactivity
+- Revoked sessions cannot be reused (user must log in again)
+- Session revocations are logged in the audit trail
+- Action: "session.auto_revoked"
+- Each session tracks: IP address, User-Agent, creation time
+- JWT access tokens expire after configured time (default: 15 minutes)
+- Refresh tokens are used to obtain new access tokens
+
+SECURITY NOTES:
+
+- Session limits help prevent unauthorized account sharing
+- Audit logs track all session creations and revocations
+- Users can manually revoke sessions from their account settings
+- Admins can view and revoke user sessions via User Management Dashboard
+
+
+═══════════════════════════════════════════════════════════════
+ 👥 ADMIN USER MANAGEMENT DASHBOARD
+═══════════════════════════════════════════════════════════════
+
+The Admin Dashboard includes a dedicated User Management tab for complete
+user account administration.
+
+ACCESS:
+  1. Login as admin (admintest / password)
+  2. Navigate to Admin Dashboard
+  3. Click "User Management" tab
+
+FEATURES:
+
+📊 User Overview:
+  - Total users count
+  - Active users count
+  - Role breakdown (Admins, Managers, Employees)
+  - Search by name, email, or username
+  - Filter by role (All, Employee, Manager, Admin)
+
+➕ CREATE NEW USER:
+  1. Click "Create New User" button
+  2. Fill in the form:
+     • Email address (must be unique)
+     • Username (must be unique)
+     • Full name
+     • Password (bcrypt hashed)
+     • Role (EMPLOYEE, MANAGER, ADMIN)
+     • Department ID (optional, for manager filtering)
+  3. Click "Create User"
+  4. User is created with is_verified=true (pre-verified)
+
+✏️ EDIT USER:
+  1. Click "Edit" button on any user row
+  2. Modify:
+     • Role (upgrade/downgrade permissions)
+     • Department assignment
+     • Active status (suspend/activate account)
+  3. Click "Save Changes"
+  4. Audit log created automatically
+
+🗑️ DELETE USER:
+  1. Click "Delete" button on any user row
+  2. Confirm deletion
+  3. User account is permanently removed
+  4. Self-protection: Cannot delete own account
+  5. Audit log created automatically
+
+🔍 VIEW PERMISSIONS:
+  1. Click "View Permissions" button
+  2. See all permissions granted to that user's role
+  3. Permissions are based on RBAC system (50+ permissions)
+
+SECURITY FEATURES:
+  ✅ Admin-only access (requires ADMIN role)
+  ✅ Self-delete protection (cannot delete own account)
+  ✅ Email/username uniqueness validation
+  ✅ Password hashing with bcrypt
+  ✅ Complete audit trail for all operations
+  ✅ Real-time user count and statistics
+  ✅ Search and filter capabilities
+
+AUDIT LOGGING:
+  All user management operations are logged:
+  - admin.create_user - New user created
+  - admin.update_user_role - Role changed
+  - admin.update_user_department - Department assigned
+  - admin.suspend_user - Account suspended
+  - admin.activate_user - Account reactivated
+  - admin.delete_user - Account deleted
+
+API ENDPOINTS:
+  POST   /api/v1/admin/users/create
+  GET    /api/v1/admin/users
+  GET    /api/v1/admin/users/{user_id}
+  PATCH  /api/v1/admin/users/{user_id}/role
+  PATCH  /api/v1/admin/users/{user_id}/department
+  POST   /api/v1/admin/users/{user_id}/suspend
+  POST   /api/v1/admin/users/{user_id}/activate
+  DELETE /api/v1/admin/users/{user_id}
+  GET    /api/v1/admin/users/{user_id}/permissions
+  GET    /api/v1/admin/permissions/all
 
 
 ═══════════════════════════════════════════════════════════════
@@ -297,6 +433,7 @@ Solution:
 
 Backend:
   - src/permissions.py         - RBAC permission system (500+ lines)
+  - src/routes/admin.py        - Admin routes including user management (850+ lines)
   - src/api.py                 - Main API routes
   - src/models.py              - Database models
   - src/auth.py                - Authentication logic
@@ -304,10 +441,12 @@ Backend:
   - PERMISSIONS.md             - Complete permission documentation
 
 Frontend:
-  - src/components/EmployeeDashboard.jsx  - Employee view
-  - src/components/ManagerDashboard.jsx   - Manager view
-  - src/components/ExpenseEdit.jsx        - Expense editing
-  - src/contexts/AuthContext.jsx          - Authentication context
+  - src/components/EmployeeDashboard.jsx       - Employee view
+  - src/components/ManagerDashboard.jsx        - Manager view
+  - src/components/AdminDashboard.jsx          - Admin view with 3 tabs
+  - src/components/UserManagementDashboard.jsx - User management interface (900+ lines)
+  - src/components/ExpenseEdit.jsx             - Expense editing
+  - src/contexts/AuthContext.jsx               - Authentication context
 
 Configuration:
   - backend/.env               - Backend configuration
@@ -335,17 +474,23 @@ Expected result: 45 tests passed ✅
  📝 NOTES
 ═══════════════════════════════════════════════════════════════
 
-- Default passwords for test users: "password"
-- Database: SQLite (test.db) - auto-created on first run
+- Default passwords for test users: "AgentTest!"
+- Database: SQLite (expenses.db) - auto-created on first run
 - AP2 Protocol: Fully integrated for approved expenses
 - Multi-tenancy: Supported via organization_id
 - 2FA: Available for admin accounts
 - Session management: Token-based with refresh tokens
 - Rate limiting: Enabled on authentication endpoints
 - Audit logging: All approval/rejection actions logged
+- Role-based session limits:
+  • EMPLOYEE: 1 concurrent session (single device only)
+  • MANAGER: 2 concurrent sessions (e.g., desktop + mobile)
+  • ADMIN: Unlimited concurrent sessions
+  • Oldest sessions are automatically revoked when limit is exceeded
+  • Session revocations are logged in audit trail
 
 For detailed permission documentation, see:
   backend/PERMISSIONS.md
 
-Last Updated: 2025-10-18
-Version: 1.0.0 with RBAC Permission System
+Last Updated: 2025-10-19
+Version: 2.1.0 with RBAC Permission System + Role-Based Session Limits

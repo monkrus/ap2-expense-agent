@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
 import ChangePassword from './ChangePassword';
+import UserManagementDashboard from './UserManagementDashboard';
+import RoleBadge from './RoleBadge';
+import { getRoleTheme } from '../utils/roleThemes';
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { success, error: showError } = useToast();
 
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'all'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', or 'users'
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all'); // for 'all' tab
@@ -20,6 +23,7 @@ const AdminDashboard = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [sortField, setSortField] = useState('date'); // 'date', 'amount', 'category'
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
+  const [copiedTxId, setCopiedTxId] = useState(null); // Track copied transaction ID
 
   // Fetch pending expenses
   useEffect(() => {
@@ -181,6 +185,21 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleCopyTransactionId = async (transactionId) => {
+    try {
+      await navigator.clipboard.writeText(transactionId);
+      setCopiedTxId(transactionId);
+      success('Transaction ID copied to clipboard!');
+
+      // Reset copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedTxId(null);
+      }, 2000);
+    } catch (err) {
+      showError('Failed to copy transaction ID');
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -253,6 +272,7 @@ const AdminDashboard = () => {
   };
 
   const currentExpenses = sortExpenses(activeTab === 'pending' ? pendingExpenses : allExpenses);
+  const theme = getRoleTheme(user?.role?.toUpperCase() || 'ADMIN');
 
   // Debug logging
   console.log('[AdminDashboard] Render - activeTab:', activeTab);
@@ -262,17 +282,20 @@ const AdminDashboard = () => {
   console.log('[AdminDashboard] Render - currentExpenses:', currentExpenses.length);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                <Shield className="w-8 h-8 text-purple-600" />
-                Admin Dashboard
-              </h1>
-              <p className="text-gray-600 mt-2">Review and approve expense requests from all employees</p>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                  <Shield className="w-8 h-8 text-blue-600" />
+                  {user?.role === 'manager' ? 'Manager Dashboard' : user?.role === 'accountant' ? 'Accountant Dashboard' : 'Admin Dashboard'}
+                </h1>
+                <RoleBadge role={user?.role?.toUpperCase() || 'ADMIN'} showCapabilities={true} />
+              </div>
+              <p className="text-gray-600">{theme.description}</p>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -285,9 +308,20 @@ const AdminDashboard = () => {
               <button
                 onClick={() => activeTab === 'pending' ? fetchPendingExpenses() : fetchAllExpenses()}
                 disabled={loading}
-                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50"
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50"
               >
                 {loading ? 'Refreshing...' : 'Refresh'}
+              </button>
+              <button
+                onClick={async () => {
+                  await logout();
+                  window.location.reload();
+                }}
+                title="Logout"
+                className="flex items-center gap-2 px-4 py-3 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+              >
+                <LogOut className="w-5 h-5" />
+                Logout
               </button>
             </div>
           </div>
@@ -300,14 +334,14 @@ const AdminDashboard = () => {
               onClick={() => setActiveTab('pending')}
               className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
                 activeTab === 'pending'
-                  ? 'border-b-2 border-purple-600 text-purple-600'
+                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
               <Clock className="w-5 h-5" />
               Pending Approvals
               {pendingStats.total > 0 && (
-                <span className="ml-2 px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
+                <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
                   {pendingStats.total}
                 </span>
               )}
@@ -316,12 +350,23 @@ const AdminDashboard = () => {
               onClick={() => setActiveTab('all')}
               className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
                 activeTab === 'all'
-                  ? 'border-b-2 border-purple-600 text-purple-600'
+                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
               <FileText className="w-5 h-5" />
               All Expenses
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'users'
+                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <UserCog className="w-5 h-5" />
+              User Management
             </button>
           </div>
         </div>
@@ -333,9 +378,9 @@ const AdminDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm">Pending Requests</p>
-                  <p className="text-2xl font-bold text-purple-600">{pendingStats.total}</p>
+                  <p className="text-2xl font-bold text-blue-600">{pendingStats.total}</p>
                 </div>
-                <Clock className="w-10 h-10 text-purple-500" />
+                <Clock className="w-10 h-10 text-blue-600" />
               </div>
             </div>
 
@@ -364,15 +409,15 @@ const AdminDashboard = () => {
         {/* Filter for All Expenses tab */}
         {activeTab === 'all' && (
           <div className="bg-white rounded-lg shadow p-4 mb-6">
-            <div className="flex items-center gap-3">
-              <Filter className="w-5 h-5 text-gray-600" />
-              <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">Filter by Status:</label>
+            <div className="flex items-center gap-3 flex-wrap">
+              <Filter className="w-5 h-5 text-gray-600 flex-shrink-0" />
+              <label htmlFor="status-filter" className="text-sm font-medium text-gray-700 flex-shrink-0">Filter by Status:</label>
               <select
                 id="status-filter"
                 name="statusFilter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-40"
               >
                 <option value="all">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -383,11 +428,17 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Expenses List */}
+        {/* User Management Tab */}
+        {activeTab === 'users' && (
+          <UserManagementDashboard />
+        )}
+
+        {/* Expenses List - Only show for pending and all tabs */}
+        {(activeTab === 'pending' || activeTab === 'all') && (
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-purple-600" />
+              <TrendingUp className="w-5 h-5 text-blue-600" />
               {activeTab === 'pending' ? 'Pending Expense Requests' : 'Expense History'}
             </h2>
             {currentExpenses.length > 0 && (
@@ -405,7 +456,7 @@ const AdminDashboard = () => {
                 onClick={() => handleSort('date')}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   sortField === 'date'
-                    ? 'bg-purple-100 text-purple-700'
+                    ? 'bg-blue-100 text-blue-800'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -418,7 +469,7 @@ const AdminDashboard = () => {
                 onClick={() => handleSort('amount')}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   sortField === 'amount'
-                    ? 'bg-purple-100 text-purple-700'
+                    ? 'bg-blue-100 text-blue-800'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -431,7 +482,7 @@ const AdminDashboard = () => {
                 onClick={() => handleSort('category')}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   sortField === 'category'
-                    ? 'bg-purple-100 text-purple-700'
+                    ? 'bg-blue-100 text-blue-800'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -446,7 +497,7 @@ const AdminDashboard = () => {
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
                 <p className="text-gray-600 text-sm">Loading expenses...</p>
               </div>
             </div>
@@ -501,7 +552,20 @@ const AdminDashboard = () => {
 
                       {/* Transaction ID */}
                       {expense.transaction_id && (
-                        <p className="text-xs text-green-600 mt-1 font-mono">TX: {expense.transaction_id}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-green-600 font-mono">TX: {expense.transaction_id}</p>
+                          <button
+                            onClick={() => handleCopyTransactionId(expense.transaction_id)}
+                            className="p-1 hover:bg-green-100 rounded transition-colors"
+                            title="Copy transaction ID"
+                          >
+                            {copiedTxId === expense.transaction_id ? (
+                              <Check className="w-3.5 h-3.5 text-green-700" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5 text-green-600" />
+                            )}
+                          </button>
+                        </div>
                       )}
 
                       {/* Rejection Reason */}
@@ -543,8 +607,8 @@ const AdminDashboard = () => {
                   )}
 
                   {processing && (
-                    <div className="mt-3 flex items-center justify-center gap-2 text-sm text-purple-600">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                    <div className="mt-3 flex items-center justify-center gap-2 text-sm text-blue-600">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                       Processing with AP2 protocol...
                     </div>
                   )}
@@ -553,28 +617,31 @@ const AdminDashboard = () => {
             </div>
           )}
         </div>
+        )}
 
-        {/* AP2 Protocol Info */}
-        <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <Shield className="w-5 h-5 text-purple-600" />
-            Powered by Google AP2 Protocol
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2">Authorization</h4>
-              <p className="text-sm text-blue-800">Every approval creates cryptographic Intent Mandates proving authorization</p>
-            </div>
-            <div className="p-4 bg-green-50 rounded-lg">
-              <h4 className="font-semibold text-green-900 mb-2">Authenticity</h4>
-              <p className="text-sm text-green-800">Cart Mandates ensure accurate transaction details are preserved</p>
-            </div>
-            <div className="p-4 bg-purple-50 rounded-lg">
-              <h4 className="font-semibold text-purple-900 mb-2">Accountability</h4>
-              <p className="text-sm text-purple-800">Complete audit trail with Payment Mandates for compliance</p>
+        {/* AP2 Protocol Info - Only show for pending and all tabs */}
+        {(activeTab === 'pending' || activeTab === 'all') && (
+          <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-blue-600" />
+              Powered by Google AP2 Protocol
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-2">Authorization</h4>
+                <p className="text-sm text-blue-800">Every approval creates cryptographic Intent Mandates proving authorization</p>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg">
+                <h4 className="font-semibold text-green-900 mb-2">Authenticity</h4>
+                <p className="text-sm text-green-800">Cart Mandates ensure accurate transaction details are preserved</p>
+              </div>
+              <div className="p-4 bg-purple-50 rounded-lg">
+                <h4 className="font-semibold text-purple-900 mb-2">Accountability</h4>
+                <p className="text-sm text-purple-800">Complete audit trail with Payment Mandates for compliance</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Rejection Modal */}
         {rejectingExpense && (
@@ -670,3 +737,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+

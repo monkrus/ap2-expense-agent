@@ -138,7 +138,7 @@ async def get_receipts(
     # Check access - user must own the expense or be admin/manager
     from ..models import UserRole
     if expense.user_id != current_user.id and current_user.role not in [
-        UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT
+        UserRole.ADMIN, UserRole.MANAGER
     ]:
         raise HTTPException(
             status_code=403,
@@ -236,7 +236,7 @@ async def download_receipt(
     # Check access
     from ..models import UserRole
     if expense.user_id != current_user.id and current_user.role not in [
-        UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT
+        UserRole.ADMIN, UserRole.MANAGER
     ]:
         raise HTTPException(
             status_code=403,

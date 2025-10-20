@@ -21,6 +21,19 @@ class SuspendUserRequest(BaseModel):
     reason: str
 
 
+class CreateUserRequest(BaseModel):
+    email: str
+    username: str
+    full_name: str
+    password: str
+    role: UserRole
+    department_id: Optional[str] = None
+
+
+class UpdateUserDepartmentRequest(BaseModel):
+    department_id: Optional[str] = None
+
+
 @router.post("/maintenance", response_model=dict)
 async def run_maintenance(
     request: Request,
@@ -277,7 +290,8 @@ async def list_users(
                 "email": u.email,
                 "username": u.username,
                 "full_name": u.full_name,
-                "role": u.role,
+                "role": u.role.value,
+                "department_id": u.department_id,
                 "is_active": u.is_active,
                 "is_verified": u.is_verified,
                 "created_at": u.created_at.isoformat(),
@@ -535,4 +549,304 @@ async def get_all_expenses(
         "approved_count": approved_count,
         "rejected_count": rejected_count,
         "expenses": result
+    }
+
+
+# ============================================================================
+# USER MANAGEMENT ENDPOINTS
+# ============================================================================
+
+
+@router.post("/users/create", response_model=dict)
+async def create_user(
+    request: Request,
+    user_data: CreateUserRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Create a new user (Admin only)"""
+    import uuid
+    import bcrypt
+
+    # Check if email already exists
+    existing_email = db.query(User).filter(User.email == user_data.email).first()
+    if existing_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+
+    # Check if username already exists
+    existing_username = db.query(User).filter(User.username == user_data.username).first()
+    if existing_username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already taken"
+        )
+
+    # Hash the password
+    hashed_password = bcrypt.hashpw(
+        user_data.password.encode('utf-8'),
+        bcrypt.gensalt()
+    ).decode('utf-8')
+
+    # Create new user
+    new_user = User(
+        id=str(uuid.uuid4()),
+        email=user_data.email,
+        username=user_data.username,
+        full_name=user_data.full_name,
+        hashed_password=hashed_password,
+        role=user_data.role,
+        department_id=user_data.department_id,
+        is_active=True,
+        is_verified=True,  # Admin-created users are pre-verified
+        created_at=datetime.utcnow()
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    # Log audit event
+    AuthService.log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="admin.create_user",
+        resource_type="user",
+        resource_id=new_user.id,
+        details={
+            "created_user": new_user.username,
+            "role": user_data.role.value,
+            "department_id": user_data.department_id
+        },
+        request=request
+    )
+
+    return {
+        "success": True,
+        "message": "User created successfully",
+        "user": {
+            "id": new_user.id,
+            "email": new_user.email,
+            "username": new_user.username,
+            "full_name": new_user.full_name,
+            "role": new_user.role.value,
+            "department_id": new_user.department_id,
+            "is_active": new_user.is_active
+        }
+    }
+
+
+@router.get("/users/{user_id}", response_model=dict)
+async def get_user_details(
+    user_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get detailed user information (Admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    return {
+        "id": user.id,
+        "email": user.email,
+        "username": user.username,
+        "full_name": user.full_name,
+        "role": user.role.value,
+        "department_id": user.department_id,
+        "is_active": user.is_active,
+        "is_verified": user.is_verified,
+        "created_at": user.created_at.isoformat(),
+        "updated_at": user.updated_at.isoformat() if user.updated_at else None,
+        "last_login": user.last_login.isoformat() if user.last_login else None,
+        "totp_enabled": user.totp_enabled,
+        "failed_login_attempts": user.failed_login_attempts,
+        "locked_until": user.locked_until.isoformat() if user.locked_until else None
+    }
+
+
+@router.patch("/users/{user_id}/department", response_model=dict)
+async def update_user_department(
+    user_id: str,
+    request: Request,
+    department_data: UpdateUserDepartmentRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Update user's department (Admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    old_department = user.department_id
+    user.department_id = department_data.department_id
+    user.updated_at = datetime.utcnow()
+    db.commit()
+
+    # Log audit event
+    AuthService.log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="admin.update_user_department",
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "user": user.username,
+            "old_department": old_department,
+            "new_department": department_data.department_id
+        },
+        request=request
+    )
+
+    return {
+        "success": True,
+        "message": "Department updated successfully",
+        "user_id": user_id,
+        "department_id": user.department_id
+    }
+
+
+@router.post("/users/{user_id}/activate", response_model=dict)
+async def activate_user(
+    user_id: str,
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Reactivate a suspended user account (Admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    user.is_active = True
+    user.updated_at = datetime.utcnow()
+    db.commit()
+
+    # Log audit event
+    AuthService.log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="admin.activate_user",
+        resource_type="user",
+        resource_id=user.id,
+        details={"activated_user": user.username},
+        request=request
+    )
+
+    return {
+        "success": True,
+        "message": f"User '{user.username}' activated successfully",
+        "user_id": user_id
+    }
+
+
+@router.delete("/users/{user_id}", response_model=dict)
+async def delete_user(
+    user_id: str,
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete a user account (Admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Prevent deleting yourself
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete your own account"
+        )
+
+    username = user.username
+    db.delete(user)
+    db.commit()
+
+    # Log audit event
+    AuthService.log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="admin.delete_user",
+        resource_type="user",
+        resource_id=user_id,
+        details={"deleted_user": username},
+        request=request
+    )
+
+    return {
+        "success": True,
+        "message": f"User '{username}' deleted successfully",
+        "user_id": user_id
+    }
+
+
+@router.get("/users/{user_id}/permissions", response_model=dict)
+async def get_user_permissions(
+    user_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all permissions for a specific user (Admin only)"""
+    from ..permissions import get_user_permissions as get_permissions
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    permissions = get_permissions(user.role)
+
+    return {
+        "user_id": user_id,
+        "username": user.username,
+        "role": user.role.value,
+        "permissions": [p.value for p in permissions]
+    }
+
+
+@router.get("/permissions/all", response_model=dict)
+async def get_all_permissions(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all available permissions in the system (Admin only)"""
+    from ..permissions import Permission, ROLE_PERMISSIONS
+
+    # Group permissions by category
+    permissions_by_category = {}
+    for perm in Permission:
+        category = perm.value.split(":")[0]
+        if category not in permissions_by_category:
+            permissions_by_category[category] = []
+        permissions_by_category[category].append({
+            "name": perm.name,
+            "value": perm.value,
+            "description": perm.name.replace("_", " ").title()
+        })
+
+    # Get role-permission mappings
+    role_mappings = {}
+    for role, perms in ROLE_PERMISSIONS.items():
+        role_mappings[role.value] = [p.value for p in perms]
+
+    return {
+        "categories": permissions_by_category,
+        "role_mappings": role_mappings
     }

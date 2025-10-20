@@ -156,6 +156,13 @@ export const AuthProvider = ({ children }) => {
     return response;
   };
 
+  const getAuthHeaders = () => {
+    return {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
   const value = {
     user,
     accessToken,
@@ -167,6 +174,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     refreshAccessToken,
     apiRequest,
+    getAuthHeaders,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

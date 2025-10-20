@@ -10,7 +10,6 @@ class UserRole(str, enum.Enum):
     ADMIN = "admin"
     MANAGER = "manager"
     EMPLOYEE = "employee"
-    ACCOUNTANT = "accountant"
 
 
 class OrganizationRole(str, enum.Enum):

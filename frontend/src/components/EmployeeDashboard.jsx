@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown, User, LogOut } from 'lucide-react';
+import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown, User, LogOut, Copy, Check } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,8 @@ import ReceiptUpload from './ReceiptUpload';
 import ExpenseEdit from './ExpenseEdit';
 import ExpenseExport from './ExpenseExport';
 import ReceiptList from './ReceiptList';
+import RoleBadge from './RoleBadge';
+import { getRoleTheme } from '../utils/roleThemes';
 
 const EmployeeDashboard = () => {
   const { user, logout } = useAuth();
@@ -26,6 +28,7 @@ const EmployeeDashboard = () => {
   const [statusFilter, setStatusFilter] = useState('all'); // for history tab
   const [sortField, setSortField] = useState('date'); // 'date', 'amount', 'category'
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
+  const [copiedTxId, setCopiedTxId] = useState(null); // Track copied transaction ID
   const [newExpense, setNewExpense] = useState({
     amount: '',
     category: 'Travel',
@@ -90,6 +93,21 @@ const EmployeeDashboard = () => {
     } catch (err) {
       const errorMsg = err instanceof APIError ? err.message : 'Failed to withdraw expense';
       showError(errorMsg);
+    }
+  };
+
+  const handleCopyTransactionId = async (transactionId) => {
+    try {
+      await navigator.clipboard.writeText(transactionId);
+      setCopiedTxId(transactionId);
+      success('Transaction ID copied to clipboard!');
+
+      // Reset copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedTxId(null);
+      }, 2000);
+    } catch (err) {
+      showError('Failed to copy transaction ID');
     }
   };
 
@@ -224,18 +242,23 @@ const EmployeeDashboard = () => {
     approved: expenses.filter(e => e.status === 'approved').length
   };
 
+  const theme = getRoleTheme('EMPLOYEE');
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className={`min-h-screen bg-gradient-to-br ${theme.colors.gradient} p-6`}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                <Receipt className="w-8 h-8 text-indigo-600" />
-                My Expenses
-              </h1>
-              <p className="text-gray-600 mt-2">Submit and track your expense requests</p>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                  <Receipt className={`w-8 h-8 text-${theme.colors.primary}`} />
+                  My Expenses
+                </h1>
+                <RoleBadge role="EMPLOYEE" showCapabilities={true} />
+              </div>
+              <p className="text-gray-600">{theme.description}</p>
             </div>
 
             {/* User Profile Section */}
@@ -286,7 +309,7 @@ const EmployeeDashboard = () => {
                 setNewExpense(prev => ({ ...prev, date: new Date().toISOString().split('T')[0] }));
                 setShowExpenseForm(true);
               }}
-              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+              className={`flex items-center gap-2 px-6 py-3 ${theme.colors.button} text-white rounded-lg transition-colors font-medium`}
             >
               <Plus className="w-5 h-5" />
               New Expense
@@ -302,7 +325,7 @@ const EmployeeDashboard = () => {
                 <p className="text-gray-600 text-sm">Total Submitted</p>
                 <p className="text-2xl font-bold text-gray-800">${stats.total.toFixed(2)}</p>
               </div>
-              <DollarSign className="w-10 h-10 text-blue-500" />
+              <DollarSign className={`w-10 h-10 text-${theme.colors.primary}`} />
             </div>
           </div>
 
@@ -334,14 +357,14 @@ const EmployeeDashboard = () => {
               onClick={() => setActiveTab('active')}
               className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
                 activeTab === 'active'
-                  ? 'border-b-2 border-indigo-600 text-indigo-600'
+                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
               <Clock className="w-5 h-5" />
               Active Expenses
               {stats.pending > 0 && (
-                <span className="ml-2 px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-full">
+                <span className={`ml-2 px-2 py-1 text-xs ${theme.colors.badge} rounded-full`}>
                   {stats.pending}
                 </span>
               )}
@@ -350,7 +373,7 @@ const EmployeeDashboard = () => {
               onClick={() => setActiveTab('history')}
               className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
                 activeTab === 'history'
-                  ? 'border-b-2 border-indigo-600 text-indigo-600'
+                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
@@ -369,7 +392,7 @@ const EmployeeDashboard = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className={`px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-${theme.colors.primary} focus:border-transparent`}
               >
                 <option value="all">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -397,7 +420,7 @@ const EmployeeDashboard = () => {
                     value={newExpense.date}
                     onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
                     max={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-${theme.colors.primary}`}
                     required
                   />
                 </div>
@@ -411,7 +434,7 @@ const EmployeeDashboard = () => {
                     step="1"
                     value={newExpense.amount}
                     onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-${theme.colors.primary}`}
                     placeholder="0.00"
                     required
                   />
@@ -422,7 +445,7 @@ const EmployeeDashboard = () => {
                   <select
                     value={newExpense.category}
                     onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-${theme.colors.primary}`}
                     required
                   >
                     <option>Travel</option>
@@ -441,7 +464,7 @@ const EmployeeDashboard = () => {
                     type="text"
                     value={newExpense.vendor}
                     onChange={(e) => setNewExpense({...newExpense, vendor: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-${theme.colors.primary}`}
                     placeholder="Vendor name"
                     required
                   />
@@ -454,7 +477,7 @@ const EmployeeDashboard = () => {
                   <textarea
                     value={newExpense.description}
                     onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-${theme.colors.primary}`}
                     rows="3"
                     placeholder="Expense description"
                     required
@@ -471,7 +494,7 @@ const EmployeeDashboard = () => {
                 </button>
                 <button
                   onClick={handleExpenseSubmit}
-                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  className={`flex-1 px-4 py-2 ${theme.colors.button} text-white rounded-lg`}
                 >
                   Submit
                 </button>
@@ -501,7 +524,7 @@ const EmployeeDashboard = () => {
                 onClick={() => handleSort('date')}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   sortField === 'date'
-                    ? 'bg-indigo-100 text-indigo-700'
+                    ? `${theme.colors.badge}`
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -514,7 +537,7 @@ const EmployeeDashboard = () => {
                 onClick={() => handleSort('amount')}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   sortField === 'amount'
-                    ? 'bg-indigo-100 text-indigo-700'
+                    ? `${theme.colors.badge}`
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -527,7 +550,7 @@ const EmployeeDashboard = () => {
                 onClick={() => handleSort('category')}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   sortField === 'category'
-                    ? 'bg-indigo-100 text-indigo-700'
+                    ? `${theme.colors.badge}`
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -542,7 +565,7 @@ const EmployeeDashboard = () => {
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+                <div className={`animate-spin rounded-full h-8 w-8 border-b-2 border-${theme.colors.primary} mx-auto mb-2`}></div>
                 <p className="text-gray-600 text-sm">Loading expenses...</p>
               </div>
             </div>
@@ -638,7 +661,7 @@ const EmployeeDashboard = () => {
                                   setSelectedExpense(expense);
                                   setShowReceiptUpload(true);
                                 }}
-                                className="p-1.5 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors"
+                                className={`p-1.5 ${theme.colors.badge} rounded hover:bg-${theme.colors.primaryLight} transition-colors`}
                                 title="Upload receipt"
                               >
                                 <Upload className="w-4 h-4" />
@@ -658,9 +681,22 @@ const EmployeeDashboard = () => {
                       {expense.transaction_id && (
                         <tr className="border-b border-gray-100">
                           <td colSpan="8" className="py-2 px-4 bg-green-50">
-                            <p className="text-xs text-green-700 font-mono">
-                              <span className="font-semibold">Transaction ID:</span> {expense.transaction_id}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-green-700 font-mono">
+                                <span className="font-semibold">Transaction ID:</span> {expense.transaction_id}
+                              </p>
+                              <button
+                                onClick={() => handleCopyTransactionId(expense.transaction_id)}
+                                className="p-1 hover:bg-green-100 rounded transition-colors"
+                                title="Copy transaction ID"
+                              >
+                                {copiedTxId === expense.transaction_id ? (
+                                  <Check className="w-3.5 h-3.5 text-green-700" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5 text-green-600" />
+                                )}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       )}

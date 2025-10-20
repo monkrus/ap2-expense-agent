@@ -28,6 +28,16 @@ pwd_context = CryptContext(
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 http_bearer = HTTPBearer()
 
+# Role-based concurrent session limits
+# EMPLOYEE: 1 session (single device only)
+# MANAGER: 2 sessions (e.g., desktop + mobile)
+# ADMIN: unlimited sessions
+ROLE_SESSION_LIMITS = {
+    UserRole.EMPLOYEE: 1,
+    UserRole.MANAGER: 2,
+    UserRole.ADMIN: None  # None = unlimited
+}
+
 class AuthService:
     """Authentication and authorization service"""
 
@@ -137,7 +147,41 @@ class AuthService:
 
     @staticmethod
     def create_session(user_id: str, db: Session, request: Request) -> UserSession:
-        """Create a user session"""
+        """Create a user session with role-based session limit enforcement"""
+        # Get user to check their role
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Get session limit for this role
+        session_limit = ROLE_SESSION_LIMITS.get(user.role)
+
+        # Enforce session limit (if not unlimited)
+        if session_limit is not None:
+            # Get active sessions for this user (not revoked and not expired)
+            active_sessions = db.query(UserSession).filter(
+                UserSession.user_id == user_id,
+                UserSession.revoked == False,
+                UserSession.expires_at > datetime.utcnow()
+            ).order_by(UserSession.created_at.asc()).all()
+
+            # If at or over limit, revoke oldest sessions
+            if len(active_sessions) >= session_limit:
+                sessions_to_revoke = len(active_sessions) - session_limit + 1
+                for session in active_sessions[:sessions_to_revoke]:
+                    session.revoked = True
+                    # Log session revocation
+                    AuthService.log_audit(
+                        db=db,
+                        user_id=user_id,
+                        action="session.auto_revoked",
+                        resource_type="session",
+                        resource_id=session.id,
+                        details={"reason": "session_limit_exceeded", "limit": session_limit},
+                        request=request
+                    )
+
+        # Create new session
         session_token = secrets.token_urlsafe(32)
         expires_at = datetime.utcnow() + timedelta(hours=24)
 
@@ -274,4 +318,3 @@ def require_role(*roles: UserRole):
 # Specific role dependencies
 require_admin = require_role(UserRole.ADMIN)
 require_manager = require_role(UserRole.ADMIN, UserRole.MANAGER)
-require_accountant = require_role(UserRole.ADMIN, UserRole.ACCOUNTANT)

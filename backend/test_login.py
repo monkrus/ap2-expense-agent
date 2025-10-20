@@ -1,21 +1,23 @@
-import sys
-sys.path.insert(0, '.')
-from src.database import SessionLocal
-from src.models import User
-from src.auth import AuthService
+import requests
 
-db = SessionLocal()
-user = db.query(User).filter(User.username == 'testuser').first()
+# Test all users with AgentTest!
+users = ['admintest', 'testuser', 'emptest', 'employee2']
+password = 'AgentTest!'
 
-if user:
-    print(f'User found: {user.username}')
-    print(f'Hash in DB: {user.hashed_password[:60]}...')
+print(f"Testing login with password: {password}")
+print("=" * 50)
 
-    # Test password verification
-    password = 'AgentTest!'
-    result = AuthService.verify_password(password, user.hashed_password)
-    print(f'Password "{password}" verification: {result}')
-else:
-    print('User not found')
+for username in users:
+    response = requests.post(
+        'http://localhost:8000/api/v1/auth/login',
+        json={'username': username, 'password': password}
+    )
+    
+    if response.status_code == 200:
+        role = response.json().get('user', {}).get('role', 'unknown')
+        print(f'{username:15} SUCCESS (role: {role})')
+    else:
+        error = response.json().get('error', {}).get('message', 'Unknown error')
+        print(f'{username:15} FAILED - {error}')
 
-db.close()
+print("=" * 50)

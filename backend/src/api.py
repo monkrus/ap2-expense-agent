@@ -217,7 +217,7 @@ async def submit_expense(
 
             # Notify managers/admins of new expense awaiting approval
             managers = db.query(UserModel).filter(
-                UserModel.role.in_([UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT])
+                UserModel.role.in_([UserRole.ADMIN, UserRole.MANAGER])
             ).all()
 
             for manager in managers:
