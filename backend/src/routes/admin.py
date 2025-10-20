@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from ..database import get_db
 from ..models import User, Organization, UserRole
-from ..auth import require_admin, AuthService
+from ..auth import require_admin, require_manager, AuthService
 from ..maintenance import DataRetentionService
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
@@ -482,10 +482,10 @@ async def unlock_user_account(
 @router.get("/expenses")
 async def get_all_expenses(
     status: Optional[str] = Query(None),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_manager),
     db: Session = Depends(get_db)
 ):
-    """Get all expenses from all users with optional status filter (admin only)"""
+    """Get all expenses from all users with optional status filter (admin and manager)"""
     from ..models import Expense, ExpenseStatus, User as UserModel
     import logging
 

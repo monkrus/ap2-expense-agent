@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check, AlertCircle, Plus, Briefcase, Search } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,18 +12,29 @@ const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const { success, error: showError } = useToast();
 
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', or 'users'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'users', or 'my-expenses'
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
+  const [myExpenses, setMyExpenses] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all'); // for 'all' tab
+  const [searchQuery, setSearchQuery] = useState(''); // for searching expenses
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [rejectingExpense, setRejectingExpense] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [sortField, setSortField] = useState('date'); // 'date', 'amount', 'category'
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
   const [copiedTxId, setCopiedTxId] = useState(null); // Track copied transaction ID
+  const [copiedExpenseId, setCopiedExpenseId] = useState(null); // Track copied expense ID
+  const [newExpense, setNewExpense] = useState({
+    amount: '',
+    category: 'Travel',
+    vendor: '',
+    description: '',
+    date: ''
+  });
 
   // Fetch pending expenses
   useEffect(() => {
@@ -52,6 +63,40 @@ const AdminDashboard = () => {
       return () => clearInterval(interval);
     }
   }, [activeTab, statusFilter]);
+
+  // Fetch my expenses
+  useEffect(() => {
+    if (activeTab === 'my-expenses') {
+      fetchMyExpenses(true);
+
+      const interval = setInterval(() => {
+        fetchMyExpenses(false);
+      }, 10000);
+
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
+
+  const fetchMyExpenses = async (isInitialLoad = false) => {
+    try {
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+      const data = await expenseAPI.getMyExpenses();
+      if (data.expenses && Array.isArray(data.expenses)) {
+        setMyExpenses(data.expenses);
+      }
+    } catch (err) {
+      console.error('Error fetching my expenses:', err);
+      if (isInitialLoad) {
+        showError('Failed to load your expenses.');
+      }
+    } finally {
+      if (isInitialLoad) {
+        setLoading(false);
+      }
+    }
+  };
 
   const fetchPendingExpenses = async (isInitialLoad = false) => {
     try {
@@ -185,6 +230,61 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleSubmitExpense = async (e) => {
+    e.preventDefault();
+    setProcessing(true);
+
+    if (!newExpense.date) {
+      showError('Please select an expense date');
+      setProcessing(false);
+      return;
+    }
+
+    setShowExpenseForm(false);
+
+    const expenseData = {
+      user_id: user?.id || 'current_user',
+      amount: parseFloat(newExpense.amount),
+      category: newExpense.category,
+      vendor: newExpense.vendor,
+      description: newExpense.description,
+      date: newExpense.date
+    };
+
+    try {
+      const result = await expenseAPI.submitExpense(expenseData);
+
+      if (result.success) {
+        success('Expense submitted successfully!');
+
+        // Reset form
+        setNewExpense({
+          amount: '',
+          category: 'Travel',
+          vendor: '',
+          description: '',
+          date: ''
+        });
+
+        // Refresh my expenses
+        fetchMyExpenses();
+      }
+    } catch (err) {
+      const errorMsg = err instanceof APIError ? err.message : 'Failed to submit expense';
+      showError(errorMsg);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const openExpenseForm = () => {
+    setNewExpense({
+      ...newExpense,
+      date: new Date().toISOString().split('T')[0]
+    });
+    setShowExpenseForm(true);
+  };
+
   const handleCopyTransactionId = async (transactionId) => {
     try {
       await navigator.clipboard.writeText(transactionId);
@@ -197,6 +297,21 @@ const AdminDashboard = () => {
       }, 2000);
     } catch (err) {
       showError('Failed to copy transaction ID');
+    }
+  };
+
+  const handleCopyExpenseId = async (expenseId) => {
+    try {
+      await navigator.clipboard.writeText(expenseId);
+      setCopiedExpenseId(expenseId);
+      success('Expense ID copied to clipboard!');
+
+      // Reset copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedExpenseId(null);
+      }, 2000);
+    } catch (err) {
+      showError('Failed to copy expense ID');
     }
   };
 
@@ -271,7 +386,23 @@ const AdminDashboard = () => {
     uniqueUsers: new Set(pendingExpenses.map(e => e.user_id)).size
   };
 
-  const currentExpenses = sortExpenses(activeTab === 'pending' ? pendingExpenses : allExpenses);
+  // Apply search filter
+  const searchFilteredExpenses = (activeTab === 'pending' ? pendingExpenses : allExpenses).filter(expense => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      expense.id?.toLowerCase().includes(query) ||
+      expense.vendor?.toLowerCase().includes(query) ||
+      expense.description?.toLowerCase().includes(query) ||
+      expense.category?.toLowerCase().includes(query) ||
+      expense.amount?.toString().includes(query) ||
+      expense.status?.toLowerCase().includes(query) ||
+      expense.user_email?.toLowerCase().includes(query) ||
+      expense.user_name?.toLowerCase().includes(query)
+    );
+  });
+
+  const currentExpenses = sortExpenses(searchFilteredExpenses);
   const theme = getRoleTheme(user?.role?.toUpperCase() || 'ADMIN');
 
   // Debug logging
@@ -358,16 +489,30 @@ const AdminDashboard = () => {
               All Expenses
             </button>
             <button
-              onClick={() => setActiveTab('users')}
+              onClick={() => setActiveTab('my-expenses')}
               className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
-                activeTab === 'users'
+                activeTab === 'my-expenses'
                   ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
-              <UserCog className="w-5 h-5" />
-              User Management
+              <Briefcase className="w-5 h-5" />
+              My Expenses
             </button>
+            {/* User Management Tab - Admin Only */}
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                  activeTab === 'users'
+                    ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <UserCog className="w-5 h-5" />
+                User Management
+              </button>
+            )}
           </div>
         </div>
 
@@ -406,26 +551,230 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Filter for All Expenses tab */}
-        {activeTab === 'all' && (
+        {/* Search and Filter - Show on pending and all tabs */}
+        {(activeTab === 'pending' || activeTab === 'all') && (
           <div className="bg-white rounded-lg shadow p-4 mb-6">
             <div className="flex items-center gap-3 flex-wrap">
-              <Filter className="w-5 h-5 text-gray-600 flex-shrink-0" />
-              <label htmlFor="status-filter" className="text-sm font-medium text-gray-700 flex-shrink-0">Filter by Status:</label>
-              <select
-                id="status-filter"
-                name="statusFilter"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-40"
-              >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
+              {/* Search Box */}
+              <div className="flex items-center gap-2 flex-1 min-w-[250px]">
+                <Search className="w-5 h-5 text-gray-600" />
+                <input
+                  type="text"
+                  placeholder="Search by ID, vendor, description, category, user..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                    title="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter - Only show on All Expenses tab */}
+              {activeTab === 'all' && (
+                <>
+                  <div className="border-l border-gray-300 h-8 mx-2"></div>
+                  <Filter className="w-5 h-5 text-gray-600 flex-shrink-0" />
+                  <label htmlFor="status-filter" className="text-sm font-medium text-gray-700 flex-shrink-0">Status:</label>
+                  <select
+                    id="status-filter"
+                    name="statusFilter"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[150px] bg-white"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </>
+              )}
             </div>
           </div>
+        )}
+
+        {/* My Expenses Tab */}
+        {activeTab === 'my-expenses' && (
+          <>
+            {/* Submit Expense Button */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800">My Expenses</h2>
+                  <p className="text-gray-600">Submit and manage your expense claims</p>
+                </div>
+                <button
+                  onClick={openExpenseForm}
+                  className={`flex items-center gap-2 px-6 py-3 ${theme.colors.button} text-white rounded-lg transition-colors font-medium`}
+                >
+                  <Plus className="w-5 h-5" />
+                  New Expense
+                </button>
+              </div>
+            </div>
+
+            {/* Expense Submission Form Modal */}
+            {showExpenseForm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Submit New Expense</h2>
+
+                  <form onSubmit={handleSubmitExpense} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Expense Date <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={newExpense.date}
+                        onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
+                        max={new Date().toISOString().split('T')[0]}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Amount ($) <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={newExpense.amount}
+                        onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                      <select
+                        value={newExpense.category}
+                        onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option>Travel</option>
+                        <option>Meals</option>
+                        <option>Software</option>
+                        <option>Office Supplies</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Vendor <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={newExpense.vendor}
+                        onChange={(e) => setNewExpense({...newExpense, vendor: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Vendor name"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description <span className="text-red-600">*</span>
+                      </label>
+                      <textarea
+                        value={newExpense.description}
+                        onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        rows="3"
+                        placeholder="Expense description"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex gap-3 mt-6">
+                      <button
+                        type="button"
+                        onClick={() => setShowExpenseForm(false)}
+                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={processing}
+                        className={`flex-1 px-4 py-2 ${theme.colors.button} text-white rounded-lg disabled:opacity-50`}
+                      >
+                        {processing ? 'Submitting...' : 'Submit'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* My Expenses List */}
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">My Expense History</h3>
+
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-gray-500">Loading expenses...</p>
+                  </div>
+                </div>
+              ) : myExpenses.length === 0 ? (
+                <div className="text-center py-12">
+                  <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg font-medium">No expenses yet</p>
+                  <p className="text-gray-400 text-sm mt-2">Click "New Expense" to submit your first expense claim.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {myExpenses.map((expense) => (
+                    <div
+                      key={expense.id}
+                      className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow bg-gradient-to-r from-white to-gray-50"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-800">{expense.vendor}</h3>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              expense.status === 'approved' ? 'bg-green-100 text-green-800' :
+                              expense.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              expense.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {expense.status.toUpperCase()}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 text-sm mb-2">{expense.description}</p>
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <span>{expense.category}</span>
+                            <span>•</span>
+                            <span>{new Date(expense.date || expense.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-blue-600">${expense.amount.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         {/* User Management Tab */}
@@ -535,7 +884,20 @@ const AdminDashboard = () => {
 
                       {/* Expense Info */}
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-gray-800">{expense.id}</span>
+                        <button
+                          onClick={() => handleCopyExpenseId(expense.id)}
+                          className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+                          title="Copy expense ID"
+                        >
+                          {copiedExpenseId === expense.id ? (
+                            <Check className="w-3.5 h-3.5 text-green-700" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5 text-gray-600" />
+                          )}
+                        </button>
+                        <span className="font-semibold text-gray-800 text-sm" title={expense.id}>
+                          {expense.id.substring(0, 8)}...
+                        </span>
                         {getStatusBadge(expense.status)}
                       </div>
                       <p className="text-sm text-gray-600 mb-1">{expense.description}</p>
@@ -586,24 +948,48 @@ const AdminDashboard = () => {
 
                   {/* Action Buttons - Only for pending expenses */}
                   {expense.status === 'pending' && (
-                    <div className="flex gap-3 pt-4 border-t border-gray-200">
-                      <button
-                        onClick={() => handleApproveExpense(expense)}
-                        disabled={processing}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Approve via AP2
-                      </button>
-                      <button
-                        onClick={() => openRejectModal(expense)}
-                        disabled={processing}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Reject
-                      </button>
-                    </div>
+                    <>
+                      {/* Manager Approval Limit Warning */}
+                      {user?.role === 'manager' && expense.amount > 5000 && (
+                        <div className="pt-4 border-t border-gray-200">
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                            <div className="text-sm text-amber-800">
+                              <p className="font-medium">Admin Approval Required</p>
+                              <p className="text-amber-700 mt-1">
+                                This expense (${expense.amount.toLocaleString()}) exceeds your approval limit of $5,000.
+                                Only admins can approve this expense.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3 pt-4 border-t border-gray-200">
+                        <button
+                          onClick={() => handleApproveExpense(expense)}
+                          disabled={processing || (user?.role === 'manager' && expense.amount > 5000)}
+                          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                            user?.role === 'manager' && expense.amount > 5000
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                          }`}
+                          title={user?.role === 'manager' && expense.amount > 5000 ? 'Exceeds manager approval limit' : ''}
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          {user?.role === 'manager' && expense.amount > 5000 ? 'Cannot Approve' : 'Approve via AP2'}
+                        </button>
+                        <button
+                          onClick={() => openRejectModal(expense)}
+                          disabled={processing}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Reject
+                        </button>
+                      </div>
+                    </>
                   )}
 
                   {processing && (

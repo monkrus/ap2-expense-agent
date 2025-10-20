@@ -1,17 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(netstat -ano)",
-      "Bash(findstr :8000)",
-      "Bash(findstr :5173)",
-      "Bash(taskkill /F /PID 10296)",
-      "Bash(taskkill /F /PID 11260)",
-      "Bash(taskkill //F //PID 10296)",
-      "Bash(taskkill //F //PID 11260)",
-      "Bash(.venvScriptspython.exe -m uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload)",
-      "Bash(.venv/Scripts/python.exe -m uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload)",
-      "Bash(npm run dev)",
-      "Bash(git add .)"
+      "Bash(timeout 3 echo \"Waiting for Vite to rebuild\")",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm install xlsx)",
+      "Bash(python -c \"import sqlite3; conn = sqlite3.connect(''expenses.db''); cursor = conn.cursor(); cursor.execute(''SELECT id, vendor, amount FROM expenses LIMIT 5''); print(''Sample Expense IDs:''); print(''-'' * 60); [print(f''ID: {row[0]}\\nVendor: {row[1]}, Amount: $row[2]\\n'') for row in cursor.fetchall()]; conn.close()\")"
     ],
     "deny": [],
     "ask": []

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown, User, LogOut, Copy, Check } from 'lucide-react';
+import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown, User, LogOut, Copy, Check, Search } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,9 +26,11 @@ const EmployeeDashboard = () => {
   const [showReceiptList, setShowReceiptList] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all'); // for history tab
+  const [searchQuery, setSearchQuery] = useState(''); // for searching expenses
   const [sortField, setSortField] = useState('date'); // 'date', 'amount', 'category'
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
   const [copiedTxId, setCopiedTxId] = useState(null); // Track copied transaction ID
+  const [copiedExpenseId, setCopiedExpenseId] = useState(null); // Track copied expense ID
   const [newExpense, setNewExpense] = useState({
     amount: '',
     category: 'Travel',
@@ -108,6 +110,21 @@ const EmployeeDashboard = () => {
       }, 2000);
     } catch (err) {
       showError('Failed to copy transaction ID');
+    }
+  };
+
+  const handleCopyExpenseId = async (expenseId) => {
+    try {
+      await navigator.clipboard.writeText(expenseId);
+      setCopiedExpenseId(expenseId);
+      success('Expense ID copied to clipboard!');
+
+      // Reset copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedExpenseId(null);
+      }, 2000);
+    } catch (err) {
+      showError('Failed to copy expense ID');
     }
   };
 
@@ -234,7 +251,21 @@ const EmployeeDashboard = () => {
     return e.status === statusFilter;
   });
 
-  const currentExpenses = sortExpenses(activeTab === 'active' ? activeExpenses : historyExpenses);
+  // Apply search filter
+  const searchFilteredExpenses = (activeTab === 'active' ? activeExpenses : historyExpenses).filter(expense => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      expense.id?.toLowerCase().includes(query) ||
+      expense.vendor?.toLowerCase().includes(query) ||
+      expense.description?.toLowerCase().includes(query) ||
+      expense.category?.toLowerCase().includes(query) ||
+      expense.amount?.toString().includes(query) ||
+      expense.status?.toLowerCase().includes(query)
+    );
+  });
+
+  const currentExpenses = sortExpenses(searchFilteredExpenses);
 
   const stats = {
     total: expenses.reduce((sum, e) => sum + e.amount, 0),
@@ -383,26 +414,51 @@ const EmployeeDashboard = () => {
           </div>
         </div>
 
-        {/* Filter for History tab */}
-        {activeTab === 'history' && (
-          <div className="bg-white rounded-lg shadow p-4 mb-6">
-            <div className="flex items-center gap-3">
-              <Filter className="w-5 h-5 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">Filter by Status:</span>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className={`px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-${theme.colors.primary} focus:border-transparent`}
-              >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="withdrawn">Withdrawn</option>
-              </select>
+        {/* Search and Filter */}
+        <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Search Box */}
+            <div className="flex items-center gap-2 flex-1 min-w-[250px]">
+              <Search className="w-5 h-5 text-gray-600" />
+              <input
+                type="text"
+                placeholder="Search by ID, vendor, description, category..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-gray-400 hover:text-gray-600"
+                  title="Clear search"
+                >
+                  ×
+                </button>
+              )}
             </div>
+
+            {/* Status Filter - Only show on History tab */}
+            {activeTab === 'history' && (
+              <>
+                <div className="border-l border-gray-300 h-8 mx-2"></div>
+                <Filter className="w-5 h-5 text-gray-600 flex-shrink-0" />
+                <span className="text-sm font-medium text-gray-700 flex-shrink-0">Status:</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[150px] bg-white"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="withdrawn">Withdrawn</option>
+                </select>
+              </>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Expense Form Modal */}
         {showExpenseForm && (
@@ -605,8 +661,19 @@ const EmployeeDashboard = () => {
                       <tr className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${expense._optimistic ? 'opacity-60' : ''}`}>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleCopyExpenseId(expense.id)}
+                              className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+                              title="Copy expense ID"
+                            >
+                              {copiedExpenseId === expense.id ? (
+                                <Check className="w-3.5 h-3.5 text-green-700" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5 text-gray-600" />
+                              )}
+                            </button>
                             <span className="text-sm font-medium text-gray-800 truncate max-w-[120px]" title={expense.id}>
-                              {expense.id}
+                              {expense.id.substring(0, 8)}...
                             </span>
                             {expense.receipt_count > 0 && (
                               <button

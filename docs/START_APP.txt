@@ -111,11 +111,12 @@ Cannot:
 Purpose: Oversee department expenses and approvals
 
 Can (All employee permissions +):
-  ✅ Approve/reject department expenses (up to $5,000)
-  ✅ View department expenses
-  ✅ Bulk approve/reject
+  ✅ View ALL expenses (full visibility for planning & oversight)
+  ✅ Approve/reject department expenses (up to $5,000 only)
+  ✅ Bulk approve/reject (≤$5,000 per expense)
   ✅ View department reports
   ✅ Export reports
+  ✅ See high-value expenses with "Admin Approval Required" indicator
 
 Cannot:
   ❌ Approve own expenses (self-approval prevention)
@@ -125,6 +126,7 @@ Cannot:
   ❌ Access system settings
 
 Approval Limit: $5,000 per expense
+Visibility: Can VIEW all expenses, but can only APPROVE ≤$5,000
 Department Scope: Can only approve expenses from their department (when set)
 
 
@@ -165,12 +167,12 @@ Admin Dashboard Features:
 | EXPENSE_SUBMIT              |    ✅     |    ✅    |   ✅   |
 | EXPENSE_VIEW_OWN            |    ✅     |    ✅    |   ✅   |
 | EXPENSE_VIEW_DEPARTMENT     |    ❌     |    ✅    |   ✅   |
-| EXPENSE_VIEW_ALL            |    ❌     |    ❌    |   ✅   |
+| EXPENSE_VIEW_ALL            |    ❌     |    ✅    |   ✅   |
 | EXPENSE_EDIT_OWN            |    ✅     |    ✅    |   ✅   |
 | EXPENSE_EDIT_DEPARTMENT     |    ❌     |    ✅    |   ✅   |
-| EXPENSE_APPROVE_DEPARTMENT  |    ❌     |    ✅    |   ✅   |
+| EXPENSE_APPROVE_DEPARTMENT  |    ❌     |  ✅ (≤$5K) |   ✅   |
 | EXPENSE_APPROVE_ALL         |    ❌     |    ❌    |   ✅   |
-| EXPENSE_BULK_APPROVE        |    ❌     |    ✅    |   ✅   |
+| EXPENSE_BULK_APPROVE        |    ❌     |  ✅ (≤$5K) |   ✅   |
 | USER_CREATE                 |    ❌     |    ❌    |   ✅   |
 | USER_CHANGE_ROLE            |    ❌     |    ❌    |   ✅   |
 | SYSTEM_CONFIGURE            |    ❌     |    ❌    |   ✅   |

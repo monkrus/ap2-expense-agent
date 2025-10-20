@@ -2,17 +2,20 @@ import React, { useState } from 'react';
 import { Download, FileText, Table } from 'lucide-react';
 import { expenseAPI } from '../services/api';
 import { useToast } from '../hooks/useToast';
+import * as XLSX from 'xlsx';
 
 const ExpenseExport = ({ expenses, onClose }) => {
   const { success, error: showError } = useToast();
   const [exporting, setExporting] = useState(false);
-  const [format, setFormat] = useState('csv');
+  const [format, setFormat] = useState('excel');
 
   const handleExport = async () => {
     setExporting(true);
 
     try {
-      if (format === 'csv') {
+      if (format === 'excel') {
+        exportExcel();
+      } else if (format === 'csv') {
         exportCSV();
       } else {
         exportPDF();
@@ -36,26 +39,88 @@ const ExpenseExport = ({ expenses, onClose }) => {
     });
   };
 
+  const exportExcel = () => {
+    // Prepare data for Excel
+    const data = expenses.map((expense, index) => ({
+      '#': index + 1,
+      'Date': formatDate(expense.date),
+      'Category': expense.category || '',
+      'Vendor': expense.vendor || '',
+      'Description': expense.description || '',
+      'Amount': expense.amount,
+      'Status': expense.status ? expense.status.charAt(0).toUpperCase() + expense.status.slice(1) : '',
+      'Expense ID': expense.id.substring(0, 8) // Short ID for reference
+    }));
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Auto-fit column widths
+    const columnWidths = [
+      { wch: 5 },   // # (row number)
+      { wch: 12 },  // Date
+      { wch: 15 },  // Category
+      { wch: 25 },  // Vendor
+      { wch: 40 },  // Description
+      { wch: 12 },  // Amount
+      { wch: 10 },  // Status
+      { wch: 10 }   // Expense ID (shortened)
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    // Format amount column as currency
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+    for (let row = range.s.r + 1; row <= range.e.r; row++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: row, c: 5 }); // Column F (Amount - 0-indexed, so position 5)
+      if (worksheet[cellAddress]) {
+        worksheet[cellAddress].z = '$#,##0.00';
+      }
+    }
+
+    // Create workbook and add worksheet
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Expenses');
+
+    // Generate filename with current date
+    const filename = `expenses_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    // Save file
+    XLSX.writeFile(workbook, filename);
+  };
+
   const exportCSV = () => {
-    // Create CSV content
-    const headers = ['ID', 'Date', 'Category', 'Vendor', 'Description', 'Amount', 'Status'];
-    const rows = expenses.map(expense => [
-      expense.id,
+    // Helper function to properly escape CSV cells
+    const escapeCSVCell = (cell) => {
+      if (cell === null || cell === undefined) return '';
+      const str = String(cell);
+      // Only quote if the cell contains comma, quote, or newline
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    // Create CSV content with proper headers
+    const headers = ['#', 'Date', 'Category', 'Vendor', 'Description', 'Amount', 'Status', 'Expense ID'];
+    const rows = expenses.map((expense, index) => [
+      index + 1,
       formatDate(expense.date),
-      expense.category,
-      expense.vendor,
-      expense.description,
+      expense.category || '',
+      expense.vendor || '',
+      expense.description || '',
       expense.amount.toFixed(2),
-      expense.status
+      expense.status || '',
+      expense.id.substring(0, 8)
     ]);
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...rows.map(row => row.map(escapeCSVCell).join(','))
     ].join('\n');
 
-    // Create download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Create download with BOM for Excel compatibility
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
 
@@ -218,6 +283,22 @@ const ExpenseExport = ({ expenses, onClose }) => {
 
         {/* Format Selection */}
         <div className="space-y-3 mb-6">
+          <label className="flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors border-indigo-500">
+            <input
+              type="radio"
+              name="format"
+              value="excel"
+              checked={format === 'excel'}
+              onChange={(e) => setFormat(e.target.value)}
+              className="w-4 h-4 text-indigo-600"
+            />
+            <Table className="w-8 h-8 text-green-600" />
+            <div className="flex-1">
+              <div className="font-medium text-gray-800">Excel (.xlsx)</div>
+              <div className="text-xs text-gray-600">Properly formatted with auto-fit columns - Recommended</div>
+            </div>
+          </label>
+
           <label className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
             <input
               type="radio"
@@ -227,10 +308,10 @@ const ExpenseExport = ({ expenses, onClose }) => {
               onChange={(e) => setFormat(e.target.value)}
               className="w-4 h-4 text-indigo-600"
             />
-            <Table className="w-8 h-8 text-green-600" />
+            <Table className="w-8 h-8 text-blue-600" />
             <div className="flex-1">
-              <div className="font-medium text-gray-800">CSV (Excel)</div>
-              <div className="text-xs text-gray-600">Open in Excel or Google Sheets</div>
+              <div className="font-medium text-gray-800">CSV (Plain Text)</div>
+              <div className="text-xs text-gray-600">Simple format for Excel or Google Sheets</div>
             </div>
           </label>
 
