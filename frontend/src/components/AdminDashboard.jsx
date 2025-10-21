@@ -32,8 +32,12 @@ const AdminDashboard = () => {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [rejectingExpense, setRejectingExpense] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [sortField, setSortField] = useState('date'); // 'date', 'amount', 'category'
-  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
+  const [sortField, setSortField] = useState(() => {
+    return localStorage.getItem('adminDashboard_sortField') || 'date';
+  });
+  const [sortDirection, setSortDirection] = useState(() => {
+    return localStorage.getItem('adminDashboard_sortDirection') || 'desc';
+  });
   const [copiedTxId, setCopiedTxId] = useState(null); // Track copied transaction ID
   const [copiedExpenseId, setCopiedExpenseId] = useState(null); // Track copied expense ID
   const [currentPage, setCurrentPage] = useState(1); // For all expenses pagination
@@ -92,12 +96,18 @@ const AdminDashboard = () => {
     setCurrentPage(1);
   }, [activeTab, searchQuery, statusFilter]);
 
+  // Save sort preferences to localStorage
+  useEffect(() => {
+    localStorage.setItem('adminDashboard_sortField', sortField);
+    localStorage.setItem('adminDashboard_sortDirection', sortDirection);
+  }, [sortField, sortDirection]);
+
   const fetchMyExpenses = async (isInitialLoad = false) => {
     try {
       if (isInitialLoad) {
         setLoading(true);
       }
-      const data = await expenseAPI.getMyExpenses();
+      const data = await expenseAPI.getExpenseReport(user?.id);
       if (data.expenses && Array.isArray(data.expenses)) {
         setMyExpenses(data.expenses);
       }
@@ -366,6 +376,11 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleResetSort = () => {
+    setSortField('date');
+    setSortDirection('desc');
+  };
+
   const sortExpenses = (expensesList) => {
     return [...expensesList].sort((a, b) => {
       let aValue, bValue;
@@ -386,6 +401,16 @@ const AdminDashboard = () => {
         case 'user':
           aValue = (a.user_name || '').toLowerCase();
           bValue = (b.user_name || '').toLowerCase();
+          break;
+        case 'status':
+          // Custom order: PENDING -> APPROVED -> REJECTED -> WITHDRAWN
+          const statusOrder = { 'PENDING': 0, 'APPROVED': 1, 'REJECTED': 2, 'WITHDRAWN': 3 };
+          aValue = statusOrder[a.status?.toUpperCase()] ?? 999;
+          bValue = statusOrder[b.status?.toUpperCase()] ?? 999;
+          break;
+        case 'vendor':
+          aValue = (a.vendor || '').toLowerCase();
+          bValue = (b.vendor || '').toLowerCase();
           break;
         default:
           return 0;
@@ -827,7 +852,7 @@ const AdminDashboard = () => {
 
           {/* Sort Controls */}
           {currentExpenses.length > 0 && (
-            <div className="flex items-center gap-2 mb-4 pb-4 border-b">
+            <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b">
               <span className="text-sm font-medium text-gray-700">Sort by:</span>
               <button
                 onClick={() => handleSort('date')}
@@ -881,6 +906,41 @@ const AdminDashboard = () => {
                   sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
                 )}
               </button>
+              <button
+                onClick={() => handleSort('status')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  sortField === 'status'
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Status
+                {sortField === 'status' && (
+                  sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                )}
+              </button>
+              <button
+                onClick={() => handleSort('vendor')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  sortField === 'vendor'
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Vendor
+                {sortField === 'vendor' && (
+                  sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                )}
+              </button>
+              {(sortField !== 'date' || sortDirection !== 'desc') && (
+                <button
+                  onClick={handleResetSort}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 border border-gray-400"
+                  title="Reset to default sort (Date, newest first)"
+                >
+                  Reset
+                </button>
+              )}
             </div>
           )}
 
