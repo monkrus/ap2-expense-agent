@@ -1,10 +1,29 @@
 {
   "permissions": {
     "allow": [
-      "Bash(timeout 3 echo \"Waiting for Vite to rebuild\")",
+      "Bash(findstr :5174)",
+      "Bash(findstr :5175)",
+      "Bash(taskkill /F /PID 20268)",
+      "Bash(taskkill /F /PID 16416)",
+      "Bash(taskkill /F /PID 10468)",
+      "Bash(taskkill //F //PID 20268)",
+      "Bash(taskkill //F //PID 16416)",
+      "Bash(taskkill //F //PID 10468)",
       "mcp__ide__getDiagnostics",
-      "Bash(npm install xlsx)",
-      "Bash(python -c \"import sqlite3; conn = sqlite3.connect(''expenses.db''); cursor = conn.cursor(); cursor.execute(''SELECT id, vendor, amount FROM expenses LIMIT 5''); print(''Sample Expense IDs:''); print(''-'' * 60); [print(f''ID: {row[0]}\\nVendor: {row[1]}, Amount: $row[2]\\n'') for row in cursor.fetchall()]; conn.close()\")"
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout 3 cmd:*)",
+      "Bash(taskkill /F /PID 38216)",
+      "Bash(taskkill /F /PID 13568)",
+      "Bash(taskkill //F //PID 38216)",
+      "Bash(taskkill //F //PID 13568)",
+      "Bash(.venvScriptspython.exe:*)",
+      "Bash(timeout:*)",
+      "Bash(.venv/Scripts/python.exe:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
