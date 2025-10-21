@@ -15,6 +15,14 @@ const EmployeeDashboard = () => {
   const { user, logout } = useAuth();
   const { success, error: showError } = useToast();
 
+  // Format currency with commas
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
+
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'history'
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +39,8 @@ const EmployeeDashboard = () => {
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
   const [copiedTxId, setCopiedTxId] = useState(null); // Track copied transaction ID
   const [copiedExpenseId, setCopiedExpenseId] = useState(null); // Track copied expense ID
+  const [currentPage, setCurrentPage] = useState(1); // For history pagination
+  const [itemsPerPage] = useState(10); // Items per page for history
   const [newExpense, setNewExpense] = useState({
     amount: '',
     category: 'Travel',
@@ -78,6 +88,11 @@ const EmployeeDashboard = () => {
       return () => clearInterval(interval);
     }
   }, [user]);
+
+  // Reset to page 1 when search, filter, or tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery, statusFilter]);
 
   const handleWithdrawExpense = async (expense) => {
     if (!window.confirm(`Are you sure you want to withdraw expense ${expense.id}? This action cannot be undone.`)) {
@@ -265,7 +280,15 @@ const EmployeeDashboard = () => {
     );
   });
 
-  const currentExpenses = sortExpenses(searchFilteredExpenses);
+  const sortedExpenses = sortExpenses(searchFilteredExpenses);
+
+  // Apply pagination for tabs with potentially many items
+  const paginatedTabs = ['history', 'active'];
+  const shouldPaginate = paginatedTabs.includes(activeTab);
+  const totalPages = shouldPaginate ? Math.ceil(sortedExpenses.length / itemsPerPage) : 1;
+  const currentExpenses = shouldPaginate
+    ? sortedExpenses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    : sortedExpenses;
 
   const stats = {
     total: expenses.reduce((sum, e) => sum + e.amount, 0),
@@ -354,7 +377,7 @@ const EmployeeDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Total Submitted</p>
-                <p className="text-2xl font-bold text-gray-800">${stats.total.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-gray-800">${formatCurrency(stats.total)}</p>
               </div>
               <DollarSign className={`w-10 h-10 text-${theme.colors.primary}`} />
             </div>
@@ -641,10 +664,11 @@ const EmployeeDashboard = () => {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
+                    <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700 w-12">#</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">ID</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Category</th>
@@ -656,9 +680,12 @@ const EmployeeDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentExpenses.map((expense) => (
+                  {currentExpenses.map((expense, index) => (
                     <React.Fragment key={expense.id}>
                       <tr className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${expense._optimistic ? 'opacity-60' : ''}`}>
+                        <td className="py-3 px-2 text-center text-sm font-medium text-gray-500">
+                          {(currentPage - 1) * itemsPerPage + index + 1}
+                        </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <button
@@ -705,7 +732,7 @@ const EmployeeDashboard = () => {
                           </div>
                         </td>
                         <td className="py-3 px-4 text-right text-sm font-semibold text-gray-800 whitespace-nowrap">
-                          ${expense.amount.toFixed(2)}
+                          ${formatCurrency(expense.amount)}
                         </td>
                         <td className="py-3 px-4 text-center">
                           {getStatusBadge(expense.status)}
@@ -781,6 +808,53 @@ const EmployeeDashboard = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Pagination for Tabs with Many Items */}
+          {shouldPaginate && totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-between px-4 py-3 bg-white rounded-lg shadow">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, sortedExpenses.length)} of {sortedExpenses.length} expenses</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                {[...Array(totalPages)].map((_, idx) => {
+                  const pageNum = idx + 1;
+                  // Show first, last, current, and adjacent pages
+                  if (pageNum === 1 || pageNum === totalPages || Math.abs(pageNum - currentPage) <= 1) {
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-1 text-sm border rounded ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  } else if (Math.abs(pageNum - currentPage) === 2) {
+                    return <span key={pageNum} className="px-2 text-gray-500">...</span>;
+                  }
+                  return null;
+                })}
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>

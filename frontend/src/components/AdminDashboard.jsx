@@ -12,6 +12,14 @@ const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const { success, error: showError } = useToast();
 
+  // Format currency with commas
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
+
   const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'users', or 'my-expenses'
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
@@ -28,6 +36,8 @@ const AdminDashboard = () => {
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
   const [copiedTxId, setCopiedTxId] = useState(null); // Track copied transaction ID
   const [copiedExpenseId, setCopiedExpenseId] = useState(null); // Track copied expense ID
+  const [currentPage, setCurrentPage] = useState(1); // For all expenses pagination
+  const [itemsPerPage] = useState(10); // Items per page for all expenses
   const [newExpense, setNewExpense] = useState({
     amount: '',
     category: 'Travel',
@@ -76,6 +86,11 @@ const AdminDashboard = () => {
       return () => clearInterval(interval);
     }
   }, [activeTab]);
+
+  // Reset to page 1 when search, filter, or tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery, statusFilter]);
 
   const fetchMyExpenses = async (isInitialLoad = false) => {
     try {
@@ -402,7 +417,16 @@ const AdminDashboard = () => {
     );
   });
 
-  const currentExpenses = sortExpenses(searchFilteredExpenses);
+  const sortedExpenses = sortExpenses(searchFilteredExpenses);
+
+  // Apply pagination for tabs with potentially many items
+  const paginatedTabs = ['all', 'pending', 'approved', 'rejected'];
+  const shouldPaginate = paginatedTabs.includes(activeTab);
+  const totalPages = shouldPaginate ? Math.ceil(sortedExpenses.length / itemsPerPage) : 1;
+  const currentExpenses = shouldPaginate
+    ? sortedExpenses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    : sortedExpenses;
+
   const theme = getRoleTheme(user?.role?.toUpperCase() || 'ADMIN');
 
   // Debug logging
@@ -533,7 +557,7 @@ const AdminDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm">Total Amount</p>
-                  <p className="text-2xl font-bold text-gray-800">${pendingStats.totalAmount.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-gray-800">${formatCurrency(pendingStats.totalAmount)}</p>
                 </div>
                 <DollarSign className="w-10 h-10 text-green-500" />
               </div>
@@ -766,7 +790,7 @@ const AdminDashboard = () => {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-blue-600">${expense.amount.toFixed(2)}</p>
+                          <p className="text-2xl font-bold text-blue-600">${formatCurrency(expense.amount)}</p>
                         </div>
                       </div>
                     </div>
@@ -863,13 +887,17 @@ const AdminDashboard = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {currentExpenses.map((expense) => (
+            <div className="space-y-4 max-h-[300px] overflow-y-auto">
+              {currentExpenses.map((expense, index) => (
                 <div
                   key={expense.id}
-                  className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow bg-gradient-to-r from-white to-gray-50"
+                  className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow bg-gradient-to-r from-white to-gray-50 relative"
                 >
-                  <div className="flex items-start justify-between mb-4">
+                  {/* Row Number Badge */}
+                  <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </div>
+                  <div className="flex items-start justify-between mb-4 ml-10">
                     <div className="flex-1">
                       {/* Employee Info */}
                       <div className="flex items-center gap-2 mb-2">
@@ -941,7 +969,7 @@ const AdminDashboard = () => {
 
                     {/* Amount */}
                     <div className="text-right ml-4">
-                      <p className="text-2xl font-bold text-gray-800">${expense.amount.toFixed(2)}</p>
+                      <p className="text-2xl font-bold text-gray-800">${formatCurrency(expense.amount)}</p>
                       <p className="text-xs text-gray-500">{expense.category}</p>
                     </div>
                   </div>
@@ -1005,6 +1033,53 @@ const AdminDashboard = () => {
         </div>
         )}
 
+        {/* Pagination for Tabs with Many Items */}
+        {shouldPaginate && totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between px-4 py-3 bg-white rounded-lg shadow">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <span>Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, sortedExpenses.length)} of {sortedExpenses.length} expenses</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              {[...Array(totalPages)].map((_, idx) => {
+                const pageNum = idx + 1;
+                // Show first, last, current, and adjacent pages
+                if (pageNum === 1 || pageNum === totalPages || Math.abs(pageNum - currentPage) <= 1) {
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1 text-sm border rounded ${
+                        currentPage === pageNum
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                } else if (Math.abs(pageNum - currentPage) === 2) {
+                  return <span key={pageNum} className="px-2 text-gray-500">...</span>;
+                }
+                return null;
+              })}
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* AP2 Protocol Info - Only show for pending and all tabs */}
         {(activeTab === 'pending' || activeTab === 'all') && (
           <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
@@ -1048,7 +1123,7 @@ const AdminDashboard = () => {
                   <span className="font-medium">Employee:</span> {rejectingExpense.user_name}
                 </p>
                 <p className="text-sm text-gray-600 mb-1">
-                  <span className="font-medium">Amount:</span> ${rejectingExpense.amount.toFixed(2)}
+                  <span className="font-medium">Amount:</span> ${formatCurrency(rejectingExpense.amount)}
                 </p>
                 <p className="text-sm text-gray-600">
                   <span className="font-medium">Description:</span> {rejectingExpense.description}
