@@ -23,7 +23,12 @@
       "Bash(.venv/Scripts/python.exe:*)",
       "Bash(git add:*)",
       "Bash(git push:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(taskkill //F //PID 41604)",
+      "Bash(taskkill //F //PID 10296)",
+      "Bash(taskkill //F //PID 33876)",
+      "Bash(taskkill //F //PID 39056)",
+      "Bash(taskkill //F //PID 24168)"
     ],
     "deny": [],
     "ask": []

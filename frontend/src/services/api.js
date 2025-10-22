@@ -144,6 +144,7 @@ export const expenseAPI = {
         vendor: expenseData.vendor,
         category: expenseData.category,
         description: expenseData.description,
+        date: expenseData.date,
       }),
     });
   },
