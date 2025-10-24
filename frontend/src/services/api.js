@@ -240,6 +240,13 @@ export const expenseAPI = {
       method: 'GET',
     });
   },
+
+  // Clear all expense history (admin only)
+  clearExpenseHistory: async () => {
+    return request('/admin/expenses/clear', {
+      method: 'DELETE',
+    });
+  },
 };
 
 // Chat API (if you want to add AI chat functionality)

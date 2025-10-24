@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check, AlertCircle, Plus, Briefcase, Search, Edit2, Trash2, Upload, History, Receipt } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check, AlertCircle, Plus, Search, Edit2, Trash2, Upload, History, Receipt } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,22 +22,14 @@ const AdminDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'users', or 'my-expenses'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', or 'users'
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
-  const [myExpenses, setMyExpenses] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all'); // for 'all' tab
   const [searchQuery, setSearchQuery] = useState(''); // for searching expenses
-  const [myExpensesTab, setMyExpensesTab] = useState('active'); // 'active' or 'history' for My Expenses
-  const [myExpensesStatusFilter, setMyExpensesStatusFilter] = useState('all'); // for My Expenses history tab
-  const [myExpensesSearchQuery, setMyExpensesSearchQuery] = useState(''); // for My Expenses search
-  const [myExpensesSortField, setMyExpensesSortField] = useState('date'); // for My Expenses sorting
-  const [myExpensesSortDirection, setMyExpensesSortDirection] = useState('desc'); // for My Expenses sorting
-  const [myExpensesCurrentPage, setMyExpensesCurrentPage] = useState(1); // for My Expenses pagination
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showReceiptUpload, setShowReceiptUpload] = useState(false);
   const [showReceiptList, setShowReceiptList] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
@@ -53,13 +45,6 @@ const AdminDashboard = () => {
   const [copiedExpenseId, setCopiedExpenseId] = useState(null); // Track copied expense ID
   const [currentPage, setCurrentPage] = useState(1); // For all expenses pagination
   const [itemsPerPage] = useState(10); // Items per page for all expenses
-  const [newExpense, setNewExpense] = useState({
-    amount: '',
-    category: 'Travel',
-    vendor: '',
-    description: '',
-    date: ''
-  });
 
   // Fetch pending expenses
   useEffect(() => {
@@ -89,19 +74,6 @@ const AdminDashboard = () => {
     }
   }, [activeTab, statusFilter]);
 
-  // Fetch my expenses
-  useEffect(() => {
-    if (activeTab === 'my-expenses') {
-      fetchMyExpenses(true);
-
-      const interval = setInterval(() => {
-        fetchMyExpenses(false);
-      }, 10000);
-
-      return () => clearInterval(interval);
-    }
-  }, [activeTab]);
-
   // Reset to page 1 when search, filter, or tab changes
   useEffect(() => {
     setCurrentPage(1);
@@ -112,27 +84,6 @@ const AdminDashboard = () => {
     localStorage.setItem('adminDashboard_sortField', sortField);
     localStorage.setItem('adminDashboard_sortDirection', sortDirection);
   }, [sortField, sortDirection]);
-
-  const fetchMyExpenses = async (isInitialLoad = false) => {
-    try {
-      if (isInitialLoad) {
-        setLoading(true);
-      }
-      const data = await expenseAPI.getExpenseReport(user?.id);
-      if (data.expenses && Array.isArray(data.expenses)) {
-        setMyExpenses(data.expenses);
-      }
-    } catch (err) {
-      console.error('Error fetching my expenses:', err);
-      if (isInitialLoad) {
-        showError('Failed to load your expenses.');
-      }
-    } finally {
-      if (isInitialLoad) {
-        setLoading(false);
-      }
-    }
-  };
 
   const fetchPendingExpenses = async (isInitialLoad = false) => {
     try {
@@ -266,84 +217,44 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleSubmitExpense = async (e) => {
-    e.preventDefault();
+  const handleClearExpenseHistory = async () => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      'Are you sure you want to clear ALL expense history? This will permanently delete all expenses, receipts, and comments. This action cannot be undone!'
+    );
+
+    if (!confirmed) return;
+
+    // Double confirmation for safety
+    const doubleConfirmed = window.confirm(
+      'FINAL WARNING: This will delete ALL expense records permanently. Are you absolutely sure?'
+    );
+
+    if (!doubleConfirmed) return;
+
     setProcessing(true);
 
-    if (!newExpense.date) {
-      showError('Please select an expense date');
-      setProcessing(false);
-      return;
-    }
-
-    setShowExpenseForm(false);
-
-    const expenseData = {
-      user_id: user?.id || 'current_user',
-      amount: parseFloat(newExpense.amount),
-      category: newExpense.category,
-      vendor: newExpense.vendor,
-      description: newExpense.description,
-      date: newExpense.date
-    };
-
     try {
-      const result = await expenseAPI.submitExpense(expenseData);
+      const result = await expenseAPI.clearExpenseHistory();
 
       if (result.success) {
-        success('Expense submitted successfully!');
+        // Clear both lists
+        setPendingExpenses([]);
+        setAllExpenses([]);
 
-        // Reset form
-        setNewExpense({
-          amount: '',
-          category: 'Travel',
-          vendor: '',
-          description: '',
-          date: ''
-        });
+        success(
+          `Expense history cleared successfully! Deleted: ${result.statistics.expenses_deleted} expenses, ${result.statistics.receipts_deleted} receipts, ${result.statistics.comments_deleted} comments`
+        );
 
-        // Refresh my expenses
-        fetchMyExpenses();
+        // Refresh the current view
+        if (activeTab === 'pending') {
+          fetchPendingExpenses();
+        } else if (activeTab === 'all') {
+          fetchAllExpenses();
+        }
       }
     } catch (err) {
-      const errorMsg = err instanceof APIError ? err.message : 'Failed to submit expense';
-      showError(errorMsg);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const openExpenseForm = () => {
-    setNewExpense({
-      ...newExpense,
-      date: new Date().toISOString().split('T')[0]
-    });
-    setShowExpenseForm(true);
-  };
-
-  const handleEditExpense = (expense) => {
-    setNewExpense({
-      amount: expense.amount.toString(),
-      category: expense.category,
-      vendor: expense.vendor,
-      description: expense.description,
-      date: expense.date || new Date(expense.created_at).toISOString().split('T')[0]
-    });
-    setShowExpenseForm(true);
-  };
-
-  const handleDeleteExpense = async (expenseId) => {
-    if (!window.confirm('Are you sure you want to withdraw this expense?')) {
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      await expenseAPI.withdrawExpense(expenseId);
-      success('Expense withdrawn successfully!');
-      fetchMyExpenses();
-    } catch (err) {
-      const errorMsg = err instanceof APIError ? err.message : 'Failed to withdraw expense';
+      const errorMsg = err instanceof APIError ? err.message : 'Failed to clear expense history';
       showError(errorMsg);
     } finally {
       setProcessing(false);
@@ -586,17 +497,6 @@ const AdminDashboard = () => {
               <FileText className="w-5 h-5" />
               All Expenses
             </button>
-            <button
-              onClick={() => setActiveTab('my-expenses')}
-              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
-                activeTab === 'my-expenses'
-                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              <Briefcase className="w-5 h-5" />
-              My Expenses
-            </button>
             {/* User Management Tab - Admin Only */}
             {user?.role === 'admin' && (
               <button
@@ -698,617 +598,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* My Expenses Tab */}
-        {activeTab === 'my-expenses' && (
-          <>
-            {/* Stats Cards for My Expenses */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm">Total Submitted</p>
-                    <p className="text-2xl font-bold text-gray-800">${formatCurrency(myExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
-                  </div>
-                  <DollarSign className={`w-10 h-10 text-${theme.colors.primary}`} />
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm">Pending Approval</p>
-                    <p className="text-2xl font-bold text-yellow-600">{myExpenses.filter(e => e.status === 'pending').length}</p>
-                  </div>
-                  <Clock className="w-10 h-10 text-yellow-500" />
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm">Approved</p>
-                    <p className="text-2xl font-bold text-green-600">{myExpenses.filter(e => e.status === 'approved').length}</p>
-                  </div>
-                  <CheckCircle className="w-10 h-10 text-green-500" />
-                </div>
-              </div>
-            </div>
-
-            {/* Tabs for Active and History */}
-            <div className="bg-white rounded-lg shadow-lg mb-6">
-              <div className="flex border-b border-gray-200">
-                <button
-                  onClick={() => setMyExpensesTab('active')}
-                  className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
-                    myExpensesTab === 'active'
-                      ? 'border-b-2 border-indigo-500 text-indigo-600'
-                      : 'text-gray-600 hover:text-gray-800'
-                  }`}
-                >
-                  <Clock className="w-5 h-5" />
-                  Active Expenses
-                  {myExpenses.filter(e => e.status === 'pending').length > 0 && (
-                    <span className="ml-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                      {myExpenses.filter(e => e.status === 'pending').length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setMyExpensesTab('history')}
-                  className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
-                    myExpensesTab === 'history'
-                      ? 'border-b-2 border-indigo-500 text-indigo-600'
-                      : 'text-gray-600 hover:text-gray-800'
-                  }`}
-                >
-                  <History className="w-5 h-5" />
-                  History
-                </button>
-              </div>
-            </div>
-
-            {/* Search and Filter */}
-            <div className="bg-white rounded-lg shadow p-4 mb-6">
-              <div className="flex items-center gap-3 flex-wrap">
-                {/* Search Box */}
-                <div className="flex items-center gap-2 flex-1 min-w-[250px]">
-                  <Search className="w-5 h-5 text-gray-600" />
-                  <input
-                    type="text"
-                    placeholder="Search by ID, vendor, description, category..."
-                    value={myExpensesSearchQuery}
-                    onChange={(e) => setMyExpensesSearchQuery(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
-                  />
-                  {myExpensesSearchQuery && (
-                    <button
-                      onClick={() => setMyExpensesSearchQuery('')}
-                      className="text-gray-400 hover:text-gray-600"
-                      title="Clear search"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-
-                {/* Status Filter - Only show on History tab */}
-                {myExpensesTab === 'history' && (
-                  <>
-                    <div className="border-l border-gray-300 h-8 mx-2"></div>
-                    <Filter className="w-5 h-5 text-gray-600 flex-shrink-0" />
-                    <span className="text-sm font-medium text-gray-700 flex-shrink-0">Status:</span>
-                    <select
-                      value={myExpensesStatusFilter}
-                      onChange={(e) => setMyExpensesStatusFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-w-[150px] bg-white"
-                    >
-                      <option value="all">All Statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="approved">Approved</option>
-                      <option value="rejected">Rejected</option>
-                      <option value="withdrawn">Withdrawn</option>
-                    </select>
-                  </>
-                )}
-
-                <button
-                  onClick={openExpenseForm}
-                  className={`flex items-center gap-2 px-6 py-2 ${theme.colors.button} text-white rounded-lg transition-colors font-medium ml-auto`}
-                >
-                  <Plus className="w-5 h-5" />
-                  New Expense
-                </button>
-              </div>
-            </div>
-
-            {/* Expense Submission Form Modal */}
-            {showExpenseForm && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Submit New Expense</h2>
-
-                  <form onSubmit={handleSubmitExpense} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Expense Date <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={newExpense.date}
-                        onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
-                        max={new Date().toISOString().split('T')[0]}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Amount ($) <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newExpense.amount}
-                        onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        placeholder="0.00"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                      <select
-                        value={newExpense.category}
-                        onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        required
-                      >
-                        <option>Travel</option>
-                        <option>Meals</option>
-                        <option>Software</option>
-                        <option>Office Supplies</option>
-                        <option>Other</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Vendor <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={newExpense.vendor}
-                        onChange={(e) => setNewExpense({...newExpense, vendor: e.target.value})}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Vendor name"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Description <span className="text-red-600">*</span>
-                      </label>
-                      <textarea
-                        value={newExpense.description}
-                        onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        rows="3"
-                        placeholder="Expense description"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex gap-3 mt-6">
-                      <button
-                        type="button"
-                        onClick={() => setShowExpenseForm(false)}
-                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={processing}
-                        className={`flex-1 px-4 py-2 ${theme.colors.button} text-white rounded-lg disabled:opacity-50`}
-                      >
-                        {processing ? 'Submitting...' : 'Submit'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
-
-            {/* My Expenses List */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {myExpensesTab === 'active' ? 'Active Expenses' : 'Expense History'}
-                </h2>
-                {(() => {
-                  const activeExpensesList = myExpenses.filter(e => e.status === 'pending');
-                  const historyExpensesList = myExpenses.filter(e => {
-                    if (myExpensesStatusFilter === 'all') return true;
-                    return e.status === myExpensesStatusFilter;
-                  });
-                  const searchFilteredList = (myExpensesTab === 'active' ? activeExpensesList : historyExpensesList).filter(expense => {
-                    if (!myExpensesSearchQuery) return true;
-                    const query = myExpensesSearchQuery.toLowerCase();
-                    return (
-                      expense.id?.toLowerCase().includes(query) ||
-                      expense.vendor?.toLowerCase().includes(query) ||
-                      expense.description?.toLowerCase().includes(query) ||
-                      expense.category?.toLowerCase().includes(query) ||
-                      expense.amount?.toString().includes(query) ||
-                      expense.status?.toLowerCase().includes(query)
-                    );
-                  });
-                  return searchFilteredList.length > 0 && (
-                    <span className="text-sm text-gray-600">
-                      {searchFilteredList.length} expense{searchFilteredList.length !== 1 ? 's' : ''}
-                    </span>
-                  );
-                })()}
-              </div>
-
-              {/* Sort Controls */}
-              {(() => {
-                const activeExpensesList = myExpenses.filter(e => e.status === 'pending');
-                const historyExpensesList = myExpenses.filter(e => {
-                  if (myExpensesStatusFilter === 'all') return true;
-                  return e.status === myExpensesStatusFilter;
-                });
-                const searchFilteredList = (myExpensesTab === 'active' ? activeExpensesList : historyExpensesList).filter(expense => {
-                  if (!myExpensesSearchQuery) return true;
-                  const query = myExpensesSearchQuery.toLowerCase();
-                  return (
-                    expense.id?.toLowerCase().includes(query) ||
-                    expense.vendor?.toLowerCase().includes(query) ||
-                    expense.description?.toLowerCase().includes(query) ||
-                    expense.category?.toLowerCase().includes(query) ||
-                    expense.amount?.toString().includes(query) ||
-                    expense.status?.toLowerCase().includes(query)
-                  );
-                });
-
-                return searchFilteredList.length > 0 && (
-                  <div className="flex items-center gap-2 mb-4 pb-4 border-b">
-                    <span className="text-sm font-medium text-gray-700">Sort by:</span>
-                    <button
-                      onClick={() => {
-                        if (myExpensesSortField === 'date') {
-                          setMyExpensesSortDirection(myExpensesSortDirection === 'asc' ? 'desc' : 'asc');
-                        } else {
-                          setMyExpensesSortField('date');
-                          setMyExpensesSortDirection('desc');
-                        }
-                      }}
-                      className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                        myExpensesSortField === 'date'
-                          ? `${theme.colors.badge}`
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      Date
-                      {myExpensesSortField === 'date' && (
-                        myExpensesSortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (myExpensesSortField === 'amount') {
-                          setMyExpensesSortDirection(myExpensesSortDirection === 'asc' ? 'desc' : 'asc');
-                        } else {
-                          setMyExpensesSortField('amount');
-                          setMyExpensesSortDirection('desc');
-                        }
-                      }}
-                      className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                        myExpensesSortField === 'amount'
-                          ? `${theme.colors.badge}`
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      Amount
-                      {myExpensesSortField === 'amount' && (
-                        myExpensesSortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (myExpensesSortField === 'category') {
-                          setMyExpensesSortDirection(myExpensesSortDirection === 'asc' ? 'desc' : 'asc');
-                        } else {
-                          setMyExpensesSortField('category');
-                          setMyExpensesSortDirection('desc');
-                        }
-                      }}
-                      className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                        myExpensesSortField === 'category'
-                          ? `${theme.colors.badge}`
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      Category
-                      {myExpensesSortField === 'category' && (
-                        myExpensesSortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                );
-              })()}
-
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className={`animate-spin rounded-full h-8 w-8 border-b-2 border-${theme.colors.primary} mx-auto mb-2`}></div>
-                    <p className="text-gray-600 text-sm">Loading expenses...</p>
-                  </div>
-                </div>
-              ) : (() => {
-                const activeExpensesList = myExpenses.filter(e => e.status === 'pending');
-                const historyExpensesList = myExpenses.filter(e => {
-                  if (myExpensesStatusFilter === 'all') return true;
-                  return e.status === myExpensesStatusFilter;
-                });
-                const searchFilteredList = (myExpensesTab === 'active' ? activeExpensesList : historyExpensesList).filter(expense => {
-                  if (!myExpensesSearchQuery) return true;
-                  const query = myExpensesSearchQuery.toLowerCase();
-                  return (
-                    expense.id?.toLowerCase().includes(query) ||
-                    expense.vendor?.toLowerCase().includes(query) ||
-                    expense.description?.toLowerCase().includes(query) ||
-                    expense.category?.toLowerCase().includes(query) ||
-                    expense.amount?.toString().includes(query) ||
-                    expense.status?.toLowerCase().includes(query)
-                  );
-                });
-
-                const sortedList = [...searchFilteredList].sort((a, b) => {
-                  let aValue, bValue;
-                  switch (myExpensesSortField) {
-                    case 'date':
-                      aValue = new Date(a.date || a.created_at);
-                      bValue = new Date(b.date || b.created_at);
-                      break;
-                    case 'amount':
-                      aValue = parseFloat(a.amount);
-                      bValue = parseFloat(b.amount);
-                      break;
-                    case 'category':
-                      aValue = (a.category || '').toLowerCase();
-                      bValue = (b.category || '').toLowerCase();
-                      break;
-                    default:
-                      return 0;
-                  }
-                  if (myExpensesSortDirection === 'asc') {
-                    return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
-                  } else {
-                    return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-                  }
-                });
-
-                const totalPages = Math.ceil(sortedList.length / itemsPerPage);
-                const paginatedList = sortedList.slice((myExpensesCurrentPage - 1) * itemsPerPage, myExpensesCurrentPage * itemsPerPage);
-
-                return sortedList.length === 0 ? (
-                  <div className="text-center py-12">
-                    {myExpensesTab === 'active' ? (
-                      <>
-                        <CheckCircle className="w-16 h-16 text-green-300 mx-auto mb-4" />
-                        <p className="text-gray-500 text-lg font-medium">All caught up!</p>
-                        <p className="text-gray-400 text-sm mt-2">No pending expenses at the moment.</p>
-                      </>
-                    ) : (
-                      <>
-                        <Receipt className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500">No expenses match the current filter.</p>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b-2 border-gray-200">
-                            <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700 w-12">#</th>
-                            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">ID</th>
-                            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
-                            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Category</th>
-                            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Vendor</th>
-                            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Description</th>
-                            <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
-                            <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
-                            <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {paginatedList.map((expense, index) => (
-                            <React.Fragment key={expense.id}>
-                              <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                <td className="py-3 px-2 text-center text-sm font-medium text-gray-500">
-                                  {(myExpensesCurrentPage - 1) * itemsPerPage + index + 1}
-                                </td>
-                                <td className="py-3 px-4">
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => handleCopyExpenseId(expense.id)}
-                                      className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
-                                      title="Copy expense ID"
-                                    >
-                                      {copiedExpenseId === expense.id ? (
-                                        <Check className="w-3.5 h-3.5 text-green-700" />
-                                      ) : (
-                                        <Copy className="w-3.5 h-3.5 text-gray-600" />
-                                      )}
-                                    </button>
-                                    <span className="text-sm font-medium text-gray-800 truncate max-w-[120px]" title={expense.id}>
-                                      {expense.id.substring(0, 8)}...
-                                    </span>
-                                    {expense.receipt_count > 0 && (
-                                      <button
-                                        onClick={() => {
-                                          setSelectedExpense(expense);
-                                          setShowReceiptList(true);
-                                        }}
-                                        className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-800 flex items-center gap-1 hover:bg-green-200 transition-colors cursor-pointer flex-shrink-0"
-                                        title="Click to view receipt details"
-                                      >
-                                        <Receipt className="w-3 h-3" />
-                                        {expense.receipt_count}
-                                      </button>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
-                                  {new Date(expense.date || expense.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-700">
-                                  {expense.category}
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-700">
-                                  {expense.vendor}
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-600 max-w-[250px]">
-                                  <div className="truncate" title={expense.description}>
-                                    {expense.description}
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4 text-right text-sm font-semibold text-gray-800 whitespace-nowrap">
-                                  ${formatCurrency(expense.amount)}
-                                </td>
-                                <td className="py-3 px-4 text-center">
-                                  <span className={`text-xs px-2 py-1 rounded ${
-                                    expense.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                    expense.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                    expense.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                    'bg-gray-100 text-gray-600'
-                                  }`}>
-                                    {expense.status.toUpperCase()}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-4">
-                                  {expense.status === 'pending' && (
-                                    <div className="flex gap-1 justify-center">
-                                      <button
-                                        onClick={() => handleEditExpense(expense)}
-                                        className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                                        title="Edit this expense"
-                                      >
-                                        <Edit2 className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleViewReceipt(expense)}
-                                        className={`p-1.5 ${theme.colors.badge} rounded hover:bg-${theme.colors.primaryLight} transition-colors`}
-                                        title="Upload receipt"
-                                      >
-                                        <Upload className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteExpense(expense.id)}
-                                        className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                                        title="Withdraw this expense"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  )}
-                                </td>
-                              </tr>
-                              {expense.transaction_id && (
-                                <tr className="border-b border-gray-100">
-                                  <td colSpan="9" className="py-2 px-4 bg-green-50">
-                                    <div className="flex items-center gap-2">
-                                      <p className="text-xs text-green-700 font-mono">
-                                        <span className="font-semibold">Transaction ID:</span> {expense.transaction_id}
-                                      </p>
-                                      <button
-                                        onClick={() => handleCopyTransactionId(expense.transaction_id)}
-                                        className="p-1 hover:bg-green-100 rounded transition-colors"
-                                        title="Copy transaction ID"
-                                      >
-                                        {copiedTxId === expense.transaction_id ? (
-                                          <Check className="w-3.5 h-3.5 text-green-700" />
-                                        ) : (
-                                          <Copy className="w-3.5 h-3.5 text-green-600" />
-                                        )}
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                              {expense.status === 'rejected' && expense.rejection_reason && (
-                                <tr className="border-b border-gray-100">
-                                  <td colSpan="9" className="py-2 px-4 bg-red-50">
-                                    <p className="text-xs text-red-700">
-                                      <span className="font-semibold">Rejection Reason:</span> {expense.rejection_reason}
-                                    </p>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                      <div className="mt-6 flex items-center justify-between px-4 py-3 bg-white rounded-lg shadow">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span>Showing {((myExpensesCurrentPage - 1) * itemsPerPage) + 1} to {Math.min(myExpensesCurrentPage * itemsPerPage, sortedList.length)} of {sortedList.length} expenses</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setMyExpensesCurrentPage(prev => Math.max(1, prev - 1))}
-                            disabled={myExpensesCurrentPage === 1}
-                            className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Previous
-                          </button>
-                          {[...Array(totalPages)].map((_, idx) => {
-                            const pageNum = idx + 1;
-                            if (pageNum === 1 || pageNum === totalPages || Math.abs(pageNum - myExpensesCurrentPage) <= 1) {
-                              return (
-                                <button
-                                  key={pageNum}
-                                  onClick={() => setMyExpensesCurrentPage(pageNum)}
-                                  className={`px-3 py-1 text-sm border rounded ${
-                                    myExpensesCurrentPage === pageNum
-                                      ? 'bg-indigo-600 text-white border-indigo-600'
-                                      : 'border-gray-300 hover:bg-gray-50'
-                                  }`}
-                                >
-                                  {pageNum}
-                                </button>
-                              );
-                            } else if (Math.abs(pageNum - myExpensesCurrentPage) === 2) {
-                              return <span key={pageNum} className="px-2 text-gray-500">...</span>;
-                            }
-                            return null;
-                          })}
-                          <button
-                            onClick={() => setMyExpensesCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                            disabled={myExpensesCurrentPage === totalPages}
-                            className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Next
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-          </>
-        )}
-
         {/* User Management Tab */}
         {activeTab === 'users' && (
           <UserManagementDashboard />
@@ -1322,11 +611,24 @@ const AdminDashboard = () => {
               <TrendingUp className="w-5 h-5 text-blue-600" />
               {activeTab === 'pending' ? 'Pending Expense Requests' : 'Expense History'}
             </h2>
-            {currentExpenses.length > 0 && (
-              <span className="text-sm text-gray-600">
-                {currentExpenses.length} expense{currentExpenses.length !== 1 ? 's' : ''}
-              </span>
-            )}
+            <div className="flex items-center gap-4">
+              {currentExpenses.length > 0 && (
+                <span className="text-sm text-gray-600">
+                  {currentExpenses.length} expense{currentExpenses.length !== 1 ? 's' : ''}
+                </span>
+              )}
+              {user?.role === 'admin' && activeTab === 'all' && (
+                <button
+                  onClick={handleClearExpenseHistory}
+                  disabled={processing || currentExpenses.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                  title="Clear all expense history (Admin only)"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Clear History
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Sort Controls */}
@@ -1757,8 +1059,6 @@ const AdminDashboard = () => {
               success('Receipt uploaded successfully!');
               setShowReceiptUpload(false);
               setSelectedExpense(null);
-              // Refresh my expenses to get updated receipt count
-              fetchMyExpenses();
             }}
             onCancel={() => {
               setShowReceiptUpload(false);

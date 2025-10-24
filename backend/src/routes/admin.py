@@ -552,6 +552,202 @@ async def get_all_expenses(
     }
 
 
+@router.delete("/expenses-pending/clear", response_model=dict)
+async def clear_pending_expenses(
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Clear only pending expense requests (Admin only)"""
+    from ..models import Expense, Receipt, ExpenseComment, ExpenseStatus
+    import logging
+    import os
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"[admin.clear_pending_expenses] Admin {current_user.username} initiating pending expenses clear")
+
+    try:
+        # Get all pending expenses
+        pending_expenses = db.query(Expense).filter(Expense.status == ExpenseStatus.PENDING).all()
+        expense_count = len(pending_expenses)
+
+        if expense_count == 0:
+            return {
+                "success": True,
+                "message": "No pending expenses to clear",
+                "statistics": {
+                    "expenses_deleted": 0,
+                    "receipts_deleted": 0,
+                    "comments_deleted": 0,
+                    "receipt_files_deleted": 0,
+                    "receipt_files_failed": 0
+                }
+            }
+
+        # Collect IDs for deletion
+        pending_expense_ids = [e.id for e in pending_expenses]
+
+        # Delete associated comments
+        comment_count = db.query(ExpenseComment).filter(
+            ExpenseComment.expense_id.in_(pending_expense_ids)
+        ).delete(synchronize_session=False)
+
+        # Delete associated receipts and their files
+        receipts = db.query(Receipt).filter(
+            Receipt.expense_id.in_(pending_expense_ids)
+        ).all()
+        receipt_count = len(receipts)
+        deleted_files = 0
+        failed_files = 0
+
+        for receipt in receipts:
+            # Try to delete the physical file
+            if receipt.file_path and os.path.exists(receipt.file_path):
+                try:
+                    os.remove(receipt.file_path)
+                    deleted_files += 1
+                except Exception as e:
+                    logger.warning(f"Failed to delete receipt file {receipt.file_path}: {e}")
+                    failed_files += 1
+
+        # Delete receipt records
+        db.query(Receipt).filter(
+            Receipt.expense_id.in_(pending_expense_ids)
+        ).delete(synchronize_session=False)
+
+        # Delete pending expenses
+        db.query(Expense).filter(
+            Expense.id.in_(pending_expense_ids)
+        ).delete(synchronize_session=False)
+
+        # Commit all changes
+        db.commit()
+
+        # Log audit event
+        AuthService.log_audit(
+            db=db,
+            user_id=current_user.id,
+            action="admin.clear_pending_expenses",
+            resource_type="expense",
+            details={
+                "expenses_deleted": expense_count,
+                "receipts_deleted": receipt_count,
+                "comments_deleted": comment_count,
+                "receipt_files_deleted": deleted_files,
+                "receipt_files_failed": failed_files
+            },
+            request=request
+        )
+
+        logger.info(f"[admin.clear_pending_expenses] Successfully cleared {expense_count} pending expenses")
+
+        return {
+            "success": True,
+            "message": f"Cleared {expense_count} pending expense(s) successfully",
+            "statistics": {
+                "expenses_deleted": expense_count,
+                "receipts_deleted": receipt_count,
+                "comments_deleted": comment_count,
+                "receipt_files_deleted": deleted_files,
+                "receipt_files_failed": failed_files
+            }
+        }
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"[admin.clear_pending_expenses] Error clearing pending expenses: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to clear pending expenses: {str(e)}"
+        )
+
+
+@router.delete("/expenses/clear", response_model=dict)
+async def clear_expense_history(
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Clear all expense records and their associated data (Admin only)"""
+    from ..models import Expense, Receipt, ExpenseComment
+    import logging
+    import os
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"[admin.clear_expense_history] Admin {current_user.username} initiating expense history clear")
+
+    try:
+        # Count records before deletion
+        expense_count = db.query(Expense).count()
+        receipt_count = db.query(Receipt).count()
+        comment_count = db.query(ExpenseComment).count()
+
+        # Delete all expense comments first (foreign key dependency)
+        db.query(ExpenseComment).delete()
+
+        # Delete all receipts and their files
+        receipts = db.query(Receipt).all()
+        deleted_files = 0
+        failed_files = 0
+
+        for receipt in receipts:
+            # Try to delete the physical file
+            if receipt.file_path and os.path.exists(receipt.file_path):
+                try:
+                    os.remove(receipt.file_path)
+                    deleted_files += 1
+                except Exception as e:
+                    logger.warning(f"Failed to delete receipt file {receipt.file_path}: {e}")
+                    failed_files += 1
+
+        # Delete receipt records
+        db.query(Receipt).delete()
+
+        # Delete all expenses
+        db.query(Expense).delete()
+
+        # Commit all changes
+        db.commit()
+
+        # Log audit event
+        AuthService.log_audit(
+            db=db,
+            user_id=current_user.id,
+            action="admin.clear_expense_history",
+            resource_type="expense",
+            details={
+                "expenses_deleted": expense_count,
+                "receipts_deleted": receipt_count,
+                "comments_deleted": comment_count,
+                "receipt_files_deleted": deleted_files,
+                "receipt_files_failed": failed_files
+            },
+            request=request
+        )
+
+        logger.info(f"[admin.clear_expense_history] Successfully cleared {expense_count} expenses, {receipt_count} receipts, {comment_count} comments")
+
+        return {
+            "success": True,
+            "message": "Expense history cleared successfully",
+            "statistics": {
+                "expenses_deleted": expense_count,
+                "receipts_deleted": receipt_count,
+                "comments_deleted": comment_count,
+                "receipt_files_deleted": deleted_files,
+                "receipt_files_failed": failed_files
+            }
+        }
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"[admin.clear_expense_history] Error clearing expense history: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to clear expense history: {str(e)}"
+        )
+
+
 # ============================================================================
 # USER MANAGEMENT ENDPOINTS
 # ============================================================================

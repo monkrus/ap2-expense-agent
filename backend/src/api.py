@@ -100,6 +100,15 @@ app.include_router(receipts_router)
 @app.on_event("startup")
 async def startup_event():
     init_db()
+
+    # Seed default users
+    from .seed_data import ensure_default_users_exist
+    db = next(get_db())
+    try:
+        ensure_default_users_exist(db)
+    finally:
+        db.close()
+
     print("[STARTUP] Registered routes:")
     for route in app.routes:
         if hasattr(route, "path"):

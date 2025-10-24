@@ -33,7 +33,17 @@
       "Bash(git checkout:*)",
       "Bash(npm install:*)",
       "Bash(npx playwright install:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(Get-ChildItem -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "Bash(Format-Table -HideTableHeaders)",
+      "Bash(rm:*)",
+      "Bash(git restore:*)",
+      "Bash(../.venv/Scripts/python.exe:*)",
+      "Bash(taskkill //F //PID 12064)",
+      "Bash(start cmd:*)",
+      "Bash(taskkill:*)",
+      "Bash(../.venv/Scripts/uvicorn.exe:*)"
     ],
     "deny": [],
     "ask": []
