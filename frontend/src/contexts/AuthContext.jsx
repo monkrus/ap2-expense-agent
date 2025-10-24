@@ -163,6 +163,48 @@ export const AuthProvider = ({ children }) => {
     };
   };
 
+  // Enhanced fetch with automatic token refresh
+  const fetchWithAuth = async (url, options = {}) => {
+    const headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${accessToken}`,
+    };
+
+    let response = await fetch(url, { ...options, headers });
+
+    // If token expired, try to refresh and retry
+    if (response.status === 401 && refreshToken) {
+      try {
+        const newAccessToken = await refreshAccessToken();
+        headers['Authorization'] = `Bearer ${newAccessToken}`;
+        response = await fetch(url, { ...options, headers });
+      } catch (error) {
+        // Token refresh failed, logout user
+        logout();
+        throw new Error('Session expired. Please login again.');
+      }
+    }
+
+    // If account is suspended/inactive, logout and notify user
+    if (response.status === 400) {
+      try {
+        const errorData = await response.clone().json();
+        if (errorData.detail === 'Inactive user') {
+          logout();
+          throw new Error('Your account has been suspended. Please contact your administrator.');
+        }
+      } catch (error) {
+        // If it's already our custom error, re-throw it
+        if (error.message === 'Your account has been suspended. Please contact your administrator.') {
+          throw error;
+        }
+        // Otherwise, it's a different 400 error, let it pass through
+      }
+    }
+
+    return response;
+  };
+
   const value = {
     user,
     accessToken,
@@ -175,6 +217,7 @@ export const AuthProvider = ({ children }) => {
     refreshAccessToken,
     apiRequest,
     getAuthHeaders,
+    fetchWithAuth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

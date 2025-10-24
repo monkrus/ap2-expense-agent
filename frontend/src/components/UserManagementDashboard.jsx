@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Edit, Trash2, Shield, Lock, Unlock, Search, Filter, RefreshCw, Eye, Check, X, AlertCircle } from 'lucide-react';
+import { Users, UserPlus, Edit, Trash2, Shield, Lock, Unlock, Search, Filter, RefreshCw, Eye, Check, X, AlertCircle, EyeOff } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const UserManagementDashboard = () => {
-  const { user: currentUser, getAuthHeaders } = useAuth();
+  const { user: currentUser, getAuthHeaders, fetchWithAuth } = useAuth();
   const { success, error: showError } = useToast();
 
   const [users, setUsers] = useState([]);
@@ -20,6 +20,7 @@ const UserManagementDashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userPermissions, setUserPermissions] = useState([]);
   const [processing, setProcessing] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
 
   // Form states
   const [createForm, setCreateForm] = useState({
@@ -44,9 +45,7 @@ const UserManagementDashboard = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/users`, {
-        headers: getAuthHeaders()
-      });
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch users');
@@ -67,10 +66,9 @@ const UserManagementDashboard = () => {
     setProcessing(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/create`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/create`, {
         method: 'POST',
         headers: {
-          ...getAuthHeaders(),
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -112,24 +110,24 @@ const UserManagementDashboard = () => {
 
     try {
       // Update role (convert to lowercase for backend)
-      const roleResponse = await fetch(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/role`, {
+      const roleResponse = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/role`, {
         method: 'PATCH',
         headers: {
-          ...getAuthHeaders(),
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ role: editForm.role.toLowerCase() })
       });
 
       if (!roleResponse.ok) {
-        throw new Error('Failed to update role');
+        const errorData = await roleResponse.json().catch(() => ({}));
+        const errorMessage = errorData.detail || errorData.message || `Failed to update role (${roleResponse.status})`;
+        throw new Error(errorMessage);
       }
 
       // Update department
-      const deptResponse = await fetch(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/department`, {
+      const deptResponse = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/department`, {
         method: 'PATCH',
         headers: {
-          ...getAuthHeaders(),
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ department_id: editForm.department_id || null })
@@ -142,12 +140,13 @@ const UserManagementDashboard = () => {
       // Update active status if changed
       if (editForm.is_active !== selectedUser.is_active) {
         const endpoint = editForm.is_active ? 'activate' : 'suspend';
-        const statusResponse = await fetch(
+        const action = editForm.is_active ? 'activated' : 'suspended';
+
+        const statusResponse = await fetchWithAuth(
           `${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/${endpoint}`,
           {
             method: 'POST',
             headers: {
-              ...getAuthHeaders(),
               'Content-Type': 'application/json'
             },
             body: endpoint === 'suspend' ? JSON.stringify({ reason: 'Admin action' }) : undefined
@@ -155,16 +154,24 @@ const UserManagementDashboard = () => {
         );
 
         if (!statusResponse.ok) {
-          throw new Error('Failed to update status');
+          throw new Error(`Failed to ${endpoint} user`);
         }
+
+        // Show specific success message for status change
+        success(`User ${selectedUser.username} has been ${action}. ${endpoint === 'suspend' ? 'They will be logged out immediately and cannot log in until reactivated.' : 'They can now log in and access the system.'}`);
+      } else {
+        // Show generic success for other updates
+        success(`User ${selectedUser.username} updated successfully!`);
       }
 
-      success(`User ${selectedUser.username} updated successfully!`);
       setShowEditModal(false);
       setSelectedUser(null);
       fetchUsers();
     } catch (err) {
-      showError(err.message);
+      // Show more descriptive error message
+      const errorMessage = err.message || 'Failed to update user';
+      showError(`Error updating user: ${errorMessage}. Please try again or contact support if the issue persists.`);
+      console.error('Error updating user:', err);
     } finally {
       setProcessing(false);
     }
@@ -176,9 +183,8 @@ const UserManagementDashboard = () => {
     setProcessing(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}`, {
+        method: 'DELETE'
       });
 
       if (!response.ok) {
@@ -272,9 +278,7 @@ const UserManagementDashboard = () => {
     setShowPermissionsModal(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${user.id}/permissions`, {
-        headers: getAuthHeaders()
-      });
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${user.id}/permissions`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch permissions');
@@ -449,7 +453,7 @@ const UserManagementDashboard = () => {
                   </tr>
                 ) : (
                   filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
+                    <tr key={user.id} className={`hover:bg-gray-50 ${!user.is_active ? 'opacity-60 bg-gray-50' : ''}`}>
                       <td className="px-6 py-4">
                         <div>
                           <div className="font-medium text-gray-900">{user.full_name || user.username}</div>
@@ -568,14 +572,24 @@ const UserManagementDashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                  <input
-                    type="password"
-                    required
-                    value={createForm.password}
-                    onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="••••••••"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showCreatePassword ? "text" : "password"}
+                      required
+                      value={createForm.password}
+                      onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCreatePassword(!showCreatePassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      tabIndex={-1}
+                    >
+                      {showCreatePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -675,21 +689,57 @@ const UserManagementDashboard = () => {
                   />
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={editForm.is_active}
-                    onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
-                    disabled={selectedUser?.id === currentUser?.id}
-                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                  <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
-                    Account Active
-                    {selectedUser?.id === currentUser?.id && (
-                      <span className="ml-2 text-xs text-orange-600">(Cannot deactivate own account)</span>
-                    )}
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Account Status
                   </label>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {editForm.is_active ? (
+                        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                          <Check className="w-4 h-4" />
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+                          <X className="w-4 h-4" />
+                          Suspended
+                        </span>
+                      )}
+                      {selectedUser?.id === currentUser?.id && (
+                        <span className="text-xs text-orange-600">(Cannot modify own status)</span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, is_active: !editForm.is_active })}
+                      disabled={selectedUser?.id === currentUser?.id}
+                      className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        editForm.is_active ? 'bg-green-600' : 'bg-red-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                          editForm.is_active ? 'translate-x-8' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {editForm.is_active !== selectedUser?.is_active && (
+                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-xs text-yellow-800 font-medium flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        {editForm.is_active
+                          ? 'Activating this user will allow them to log in immediately upon saving.'
+                          : 'Suspending this user will log them out immediately and block all access upon saving.'}
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">
+                    {editForm.is_active
+                      ? 'User can log in and access the system'
+                      : 'User account is suspended and cannot log in'}
+                  </p>
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -808,19 +858,46 @@ const UserManagementDashboard = () => {
                 </button>
               </div>
 
-              <div className="space-y-2 mb-6">
+              <div className="space-y-4 mb-6">
                 {userPermissions.length === 0 ? (
                   <p className="text-gray-500 text-center py-4">Loading permissions...</p>
                 ) : (
-                  userPermissions.map((permission, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-800">{getPermissionDescription(permission)}</p>
-                        <p className="text-xs text-gray-500 font-mono mt-0.5">{permission}</p>
+                  (() => {
+                    const grouped = userPermissions.reduce((acc, perm) => {
+                      const category = perm.split(':')[0];
+                      if (!acc[category]) acc[category] = [];
+                      acc[category].push(perm);
+                      return acc;
+                    }, {});
+
+                    const categoryColors = {
+                      expense: 'bg-blue-50 border-blue-200',
+                      receipt: 'bg-green-50 border-green-200',
+                      comment: 'bg-purple-50 border-purple-200',
+                      user: 'bg-indigo-50 border-indigo-200',
+                      report: 'bg-yellow-50 border-yellow-200',
+                      system: 'bg-red-50 border-red-200',
+                      billing: 'bg-pink-50 border-pink-200',
+                      ap2: 'bg-teal-50 border-teal-200'
+                    };
+
+                    return Object.entries(grouped).map(([category, perms]) => (
+                      <div key={category} className={`p-4 rounded-lg border ${categoryColors[category] || 'bg-gray-50 border-gray-200'}`}>
+                        <h4 className="text-sm font-bold text-gray-800 mb-2 capitalize flex items-center gap-2">
+                          <Shield className="w-4 h-4" />
+                          {category} Permissions ({perms.length})
+                        </h4>
+                        <div className="grid grid-cols-1 gap-1">
+                          {perms.map((perm, idx) => (
+                            <div key={idx} className="flex items-start gap-2 text-xs">
+                              <Check className="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span className="text-gray-700">{getPermissionDescription(perm)}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ));
+                  })()
                 )}
               </div>
 

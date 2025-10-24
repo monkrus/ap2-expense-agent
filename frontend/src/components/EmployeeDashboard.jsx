@@ -510,7 +510,7 @@ const EmployeeDashboard = () => {
                   </label>
                   <input
                     type="number"
-                    step="1"
+                    step="0.01"
                     value={newExpense.amount}
                     onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-${theme.colors.primary}`}
@@ -573,7 +573,7 @@ const EmployeeDashboard = () => {
                 </button>
                 <button
                   onClick={handleExpenseSubmit}
-                  className={`flex-1 px-4 py-2 ${theme.colors.button} text-white rounded-lg`}
+                  className={`flex-1 px-4 py-2 ${theme.colors.button} text-white rounded-lg disabled:opacity-50`}
                 >
                   Submit
                 </button>

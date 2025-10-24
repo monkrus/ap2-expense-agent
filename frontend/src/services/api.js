@@ -72,6 +72,22 @@ const handleResponse = async (response) => {
       errorMessage = data.detail || data.message || errorMessage;
     }
 
+    // Check if user account is suspended/inactive
+    if (response.status === 400 && errorMessage === 'Inactive user') {
+      // Clear auth data
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+
+      // Reload page to force re-authentication
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+
+      // Throw a special error with a user-friendly message
+      throw new APIError('Your account has been suspended. Please contact your administrator.', response.status, data, errorCode);
+    }
+
     throw new APIError(errorMessage, response.status, data, errorCode);
   }
 

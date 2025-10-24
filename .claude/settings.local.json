@@ -28,7 +28,12 @@
       "Bash(taskkill //F //PID 10296)",
       "Bash(taskkill //F //PID 33876)",
       "Bash(taskkill //F //PID 39056)",
-      "Bash(taskkill //F //PID 24168)"
+      "Bash(taskkill //F //PID 24168)",
+      "Bash(dir:*)",
+      "Bash(git checkout:*)",
+      "Bash(npm install:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []
