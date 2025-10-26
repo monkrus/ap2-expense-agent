@@ -72,6 +72,22 @@ const handleResponse = async (response) => {
       errorMessage = data.detail || data.message || errorMessage;
     }
 
+    // Handle authentication errors (401)
+    if (response.status === 401) {
+      // Clear auth data
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+
+      // Reload page to force re-authentication
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 100);
+
+      // Throw a special error with a user-friendly message
+      throw new APIError('Your session has expired. Please log in again.', response.status, data, errorCode);
+    }
+
     // Check if user account is suspended/inactive
     if (response.status === 400 && errorMessage === 'Inactive user') {
       // Clear auth data
@@ -241,10 +257,38 @@ export const expenseAPI = {
     });
   },
 
-  // Clear all expense history (admin only)
+  // Clear all expense history (admin only) - DEPRECATED
   clearExpenseHistory: async () => {
     return request('/admin/expenses/clear', {
       method: 'DELETE',
+    });
+  },
+
+  // Archive all non-pending expenses (admin only)
+  archiveAllExpenses: async () => {
+    return request('/admin/expenses/archive-all', {
+      method: 'POST',
+    });
+  },
+
+  // Archive a single expense (admin only)
+  archiveExpense: async (expenseId) => {
+    return request(`/admin/expenses/${expenseId}/archive`, {
+      method: 'POST',
+    });
+  },
+
+  // Unarchive a single expense (admin only)
+  unarchiveExpense: async (expenseId) => {
+    return request(`/admin/expenses/${expenseId}/unarchive`, {
+      method: 'POST',
+    });
+  },
+
+  // Get archived expenses (admin only)
+  getArchivedExpenses: async () => {
+    return request('/admin/expenses/archived', {
+      method: 'GET',
     });
   },
 };

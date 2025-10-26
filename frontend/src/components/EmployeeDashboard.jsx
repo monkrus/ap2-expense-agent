@@ -262,6 +262,8 @@ const EmployeeDashboard = () => {
   // Filter expenses based on active tab and filters
   const activeExpenses = expenses.filter(e => e.status === 'pending');
   const historyExpenses = expenses.filter(e => {
+    // History tab should exclude pending expenses (those are in Active tab)
+    if (e.status === 'pending') return false;
     if (statusFilter === 'all') return true;
     return e.status === statusFilter;
   });
@@ -473,7 +475,6 @@ const EmployeeDashboard = () => {
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[150px] bg-white"
                 >
                   <option value="all">All Statuses</option>
-                  <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
                   <option value="rejected">Rejected</option>
                   <option value="withdrawn">Withdrawn</option>

@@ -29,7 +29,7 @@ class EmailService:
         Returns True if successful, False otherwise
         """
         # Check if email is configured
-        if not settings.smtp_host or not settings.smtp_username:
+        if not settings.smtp_server or not settings.smtp_username:
             logger.warning("Email not configured. Email would have been sent to: %s", to_email)
             logger.warning("Subject: %s", subject)
             logger.warning("Body: %s", text_body or html_body[:100])
@@ -51,7 +51,7 @@ class EmailService:
             msg.attach(part2)
 
             # Send email
-            with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+            with smtplib.SMTP(settings.smtp_server, settings.smtp_port) as server:
                 server.starttls()
                 server.login(settings.smtp_username, settings.smtp_password)
                 server.send_message(msg)

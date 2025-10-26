@@ -492,8 +492,11 @@ async def get_all_expenses(
     logger = logging.getLogger(__name__)
     logger.info(f"[admin.get_all_expenses] Called with status filter: {status}")
 
-    # Build query - exclude withdrawn by default
-    query = db.query(Expense).filter(Expense.status != ExpenseStatus.WITHDRAWN)
+    # Build query - exclude withdrawn and archived by default
+    query = db.query(Expense).filter(
+        Expense.status != ExpenseStatus.WITHDRAWN,
+        Expense.is_archived == False
+    )
 
     # Apply status filter if provided
     if status and status != "all":
@@ -662,90 +665,236 @@ async def clear_pending_expenses(
         )
 
 
-@router.delete("/expenses/clear", response_model=dict)
-async def clear_expense_history(
+@router.post("/expenses/archive-all", response_model=dict)
+async def archive_all_expenses(
     request: Request,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Clear all expense records and their associated data (Admin only)"""
-    from ..models import Expense, Receipt, ExpenseComment
+    """Archive all non-pending expenses (Admin only)"""
+    from ..models import Expense, ExpenseStatus
     import logging
-    import os
 
     logger = logging.getLogger(__name__)
-    logger.info(f"[admin.clear_expense_history] Admin {current_user.username} initiating expense history clear")
+    logger.info(f"[admin.archive_all_expenses] Admin {current_user.username} initiating bulk archive")
 
     try:
-        # Count records before deletion
-        expense_count = db.query(Expense).count()
-        receipt_count = db.query(Receipt).count()
-        comment_count = db.query(ExpenseComment).count()
+        # Get all non-pending, non-archived expenses
+        expenses_to_archive = db.query(Expense).filter(
+            Expense.status != ExpenseStatus.PENDING,
+            Expense.is_archived == False
+        ).all()
 
-        # Delete all expense comments first (foreign key dependency)
-        db.query(ExpenseComment).delete()
+        archive_count = len(expenses_to_archive)
 
-        # Delete all receipts and their files
-        receipts = db.query(Receipt).all()
-        deleted_files = 0
-        failed_files = 0
+        if archive_count == 0:
+            return {
+                "success": True,
+                "message": "No expenses to archive",
+                "statistics": {"expenses_archived": 0}
+            }
 
-        for receipt in receipts:
-            # Try to delete the physical file
-            if receipt.file_path and os.path.exists(receipt.file_path):
-                try:
-                    os.remove(receipt.file_path)
-                    deleted_files += 1
-                except Exception as e:
-                    logger.warning(f"Failed to delete receipt file {receipt.file_path}: {e}")
-                    failed_files += 1
+        # Archive all expenses
+        for expense in expenses_to_archive:
+            expense.is_archived = True
+            expense.archived_at = datetime.utcnow()
+            expense.archived_by = current_user.id
 
-        # Delete receipt records
-        db.query(Receipt).delete()
-
-        # Delete all expenses
-        db.query(Expense).delete()
-
-        # Commit all changes
         db.commit()
 
         # Log audit event
         AuthService.log_audit(
             db=db,
             user_id=current_user.id,
-            action="admin.clear_expense_history",
+            action="admin.archive_all_expenses",
             resource_type="expense",
-            details={
-                "expenses_deleted": expense_count,
-                "receipts_deleted": receipt_count,
-                "comments_deleted": comment_count,
-                "receipt_files_deleted": deleted_files,
-                "receipt_files_failed": failed_files
-            },
+            details={"expenses_archived": archive_count},
             request=request
         )
 
-        logger.info(f"[admin.clear_expense_history] Successfully cleared {expense_count} expenses, {receipt_count} receipts, {comment_count} comments")
+        logger.info(f"[admin.archive_all_expenses] Successfully archived {archive_count} expenses")
 
         return {
             "success": True,
-            "message": "Expense history cleared successfully",
-            "statistics": {
-                "expenses_deleted": expense_count,
-                "receipts_deleted": receipt_count,
-                "comments_deleted": comment_count,
-                "receipt_files_deleted": deleted_files,
-                "receipt_files_failed": failed_files
-            }
+            "message": f"Archived {archive_count} expense(s) successfully",
+            "statistics": {"expenses_archived": archive_count}
         }
 
     except Exception as e:
         db.rollback()
-        logger.error(f"[admin.clear_expense_history] Error clearing expense history: {e}")
+        logger.error(f"[admin.archive_all_expenses] Error archiving expenses: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to clear expense history: {str(e)}"
+            detail=f"Failed to archive expenses: {str(e)}"
         )
+
+
+@router.get("/expenses/archived", response_model=dict)
+async def get_archived_expenses(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all archived expenses (Admin only)"""
+    from ..models import Expense, User as UserModel
+
+    archived_expenses = db.query(Expense).filter(
+        Expense.is_archived == True
+    ).order_by(Expense.archived_at.desc()).all()
+
+    result = []
+    for e in archived_expenses:
+        user = db.query(UserModel).filter(UserModel.id == e.user_id).first()
+        archiver = db.query(UserModel).filter(UserModel.id == e.archived_by).first() if e.archived_by else None
+
+        result.append({
+            "id": e.id,
+            "amount": float(e.amount),
+            "vendor": e.vendor,
+            "category": e.category,
+            "description": e.description,
+            "status": e.status.value,
+            "date": e.date.isoformat() if e.date else None,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+            "archived_at": e.archived_at.isoformat() if e.archived_at else None,
+            "user_id": e.user_id,
+            "user_email": user.email if user else "Unknown",
+            "user_name": user.full_name if user else "Unknown",
+            "archived_by_name": archiver.full_name if archiver else None,
+            "archived_by_email": archiver.email if archiver else None
+        })
+
+    return {
+        "total_count": len(result),
+        "expenses": result
+    }
+
+
+@router.post("/expenses/{expense_id}/archive", response_model=dict)
+async def archive_expense(
+    expense_id: str,
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Archive a single expense (Admin only)"""
+    from ..models import Expense, ExpenseStatus
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Expense not found"
+        )
+
+    if expense.status == ExpenseStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot archive pending expenses"
+        )
+
+    if expense.is_archived:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Expense is already archived"
+        )
+
+    expense.is_archived = True
+    expense.archived_at = datetime.utcnow()
+    expense.archived_by = current_user.id
+    db.commit()
+
+    # Log audit event
+    AuthService.log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="admin.archive_expense",
+        resource_type="expense",
+        resource_id=expense_id,
+        details={"expense_id": expense_id},
+        request=request
+    )
+
+    logger.info(f"[admin.archive_expense] Archived expense {expense_id}")
+
+    return {
+        "success": True,
+        "message": "Expense archived successfully",
+        "expense_id": expense_id
+    }
+
+
+@router.post("/expenses/{expense_id}/unarchive", response_model=dict)
+async def unarchive_expense(
+    expense_id: str,
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Unarchive a single expense (Admin only)"""
+    from ..models import Expense
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Expense not found"
+        )
+
+    if not expense.is_archived:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Expense is not archived"
+        )
+
+    expense.is_archived = False
+    expense.archived_at = None
+    expense.archived_by = None
+    db.commit()
+
+    # Log audit event
+    AuthService.log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="admin.unarchive_expense",
+        resource_type="expense",
+        resource_id=expense_id,
+        details={"expense_id": expense_id},
+        request=request
+    )
+
+    logger.info(f"[admin.unarchive_expense] Unarchived expense {expense_id}")
+
+    return {
+        "success": True,
+        "message": "Expense unarchived successfully",
+        "expense_id": expense_id
+    }
+
+
+@router.delete("/expenses/clear", response_model=dict)
+async def clear_expense_history(
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """DEPRECATED: Use archive instead. Clear all expense records and their associated data (Admin only)"""
+    from ..models import Expense, Receipt, ExpenseComment
+    import logging
+    import os
+
+    logger = logging.getLogger(__name__)
+    logger.warning(f"[admin.clear_expense_history] DEPRECATED endpoint called by {current_user.username}")
+
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="This endpoint is deprecated. Use the archive endpoints instead: POST /api/v1/admin/expenses/archive-all"
+    )
 
 
 # ============================================================================

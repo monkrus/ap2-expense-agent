@@ -3,6 +3,8 @@ import { Download, FileText, Table } from 'lucide-react';
 import { expenseAPI } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const ExpenseExport = ({ expenses, onClose }) => {
   const { success, error: showError } = useToast();
@@ -134,102 +136,108 @@ const ExpenseExport = ({ expenses, onClose }) => {
   };
 
   const exportPDF = () => {
-    // Create HTML content for PDF
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-          }
-          h1 {
-            color: #4f46e5;
-            text-align: center;
-            margin-bottom: 30px;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-          }
-          th, td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-          }
-          th {
-            background-color: #4f46e5;
-            color: white;
-          }
-          tr:nth-child(even) {
-            background-color: #f9f9f9;
-          }
-          .status-pending { color: #f59e0b; font-weight: bold; }
-          .status-approved { color: #10b981; font-weight: bold; }
-          .status-rejected { color: #ef4444; font-weight: bold; }
-          .footer {
-            text-align: center;
-            color: #666;
-            margin-top: 30px;
-            font-size: 12px;
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Expense Report</h1>
-        <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
-        <p><strong>Total Expenses:</strong> ${expenses.length}</p>
-        <p><strong>Total Amount:</strong> $${expenses.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}</p>
+    // Create new PDF document (A4 size, portrait orientation)
+    const doc = new jsPDF();
 
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Date</th>
-              <th>Category</th>
-              <th>Vendor</th>
-              <th>Description</th>
-              <th>Amount</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${expenses.map(expense => `
-              <tr>
-                <td>${expense.id}</td>
-                <td>${formatDate(expense.date)}</td>
-                <td>${expense.category}</td>
-                <td>${expense.vendor}</td>
-                <td>${expense.description}</td>
-                <td>$${expense.amount.toFixed(2)}</td>
-                <td class="status-${expense.status}">${expense.status.toUpperCase()}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+    // Add header
+    doc.setFontSize(20);
+    doc.setTextColor(79, 70, 229); // Indigo color
+    doc.text('Expense Report', 105, 20, { align: 'center' });
 
-        <div class="footer">
-          <p>AP2 Expense Management System</p>
-          <p>This document was generated automatically</p>
-        </div>
-      </body>
-      </html>
-    `;
+    // Add generation info
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 35);
+    doc.text(`Total Expenses: ${expenses.length}`, 14, 41);
+    doc.text(`Total Amount: $${expenses.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}`, 14, 47);
 
-    // Create PDF using print functionality
-    const printWindow = window.open('', '', 'width=800,height=600');
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
+    // Calculate summary stats
+    const pending = expenses.filter(e => e.status === 'pending').length;
+    const approved = expenses.filter(e => e.status === 'approved').length;
+    const rejected = expenses.filter(e => e.status === 'rejected').length;
 
-    // Wait for content to load, then print
-    printWindow.onload = function() {
-      printWindow.print();
-      printWindow.onafterprint = function() {
-        printWindow.close();
-      };
-    };
+    doc.text(`Pending: ${pending} | Approved: ${approved} | Rejected: ${rejected}`, 14, 53);
+
+    // Prepare table data
+    const tableData = expenses.map((expense, index) => [
+      index + 1,
+      formatDate(expense.date),
+      expense.category || '',
+      expense.vendor || '',
+      expense.description || '',
+      `$${expense.amount.toFixed(2)}`,
+      (expense.status || '').toUpperCase()
+    ]);
+
+    // Add table with autoTable
+    doc.autoTable({
+      head: [['#', 'Date', 'Category', 'Vendor', 'Description', 'Amount', 'Status']],
+      body: tableData,
+      startY: 60,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [79, 70, 229], // Indigo
+        textColor: 255,
+        fontStyle: 'bold',
+        halign: 'left'
+      },
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+        overflow: 'linebreak',
+        halign: 'left'
+      },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },  // #
+        1: { cellWidth: 22 },                     // Date
+        2: { cellWidth: 22 },                     // Category
+        3: { cellWidth: 30 },                     // Vendor
+        4: { cellWidth: 50 },                     // Description
+        5: { cellWidth: 22, halign: 'right' },    // Amount
+        6: { cellWidth: 22, halign: 'center' }    // Status
+      },
+      didParseCell: function(data) {
+        // Color code status cells
+        if (data.column.index === 6 && data.section === 'body') {
+          const status = data.cell.raw.toLowerCase();
+          if (status === 'pending') {
+            data.cell.styles.textColor = [245, 158, 11]; // Yellow
+            data.cell.styles.fontStyle = 'bold';
+          } else if (status === 'approved') {
+            data.cell.styles.textColor = [16, 185, 129]; // Green
+            data.cell.styles.fontStyle = 'bold';
+          } else if (status === 'rejected') {
+            data.cell.styles.textColor = [239, 68, 68]; // Red
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      },
+      margin: { top: 60, left: 14, right: 14 }
+    });
+
+    // Add footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(
+        'AP2 Expense Management System',
+        105,
+        doc.internal.pageSize.height - 15,
+        { align: 'center' }
+      );
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        105,
+        doc.internal.pageSize.height - 10,
+        { align: 'center' }
+      );
+    }
+
+    // Save the PDF
+    const filename = `expenses_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(filename);
   };
 
   return (
@@ -327,7 +335,7 @@ const ExpenseExport = ({ expenses, onClose }) => {
             <FileText className="w-8 h-8 text-red-600" />
             <div className="flex-1">
               <div className="font-medium text-gray-800">PDF Document</div>
-              <div className="text-xs text-gray-600">Printable report format</div>
+              <div className="text-xs text-gray-600">Professional report with color-coded status</div>
             </div>
           </label>
         </div>

@@ -39,13 +39,28 @@ const UserManagementDashboard = () => {
   });
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    // Debounce search to avoid too many API calls while typing
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, roleFilter]);
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users`);
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+      if (roleFilter && roleFilter !== 'all') {
+        params.append('role', roleFilter.toLowerCase());
+      }
+
+      const url = `${API_BASE_URL}/api/v1/admin/users${params.toString() ? '?' + params.toString() : ''}`;
+      const response = await fetchWithAuth(url);
 
       if (!response.ok) {
         throw new Error('Failed to fetch users');
@@ -307,16 +322,8 @@ const UserManagementDashboard = () => {
     setShowDeleteModal(true);
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch =
-      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    const matchesRole = roleFilter === 'all' || user.role?.toLowerCase() === roleFilter.toLowerCase();
-
-    return matchesSearch && matchesRole;
-  });
+  // Users are already filtered by the backend based on searchTerm and roleFilter
+  const filteredUsers = users;
 
   const getRoleBadgeColor = (role) => {
     const colors = {

@@ -22,9 +22,10 @@ const AdminDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', or 'users'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'archived', or 'users'
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
+  const [archivedExpenses, setArchivedExpenses] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all'); // for 'all' tab
   const [searchQuery, setSearchQuery] = useState(''); // for searching expenses
   const [loading, setLoading] = useState(true);
@@ -45,38 +46,44 @@ const AdminDashboard = () => {
   const [copiedExpenseId, setCopiedExpenseId] = useState(null); // Track copied expense ID
   const [currentPage, setCurrentPage] = useState(1); // For all expenses pagination
   const [itemsPerPage] = useState(10); // Items per page for all expenses
+  const [selectedExpenses, setSelectedExpenses] = useState([]); // Track selected expenses for bulk actions
 
-  // Fetch pending expenses
+  // Fetch all data on initial mount
   useEffect(() => {
-    if (activeTab === 'pending') {
-      fetchPendingExpenses(true); // Initial load
+    // Fetch all data sets on initial load
+    fetchPendingExpenses(true);
+    fetchAllExpenses(true);
+    if (user?.role === 'admin') {
+      fetchArchivedExpenses(true);
+    }
+  }, []); // Empty dependency array = run once on mount
 
-      // Auto-refresh every 10 seconds (silent)
-      const interval = setInterval(() => {
+  // Auto-refresh the active tab's data every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (activeTab === 'pending') {
         fetchPendingExpenses(false);
-      }, 10000);
-
-      return () => clearInterval(interval);
-    }
-  }, [activeTab]);
-
-  // Fetch all expenses
-  useEffect(() => {
-    if (activeTab === 'all') {
-      fetchAllExpenses(true); // Initial load
-
-      // Auto-refresh every 10 seconds (silent)
-      const interval = setInterval(() => {
+      } else if (activeTab === 'all') {
         fetchAllExpenses(false);
-      }, 10000);
+      } else if (activeTab === 'archived') {
+        fetchArchivedExpenses(false);
+      }
+    }, 10000);
 
-      return () => clearInterval(interval);
-    }
+    return () => clearInterval(interval);
   }, [activeTab, statusFilter]);
 
-  // Reset to page 1 when search, filter, or tab changes
+  // Refresh all expenses when status filter changes on 'all' tab
+  useEffect(() => {
+    if (activeTab === 'all') {
+      fetchAllExpenses(true);
+    }
+  }, [statusFilter]);
+
+  // Reset to page 1 and clear selections when search, filter, or tab changes
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedExpenses([]);
   }, [activeTab, searchQuery, statusFilter]);
 
   // Save sort preferences to localStorage
@@ -167,10 +174,8 @@ const AdminDashboard = () => {
         setPendingExpenses(prev => prev.filter(e => e.id !== expense.id));
         success(`Expense ${expense.id} approved successfully!`);
 
-        // Refresh all expenses if on that tab
-        if (activeTab === 'all') {
-          fetchAllExpenses();
-        }
+        // Always refresh all expenses to keep data in sync
+        fetchAllExpenses();
       }
     } catch (err) {
       const errorMsg = err instanceof APIError ? err.message : 'Failed to approve expense';
@@ -204,10 +209,8 @@ const AdminDashboard = () => {
         setRejectingExpense(null);
         setRejectionReason('');
 
-        // Refresh all expenses if on that tab
-        if (activeTab === 'all') {
-          fetchAllExpenses();
-        }
+        // Always refresh all expenses to keep data in sync
+        fetchAllExpenses();
       }
     } catch (err) {
       const errorMsg = err instanceof APIError ? err.message : 'Failed to reject expense';
@@ -217,47 +220,181 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleClearExpenseHistory = async () => {
-    // Show confirmation dialog
+  const fetchArchivedExpenses = async (isInitialLoad = false) => {
+    try {
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+      const data = await expenseAPI.getArchivedExpenses();
+      if (data.expenses && Array.isArray(data.expenses)) {
+        setArchivedExpenses(data.expenses);
+      }
+    } catch (err) {
+      console.error('Error fetching archived expenses:', err);
+      if (err instanceof APIError && err.status === 401) {
+        showError('Session expired. Please login again.');
+      } else if (err instanceof APIError && err.status === 403) {
+        showError('You do not have permission to view archived expenses.');
+      } else if (isInitialLoad) {
+        showError('Failed to load archived expenses.');
+      }
+    } finally {
+      if (isInitialLoad) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleArchiveAllExpenses = async () => {
     const confirmed = window.confirm(
-      'Are you sure you want to clear ALL expense history? This will permanently delete all expenses, receipts, and comments. This action cannot be undone!'
+      'Archive all approved and rejected expenses? This will move them to the Archive tab. They can be unarchived later if needed.'
     );
 
     if (!confirmed) return;
 
-    // Double confirmation for safety
-    const doubleConfirmed = window.confirm(
-      'FINAL WARNING: This will delete ALL expense records permanently. Are you absolutely sure?'
-    );
-
-    if (!doubleConfirmed) return;
-
     setProcessing(true);
 
     try {
-      const result = await expenseAPI.clearExpenseHistory();
+      const result = await expenseAPI.archiveAllExpenses();
 
       if (result.success) {
-        // Clear both lists
-        setPendingExpenses([]);
-        setAllExpenses([]);
-
         success(
-          `Expense history cleared successfully! Deleted: ${result.statistics.expenses_deleted} expenses, ${result.statistics.receipts_deleted} receipts, ${result.statistics.comments_deleted} comments`
+          `Successfully archived ${result.statistics.expenses_archived} expense(s)!`
         );
 
         // Refresh the current view
-        if (activeTab === 'pending') {
-          fetchPendingExpenses();
-        } else if (activeTab === 'all') {
+        if (activeTab === 'all') {
+          fetchAllExpenses();
+        } else if (activeTab === 'archived') {
+          fetchArchivedExpenses();
+        }
+      }
+    } catch (err) {
+      const errorMsg = err instanceof APIError ? err.message : 'Failed to archive expenses';
+      showError(errorMsg);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleUnarchiveExpense = async (expenseId) => {
+    setProcessing(true);
+
+    try {
+      const result = await expenseAPI.unarchiveExpense(expenseId);
+
+      if (result.success) {
+        success('Expense unarchived successfully!');
+
+        // Remove from archived list
+        setArchivedExpenses(prev => prev.filter(e => e.id !== expenseId));
+
+        // Refresh other views
+        if (activeTab === 'all') {
           fetchAllExpenses();
         }
       }
     } catch (err) {
-      const errorMsg = err instanceof APIError ? err.message : 'Failed to clear expense history';
+      const errorMsg = err instanceof APIError ? err.message : 'Failed to unarchive expense';
       showError(errorMsg);
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handleArchiveSelected = async () => {
+    if (selectedExpenses.length === 0) {
+      showError('Please select at least one expense to archive');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Archive ${selectedExpenses.length} selected expense(s)? They will be moved to the Archive tab.`
+    );
+
+    if (!confirmed) return;
+
+    setProcessing(true);
+
+    try {
+      // Archive each selected expense
+      const promises = selectedExpenses.map(expenseId =>
+        expenseAPI.archiveExpense(expenseId)
+      );
+
+      await Promise.all(promises);
+
+      success(`Successfully archived ${selectedExpenses.length} expense(s)!`);
+      setSelectedExpenses([]);
+
+      // Refresh the current view
+      if (activeTab === 'all') {
+        fetchAllExpenses();
+      } else if (activeTab === 'archived') {
+        fetchArchivedExpenses();
+      }
+    } catch (err) {
+      const errorMsg = err instanceof APIError ? err.message : 'Failed to archive selected expenses';
+      showError(errorMsg);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleUnarchiveSelected = async () => {
+    if (selectedExpenses.length === 0) {
+      showError('Please select at least one expense to unarchive');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Restore ${selectedExpenses.length} selected expense(s) to active?`
+    );
+
+    if (!confirmed) return;
+
+    setProcessing(true);
+
+    try {
+      // Unarchive each selected expense
+      const promises = selectedExpenses.map(expenseId =>
+        expenseAPI.unarchiveExpense(expenseId)
+      );
+
+      await Promise.all(promises);
+
+      success(`Successfully restored ${selectedExpenses.length} expense(s)!`);
+      setSelectedExpenses([]);
+
+      // Refresh the current view
+      if (activeTab === 'archived') {
+        fetchArchivedExpenses();
+      } else if (activeTab === 'all') {
+        fetchAllExpenses();
+      }
+    } catch (err) {
+      const errorMsg = err instanceof APIError ? err.message : 'Failed to unarchive selected expenses';
+      showError(errorMsg);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const toggleExpenseSelection = (expenseId) => {
+    setSelectedExpenses(prev => {
+      if (prev.includes(expenseId)) {
+        return prev.filter(id => id !== expenseId);
+      } else {
+        return [...prev, expenseId];
+      }
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedExpenses.length === currentExpenses.length) {
+      setSelectedExpenses([]);
+    } else {
+      setSelectedExpenses(currentExpenses.map(e => e.id));
     }
   };
 
@@ -387,7 +524,13 @@ const AdminDashboard = () => {
   };
 
   // Apply search filter
-  const searchFilteredExpenses = (activeTab === 'pending' ? pendingExpenses : allExpenses).filter(expense => {
+  const getCurrentExpenseList = () => {
+    if (activeTab === 'pending') return pendingExpenses;
+    if (activeTab === 'archived') return archivedExpenses;
+    return allExpenses;
+  };
+
+  const searchFilteredExpenses = getCurrentExpenseList().filter(expense => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -414,6 +557,58 @@ const AdminDashboard = () => {
 
   const theme = getRoleTheme(user?.role?.toUpperCase() || 'ADMIN');
 
+  // Helper function to get proper tab border/text color classes based on role
+  const getTabActiveClasses = () => {
+    const roleUpper = user?.role?.toUpperCase() || 'ADMIN';
+    switch(roleUpper) {
+      case 'MANAGER':
+        return 'border-b-2 border-blue-600 text-blue-600';
+      case 'ADMIN':
+        return 'border-b-2 border-purple-600 text-purple-600';
+      default:
+        return 'border-b-2 border-blue-600 text-blue-600';
+    }
+  };
+
+  // Helper function to get background gradient based on role
+  const getBackgroundGradient = () => {
+    const roleUpper = user?.role?.toUpperCase() || 'ADMIN';
+    switch(roleUpper) {
+      case 'MANAGER':
+        return 'from-blue-50 to-cyan-100';
+      case 'ADMIN':
+        return 'from-purple-50 to-indigo-100';
+      default:
+        return 'from-blue-50 to-indigo-100';
+    }
+  };
+
+  // Helper function to get spinner color based on role
+  const getSpinnerClasses = () => {
+    const roleUpper = user?.role?.toUpperCase() || 'ADMIN';
+    switch(roleUpper) {
+      case 'MANAGER':
+        return 'border-blue-600';
+      case 'ADMIN':
+        return 'border-purple-600';
+      default:
+        return 'border-blue-600';
+    }
+  };
+
+  // Helper function to get text color based on role
+  const getTextColor = () => {
+    const roleUpper = user?.role?.toUpperCase() || 'ADMIN';
+    switch(roleUpper) {
+      case 'MANAGER':
+        return 'text-blue-600';
+      case 'ADMIN':
+        return 'text-purple-600';
+      default:
+        return 'text-blue-600';
+    }
+  };
+
   // Debug logging
   console.log('[AdminDashboard] Render - activeTab:', activeTab);
   console.log('[AdminDashboard] Render - statusFilter:', statusFilter);
@@ -422,7 +617,7 @@ const AdminDashboard = () => {
   console.log('[AdminDashboard] Render - currentExpenses:', currentExpenses.length);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className={`min-h-screen bg-gradient-to-br ${getBackgroundGradient()} p-6`}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
@@ -446,7 +641,11 @@ const AdminDashboard = () => {
                 Change Password
               </button>
               <button
-                onClick={() => activeTab === 'pending' ? fetchPendingExpenses() : fetchAllExpenses()}
+                onClick={() => {
+                  if (activeTab === 'pending') fetchPendingExpenses();
+                  else if (activeTab === 'archived') fetchArchivedExpenses();
+                  else fetchAllExpenses();
+                }}
                 disabled={loading}
                 className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50"
               >
@@ -474,7 +673,7 @@ const AdminDashboard = () => {
               onClick={() => setActiveTab('pending')}
               className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
                 activeTab === 'pending'
-                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
+                  ? getTabActiveClasses()
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
@@ -490,20 +689,44 @@ const AdminDashboard = () => {
               onClick={() => setActiveTab('all')}
               className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
                 activeTab === 'all'
-                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
+                  ? getTabActiveClasses()
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
               <FileText className="w-5 h-5" />
               All Expenses
+              {allExpenses.length > 0 && (
+                <span className="ml-2 px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
+                  {allExpenses.length}
+                </span>
+              )}
             </button>
+            {/* Archive Tab - Admin Only */}
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => setActiveTab('archived')}
+                className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                  activeTab === 'archived'
+                    ? getTabActiveClasses()
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <History className="w-5 h-5" />
+                Archived
+                {archivedExpenses.length > 0 && (
+                  <span className="ml-2 px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">
+                    {archivedExpenses.length}
+                  </span>
+                )}
+              </button>
+            )}
             {/* User Management Tab - Admin Only */}
             {user?.role === 'admin' && (
               <button
                 onClick={() => setActiveTab('users')}
                 className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
                   activeTab === 'users'
-                    ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
+                    ? getTabActiveClasses()
                     : 'text-gray-600 hover:text-gray-800'
                 }`}
               >
@@ -549,8 +772,8 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Search and Filter - Show on pending and all tabs */}
-        {(activeTab === 'pending' || activeTab === 'all') && (
+        {/* Search and Filter - Show on pending, all, and archived tabs */}
+        {(activeTab === 'pending' || activeTab === 'all' || activeTab === 'archived') && (
           <div className="bg-white rounded-lg shadow p-4 mb-6">
             <div className="flex items-center gap-3 flex-wrap">
               {/* Search Box */}
@@ -603,29 +826,58 @@ const AdminDashboard = () => {
           <UserManagementDashboard />
         )}
 
-        {/* Expenses List - Only show for pending and all tabs */}
-        {(activeTab === 'pending' || activeTab === 'all') && (
+        {/* Expenses List - Show for pending, all, and archived tabs */}
+        {(activeTab === 'pending' || activeTab === 'all' || activeTab === 'archived') && (
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-blue-600" />
-              {activeTab === 'pending' ? 'Pending Expense Requests' : 'Expense History'}
+              {activeTab === 'pending' ? 'Pending Expense Requests' : activeTab === 'archived' ? 'Archived Expenses' : 'Expense History'}
             </h2>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               {currentExpenses.length > 0 && (
                 <span className="text-sm text-gray-600">
                   {currentExpenses.length} expense{currentExpenses.length !== 1 ? 's' : ''}
+                  {selectedExpenses.length > 0 && ` (${selectedExpenses.length} selected)`}
                 </span>
               )}
+
+              {/* Bulk Action Buttons for "All Expenses" tab */}
               {user?.role === 'admin' && activeTab === 'all' && (
+                <>
+                  {selectedExpenses.length > 0 && (
+                    <button
+                      onClick={handleArchiveSelected}
+                      disabled={processing}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                      title="Archive selected expenses"
+                    >
+                      <History className="w-4 h-4" />
+                      Archive Selected ({selectedExpenses.length})
+                    </button>
+                  )}
+                  <button
+                    onClick={handleArchiveAllExpenses}
+                    disabled={processing || currentExpenses.length === 0}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                    title="Archive all approved and rejected expenses"
+                  >
+                    <History className="w-4 h-4" />
+                    Archive All
+                  </button>
+                </>
+              )}
+
+              {/* Bulk Action Buttons for "Archived" tab */}
+              {user?.role === 'admin' && activeTab === 'archived' && selectedExpenses.length > 0 && (
                 <button
-                  onClick={handleClearExpenseHistory}
-                  disabled={processing || currentExpenses.length === 0}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                  title="Clear all expense history (Admin only)"
+                  onClick={handleUnarchiveSelected}
+                  disabled={processing}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                  title="Restore selected expenses to active"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  Clear History
+                  <Upload className="w-4 h-4" />
+                  Restore Selected ({selectedExpenses.length})
                 </button>
               )}
             </div>
@@ -634,6 +886,24 @@ const AdminDashboard = () => {
           {/* Sort Controls */}
           {currentExpenses.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b">
+              {/* Select All Checkbox - Only show on "all" and "archived" tabs for admins */}
+              {user?.role === 'admin' && (activeTab === 'all' || activeTab === 'archived') && (
+                <>
+                  <div className="flex items-center gap-2 mr-4">
+                    <input
+                      type="checkbox"
+                      id="select-all"
+                      checked={selectedExpenses.length === currentExpenses.length && currentExpenses.length > 0}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="select-all" className="text-sm font-medium text-gray-700 cursor-pointer">
+                      Select All
+                    </label>
+                  </div>
+                  <div className="border-l border-gray-300 h-6 mx-2"></div>
+                </>
+              )}
               <span className="text-sm font-medium text-gray-700">Sort by:</span>
               <button
                 onClick={() => handleSort('date')}
@@ -728,7 +998,7 @@ const AdminDashboard = () => {
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className={`animate-spin rounded-full h-8 w-8 border-b-2 border-${theme.colors.primary} mx-auto mb-2`}></div>
+                <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${getSpinnerClasses()} mx-auto mb-2`}></div>
                 <p className="text-gray-600 text-sm">Loading expenses...</p>
               </div>
             </div>
@@ -749,13 +1019,29 @@ const AdminDashboard = () => {
               {currentExpenses.map((expense, index) => (
                 <div
                   key={expense.id}
-                  className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow bg-gradient-to-r from-white to-gray-50 relative"
+                  className={`border rounded-lg p-5 hover:shadow-md transition-shadow bg-gradient-to-r from-white to-gray-50 relative ${
+                    selectedExpenses.includes(expense.id) ? 'border-blue-500 border-2 shadow-md' : 'border-gray-200'
+                  }`}
                 >
                   {/* Row Number Badge */}
                   <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </div>
-                  <div className="flex items-start justify-between mb-4 ml-10">
+
+                  {/* Selection Checkbox - Only show on "all" and "archived" tabs for admins */}
+                  {user?.role === 'admin' && (activeTab === 'all' || activeTab === 'archived') && (
+                    <div className="absolute top-3 right-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedExpenses.includes(expense.id)}
+                        onChange={() => toggleExpenseSelection(expense.id)}
+                        className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                        title="Select this expense"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-start justify-between mb-4 ml-10 mr-8">
                     <div className="flex-1">
                       {/* Employee Info */}
                       <div className="flex items-center gap-2 mb-2">
@@ -833,7 +1119,7 @@ const AdminDashboard = () => {
                   </div>
 
                   {/* Action Buttons - Only for pending expenses */}
-                  {expense.status === 'pending' && (
+                  {expense.status === 'pending' && activeTab !== 'archived' && (
                     <>
                       {/* Manager Approval Limit Warning */}
                       {user?.role === 'manager' && expense.amount > 5000 && (
@@ -878,9 +1164,23 @@ const AdminDashboard = () => {
                     </>
                   )}
 
+                  {/* Unarchive Button - Only for archived expenses (Admin only) */}
+                  {activeTab === 'archived' && user?.role === 'admin' && (
+                    <div className="flex gap-3 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={() => handleUnarchiveExpense(expense.id)}
+                        disabled={processing}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Restore to Active
+                      </button>
+                    </div>
+                  )}
+
                   {processing && (
-                    <div className={`mt-3 flex items-center justify-center gap-2 text-sm text-${theme.colors.primary}`}>
-                      <div className={`animate-spin rounded-full h-4 w-4 border-b-2 border-${theme.colors.primary}`}></div>
+                    <div className={`mt-3 flex items-center justify-center gap-2 text-sm ${getTextColor()}`}>
+                      <div className={`animate-spin rounded-full h-4 w-4 border-b-2 ${getSpinnerClasses()}`}></div>
                       Processing with AP2 protocol...
                     </div>
                   )}
@@ -938,8 +1238,8 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* AP2 Protocol Info - Only show for pending and all tabs */}
-        {(activeTab === 'pending' || activeTab === 'all') && (
+        {/* AP2 Protocol Info - Show for pending, all, and archived tabs */}
+        {(activeTab === 'pending' || activeTab === 'all' || activeTab === 'archived') && (
           <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Shield className="w-5 h-5 text-blue-600" />

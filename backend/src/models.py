@@ -243,6 +243,11 @@ class Expense(Base):
     risk_level = Column(String(50), nullable=True)
     compliance_check = Column(Boolean, nullable=True)
 
+    # Archive tracking
+    is_archived = Column(Boolean, default=False, nullable=False, index=True)
+    archived_at = Column(DateTime, nullable=True)
+    archived_by = Column(String(255), ForeignKey("users.id"), nullable=True)
+
     # Timestamps
     created_at = Column(DateTime, server_default=func.now(), index=True)
     updated_at = Column(DateTime, onupdate=func.now())
@@ -251,6 +256,7 @@ class Expense(Base):
     organization = relationship("Organization", back_populates="expenses")
     user = relationship("User", foreign_keys=[user_id], backref="expenses")
     approver = relationship("User", foreign_keys=[approved_by])
+    archiver = relationship("User", foreign_keys=[archived_by])
     intent_mandate = relationship("IntentMandate", backref="expenses")
     cart_mandate = relationship("CartMandate", backref="expenses")
     payment_mandate = relationship("PaymentMandate", backref="expenses")
