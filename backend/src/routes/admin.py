@@ -877,6 +877,69 @@ async def unarchive_expense(
     }
 
 
+@router.post("/expenses/unarchive-all", response_model=dict)
+async def unarchive_all_expenses(
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Unarchive all archived expenses (Admin only)"""
+    from ..models import Expense
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"[admin.unarchive_all_expenses] Admin {current_user.username} initiating bulk unarchive")
+
+    try:
+        # Get all archived expenses
+        archived_expenses = db.query(Expense).filter(
+            Expense.is_archived == True
+        ).all()
+
+        unarchive_count = len(archived_expenses)
+
+        if unarchive_count == 0:
+            return {
+                "success": True,
+                "message": "No archived expenses to restore",
+                "statistics": {"expenses_unarchived": 0}
+            }
+
+        # Unarchive all expenses
+        for expense in archived_expenses:
+            expense.is_archived = False
+            expense.archived_at = None
+            expense.archived_by = None
+
+        db.commit()
+
+        # Log audit event
+        AuthService.log_audit(
+            db=db,
+            user_id=current_user.id,
+            action="admin.unarchive_all_expenses",
+            resource_type="expense",
+            details={"expenses_unarchived": unarchive_count},
+            request=request
+        )
+
+        logger.info(f"[admin.unarchive_all_expenses] Successfully unarchived {unarchive_count} expenses")
+
+        return {
+            "success": True,
+            "message": f"Restored {unarchive_count} expense(s) to active successfully",
+            "statistics": {"expenses_unarchived": unarchive_count}
+        }
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"[admin.unarchive_all_expenses] Error unarchiving expenses: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to unarchive expenses: {str(e)}"
+        )
+
+
 @router.delete("/expenses/clear", response_model=dict)
 async def clear_expense_history(
     request: Request,

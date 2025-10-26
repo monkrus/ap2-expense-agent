@@ -271,7 +271,7 @@ const ExpenseExport = ({ expenses, onClose }) => {
             <div>
               <span className="text-gray-600">Total Amount:</span>
               <span className="font-semibold ml-2">
-                ${expenses.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}
+                ${expenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
             <div>

@@ -285,6 +285,13 @@ export const expenseAPI = {
     });
   },
 
+  // Unarchive all archived expenses (admin only)
+  unarchiveAllExpenses: async () => {
+    return request('/admin/expenses/unarchive-all', {
+      method: 'POST',
+    });
+  },
+
   // Get archived expenses (admin only)
   getArchivedExpenses: async () => {
     return request('/admin/expenses/archived', {

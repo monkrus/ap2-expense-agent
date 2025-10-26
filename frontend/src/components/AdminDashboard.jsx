@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check, AlertCircle, Plus, Search, Edit2, Trash2, Upload, History, Receipt } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
@@ -47,16 +47,32 @@ const AdminDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1); // For all expenses pagination
   const [itemsPerPage] = useState(10); // Items per page for all expenses
   const [selectedExpenses, setSelectedExpenses] = useState([]); // Track selected expenses for bulk actions
+  const hasLoadedData = useRef(false); // Track if initial data load has happened
+  const renderCount = useRef(0); // Track render count for debugging
 
   // Fetch all data on initial mount
   useEffect(() => {
-    // Fetch all data sets on initial load
-    fetchPendingExpenses(true);
-    fetchAllExpenses(true);
-    if (user?.role === 'admin') {
-      fetchArchivedExpenses(true);
-    }
-  }, []); // Empty dependency array = run once on mount
+    // Only fetch if user is loaded and we haven't loaded data yet
+    if (!user || hasLoadedData.current) return;
+
+    // Fetch all data sets on initial load in parallel
+    // Only the first call shows loading spinner
+    const loadAllData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([
+          fetchPendingExpenses(false),
+          fetchAllExpenses(false),
+          user.role === 'admin' ? fetchArchivedExpenses(false) : Promise.resolve()
+        ]);
+        hasLoadedData.current = true;
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAllData();
+  }, [user]); // Depend on user being loaded
 
   // Auto-refresh the active tab's data every 10 seconds
   useEffect(() => {
@@ -258,16 +274,15 @@ const AdminDashboard = () => {
       const result = await expenseAPI.archiveAllExpenses();
 
       if (result.success) {
+        // Refresh both views BEFORE showing success message
+        await Promise.all([
+          fetchAllExpenses(false),
+          fetchArchivedExpenses(false)
+        ]);
+
         success(
           `Successfully archived ${result.statistics.expenses_archived} expense(s)!`
         );
-
-        // Refresh the current view
-        if (activeTab === 'all') {
-          fetchAllExpenses();
-        } else if (activeTab === 'archived') {
-          fetchArchivedExpenses();
-        }
       }
     } catch (err) {
       const errorMsg = err instanceof APIError ? err.message : 'Failed to archive expenses';
@@ -284,15 +299,13 @@ const AdminDashboard = () => {
       const result = await expenseAPI.unarchiveExpense(expenseId);
 
       if (result.success) {
+        // Refresh both views BEFORE showing success message
+        await Promise.all([
+          fetchAllExpenses(false),
+          fetchArchivedExpenses(false)
+        ]);
+
         success('Expense unarchived successfully!');
-
-        // Remove from archived list
-        setArchivedExpenses(prev => prev.filter(e => e.id !== expenseId));
-
-        // Refresh other views
-        if (activeTab === 'all') {
-          fetchAllExpenses();
-        }
       }
     } catch (err) {
       const errorMsg = err instanceof APIError ? err.message : 'Failed to unarchive expense';
@@ -324,15 +337,15 @@ const AdminDashboard = () => {
 
       await Promise.all(promises);
 
-      success(`Successfully archived ${selectedExpenses.length} expense(s)!`);
-      setSelectedExpenses([]);
+      // Refresh both views BEFORE showing success message
+      await Promise.all([
+        fetchAllExpenses(false),
+        fetchArchivedExpenses(false)
+      ]);
 
-      // Refresh the current view
-      if (activeTab === 'all') {
-        fetchAllExpenses();
-      } else if (activeTab === 'archived') {
-        fetchArchivedExpenses();
-      }
+      // Clear selections and show success after data is refreshed
+      setSelectedExpenses([]);
+      success(`Successfully archived ${selectedExpenses.length} expense(s)!`);
     } catch (err) {
       const errorMsg = err instanceof APIError ? err.message : 'Failed to archive selected expenses';
       showError(errorMsg);
@@ -363,17 +376,48 @@ const AdminDashboard = () => {
 
       await Promise.all(promises);
 
-      success(`Successfully restored ${selectedExpenses.length} expense(s)!`);
-      setSelectedExpenses([]);
+      // Refresh both views BEFORE showing success message
+      await Promise.all([
+        fetchAllExpenses(false),
+        fetchArchivedExpenses(false)
+      ]);
 
-      // Refresh the current view
-      if (activeTab === 'archived') {
-        fetchArchivedExpenses();
-      } else if (activeTab === 'all') {
-        fetchAllExpenses();
-      }
+      // Clear selections and show success after data is refreshed
+      setSelectedExpenses([]);
+      success(`Successfully restored ${selectedExpenses.length} expense(s)!`);
     } catch (err) {
       const errorMsg = err instanceof APIError ? err.message : 'Failed to unarchive selected expenses';
+      showError(errorMsg);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleUnarchiveAllExpenses = async () => {
+    const confirmed = window.confirm(
+      'Restore all archived expenses to active? This will move them back to the All Expenses tab.'
+    );
+
+    if (!confirmed) return;
+
+    setProcessing(true);
+
+    try {
+      const result = await expenseAPI.unarchiveAllExpenses();
+
+      if (result.success) {
+        // Refresh both views BEFORE showing success message
+        await Promise.all([
+          fetchAllExpenses(false),
+          fetchArchivedExpenses(false)
+        ]);
+
+        success(
+          `Successfully restored ${result.statistics.expenses_unarchived} expense(s)!`
+        );
+      }
+    } catch (err) {
+      const errorMsg = err instanceof APIError ? err.message : 'Failed to restore expenses';
       showError(errorMsg);
     } finally {
       setProcessing(false);
@@ -391,10 +435,17 @@ const AdminDashboard = () => {
   };
 
   const toggleSelectAll = () => {
-    if (selectedExpenses.length === currentExpenses.length) {
+    // Filter out pending expenses when on "all" tab (can't archive pending)
+    const selectableExpenses = activeTab === 'all'
+      ? currentExpenses.filter(e => e.status !== 'pending')
+      : currentExpenses;
+
+    const selectableIds = selectableExpenses.map(e => e.id);
+
+    if (selectedExpenses.length === selectableIds.length && selectableIds.length > 0) {
       setSelectedExpenses([]);
     } else {
-      setSelectedExpenses(currentExpenses.map(e => e.id));
+      setSelectedExpenses(selectableIds);
     }
   };
 
@@ -609,7 +660,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // Debug logging
+  // Debug logging (can be removed in production)
   console.log('[AdminDashboard] Render - activeTab:', activeTab);
   console.log('[AdminDashboard] Render - statusFilter:', statusFilter);
   console.log('[AdminDashboard] Render - pendingExpenses:', pendingExpenses.length);
@@ -869,16 +920,29 @@ const AdminDashboard = () => {
               )}
 
               {/* Bulk Action Buttons for "Archived" tab */}
-              {user?.role === 'admin' && activeTab === 'archived' && selectedExpenses.length > 0 && (
-                <button
-                  onClick={handleUnarchiveSelected}
-                  disabled={processing}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                  title="Restore selected expenses to active"
-                >
-                  <Upload className="w-4 h-4" />
-                  Restore Selected ({selectedExpenses.length})
-                </button>
+              {user?.role === 'admin' && activeTab === 'archived' && (
+                <>
+                  {selectedExpenses.length > 0 && (
+                    <button
+                      onClick={handleUnarchiveSelected}
+                      disabled={processing}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                      title="Restore selected expenses to active"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Restore Selected ({selectedExpenses.length})
+                    </button>
+                  )}
+                  <button
+                    onClick={handleUnarchiveAllExpenses}
+                    disabled={processing || currentExpenses.length === 0}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                    title="Restore all archived expenses to active"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Restore All
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -893,12 +957,17 @@ const AdminDashboard = () => {
                     <input
                       type="checkbox"
                       id="select-all"
-                      checked={selectedExpenses.length === currentExpenses.length && currentExpenses.length > 0}
+                      checked={(() => {
+                        const selectableExpenses = activeTab === 'all'
+                          ? currentExpenses.filter(e => e.status !== 'pending')
+                          : currentExpenses;
+                        return selectedExpenses.length === selectableExpenses.length && selectableExpenses.length > 0;
+                      })()}
                       onChange={toggleSelectAll}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
                     <label htmlFor="select-all" className="text-sm font-medium text-gray-700 cursor-pointer">
-                      Select All
+                      Select All {activeTab === 'all' ? '(approved/rejected only)' : ''}
                     </label>
                   </div>
                   <div className="border-l border-gray-300 h-6 mx-2"></div>
@@ -1035,8 +1104,13 @@ const AdminDashboard = () => {
                         type="checkbox"
                         checked={selectedExpenses.includes(expense.id)}
                         onChange={() => toggleExpenseSelection(expense.id)}
-                        className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                        title="Select this expense"
+                        disabled={activeTab === 'all' && expense.status === 'pending'}
+                        className={`w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 ${
+                          activeTab === 'all' && expense.status === 'pending'
+                            ? 'cursor-not-allowed opacity-50'
+                            : 'cursor-pointer'
+                        }`}
+                        title={activeTab === 'all' && expense.status === 'pending' ? 'Cannot archive pending expenses - approve or reject first' : 'Select this expense'}
                       />
                     </div>
                   )}
