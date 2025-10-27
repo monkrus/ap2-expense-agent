@@ -18,7 +18,11 @@
       "Bash(timeout /t 5 /nobreak)",
       "Bash(start \"AP2 Backend Server\" cmd /k \"(if exist venv\\Scripts\\activate.bat (venv\\Scripts\\activate.bat) else (python -m venv venv && venv\\Scripts\\activate.bat)) && uvicorn src.api:app --reload --host 0.0.0.0 --port 8000\")",
       "Bash(ping:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(git reset:*)",
+      "Bash(npm run build:*)",
+      "Bash(cat:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

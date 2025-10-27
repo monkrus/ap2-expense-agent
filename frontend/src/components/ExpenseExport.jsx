@@ -3,8 +3,8 @@ import { Download, FileText, Table } from 'lucide-react';
 import { expenseAPI } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const ExpenseExport = ({ expenses, onClose }) => {
   const { success, error: showError } = useToast();
@@ -26,19 +26,27 @@ const ExpenseExport = ({ expenses, onClose }) => {
       success(`Expenses exported as ${format.toUpperCase()} successfully`);
       setTimeout(() => onClose(), 1000);
     } catch (err) {
-      showError(`Failed to export expenses: ${err.message}`);
+      console.error('Export error:', err);
+      showError(`Failed to export expenses: ${err.message || err}`);
     } finally {
       setExporting(false);
     }
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    try {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (err) {
+      console.error('Date formatting error:', err);
+      return 'Invalid Date';
+    }
   };
 
   const exportExcel = () => {
@@ -136,84 +144,88 @@ const ExpenseExport = ({ expenses, onClose }) => {
   };
 
   const exportPDF = () => {
-    // Create new PDF document (A4 size, portrait orientation)
-    const doc = new jsPDF();
+    try {
+      // Create new PDF document (A4 size, portrait orientation)
+      const doc = new jsPDF();
 
-    // Add header
-    doc.setFontSize(20);
-    doc.setTextColor(79, 70, 229); // Indigo color
-    doc.text('Expense Report', 105, 20, { align: 'center' });
+      // Add header
+      doc.setFontSize(20);
+      doc.setTextColor(79, 70, 229); // Indigo color
+      doc.text('Expense Report', 105, 20, { align: 'center' });
 
-    // Add generation info
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 35);
-    doc.text(`Total Expenses: ${expenses.length}`, 14, 41);
-    doc.text(`Total Amount: $${expenses.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}`, 14, 47);
+      // Add generation info
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 35);
+      doc.text(`Total Expenses: ${expenses.length}`, 14, 41);
 
-    // Calculate summary stats
-    const pending = expenses.filter(e => e.status === 'pending').length;
-    const approved = expenses.filter(e => e.status === 'approved').length;
-    const rejected = expenses.filter(e => e.status === 'rejected').length;
+      // Calculate total amount safely
+      const totalAmount = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+      doc.text(`Total Amount: $${totalAmount.toFixed(2)}`, 14, 47);
 
-    doc.text(`Pending: ${pending} | Approved: ${approved} | Rejected: ${rejected}`, 14, 53);
+      // Calculate summary stats
+      const pending = expenses.filter(e => e.status === 'pending').length;
+      const approved = expenses.filter(e => e.status === 'approved').length;
+      const rejected = expenses.filter(e => e.status === 'rejected').length;
 
-    // Prepare table data
-    const tableData = expenses.map((expense, index) => [
-      index + 1,
-      formatDate(expense.date),
-      expense.category || '',
-      expense.vendor || '',
-      expense.description || '',
-      `$${expense.amount.toFixed(2)}`,
-      (expense.status || '').toUpperCase()
-    ]);
+      doc.text(`Pending: ${pending} | Approved: ${approved} | Rejected: ${rejected}`, 14, 53);
 
-    // Add table with autoTable
-    doc.autoTable({
-      head: [['#', 'Date', 'Category', 'Vendor', 'Description', 'Amount', 'Status']],
-      body: tableData,
-      startY: 60,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [79, 70, 229], // Indigo
-        textColor: 255,
-        fontStyle: 'bold',
-        halign: 'left'
-      },
-      styles: {
-        fontSize: 9,
-        cellPadding: 3,
-        overflow: 'linebreak',
-        halign: 'left'
-      },
-      columnStyles: {
-        0: { cellWidth: 10, halign: 'center' },  // #
-        1: { cellWidth: 22 },                     // Date
-        2: { cellWidth: 22 },                     // Category
-        3: { cellWidth: 30 },                     // Vendor
-        4: { cellWidth: 50 },                     // Description
-        5: { cellWidth: 22, halign: 'right' },    // Amount
-        6: { cellWidth: 22, halign: 'center' }    // Status
-      },
-      didParseCell: function(data) {
-        // Color code status cells
-        if (data.column.index === 6 && data.section === 'body') {
-          const status = data.cell.raw.toLowerCase();
-          if (status === 'pending') {
-            data.cell.styles.textColor = [245, 158, 11]; // Yellow
-            data.cell.styles.fontStyle = 'bold';
-          } else if (status === 'approved') {
-            data.cell.styles.textColor = [16, 185, 129]; // Green
-            data.cell.styles.fontStyle = 'bold';
-          } else if (status === 'rejected') {
-            data.cell.styles.textColor = [239, 68, 68]; // Red
-            data.cell.styles.fontStyle = 'bold';
+      // Prepare table data safely
+      const tableData = expenses.map((expense, index) => [
+        index + 1,
+        formatDate(expense.date),
+        expense.category || '',
+        expense.vendor || '',
+        expense.description || '',
+        `$${(parseFloat(expense.amount) || 0).toFixed(2)}`,
+        (expense.status || '').toUpperCase()
+      ]);
+
+      // Add table with autoTable (using new API for jsPDF 3.x)
+      autoTable(doc, {
+        head: [['#', 'Date', 'Category', 'Vendor', 'Description', 'Amount', 'Status']],
+        body: tableData,
+        startY: 60,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [79, 70, 229], // Indigo
+          textColor: 255,
+          fontStyle: 'bold',
+          halign: 'left'
+        },
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+          overflow: 'linebreak',
+          halign: 'left'
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },  // #
+          1: { cellWidth: 22 },                     // Date
+          2: { cellWidth: 22 },                     // Category
+          3: { cellWidth: 30 },                     // Vendor
+          4: { cellWidth: 50 },                     // Description
+          5: { cellWidth: 22, halign: 'right' },    // Amount
+          6: { cellWidth: 22, halign: 'center' }    // Status
+        },
+        didParseCell: function(data) {
+          // Color code status cells
+          if (data.column.index === 6 && data.section === 'body') {
+            const status = data.cell.raw.toLowerCase();
+            if (status === 'pending') {
+              data.cell.styles.textColor = [245, 158, 11]; // Yellow
+              data.cell.styles.fontStyle = 'bold';
+            } else if (status === 'approved') {
+              data.cell.styles.textColor = [16, 185, 129]; // Green
+              data.cell.styles.fontStyle = 'bold';
+            } else if (status === 'rejected') {
+              data.cell.styles.textColor = [239, 68, 68]; // Red
+              data.cell.styles.fontStyle = 'bold';
+            }
           }
-        }
-      },
-      margin: { top: 60, left: 14, right: 14 }
-    });
+        },
+        margin: { top: 60, left: 14, right: 14 }
+      });
 
     // Add footer
     const pageCount = doc.internal.getNumberOfPages();
@@ -235,9 +247,13 @@ const ExpenseExport = ({ expenses, onClose }) => {
       );
     }
 
-    // Save the PDF
-    const filename = `expenses_${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(filename);
+      // Save the PDF
+      const filename = `expenses_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(filename);
+    } catch (err) {
+      console.error('PDF Export Error:', err);
+      throw new Error(`PDF export failed: ${err.message || 'Unknown error'}`);
+    }
   };
 
   return (
@@ -319,7 +335,7 @@ const ExpenseExport = ({ expenses, onClose }) => {
             <Table className="w-8 h-8 text-blue-600" />
             <div className="flex-1">
               <div className="font-medium text-gray-800">CSV (Plain Text)</div>
-              <div className="text-xs text-gray-600">Simple format for Excel or Google Sheets</div>
+              <div className="text-xs text-gray-600">Simple format - may need to auto-resize columns in Excel (Select All → Format → AutoFit)</div>
             </div>
           </label>
 
