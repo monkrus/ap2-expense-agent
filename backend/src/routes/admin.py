@@ -34,6 +34,16 @@ class UpdateUserDepartmentRequest(BaseModel):
     department_id: Optional[str] = None
 
 
+class UpdateUserEmailRequest(BaseModel):
+    email: str
+
+
+class UpdateUserProfileRequest(BaseModel):
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+
+
 @router.post("/maintenance", response_model=dict)
 async def run_maintenance(
     request: Request,
@@ -358,6 +368,28 @@ async def suspend_user(
 
     user.is_active = False
     user.updated_at = datetime.utcnow()
+
+    # Revoke all active sessions and refresh tokens for this user
+    from ..models import Session as UserSession, RefreshToken
+
+    # Revoke all active sessions
+    active_sessions = db.query(UserSession).filter(
+        UserSession.user_id == user_id,
+        UserSession.revoked == False
+    ).all()
+    sessions_revoked = len(active_sessions)
+    for session in active_sessions:
+        session.revoked = True
+
+    # Revoke all active refresh tokens
+    active_tokens = db.query(RefreshToken).filter(
+        RefreshToken.user_id == user_id,
+        RefreshToken.revoked == False
+    ).all()
+    tokens_revoked = len(active_tokens)
+    for token in active_tokens:
+        token.revoked = True
+
     db.commit()
 
     # Log audit event
@@ -369,7 +401,9 @@ async def suspend_user(
         resource_id=user.id,
         details={
             "suspended_user": user.username,
-            "reason": suspend_request.reason
+            "reason": suspend_request.reason,
+            "sessions_revoked": sessions_revoked,
+            "tokens_revoked": tokens_revoked
         },
         request=http_request
     )
@@ -378,7 +412,9 @@ async def suspend_user(
         "success": True,
         "message": f"User '{user.username}' suspended successfully",
         "user_id": user_id,
-        "reason": suspend_request.reason
+        "reason": suspend_request.reason,
+        "sessions_revoked": sessions_revoked,
+        "tokens_revoked": tokens_revoked
     }
 
 
@@ -1157,6 +1193,176 @@ async def update_user_department(
         "message": "Department updated successfully",
         "user_id": user_id,
         "department_id": user.department_id
+    }
+
+
+@router.patch("/users/{user_id}/email", response_model=dict)
+async def update_user_email(
+    user_id: str,
+    request: Request,
+    email_data: UpdateUserEmailRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Update user's email (Admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Check if email is already taken by another user
+    existing_user = db.query(User).filter(
+        User.email == email_data.email,
+        User.id != user_id
+    ).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already in use by another user"
+        )
+
+    # Validate email format
+    import re
+    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_regex, email_data.email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email format"
+        )
+
+    old_email = user.email
+    user.email = email_data.email
+    user.updated_at = datetime.utcnow()
+    db.commit()
+
+    # Log audit event
+    AuthService.log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="admin.update_user_email",
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "user": user.username,
+            "old_email": old_email,
+            "new_email": email_data.email
+        },
+        request=request
+    )
+
+    return {
+        "success": True,
+        "message": "Email updated successfully",
+        "user_id": user_id,
+        "email": user.email
+    }
+
+
+@router.patch("/users/{user_id}/profile", response_model=dict)
+async def update_user_profile(
+    user_id: str,
+    request: Request,
+    profile_data: UpdateUserProfileRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Update user's profile information (username, full_name, email) (Admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    changes = {}
+
+    # Update username if provided
+    if profile_data.username is not None:
+        # Check if username is already taken by another user
+        existing_user = db.query(User).filter(
+            User.username == profile_data.username,
+            User.id != user_id
+        ).first()
+
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken by another user"
+            )
+
+        changes["username"] = {"old": user.username, "new": profile_data.username}
+        user.username = profile_data.username
+
+    # Update full_name if provided
+    if profile_data.full_name is not None:
+        changes["full_name"] = {"old": user.full_name, "new": profile_data.full_name}
+        user.full_name = profile_data.full_name
+
+    # Update email if provided
+    if profile_data.email is not None:
+        # Check if email is already taken by another user
+        existing_user = db.query(User).filter(
+            User.email == profile_data.email,
+            User.id != user_id
+        ).first()
+
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already in use by another user"
+            )
+
+        # Validate email format
+        import re
+        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_regex, profile_data.email):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid email format"
+            )
+
+        changes["email"] = {"old": user.email, "new": profile_data.email}
+        user.email = profile_data.email
+
+    if not changes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No valid fields provided for update"
+        )
+
+    user.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(user)
+
+    # Log audit event
+    AuthService.log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="admin.update_user_profile",
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "user": user.username,
+            "changes": changes
+        },
+        request=request
+    )
+
+    return {
+        "success": True,
+        "message": "User profile updated successfully",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "full_name": user.full_name,
+            "email": user.email,
+            "role": user.role.value,
+            "is_active": user.is_active
+        },
+        "changes": changes
     }
 
 

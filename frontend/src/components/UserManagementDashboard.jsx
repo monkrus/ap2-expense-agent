@@ -33,6 +33,9 @@ const UserManagementDashboard = () => {
   });
 
   const [editForm, setEditForm] = useState({
+    username: '',
+    full_name: '',
+    email: '',
     role: '',
     department_id: '',
     is_active: true
@@ -124,6 +127,40 @@ const UserManagementDashboard = () => {
     setProcessing(true);
 
     try {
+      // Check if profile fields changed (username, full_name, email)
+      const profileChanged =
+        editForm.username !== selectedUser.username ||
+        editForm.full_name !== selectedUser.full_name ||
+        editForm.email !== selectedUser.email;
+
+      // Update profile (username, full_name, email) using new consolidated endpoint
+      if (profileChanged) {
+        const profileData = {};
+        if (editForm.username !== selectedUser.username) {
+          profileData.username = editForm.username;
+        }
+        if (editForm.full_name !== selectedUser.full_name) {
+          profileData.full_name = editForm.full_name;
+        }
+        if (editForm.email !== selectedUser.email) {
+          profileData.email = editForm.email;
+        }
+
+        const profileResponse = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/profile`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(profileData)
+        });
+
+        if (!profileResponse.ok) {
+          const errorData = await profileResponse.json().catch(() => ({}));
+          const errorMessage = errorData.detail || errorData.message || `Failed to update profile (${profileResponse.status})`;
+          throw new Error(errorMessage);
+        }
+      }
+
       // Update role (convert to lowercase for backend)
       const roleResponse = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/role`, {
         method: 'PATCH',
@@ -173,10 +210,10 @@ const UserManagementDashboard = () => {
         }
 
         // Show specific success message for status change
-        success(`User ${selectedUser.username} has been ${action}. ${endpoint === 'suspend' ? 'They will be logged out immediately and cannot log in until reactivated.' : 'They can now log in and access the system.'}`);
+        success(`User ${editForm.username} has been ${action}. ${endpoint === 'suspend' ? 'They will be logged out immediately and cannot log in until reactivated.' : 'They can now log in and access the system.'}`);
       } else {
         // Show generic success for other updates
-        success(`User ${selectedUser.username} updated successfully!`);
+        success(`User ${editForm.username} updated successfully!`);
       }
 
       setShowEditModal(false);
@@ -310,6 +347,9 @@ const UserManagementDashboard = () => {
   const openEditModal = (user) => {
     setSelectedUser(user);
     setEditForm({
+      username: user.username || '',
+      full_name: user.full_name || '',
+      email: user.email || '',
       role: user.role?.toUpperCase() || 'EMPLOYEE',
       department_id: user.department_id || '',
       is_active: Boolean(user.is_active) // Convert to proper boolean
@@ -671,6 +711,42 @@ const UserManagementDashboard = () => {
               </div>
 
               <form onSubmit={handleEditUser} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.username}
+                    onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="username"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.full_name}
+                    onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="John Doe"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <input
+                    type="email"
+                    required
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="user@example.com"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                   <select

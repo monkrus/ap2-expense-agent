@@ -42,7 +42,9 @@ export const AuthProvider = ({ children }) => {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || 'Login failed');
+        // Use the detail message from the backend directly
+        const errorMessage = error.detail || 'Login failed';
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -153,6 +155,23 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
+    // If account is suspended/inactive, logout and notify user
+    if (response.status === 403) {
+      try {
+        const errorData = await response.clone().json();
+        if (errorData.detail === 'User account is inactive') {
+          logout();
+          throw new Error('Your account has been suspended. Please contact your administrator.');
+        }
+      } catch (error) {
+        // If it's already our custom error, re-throw it
+        if (error.message === 'Your account has been suspended. Please contact your administrator.') {
+          throw error;
+        }
+        // Otherwise, it's a different 403 error, let it pass through
+      }
+    }
+
     return response;
   };
 
@@ -186,10 +205,10 @@ export const AuthProvider = ({ children }) => {
     }
 
     // If account is suspended/inactive, logout and notify user
-    if (response.status === 400) {
+    if (response.status === 403) {
       try {
         const errorData = await response.clone().json();
-        if (errorData.detail === 'Inactive user') {
+        if (errorData.detail === 'User account is inactive') {
           logout();
           throw new Error('Your account has been suspended. Please contact your administrator.');
         }
@@ -198,7 +217,7 @@ export const AuthProvider = ({ children }) => {
         if (error.message === 'Your account has been suspended. Please contact your administrator.') {
           throw error;
         }
-        // Otherwise, it's a different 400 error, let it pass through
+        // Otherwise, it's a different 403 error, let it pass through
       }
     }
 

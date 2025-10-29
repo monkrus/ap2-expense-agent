@@ -109,6 +109,13 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Check if account is suspended/inactive FIRST
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been suspended. Please contact your administrator."
+        )
+
     # Check if account is locked
     if user.locked_until and user.locked_until > datetime.utcnow():
         lockout_minutes = (user.locked_until - datetime.utcnow()).total_seconds() / 60
@@ -137,12 +144,6 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Incorrect username or password. {5 - user.failed_login_attempts} attempts remaining.",
             headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is inactive"
         )
 
     # Reset failed attempts on successful login
@@ -227,6 +228,14 @@ async def refresh_token(
 
     # Create new access token
     user = db.query(User).filter(User.id == refresh_token.user_id).first()
+
+    # Check if account is suspended/inactive
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been suspended. Please contact your administrator."
+        )
+
     access_token = AuthService.create_access_token(
         data={"sub": user.id, "username": user.username, "role": user.role.value}
     )

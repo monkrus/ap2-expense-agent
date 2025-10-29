@@ -88,16 +88,23 @@ const handleResponse = async (response) => {
       throw new APIError('Your session has expired. Please log in again.', response.status, data, errorCode);
     }
 
-    // Check if user account is suspended/inactive
-    if (response.status === 400 && errorMessage === 'Inactive user') {
+    // Check if user account is suspended/inactive (403 with specific message)
+    if (response.status === 403 && (
+      errorMessage === 'User account is inactive' ||
+      errorMessage === 'Your account has been suspended. Please contact your administrator.' ||
+      errorMessage === 'Inactive user'
+    )) {
       // Clear auth data
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
 
-      // Reload page to force re-authentication
+      // Show alert to user
+      alert('Your account has been suspended. Please contact your administrator.');
+
+      // Redirect to login page
       setTimeout(() => {
-        window.location.reload();
+        window.location.href = '/';
       }, 100);
 
       // Throw a special error with a user-friendly message
