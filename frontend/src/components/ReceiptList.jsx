@@ -24,7 +24,7 @@ const ReceiptList = ({ receipts, onClose }) => {
     if (contentType.startsWith('image/')) {
       return <ImageIcon className="w-5 h-5 text-blue-600" />;
     }
-    return <FileText className="w-5 h-5 text-red-600" />;
+    return <FileText className="w-5 h-5 text-green-600" />;
   };
 
   return (

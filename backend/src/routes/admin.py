@@ -326,22 +326,60 @@ async def update_user_role(
     return {"success": True, "user_id": user_id, "new_role": request.role}
 
 
-@router.post("/users/{user_id}/suspend")
+@router.post("/users/{user_id}/suspend", response_model=dict)
 async def suspend_user(
     user_id: str,
-    request: SuspendUserRequest,
+    suspend_request: SuspendUserRequest,
+    http_request: Request,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Suspend user account"""
+    """Suspend user account (Admin only)"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Prevent admin from suspending themselves
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot suspend your own account"
+        )
+
+    # Check if user is already suspended
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User account is already suspended"
+        )
 
     user.is_active = False
+    user.updated_at = datetime.utcnow()
     db.commit()
 
-    return {"success": True, "user_id": user_id}
+    # Log audit event
+    AuthService.log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="admin.suspend_user",
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "suspended_user": user.username,
+            "reason": suspend_request.reason
+        },
+        request=http_request
+    )
+
+    return {
+        "success": True,
+        "message": f"User '{user.username}' suspended successfully",
+        "user_id": user_id,
+        "reason": suspend_request.reason
+    }
 
 
 @router.get("/analytics/usage")
@@ -1137,6 +1175,13 @@ async def activate_user(
             detail="User not found"
         )
 
+    # Check if user is already active
+    if user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User account is already active"
+        )
+
     user.is_active = True
     user.updated_at = datetime.utcnow()
     db.commit()
@@ -1166,7 +1211,15 @@ async def delete_user(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Delete a user account (Admin only)"""
+    """Delete a user account (Admin only)
+
+    WARNING: This will delete all user data including:
+    - All expenses created by this user
+    - All receipts uploaded by this user
+    - All comments made by this user
+    - All audit logs for this user
+    - All sessions and tokens
+    """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
@@ -1182,23 +1235,78 @@ async def delete_user(
         )
 
     username = user.username
-    db.delete(user)
-    db.commit()
 
-    # Log audit event
-    AuthService.log_audit(
-        db=db,
-        user_id=current_user.id,
-        action="admin.delete_user",
-        resource_type="user",
-        resource_id=user_id,
-        details={"deleted_user": username},
-        request=request
-    )
+    try:
+        # First, log the deletion (before deleting the user)
+        AuthService.log_audit(
+            db=db,
+            user_id=current_user.id,
+            action="admin.delete_user",
+            resource_type="user",
+            resource_id=user_id,
+            details={"deleted_user": username},
+            request=request
+        )
+
+        # Delete related records that don't have cascade delete
+        # Note: The following have cascade delete and will be handled automatically:
+        # - refresh_tokens, password_reset_tokens, sessions (via cascade)
+
+        # Delete records where user is referenced but without cascade delete
+        from ..models import (
+            Expense, Receipt, ExpenseComment, AuditLog,
+            IntentMandate, CartMandate, PaymentMandate,
+            OrganizationMember, OrganizationInvitation,
+            Subscription, UsageRecord, Invoice
+        )
+
+        # Step 1: Delete AP2 mandates (in correct order due to foreign keys)
+        # PaymentMandate → CartMandate → IntentMandate
+        # Note: These cascade from IntentMandate, so just delete IntentMandate
+        db.query(IntentMandate).filter(IntentMandate.user_id == user_id).delete(synchronize_session=False)
+
+        # Step 2: Update expenses where user is approver/archiver (preserve expense history)
+        db.query(Expense).filter(Expense.approved_by == user_id).update({"approved_by": None}, synchronize_session=False)
+        db.query(Expense).filter(Expense.archived_by == user_id).update({"archived_by": None}, synchronize_session=False)
+
+        # Step 3: Delete comments (must be before expenses due to CASCADE)
+        db.query(ExpenseComment).filter(ExpenseComment.user_id == user_id).delete(synchronize_session=False)
+
+        # Step 4: Delete expenses created by user (this will CASCADE delete receipts and comments)
+        # Note: Receipts have CASCADE delete from expenses, so they'll be deleted automatically
+        db.query(Expense).filter(Expense.user_id == user_id).delete(synchronize_session=False)
+
+        # Step 6: Delete billing-related records
+        db.query(Invoice).filter(Invoice.user_id == user_id).delete(synchronize_session=False)
+        db.query(UsageRecord).filter(UsageRecord.user_id == user_id).delete(synchronize_session=False)
+        db.query(Subscription).filter(Subscription.user_id == user_id).delete(synchronize_session=False)
+
+        # Step 7: Delete organization-related records
+        db.query(OrganizationInvitation).filter(OrganizationInvitation.invited_by == user_id).delete(synchronize_session=False)
+        db.query(OrganizationMember).filter(OrganizationMember.user_id == user_id).delete(synchronize_session=False)
+
+        # Delete audit logs (optional - you may want to keep these for compliance)
+        # Uncomment if you want to delete audit logs:
+        # db.query(AuditLog).filter(AuditLog.user_id == user_id).delete()
+
+        # Finally, delete the user
+        db.delete(user)
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error deleting user {user_id}: {str(e)}")
+        print(f"Traceback: {error_trace}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete user: {str(e)}"
+        )
 
     return {
         "success": True,
-        "message": f"User '{username}' deleted successfully",
+        "message": f"User '{username}' and all associated data deleted successfully",
         "user_id": user_id
     }
 
