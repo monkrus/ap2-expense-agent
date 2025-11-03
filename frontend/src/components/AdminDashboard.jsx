@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check, AlertCircle, Plus, Search, Edit2, Trash2, Upload, History, Receipt } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check, AlertCircle, Plus, Search, Edit2, Trash2, Upload, History, Receipt, Activity, Database, BarChart3, CreditCard, Building2 } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
+import adminAPI from '../services/adminAPI';
+import billingAPI from '../services/billingAPI';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
 import ChangePassword from './ChangePassword';
@@ -22,10 +24,13 @@ const AdminDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'archived', or 'users'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'archived', 'users', or 'billing'
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [archivedExpenses, setArchivedExpenses] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [subscription, setSubscription] = useState(null);
+  const [monthlyUsage, setMonthlyUsage] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all'); // for 'all' tab
   const [searchQuery, setSearchQuery] = useState(''); // for searching expenses
   const [loading, setLoading] = useState(true);
@@ -63,7 +68,8 @@ const AdminDashboard = () => {
         await Promise.all([
           fetchPendingExpenses(false),
           fetchAllExpenses(false),
-          user.role === 'admin' ? fetchArchivedExpenses(false) : Promise.resolve()
+          user.role === 'admin' ? fetchArchivedExpenses(false) : Promise.resolve(),
+          user.role === 'admin' ? fetchDashboardStats() : Promise.resolve()
         ]);
         hasLoadedData.current = true;
       } finally {
@@ -73,6 +79,13 @@ const AdminDashboard = () => {
 
     loadAllData();
   }, [user]); // Depend on user being loaded
+
+  // Load billing data when billing tab is active
+  useEffect(() => {
+    if (activeTab === 'billing' && user?.role === 'admin') {
+      loadBillingData();
+    }
+  }, [activeTab]);
 
   // Auto-refresh the active tab's data every 10 seconds
   useEffect(() => {
@@ -258,6 +271,30 @@ const AdminDashboard = () => {
       if (isInitialLoad) {
         setLoading(false);
       }
+    }
+  };
+
+  const fetchDashboardStats = async () => {
+    try {
+      const stats = await adminAPI.getDashboardStats();
+      setDashboardStats(stats);
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+      // Don't show error toast for stats, just log it
+    }
+  };
+
+  const loadBillingData = async () => {
+    try {
+      const [sub, usage] = await Promise.all([
+        billingAPI.getSubscription(),
+        billingAPI.getMonthlyUsage()
+      ]);
+      setSubscription(sub);
+      setMonthlyUsage(usage);
+    } catch (err) {
+      console.error('Error loading billing data:', err);
+      showError('Failed to load billing data');
     }
   };
 
@@ -684,6 +721,24 @@ const AdminDashboard = () => {
               <p className="text-gray-600">{theme.description}</p>
             </div>
             <div className="flex items-center gap-3">
+              {user?.role === 'admin' && (
+                <button
+                  onClick={() => window.location.href = '/organizations'}
+                  title="Manage Organizations"
+                  className="flex items-center gap-2 px-4 py-3 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium"
+                >
+                  <Building2 className="w-5 h-5" />
+                  Organizations
+                </button>
+              )}
+              <button
+                onClick={() => window.location.href = '/billing'}
+                title="View Billing Dashboard"
+                className="flex items-center gap-2 px-4 py-3 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors font-medium"
+              >
+                <CreditCard className="w-5 h-5" />
+                Billing
+              </button>
               <button
                 onClick={() => setShowChangePassword(true)}
                 className="flex items-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
@@ -785,8 +840,66 @@ const AdminDashboard = () => {
                 User Management
               </button>
             )}
+            {/* Billing Tab - Admin Only */}
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => setActiveTab('billing')}
+                className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                  activeTab === 'billing'
+                    ? getTabActiveClasses()
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <CreditCard className="w-5 h-5" />
+                Billing & Usage
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Dashboard Stats Cards - Show when no specific tab content */}
+        {activeTab === 'pending' && dashboardStats && (
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm">Total Users</p>
+                  <p className="text-2xl font-bold text-gray-900">{dashboardStats.users?.total || 0}</p>
+                </div>
+                <Users className="w-10 h-10 text-blue-500 opacity-50" />
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm">Total Active Users</p>
+                  <p className="text-2xl font-bold text-gray-900">{dashboardStats.users?.active_30d || 0}</p>
+                </div>
+                <Activity className="w-10 h-10 text-green-500 opacity-50" />
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm">Total Expenses</p>
+                  <p className="text-2xl font-bold text-gray-900">{dashboardStats.expenses?.total_count || 0}</p>
+                </div>
+                <DollarSign className="w-10 h-10 text-purple-500 opacity-50" />
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4 border-l-4 border-indigo-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm">Monthly Revenue</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    ${(dashboardStats.revenue?.monthly_recurring || 0).toFixed(2)}
+                  </p>
+                </div>
+                <TrendingUp className="w-10 h-10 text-indigo-500 opacity-50" />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats Cards - Only show for pending tab */}
         {activeTab === 'pending' && (
@@ -814,7 +927,7 @@ const AdminDashboard = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Employees</p>
+                  <p className="text-gray-600 text-sm">Pending Submitters</p>
                   <p className="text-2xl font-bold text-gray-800">{pendingStats.uniqueUsers}</p>
                 </div>
                 <Users className="w-10 h-10 text-blue-500" />
@@ -875,6 +988,156 @@ const AdminDashboard = () => {
         {/* User Management Tab */}
         {activeTab === 'users' && (
           <UserManagementDashboard />
+        )}
+
+        {/* Billing & Usage Tab */}
+        {activeTab === 'billing' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                <CreditCard className="w-6 h-6 text-indigo-600" />
+                Billing & Subscription
+              </h2>
+
+              {subscription ? (
+                <div className="space-y-6">
+                  {/* Current Subscription */}
+                  <div className="border-b pb-6">
+                    <h3 className="text-lg font-medium text-gray-700 mb-4">Current Plan</h3>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-3xl font-bold text-indigo-600">
+                          {subscription.tier_name || subscription.tier || 'Free'}
+                        </p>
+                        <p className="text-gray-600 mt-1">
+                          Status: <span className={`font-medium ${
+                            subscription.status === 'active' ? 'text-green-600' :
+                            subscription.status === 'trial' ? 'text-blue-600' :
+                            'text-gray-600'
+                          }`}>
+                            {subscription.status || 'Active'}
+                          </span>
+                        </p>
+                        {subscription.trial_end && new Date(subscription.trial_end) > new Date() && (
+                          <p className="text-sm text-blue-600 mt-1">
+                            Trial ends: {new Date(subscription.trial_end).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <button
+                          onClick={() => window.location.href = '/plans'}
+                          className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                          Upgrade Plan
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Usage Stats */}
+                  {monthlyUsage && (
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-700 mb-4">Usage This Month</h3>
+                      <div className="space-y-4">
+                        {monthlyUsage.usage && Object.entries(monthlyUsage.usage).map(([key, value]) => {
+                          const limit = subscription.limits?.[`max_${key}`];
+                          const percentage = limit ? (value / limit) * 100 : 0;
+                          const isOverLimit = limit && value > limit;
+
+                          return (
+                            <div key={key} className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                                <span className={isOverLimit ? 'text-red-600 font-medium' : 'text-gray-600'}>
+                                  {value} {limit ? `/ ${limit}` : '(unlimited)'}
+                                </span>
+                              </div>
+                              {limit && (
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div
+                                    className={`h-2 rounded-full transition-all ${
+                                      isOverLimit ? 'bg-red-500' :
+                                      percentage > 80 ? 'bg-yellow-500' :
+                                      'bg-green-500'
+                                    }`}
+                                    style={{ width: `${Math.min(percentage, 100)}%` }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {monthlyUsage.total_overage_fees > 0 && (
+                        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-sm font-medium text-yellow-800">
+                            Estimated Overage Charges: ${monthlyUsage.total_overage_fees.toFixed(2)}
+                          </p>
+                          <p className="text-xs text-yellow-700 mt-1">
+                            Based on current usage beyond your plan limits
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Billing Period */}
+                  {subscription.current_period_start && subscription.current_period_end && (
+                    <div className="border-t pt-6">
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">Billing Period</h3>
+                      <p className="text-sm text-gray-600">
+                        {new Date(subscription.current_period_start).toLocaleDateString()} - {new Date(subscription.current_period_end).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <CreditCard className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">No active subscription found</p>
+                  <button
+                    onClick={() => window.location.href = '/plans'}
+                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    View Plans
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-medium text-gray-700 mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button
+                  onClick={() => window.location.href = '/plans'}
+                  className="p-4 border border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-colors text-left"
+                >
+                  <BarChart3 className="w-6 h-6 text-indigo-600 mb-2" />
+                  <p className="font-medium text-gray-900">View All Plans</p>
+                  <p className="text-sm text-gray-600">Compare features & pricing</p>
+                </button>
+                <button
+                  onClick={() => window.location.href = '/settings/billing'}
+                  className="p-4 border border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-colors text-left"
+                >
+                  <Receipt className="w-6 h-6 text-indigo-600 mb-2" />
+                  <p className="font-medium text-gray-900">Billing History</p>
+                  <p className="text-sm text-gray-600">View invoices & payments</p>
+                </button>
+                <button
+                  onClick={() => setActiveTab('users')}
+                  className="p-4 border border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-colors text-left"
+                >
+                  <Users className="w-6 h-6 text-indigo-600 mb-2" />
+                  <p className="font-medium text-gray-900">Manage Users</p>
+                  <p className="text-sm text-gray-600">Add or remove team members</p>
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Expenses List - Show for pending, all, and archived tabs */}
