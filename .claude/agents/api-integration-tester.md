@@ -27,7 +27,33 @@ Ensure external API integrations are robust, compliant, and properly error-handl
    - Error handling per spec
    - Retry logic compliance
 
-3. **External APIs**
+3. **Google AI Integration (Gemini)**
+   - Expense categorization requests
+   - AI compliance checking
+   - Risk assessment accuracy
+   - Fallback when AI unavailable
+   - API quota management
+   - Response parsing and validation
+   - Error handling for AI failures
+
+4. **Stripe Payment Integration**
+   - Customer creation and management
+   - Subscription lifecycle (create, update, cancel)
+   - Checkout session generation
+   - Payment intent processing
+   - Webhook signature verification
+   - Idempotent request handling
+   - Refund processing
+
+5. **Email/Notification Services**
+   - SMTP configuration validation
+   - Email template rendering
+   - Delivery confirmation
+   - Error handling for failed sends
+   - Notification queuing
+   - Unsubscribe link handling
+
+6. **External APIs (General)**
    - Third-party service calls
    - API authentication (OAuth, API keys)
    - Rate limiting handling
@@ -129,8 +155,11 @@ For each integration:
 ## Key Integration Files
 
 Backend:
-- `backend/src/services/marketplace.py` - Marketplace integration
-- `backend/src/services/ap2_client.py` - AP2 protocol client
+- `backend/src/integrations/stripe_integration.py` - Stripe payment integration
+- `backend/src/payments/webhook_handler.py` - Stripe webhook handler
+- `backend/src/payments/ap2_service.py` - AP2 payment service
+- `backend/src/services/notification_service.py` - Email notifications
+- `backend/src/agent_db.py` - Gemini AI integration
 - `backend/src/routes/webhooks.py` - Webhook handlers
 - `backend/src/config.py` - API configuration
 
@@ -141,6 +170,16 @@ Backend:
 pytest tests/test_integrations.py -v
 pytest tests/test_webhooks.py -v
 
+# Test Stripe integration
+pytest tests/test_stripe.py -v
+pytest tests/test_payments.py -v
+
+# Test Google AI integration
+pytest tests/test_gemini_ai.py -v
+
+# Test email notifications
+pytest tests/test_notifications.py -v
+
 # Check API logs
 tail -f logs/api.log
 
@@ -150,6 +189,9 @@ tail -f logs/api.log
 # Verify environment variables
 cat .env | grep API
 cat .env | grep MARKETPLACE
+cat .env | grep STRIPE
+cat .env | grep GOOGLE
+cat .env | grep SMTP
 ```
 
 ## Security Checks for APIs

@@ -31,8 +31,8 @@ class UsageMetric(Base):
     reported_to_gcp = Column(Boolean, default=False, nullable=False)
     report_response = Column(JSON, nullable=True)
 
-    # Metadata
-    metadata = Column(JSON, nullable=True)
+    # Additional data
+    additional_metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
     # Indexes for efficient querying
@@ -108,8 +108,8 @@ class OrganizationSubscription(Base):
     current_period_usage = Column(JSON, nullable=True)  # Current billing period usage
     usage_alerts_sent = Column(JSON, nullable=True)  # Track alert thresholds
 
-    # Metadata
-    metadata = Column(JSON, nullable=True)
+    # Additional data
+    additional_metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -134,5 +134,5 @@ class BillingEvent(Base):
     # Timing
     occurred_at = Column(DateTime, server_default=func.now(), nullable=False, index=True)
 
-    # Metadata
-    metadata = Column(JSON, nullable=True)
+    # Additional event data
+    event_metadata = Column(JSON, nullable=True)

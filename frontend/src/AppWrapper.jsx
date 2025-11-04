@@ -6,6 +6,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import App from './App';
 import GoogleCallback from './pages/GoogleCallback';
+import BillingDashboard from './pages/BillingDashboard';
+import PricingPlans from './pages/PricingPlans';
+import OrganizationManagement from './components/OrganizationManagement';
+import AcceptInvitation from './components/AcceptInvitation';
 
 const AppContent = () => {
   const [showAuth, setShowAuth] = useState('login');
@@ -24,6 +28,53 @@ const AppContent = () => {
   // Check if we're on Google OAuth callback page
   if (currentPath === '/auth/google/success' || window.location.pathname === '/auth/google/success') {
     return <GoogleCallback />;
+  }
+
+  // Check if we're on invitation acceptance page
+  if (currentPath.startsWith('/invitations/accept/') || window.location.pathname.startsWith('/invitations/accept/')) {
+    const token = currentPath.split('/invitations/accept/')[1] || window.location.pathname.split('/invitations/accept/')[1];
+    if (isAuthenticated) {
+      return (
+        <ProtectedRoute>
+          <AcceptInvitation token={token} />
+        </ProtectedRoute>
+      );
+    } else {
+      // Redirect to login will happen inside AcceptInvitation component
+      return <AcceptInvitation token={token} />;
+    }
+  }
+
+  // Check if we're on organizations page
+  if ((currentPath === '/organizations' || window.location.pathname === '/organizations') && isAuthenticated) {
+    return (
+      <ProtectedRoute>
+        <OrganizationManagement />
+      </ProtectedRoute>
+    );
+  }
+
+  // Check if we're on billing page
+  if ((currentPath === '/billing' || window.location.pathname === '/billing') && isAuthenticated) {
+    return (
+      <ProtectedRoute>
+        <BillingDashboard />
+      </ProtectedRoute>
+    );
+  }
+
+  // Check if we're on pricing/plans page
+  if ((currentPath === '/pricing' || currentPath === '/plans' || window.location.pathname === '/pricing' || window.location.pathname === '/plans')) {
+    // Pricing page can be accessed without authentication
+    if (isAuthenticated) {
+      return (
+        <ProtectedRoute>
+          <PricingPlans />
+        </ProtectedRoute>
+      );
+    } else {
+      return <PricingPlans />;
+    }
   }
 
   if (loading) {

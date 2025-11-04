@@ -21,21 +21,81 @@ class UsageTracker:
         user_id: str,
         usage_type: str,
         quantity: int = 1,
-        metadata: Optional[dict] = None
+        metadata: Optional[dict] = None,
+        organization_id: Optional[str] = None
     ) -> UsageRecord:
         """
-        Track a usage event
+        Track a usage event (organization-scoped for GCP Marketplace)
 
         Args:
             user_id: User ID
             usage_type: Type of usage (expense, ai_categorization, ocr_scan, ap2_transaction)
             quantity: Quantity used
             metadata: Optional metadata
+            organization_id: Optional organization ID (auto-detected if not provided)
 
         Returns:
             UsageRecord
         """
-        # Get user's subscription
+        # Get organization from user if not provided
+        if not organization_id:
+            from ..models import OrganizationMember
+            org_membership = self.db.query(OrganizationMember).filter(
+                OrganizationMember.user_id == user_id,
+                OrganizationMember.is_active == True
+            ).first()
+
+            if org_membership:
+                organization_id = org_membership.organization_id
+
+        # Get user's subscription (try organization subscription first for GCP customers)
+        subscription = None
+
+        if organization_id:
+            # For GCP Marketplace customers, use organization subscription
+            from ..models_billing import OrganizationSubscription, UsageMetric
+
+            org_subscription = self.db.query(OrganizationSubscription).filter(
+                OrganizationSubscription.organization_id == organization_id,
+                OrganizationSubscription.status == "active"
+            ).first()
+
+            if org_subscription:
+                # Track in GCP-compatible format
+                usage_metric = UsageMetric(
+                    id=str(uuid.uuid4()),
+                    organization_id=organization_id,
+                    account_id=org_subscription.gcp_account_id,
+                    metric_type=usage_type,
+                    metric_value=float(quantity),
+                    unit="count",
+                    period_start=datetime.utcnow(),
+                    period_end=datetime.utcnow(),
+                    reported_to_gcp=False,
+                    metadata=metadata,
+                    created_at=datetime.utcnow()
+                )
+                self.db.add(usage_metric)
+                self.db.commit()
+
+                # Also create UsageRecord for backward compatibility
+                usage_record = UsageRecord(
+                    id=str(uuid.uuid4()),
+                    subscription_id=org_subscription.id,
+                    user_id=user_id,
+                    usage_type=usage_type,
+                    quantity=quantity,
+                    billable=False,  # GCP handles billing
+                    fee=None,
+                    extra_data=str(metadata) if metadata else None
+                )
+                self.db.add(usage_record)
+                self.db.commit()
+                self.db.refresh(usage_record)
+
+                return usage_record
+
+        # Fall back to old user-based subscription model
         subscription = self.db.query(Subscription).filter(
             Subscription.user_id == user_id,
             Subscription.status == "active"

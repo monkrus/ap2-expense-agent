@@ -39,7 +39,8 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_username: Optional[str] = None
     smtp_password: Optional[str] = None
-    from_email: Optional[str] = "noreply@ap2expense.com"
+    smtp_from_email: Optional[str] = "noreply@ap2expense.com"  # From email address
+    from_email: Optional[str] = "noreply@ap2expense.com"  # Alias for backwards compatibility
     notifications_enabled: bool = False  # Enable/disable email notifications
 
     # Stripe Payment Configuration
@@ -56,6 +57,16 @@ class Settings(BaseSettings):
     ap2_transaction_fee: float = 0.10  # Fee per AP2 transaction
     ai_categorization_fee: float = 0.05  # Fee per AI categorization (over limit)
     ocr_scan_fee: float = 0.02  # Fee per OCR scan (over limit)
+
+    # Google Cloud Marketplace Configuration
+    gcp_project_id: Optional[str] = None  # GCP Project ID
+    gcp_service_account_path: Optional[str] = None  # Path to service account JSON file
+    gcp_webhook_secret: Optional[str] = None  # Webhook secret from GCP Marketplace
+    enable_gcp_marketplace: bool = False  # Enable/disable GCP Marketplace integration
+    gcp_usage_reporting_enabled: bool = True  # Enable hourly usage reporting to GCP
+
+    # Frontend URL (for emails and redirects)
+    frontend_url: Optional[str] = "http://localhost:5173"
 
     # CORS
     cors_origins: str = "http://localhost:3000,http://localhost:5173,http://localhost"

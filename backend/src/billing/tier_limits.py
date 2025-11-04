@@ -2,7 +2,7 @@
 Subscription tier limits and pricing
 """
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 from ..models import SubscriptionTier
 
 
@@ -21,6 +21,13 @@ class TierLimits:
     priority_support: bool
     custom_integrations: bool
     sso_enabled: bool
+    # New advanced features
+    white_label: bool = False
+    api_access: bool = False
+    advanced_analytics: bool = False
+    dedicated_account_manager: bool = False
+    sla_guarantee: str = None  # e.g., "99.9%", "99.99%"
+    support_channels: List[str] = None  # e.g., ["email", "phone", "slack"]
 
 
 # Tier configuration based on MONETIZATION_STRATEGY.md
@@ -29,47 +36,65 @@ TIER_CONFIGS = {
         tier=SubscriptionTier.STARTER,
         name="Starter",
         price_monthly=29.00,
-        max_users=25,
-        max_expenses_per_month=100,
-        max_ai_categorizations=500,
-        max_ap2_transactions=0,  # No AP2 in Starter
-        ocr_scans_included=100,
+        max_users=5,
+        max_expenses_per_month=50,
+        max_ai_categorizations=100,
+        max_ap2_transactions=10,  # Let them try AP2!
+        ocr_scans_included=50,
         data_retention_days=30,
         priority_support=False,
         custom_integrations=False,
-        sso_enabled=False
+        sso_enabled=False,
+        white_label=False,
+        api_access=False,
+        advanced_analytics=False,
+        dedicated_account_manager=False,
+        sla_guarantee=None,
+        support_channels=["email"]
     ),
     SubscriptionTier.PROFESSIONAL: TierLimits(
         tier=SubscriptionTier.PROFESSIONAL,
-        name="Professional",
+        name="Pro",
         price_monthly=99.00,
-        max_users=100,
+        max_users=25,
         max_expenses_per_month=None,  # Unlimited
-        max_ai_categorizations=5000,
-        max_ap2_transactions=100,
-        ocr_scans_included=1000,
+        max_ai_categorizations=2000,
+        max_ap2_transactions=50,
+        ocr_scans_included=500,
         data_retention_days=90,
         priority_support=True,
         custom_integrations=False,
-        sso_enabled=False
+        sso_enabled=False,
+        white_label=False,
+        api_access=False,
+        advanced_analytics=False,
+        dedicated_account_manager=False,
+        sla_guarantee=None,
+        support_channels=["email", "chat"]
     ),
     SubscriptionTier.ENTERPRISE: TierLimits(
         tier=SubscriptionTier.ENTERPRISE,
         name="Enterprise",
         price_monthly=399.00,
-        max_users=500,
+        max_users=100,
         max_expenses_per_month=None,  # Unlimited
         max_ai_categorizations=None,  # Unlimited
         max_ap2_transactions=None,  # Unlimited
-        ocr_scans_included=10000,
+        ocr_scans_included=5000,
         data_retention_days=365,
         priority_support=True,
         custom_integrations=True,
-        sso_enabled=True
+        sso_enabled=True,
+        white_label=False,
+        api_access=True,
+        advanced_analytics=True,
+        dedicated_account_manager=False,
+        sla_guarantee="99.9%",
+        support_channels=["email", "chat", "phone", "slack"]
     ),
     SubscriptionTier.ENTERPRISE_PLUS: TierLimits(
         tier=SubscriptionTier.ENTERPRISE_PLUS,
-        name="Enterprise Plus",
+        name="Enterprise +",
         price_monthly=999.00,  # Starting price, custom negotiated
         max_users=None,  # Unlimited
         max_expenses_per_month=None,  # Unlimited
@@ -79,7 +104,13 @@ TIER_CONFIGS = {
         data_retention_days=365,
         priority_support=True,
         custom_integrations=True,
-        sso_enabled=True
+        sso_enabled=True,
+        white_label=True,
+        api_access=True,
+        advanced_analytics=True,
+        dedicated_account_manager=True,
+        sla_guarantee="99.99%",
+        support_channels=["email", "chat", "phone", "slack", "dedicated"]
     )
 }
 

@@ -78,4 +78,60 @@ alembic history
 - API request/response validation
 - Error handling and status codes
 
+## Additional Test Areas
+
+5. **AP2 Mandate Testing**
+   - Test three-mandate creation flow (Intent → Cart → Payment)
+   - Validate cryptographic signatures on mandates
+   - Check complete audit trail generation
+   - Test payment processing with AP2 protocol
+   - Verify mandate state transitions
+   - Test mandate expiration handling
+
+6. **Billing & Subscriptions**
+   - Test subscription tier limit enforcement
+   - Validate usage metering accuracy
+   - Check Stripe webhook handling
+   - Test subscription lifecycle (create, update, cancel)
+   - Verify trial period logic
+   - Test usage tracking and reporting
+
+7. **Cache & Performance**
+   - Test Redis cache operations
+   - Validate cache invalidation logic
+   - Check rate limiting functionality
+   - Test session storage in Redis
+   - Verify cache key generation
+
+8. **Multi-Tenancy**
+   - Test organization isolation
+   - Verify tenant context middleware
+   - Check data access boundaries
+   - Test organization switching
+   - Validate cross-tenant data leakage prevention
+
+## Test Commands by Category
+
+```bash
+# AP2 Protocol Tests
+pytest tests/test_ap2_mandates.py -v
+pytest tests/test_payments.py -v
+
+# Billing Tests
+pytest tests/test_billing.py -v
+pytest tests/test_subscriptions.py -v
+pytest tests/test_usage_tracking.py -v
+
+# Multi-tenancy Tests
+pytest tests/test_organizations.py -v
+pytest tests/test_tenant_isolation.py -v
+
+# Cache Tests
+pytest tests/test_cache.py -v
+pytest tests/test_rate_limiting.py -v
+
+# Integration Tests
+pytest tests/test_expense_workflow.py -v
+```
+
 Be concise but thorough. Prioritize actionable feedback.

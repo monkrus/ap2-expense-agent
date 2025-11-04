@@ -48,6 +48,30 @@ Ensure the end-to-end expense workflow functions correctly from submission to ex
    - Concurrent access is handled
    - Database constraints are respected
 
+6. **Multi-Tenancy Validation**
+   - Users can only see their own organization's expenses
+   - Organization isolation is properly enforced
+   - Admin permissions respect organization boundaries
+   - Data leakage between tenants is prevented
+   - Organization switching works correctly
+   - Cross-tenant API access is blocked
+
+7. **Collaboration Features**
+   - Comments on expenses are saved and displayed
+   - Manager assignment functionality works
+   - Expense delegation flows properly
+   - Notification delivery is reliable
+   - Activity feed shows all actions
+   - Multiple users can view same expense without conflicts
+
+8. **AP2 Integration Workflow**
+   - Intent mandates created on approval
+   - Cart mandates link to correct expenses
+   - Payment mandates execute successfully
+   - Complete audit trail is generated
+   - Mandate signatures are valid
+   - AP2 protocol state machine is followed
+
 ## Testing Approach
 
 1. **Backend API Testing**
@@ -116,6 +140,20 @@ For each workflow component:
 - Multiple concurrent submissions
 - Very old/future dates
 - Zero or negative amounts
+
+**Multi-Tenancy Cases**:
+- User tries to access another org's expense
+- Admin from Org A tries to approve Org B's expense
+- Organization switching during expense creation
+- Expense created in one org, viewed from another
+- Cross-tenant receipt access attempts
+
+**AP2 Protocol Cases**:
+- Approval triggers three-mandate creation
+- Mandate creation fails midway (rollback)
+- Invalid mandate signatures
+- Expired intent mandates
+- Payment mandate status updates
 
 ## Key Files to Check
 

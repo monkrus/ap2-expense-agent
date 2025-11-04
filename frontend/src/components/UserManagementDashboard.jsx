@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Edit, Trash2, Shield, Lock, Unlock, Search, Filter, RefreshCw, Eye, Check, X, AlertCircle, EyeOff } from 'lucide-react';
+import { Users, UserPlus, Edit, Trash2, Shield, Lock, Unlock, Search, Filter, RefreshCw, Eye, Check, X, AlertCircle, EyeOff, UserCheck, UserX } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+import adminAPI from '../services/adminAPI';
 
 const UserManagementDashboard = () => {
   const { user: currentUser, getAuthHeaders, fetchWithAuth } = useAuth();
@@ -53,23 +52,12 @@ const UserManagementDashboard = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Build query parameters
-      const params = new URLSearchParams();
-      if (searchTerm) {
-        params.append('search', searchTerm);
-      }
-      if (roleFilter && roleFilter !== 'all') {
-        params.append('role', roleFilter.toLowerCase());
-      }
-
-      const url = `${API_BASE_URL}/api/v1/admin/users${params.toString() ? '?' + params.toString() : ''}`;
-      const response = await fetchWithAuth(url);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
-
-      const data = await response.json();
+      const data = await adminAPI.listUsers(
+        1, // page
+        100, // per page
+        searchTerm || null,
+        roleFilter !== 'all' ? roleFilter.toLowerCase() : null
+      );
       setUsers(data.users || []);
     } catch (err) {
       console.error('Error fetching users:', err);
@@ -84,25 +72,12 @@ const UserManagementDashboard = () => {
     setProcessing(true);
 
     try {
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...createForm,
-          role: createForm.role.toLowerCase(),
-          department_id: createForm.department_id || null
-        })
+      const data = await adminAPI.createUser({
+        ...createForm,
+        role: createForm.role.toLowerCase(),
+        department_id: createForm.department_id || null
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to create user');
-      }
-
-      const data = await response.json();
-      success(`User ${data.user.username} created successfully!`);
+      success(`User ${data.username} created successfully!`);
       setShowCreateModal(false);
       setCreateForm({
         email: '',
