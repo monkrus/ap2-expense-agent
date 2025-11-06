@@ -84,11 +84,11 @@ class TestTenantIsolation:
         """Test that API endpoints respect X-Organization-Id header"""
         # Create expense via API with org 1 headers
         expense_data = {
+            "user_id": user_with_organization.id,
             "amount": 150.00,
-            "currency": "USD",
+            "vendor": "Test Vendor",
             "description": "Test expense",
-            "category": "meals",
-            "merchant": "Test Merchant"
+            "category": "Meals"
         }
 
         response = client.post(
@@ -97,7 +97,7 @@ class TestTenantIsolation:
             headers=org_headers
         )
         assert response.status_code == status.HTTP_201_CREATED
-        expense_id = response.json()["id"]
+        expense_id = response.json()["expense"]["id"]
 
         # User from org 1 should see the expense
         response = client.get(
@@ -120,19 +120,19 @@ class TestTenantIsolation:
         """Test that listing expenses only shows expenses from user's organization"""
         # Create expenses for both organizations
         expense_data_1 = {
+            "user_id": user_with_organization.id,
             "amount": 100.00,
-            "currency": "USD",
+            "vendor": "Vendor 1",
             "description": "Org 1 expense",
-            "category": "meals",
-            "merchant": "Merchant 1"
+            "category": "Meals"
         }
 
         expense_data_2 = {
+            "user_id": second_org_user.id,
             "amount": 200.00,
-            "currency": "USD",
+            "vendor": "Vendor 2",
             "description": "Org 2 expense",
-            "category": "transport",
-            "merchant": "Merchant 2"
+            "category": "Travel"
         }
 
         # Create expense in org 1
@@ -162,14 +162,14 @@ class TestTenantIsolation:
         """Test that you cannot update an expense from another organization"""
         # Create expense in org 1
         expense_data = {
+            "user_id": user_with_organization.id,
             "amount": 100.00,
-            "currency": "USD",
+            "vendor": "Vendor 1",
             "description": "Org 1 expense",
-            "category": "meals",
-            "merchant": "Merchant 1"
+            "category": "Meals"
         }
         response = client.post("/api/v1/expenses", json=expense_data, headers=org_headers)
-        expense_id = response.json()["id"]
+        expense_id = response.json()["expense"]["id"]
 
         # Try to update with org 2 credentials
         update_data = {"amount": 999.99, "description": "Hacked!"}
@@ -195,14 +195,14 @@ class TestTenantIsolation:
         """Test that you cannot delete an expense from another organization"""
         # Create expense in org 1
         expense_data = {
+            "user_id": user_with_organization.id,
             "amount": 100.00,
-            "currency": "USD",
+            "vendor": "Vendor 1",
             "description": "Org 1 expense",
-            "category": "meals",
-            "merchant": "Merchant 1"
+            "category": "Meals"
         }
         response = client.post("/api/v1/expenses", json=expense_data, headers=org_headers)
-        expense_id = response.json()["id"]
+        expense_id = response.json()["expense"]["id"]
 
         # Try to delete with org 2 credentials
         response = client.delete(
@@ -242,11 +242,11 @@ class TestTenantIsolation:
     ):
         """Test that requests without X-Organization-Id header are rejected"""
         expense_data = {
+            "user_id": user_with_organization.id,
             "amount": 100.00,
-            "currency": "USD",
+            "vendor": "Test Vendor",
             "description": "Test expense",
-            "category": "meals",
-            "merchant": "Test Merchant"
+            "category": "Meals"
         }
 
         # Try to create expense without organization header

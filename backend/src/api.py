@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, validator
 from slowapi.errors import RateLimitExceeded
@@ -174,7 +174,7 @@ async def health_check():
     return {"status": "healthy", "service": "AP2 Expense Management Agent"}
 
 
-@app.post("/api/v1/expenses")
+@app.post("/api/v1/expenses", status_code=status.HTTP_201_CREATED)
 async def submit_expense(
     data: ExpenseSubmission,
     current_user: User = Depends(get_current_active_user),
@@ -271,6 +271,43 @@ async def submit_expense(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/v1/expenses")
+async def get_user_expenses(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get all expenses for the current user"""
+    from .models import Expense
+    from .tenant_context import TenantContext
+
+    organization_id = TenantContext.get_organization()
+
+    # Query expenses for current user
+    query = db.query(Expense).filter(Expense.user_id == current_user.id)
+
+    # Filter by organization if set
+    if organization_id:
+        query = query.filter(Expense.organization_id == organization_id)
+
+    expenses = query.order_by(Expense.created_at.desc()).all()
+
+    # Convert to dict format
+    result = []
+    for expense in expenses:
+        result.append({
+            "id": expense.id,
+            "amount": float(expense.amount),
+            "vendor": expense.vendor,
+            "category": expense.category.value if hasattr(expense.category, 'value') else expense.category,
+            "description": expense.description,
+            "status": expense.status.value if hasattr(expense.status, 'value') else expense.status,
+            "date": expense.date.isoformat() if expense.date else None,
+            "created_at": expense.created_at.isoformat() if expense.created_at else None,
+        })
+
+    return result
 
 
 @app.post("/api/v1/expenses/approve")
