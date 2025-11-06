@@ -31,6 +31,12 @@ class ExpenseRepository:
 
     def create(self, expense_data: Dict) -> Expense:
         """Create a new expense"""
+        # Validate expense amount
+        if 'amount' in expense_data:
+            amount = expense_data['amount']
+            if amount is not None and (isinstance(amount, (int, float)) and amount <= 0):
+                raise ValueError("Expense amount must be positive")
+
         # Ensure organization_id is set for multi-tenancy
         if self.organization_id and 'organization_id' not in expense_data:
             expense_data['organization_id'] = self.organization_id
