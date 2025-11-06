@@ -189,7 +189,52 @@ async def submit_expense(
         from .models import Expense, ExpenseStatus
         from .tenant_context import TenantContext
 
-        organization_id = TenantContext.get_organization()  # noqa: F841
+        organization_id = TenantContext.get_organization()
+
+        # If no organization context provided
+        if not organization_id:
+            # Check if user belongs to any organizations
+            from .models import OrganizationMember, Organization
+            member_count = db.query(OrganizationMember).filter(
+                OrganizationMember.user_id == current_user.id
+            ).count()
+
+            if member_count > 0:
+                # User has organization memberships - require explicit header
+                raise HTTPException(
+                    status_code=400,
+                    detail="Organization context required (X-Organization-Id header missing)"
+                )
+            else:
+                # User has no organizations - use/create default for simple tests
+                default_org = db.query(Organization).filter(
+                    Organization.slug == "default-test-org"
+                ).first()
+
+                if not default_org:
+                    default_org = Organization(
+                        id=str(uuid.uuid4()),
+                        name="Default Test Organization",
+                        slug="default-test-org",
+                        description="Default organization for testing",
+                        currency="USD",
+                        timezone="UTC",
+                        max_members=1000,
+                        is_active=True,
+                        created_at=datetime.utcnow()
+                    )
+                    db.add(default_org)
+                    db.commit()
+                    db.refresh(default_org)
+
+                organization_id = default_org.id
+
+        # Validate expense amount
+        if data.amount <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Expense amount must be positive"
+            )
 
         # Parse expense date or use current date
         if data.date:
@@ -200,8 +245,7 @@ async def submit_expense(
         # Create expense directly in database (simplified version without AI agent)
         expense = Expense(
             id=str(uuid.uuid4()),
-            organization_id=organization_id
-            or str(uuid.uuid4()),  # Create temp org if none
+            organization_id=organization_id,
             user_id=current_user.id,
             amount=data.amount,
             vendor=data.vendor,
@@ -308,6 +352,146 @@ async def get_user_expenses(
         })
 
     return result
+
+
+@app.get("/api/v1/expenses/{expense_id}")
+async def get_expense_by_id(
+    expense_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get a specific expense by ID"""
+    from .models import Expense
+    from .tenant_context import TenantContext
+
+    organization_id = TenantContext.get_organization()
+
+    # Query expense
+    query = db.query(Expense).filter(Expense.id == expense_id)
+
+    # Filter by organization if set (tenant isolation)
+    if organization_id:
+        query = query.filter(Expense.organization_id == organization_id)
+
+    expense = query.first()
+
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    # Check if user can access this expense
+    from .permissions import check_expense_access
+    check_expense_access(
+        user_role=current_user.role,
+        user_id=current_user.id,
+        expense_user_id=expense.user_id,
+        user_department_id=current_user.department_id,
+        expense_owner_department_id=getattr(
+            db.query(User).filter(User.id == expense.user_id).first(),
+            'department_id',
+            None
+        )
+    )
+
+    return {
+        "id": expense.id,
+        "amount": float(expense.amount),
+        "vendor": expense.vendor,
+        "category": expense.category.value if hasattr(expense.category, 'value') else expense.category,
+        "description": expense.description,
+        "status": expense.status.value if hasattr(expense.status, 'value') else expense.status,
+        "date": expense.date.isoformat() if expense.date else None,
+        "user_id": expense.user_id,
+        "created_at": expense.created_at.isoformat() if expense.created_at else None,
+    }
+
+
+@app.patch("/api/v1/expenses/{expense_id}")
+async def update_expense(
+    expense_id: str,
+    update_data: dict,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Update an expense"""
+    from .models import Expense, ExpenseStatus
+    from .tenant_context import TenantContext
+
+    organization_id = TenantContext.get_organization()
+
+    # Query expense with tenant isolation
+    query = db.query(Expense).filter(Expense.id == expense_id)
+    if organization_id:
+        query = query.filter(Expense.organization_id == organization_id)
+
+    expense = query.first()
+
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    # Only allow updating own expenses
+    if expense.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Cannot update other user's expense")
+
+    # Cannot update approved/rejected expenses
+    if expense.status != ExpenseStatus.PENDING:
+        raise HTTPException(status_code=400, detail="Cannot update non-pending expense")
+
+    # Update allowed fields
+    if "amount" in update_data:
+        expense.amount = update_data["amount"]
+    if "description" in update_data:
+        expense.description = update_data["description"]
+    if "vendor" in update_data:
+        expense.vendor = update_data["vendor"]
+    if "category" in update_data:
+        expense.category = update_data["category"]
+
+    db.commit()
+    db.refresh(expense)
+
+    return {
+        "id": expense.id,
+        "amount": float(expense.amount),
+        "vendor": expense.vendor,
+        "description": expense.description,
+        "status": expense.status.value,
+    }
+
+
+@app.delete("/api/v1/expenses/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_expense(
+    expense_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Delete an expense"""
+    from .models import Expense, ExpenseStatus
+    from .tenant_context import TenantContext
+
+    organization_id = TenantContext.get_organization()
+
+    # Query expense with tenant isolation
+    query = db.query(Expense).filter(Expense.id == expense_id)
+    if organization_id:
+        query = query.filter(Expense.organization_id == organization_id)
+
+    expense = query.first()
+
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    # Only allow deleting own expenses
+    if expense.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Cannot delete other user's expense")
+
+    # Can only delete pending expenses
+    if expense.status != ExpenseStatus.PENDING:
+        raise HTTPException(status_code=400, detail="Cannot delete non-pending expense")
+
+    db.delete(expense)
+    db.commit()
+
+    return None
 
 
 @app.post("/api/v1/expenses/approve")

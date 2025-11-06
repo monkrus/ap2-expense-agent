@@ -28,7 +28,7 @@ class TestExpenseOperations:
             headers=employee_headers
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
         assert data["success"] is True
         assert data["expense"]["amount"] == 100.50
