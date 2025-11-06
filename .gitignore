@@ -55,3 +55,4 @@ frontend/*.log
 frontend/nul
 test_login.json
 backend/.venv/
+dump.rdb
