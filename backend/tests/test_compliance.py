@@ -361,7 +361,7 @@ class TestDataIntegrity:
 
     def test_expense_timestamps_auto_populate(self, expense_repo):
         """Test that timestamps are automatically populated"""
-        before = datetime.utcnow()
+        before = datetime.utcnow().replace(microsecond=0)  # Strip microseconds for comparison
 
         expense = expense_repo.create({
             'id': 'EXP-009',
@@ -374,10 +374,12 @@ class TestDataIntegrity:
             'date': datetime.utcnow()
         })
 
-        after = datetime.utcnow()
+        after = datetime.utcnow().replace(microsecond=0) + timedelta(seconds=1)  # Add buffer
 
         assert expense.created_at is not None
-        assert before <= expense.created_at <= after
+        # Compare with microseconds stripped since SQLite doesn't store them
+        created_at_no_micro = expense.created_at.replace(microsecond=0) if expense.created_at.microsecond else expense.created_at
+        assert before <= created_at_no_micro <= after
 
     def test_json_fields_serialize_correctly(self, ap2_repo):
         """Test that JSON fields are properly serialized/deserialized"""
