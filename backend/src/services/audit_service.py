@@ -233,6 +233,7 @@ class AuditService:
         )
 
         self.db.add(log)
+        self.db.commit()  # Commit to persist the audit log
         return log
 
     def get_complete_audit_trail(self, transaction_id: str) -> Optional[Dict]:

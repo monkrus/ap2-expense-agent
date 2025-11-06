@@ -146,11 +146,10 @@ ROLE_PERMISSIONS: dict[UserRole, Set[Permission]] = {
         # All employee permissions
         *_EMPLOYEE_PERMISSIONS,
 
-        # Expenses - View all, approve/edit department only (with $5K limit)
-        Permission.EXPENSE_VIEW_ALL,  # Can VIEW all expenses for visibility
+        # Expenses - View/approve/edit department only (with $5K limit for approval)
         Permission.EXPENSE_VIEW_DEPARTMENT,
         Permission.EXPENSE_EDIT_DEPARTMENT,
-        Permission.EXPENSE_APPROVE_DEPARTMENT,  # But can only APPROVE ≤ $5,000
+        Permission.EXPENSE_APPROVE_DEPARTMENT,  # Can only APPROVE ≤ $5,000
         Permission.EXPENSE_REJECT_DEPARTMENT,
         Permission.EXPENSE_BULK_APPROVE,
         Permission.EXPENSE_BULK_REJECT,
