@@ -312,9 +312,18 @@ async def request_password_reset(
         request=request
     )
 
-    return {
+    # In development/test mode, return the token for testing
+    # In production, only send via email
+    from ..config import settings
+    response_data = {
         "message": "If the email exists, a reset link has been sent"
     }
+
+    # Return token in test/dev environments (when database is SQLite)
+    if settings.database_url and "sqlite" in settings.database_url.lower():
+        response_data["reset_token"] = token
+
+    return response_data
 
 @router.post("/password/reset-confirm")
 async def confirm_password_reset(
