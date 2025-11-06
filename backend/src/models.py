@@ -9,6 +9,7 @@ Base = declarative_base()
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
     MANAGER = "manager"
+    ACCOUNTANT = "accountant"
     EMPLOYEE = "employee"
 
 

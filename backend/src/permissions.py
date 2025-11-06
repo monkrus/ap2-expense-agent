@@ -169,6 +169,32 @@ ROLE_PERMISSIONS: dict[UserRole, Set[Permission]] = {
         Permission.AUDIT_VIEW_DEPARTMENT,
     },
 
+    # ===== ACCOUNTANT ROLE =====
+    # Read-only role with full visibility for audit and compliance
+    UserRole.ACCOUNTANT: {
+        # All employee permissions
+        *_EMPLOYEE_PERMISSIONS,
+
+        # Expenses - View all (read-only, cannot approve)
+        Permission.EXPENSE_VIEW_ALL,
+        Permission.EXPENSE_VIEW_DEPARTMENT,
+
+        # Receipts - View all
+        Permission.RECEIPT_VIEW_ALL,
+
+        # Users - View all
+        Permission.USER_VIEW_ALL,
+
+        # Reports - View and export all
+        Permission.REPORT_VIEW_ALL,
+        Permission.REPORT_VIEW_DEPARTMENT,
+        Permission.REPORT_EXPORT,
+
+        # Audit - View all
+        Permission.AUDIT_VIEW_ALL,
+        Permission.AUDIT_VIEW_DEPARTMENT,
+    },
+
     # ===== ADMIN ROLE =====
     UserRole.ADMIN: {
         # All permissions (superuser)

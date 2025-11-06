@@ -205,11 +205,10 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
         }
     )
 
-    return build_error_response(
+    # Return standard FastAPI format with "detail" for compatibility
+    return JSONResponse(
         status_code=exc.status_code,
-        message=str(exc.detail),
-        error_code="HTTP_ERROR",
-        request_id=request_id
+        content={"detail": str(exc.detail)}
     )
 
 

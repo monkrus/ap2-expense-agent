@@ -45,9 +45,9 @@ def test_db():
 
 
 @pytest.fixture
-def agent(test_db):
-    """Create agent with test database"""
-    return ExpenseManagementAgent(db=test_db, api_key="", project_id="")
+def agent(test_db, test_organization):
+    """Create agent with test database and organization context"""
+    return ExpenseManagementAgent(db=test_db, api_key="", project_id="", organization_id=test_organization.id)
 
 
 @pytest.fixture
