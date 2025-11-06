@@ -178,7 +178,10 @@ def test_organization(db_session):
         id=f"org_{uuid.uuid4().hex[:8]}",
         name="Test Organization",
         slug="test-org",
-        domain="testorg.com",
+        description="Test organization for unit testing",
+        currency="USD",
+        timezone="UTC",
+        max_members=25,
         is_active=True,
         created_at=datetime.utcnow()
     )
@@ -195,7 +198,10 @@ def second_organization(db_session):
         id=f"org_{uuid.uuid4().hex[:8]}",
         name="Second Organization",
         slug="second-org",
-        domain="secondorg.com",
+        description="Second test organization for multi-tenant testing",
+        currency="USD",
+        timezone="UTC",
+        max_members=25,
         is_active=True,
         created_at=datetime.utcnow()
     )
