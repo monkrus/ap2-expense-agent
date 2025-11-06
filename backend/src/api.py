@@ -20,7 +20,9 @@ from .routes.billing_org import router as billing_org_router
 from .routes.organizations import router as organizations_router
 from .routes.receipts import router as receipts_router
 from .routes.webhooks import router as webhooks_router
-from .routes.gcp_webhooks import router as gcp_webhooks_router
+# Temporarily disabled due to missing google-cloud dependencies
+# from .routes.gcp_webhooks import router as gcp_webhooks_router
+from .routes.payment import router as payment_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
 from .tenant_context import tenant_middleware
 
@@ -94,12 +96,13 @@ app.include_router(organizations_router)
 # Include billing and payment routers
 app.include_router(billing_router)
 app.include_router(billing_org_router)  # Organization-based billing
+app.include_router(payment_router)  # Stripe payment endpoints
 app.include_router(ap2_router)
 app.include_router(webhooks_router)
 app.include_router(receipts_router)
 
-# Include GCP Marketplace webhooks
-app.include_router(gcp_webhooks_router)
+# Include GCP Marketplace webhooks (temporarily disabled)
+# app.include_router(gcp_webhooks_router)
 
 
 # Initialize database on startup

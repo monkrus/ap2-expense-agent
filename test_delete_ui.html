@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test User Deletion</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .user-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+        .btn-refresh {
+            background-color: #007bff;
+            color: white;
+        }
+        .log {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test User Deletion</h1>
+
+    <div>
+        <button class="btn-refresh" onclick="login()">1. Login as Admin</button>
+        <button class="btn-refresh" onclick="loadUsers()">2. Load Users</button>
+    </div>
+
+    <div id="users"></div>
+    <div id="log" class="log"></div>
+
+    <script>
+        let token = '';
+        const API_BASE = 'http://localhost:8000';
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+        }
+
+        async function login() {
+            try {
+                log('Attempting login...');
+                const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admintest',
+                        password: 'AgentTest!'
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    token = data.access_token;
+                    log('✅ Login successful! Token obtained.');
+                    loadUsers();
+                } else {
+                    log('❌ Login failed: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                log('❌ Login error: ' + error.message);
+            }
+        }
+
+        async function loadUsers() {
+            if (!token) {
+                log('❌ No token. Please login first.');
+                return;
+            }
+
+            try {
+                log('Loading users...');
+                const response = await fetch(`${API_BASE}/api/v1/admin/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    const users = data.users || [];
+                    log(`✅ Loaded ${users.length} users`);
+                    displayUsers(users);
+                } else {
+                    log('❌ Failed to load users: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                log('❌ Error loading users: ' + error.message);
+            }
+        }
+
+        function displayUsers(users) {
+            const usersDiv = document.getElementById('users');
+            usersDiv.innerHTML = '<h2>Users</h2>';
+
+            users.forEach(user => {
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.innerHTML = `
+                    <div>
+                        <strong>${user.username}</strong> (${user.role})
+                        <br><small>${user.email}</small>
+                    </div>
+                    <div>
+                        ${user.role !== 'admin' ?
+                            `<button class="btn-delete" onclick="deleteUser('${user.id}', '${user.username}')">
+                                Delete
+                            </button>` :
+                            '<span style="color: #999;">Admin - Cannot delete</span>'
+                        }
+                    </div>
+                `;
+                usersDiv.appendChild(card);
+            });
+        }
+
+        async function deleteUser(userId, username) {
+            if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+                return;
+            }
+
+            try {
+                log(`Deleting user ${username} (${userId})...`);
+                const response = await fetch(`${API_BASE}/api/v1/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                log(`Response status: ${response.status}`);
+                log(`Response data: ${JSON.stringify(data, null, 2)}`);
+
+                if (response.ok) {
+                    log(`✅ User ${username} deleted successfully!`);
+                    loadUsers(); // Reload the list
+                } else {
+                    log(`❌ Failed to delete user: ${JSON.stringify(data)}`);
+                }
+            } catch (error) {
+                log(`❌ Error deleting user: ${error.message}`);
+            }
+        }
+
+        // Auto-login on page load
+        window.onload = () => {
+            log('Page loaded. Click "1. Login as Admin" to start.');
+        };
+    </script>
+</body>
+</html>

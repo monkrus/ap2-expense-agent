@@ -98,23 +98,54 @@ def setup_logging(
     root_logger.addHandler(console_handler)
 
     # File handler with rotation (always JSON)
-    file_handler = logging.handlers.RotatingFileHandler(
-        log_file,
-        maxBytes=max_bytes,
-        backupCount=backup_count
-    )
-    file_handler.setFormatter(JSONFormatter())
-    root_logger.addHandler(file_handler)
+    # Use TimedRotatingFileHandler on Windows to avoid permission issues
+    try:
+        if sys.platform == "win32":
+            # Use time-based rotation on Windows (daily rotation)
+            file_handler = logging.handlers.TimedRotatingFileHandler(
+                log_file,
+                when='midnight',
+                interval=1,
+                backupCount=backup_count,
+                encoding='utf-8'
+            )
+        else:
+            # Use size-based rotation on Unix/Linux
+            file_handler = logging.handlers.RotatingFileHandler(
+                log_file,
+                maxBytes=max_bytes,
+                backupCount=backup_count,
+                encoding='utf-8'
+            )
+        file_handler.setFormatter(JSONFormatter())
+        root_logger.addHandler(file_handler)
+    except (PermissionError, OSError) as e:
+        # If file logging fails, log to console only
+        logging.warning(f"Could not set up file logging: {e}. Logging to console only.")
 
     # Error file handler (only errors and above)
-    error_file_handler = logging.handlers.RotatingFileHandler(
-        log_file.replace(".log", "_error.log"),
-        maxBytes=max_bytes,
-        backupCount=backup_count
-    )
-    error_file_handler.setLevel(logging.ERROR)
-    error_file_handler.setFormatter(JSONFormatter())
-    root_logger.addHandler(error_file_handler)
+    try:
+        if sys.platform == "win32":
+            error_file_handler = logging.handlers.TimedRotatingFileHandler(
+                log_file.replace(".log", "_error.log"),
+                when='midnight',
+                interval=1,
+                backupCount=backup_count,
+                encoding='utf-8'
+            )
+        else:
+            error_file_handler = logging.handlers.RotatingFileHandler(
+                log_file.replace(".log", "_error.log"),
+                maxBytes=max_bytes,
+                backupCount=backup_count,
+                encoding='utf-8'
+            )
+        error_file_handler.setLevel(logging.ERROR)
+        error_file_handler.setFormatter(JSONFormatter())
+        root_logger.addHandler(error_file_handler)
+    except (PermissionError, OSError) as e:
+        # If error file logging fails, continue without it
+        logging.warning(f"Could not set up error file logging: {e}")
 
     # Set levels for specific loggers
     logging.getLogger("uvicorn").setLevel(logging.INFO)

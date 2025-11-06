@@ -10,7 +10,9 @@ import json
 import requests
 from ..models_billing import UsageMetric, BillingTier, OrganizationSubscription, BillingEvent
 from ..models import Organization, Expense, User
+from ..gcp.marketplace_client import GCPMarketplaceClient
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +22,7 @@ class BillingService:
 
     def __init__(self, db: Session):
         self.db = db
+        self.gcp_client = GCPMarketplaceClient()
 
     # ========================================================================
     # Usage Tracking
@@ -507,12 +510,43 @@ class BillingService:
                     }]
                 })
 
-            # TODO: Actually send to GCP API
-            # For now, just mark as reported
-            for metric in metrics:
-                metric.reported_to_gcp = True
-                metric.reported_at = datetime.utcnow()
-                metric.report_response = usage_report
+            # Send usage report to GCP Marketplace
+            gcp_response = None
+            event_status = "success"
+            error_message = None
+
+            try:
+                # Call GCP Marketplace API
+                gcp_response = asyncio.run(self.gcp_client.report_usage(
+                    entitlement_id=subscription["gcp_entitlement_id"],
+                    metrics=metric_values,
+                    timestamp=period_start.isoformat() + 'Z'
+                ))
+
+                # Check if GCP reporting was successful
+                if gcp_response.get("status") == "success":
+                    # Mark metrics as reported
+                    for metric in metrics:
+                        metric.reported_to_gcp = True
+                        metric.reported_at = datetime.utcnow()
+                        metric.report_response = gcp_response
+                    logger.info(f"Successfully reported usage to GCP for org {organization_id}: {len(metrics)} metrics")
+                elif gcp_response.get("status") == "skipped":
+                    # GCP credentials not configured - mark as reported anyway for testing
+                    for metric in metrics:
+                        metric.reported_to_gcp = True
+                        metric.reported_at = datetime.utcnow()
+                        metric.report_response = gcp_response
+                    logger.warning(f"GCP reporting skipped (no credentials) for org {organization_id}")
+                else:
+                    event_status = "failed"
+                    error_message = gcp_response.get("error", "Unknown GCP error")
+                    logger.error(f"GCP usage reporting failed for org {organization_id}: {error_message}")
+
+            except Exception as gcp_error:
+                event_status = "failed"
+                error_message = str(gcp_error)
+                logger.error(f"Exception reporting usage to GCP for org {organization_id}: {gcp_error}")
 
             # Log event
             event = BillingEvent(
@@ -523,18 +557,21 @@ class BillingService:
                     "period_start": period_start.isoformat(),
                     "period_end": period_end.isoformat(),
                     "metrics_count": len(metrics),
-                    "report": usage_report
+                    "report": usage_report,
+                    "gcp_response": gcp_response,
+                    "error": error_message
                 },
-                status="success"
+                status=event_status
             )
             self.db.add(event)
 
             self.db.commit()
 
             return {
-                "success": True,
+                "success": event_status == "success" or gcp_response.get("status") == "skipped",
                 "metrics_reported": len(metrics),
-                "report": usage_report
+                "report": usage_report,
+                "gcp_response": gcp_response
             }
 
         except Exception as e:

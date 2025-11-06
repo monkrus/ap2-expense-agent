@@ -227,14 +227,12 @@ async def get_dashboard_stats(
 
     # Try to get subscription statistics if the table exists
     try:
-        from ..models import Subscription
-        active_subscriptions = db.query(func.count(Subscription.id)).filter(
-            Subscription.status == "active"
+        from ..models_billing import OrganizationSubscription
+        active_subscriptions = db.query(func.count(OrganizationSubscription.id)).filter(
+            OrganizationSubscription.status == "active"
         ).scalar()
-        monthly_revenue = db.query(func.sum(Subscription.amount)).filter(
-            Subscription.status == "active",
-            Subscription.interval == "month"
-        ).scalar() or 0
+        # For now, monthly revenue calculation would need pricing info
+        monthly_revenue = 0
     except:
         active_subscriptions = 0
         monthly_revenue = 0

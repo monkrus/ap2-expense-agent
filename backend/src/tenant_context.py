@@ -61,6 +61,12 @@ def get_user_organizations(user_id: str, db: Session) -> list:
             "id": org.id,
             "name": org.name,
             "slug": org.slug,
+            "description": org.description,
+            "currency": org.currency,
+            "timezone": org.timezone,
+            "max_members": org.max_members,
+            "is_active": org.is_active,
+            "created_at": org.created_at,
             "role": next((m.role.value for m in memberships if m.organization_id == org.id), None)
         }
         for org in organizations

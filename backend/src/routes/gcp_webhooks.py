@@ -17,6 +17,7 @@ from ..gcp import (
 )
 from ..gcp.marketplace_client import GCPMarketplaceClient
 from ..gcp.usage_reporter import run_hourly_usage_reporting
+from ..services.trial_service import TrialService
 
 router = APIRouter(prefix="/api/webhooks/gcp", tags=["gcp-webhooks"])
 
@@ -306,6 +307,51 @@ async def gcp_webhook_health():
         "service": "gcp-marketplace-webhooks",
         "timestamp": str(datetime.utcnow())
     }
+
+
+@router.post("/process-trials")
+async def process_trials(
+    request: Request,
+    db: Session = Depends(get_db),
+    x_cloudscheduler: Optional[str] = Header(None, alias="X-CloudScheduler")
+):
+    """
+    Process expiring and expired trials (called by Cloud Scheduler)
+
+    This endpoint should be called daily by a cron job to:
+    - Send warnings for expiring trials (7, 3, 1 day before)
+    - Convert or suspend expired trials
+
+    Security: Verifies X-CloudScheduler header
+    """
+    # Verify this is from Cloud Scheduler (or allow in dev mode)
+    if settings.environment != "development" and not x_cloudscheduler:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Endpoint only accessible by Cloud Scheduler"
+        )
+
+    try:
+        trial_service = TrialService(db)
+
+        # Process expiring trials (send warnings)
+        expiring_result = trial_service.process_expiring_trials()
+
+        # Process expired trials (convert or suspend)
+        expired_result = trial_service.process_expired_trials()
+
+        return {
+            "status": "success",
+            "timestamp": str(datetime.utcnow()),
+            "expiring_trials": expiring_result,
+            "expired_trials": expired_result
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process trials: {str(e)}"
+        )
 
 
 from datetime import datetime

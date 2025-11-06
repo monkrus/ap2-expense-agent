@@ -42,7 +42,17 @@
       "Bash(echo:*)",
       "Bash(procurement_handler.py)",
       "Bash(cmd /c \"FOR /F \"tokens=5\" %P IN (''netstat -ano ^| findstr :8000 ^| findstr LISTENING'') DO taskkill /F /PID %P\")",
-      "Bash(cmd /c \"FOR /F \"tokens=5\" %P IN (''netstat -ano ^| findstr :5173 ^| findstr LISTENING'') DO taskkill /F /PID %P\")"
+      "Bash(cmd /c \"FOR /F \"tokens=5\" %P IN (''netstat -ano ^| findstr :5173 ^| findstr LISTENING'') DO taskkill /F /PID %P\")",
+      "Bash(test:*)",
+      "Bash(cmd /c \"taskkill /F /PID 27300 & taskkill /F /PID 24680\")",
+      "Bash(cmd /c \"taskkill /F /PID 23832\")",
+      "Bash(copy .env.example .env)",
+      "Bash(cmd /c \"FOR %P IN (27300 24680 44356) DO taskkill /F /PID %P\")",
+      "Bash(timeout /t 2 /nobreak)",
+      "Bash(cmd /c \"taskkill /F /PID 44356 & taskkill /F /PID 27300 & taskkill /F /PID 24680 & taskkill /F /PID 36164\")",
+      "Bash(cmd /c \"FOR /F \"tokens=5\" %P IN (''''netstat -ano ^| findstr :8000 ^| findstr LISTENING'''') DO taskkill /F /PID %P\")",
+      "Bash(cmd /c taskkill /F /PID 36164)",
+      "Bash(.venv/Scripts/pip:*)"
     ],
     "deny": [],
     "ask": []

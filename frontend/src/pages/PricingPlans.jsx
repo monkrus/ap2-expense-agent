@@ -6,6 +6,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/useToast';
 import billingAPI from '../services/billingAPI';
+import paymentAPI from '../services/paymentAPI';
 
 /**
  * Pricing Plans Page
@@ -78,22 +79,21 @@ const PricingPlans = () => {
     }
 
     try {
-      if (currentSubscription?.subscription_id) {
-        // Upgrade/downgrade existing subscription
-        await billingAPI.upgradeSubscription(currentSubscription.subscription_id, tierName);
-        success(`Successfully changed to ${tierName} plan!`);
-      } else {
-        // Create new subscription
-        await billingAPI.createSubscription(tierName, 14);
-        success(`Successfully subscribed to ${tierName} plan!`);
-      }
+      setLoading(true);
 
-      // Reload the page to show updated subscription
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      if (currentSubscription?.subscription_id) {
+        // For existing subscriptions, use Stripe Customer Portal
+        const { url } = await paymentAPI.createPortalSession();
+        window.location.href = url;
+      } else {
+        // For new subscriptions, use Stripe Checkout
+        const { url } = await paymentAPI.createCheckoutSession(tierName);
+        window.location.href = url;
+      }
     } catch (err) {
-      showError(err.message || 'Failed to update subscription');
+      showError(err.response?.data?.detail || 'Failed to start checkout');
+      console.error(err);
+      setLoading(false);
     }
   };
 
