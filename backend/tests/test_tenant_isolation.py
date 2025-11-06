@@ -6,7 +6,7 @@ Ensures cross-tenant data leakage is prevented
 import pytest
 from fastapi import status
 from src.repository import ExpenseRepository
-from src.models import Expense
+from src.models import Expense, ExpenseCategory, ExpenseStatus
 
 
 class TestTenantIsolation:
@@ -22,20 +22,20 @@ class TestTenantIsolation:
             organization_id=test_organization.id,
             user_id=test_user.id,
             amount=100.00,
-            currency="USD",
+            vendor="Test Vendor 1",
             description="Org 1 expense",
-            category="meals",
-            status="pending"
+            category=ExpenseCategory.MEALS,
+            status=ExpenseStatus.PENDING
         )
         expense2 = Expense(
             id="exp_org2",
             organization_id=second_organization.id,
             user_id=second_org_user.id,
             amount=200.00,
-            currency="USD",
+            vendor="Test Vendor 2",
             description="Org 2 expense",
-            category="meals",
-            status="pending"
+            category=ExpenseCategory.MEALS,
+            status=ExpenseStatus.PENDING
         )
         db_session.add_all([expense1, expense2])
         db_session.commit()
@@ -62,10 +62,10 @@ class TestTenantIsolation:
             organization_id=second_organization.id,
             user_id=second_org_user.id,
             amount=100.00,
-            currency="USD",
+            vendor="Secret Vendor",
             description="Secret expense",
-            category="meals",
-            status="pending"
+            category=ExpenseCategory.MEALS,
+            status=ExpenseStatus.PENDING
         )
         db_session.add(expense)
         db_session.commit()

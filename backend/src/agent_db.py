@@ -316,6 +316,7 @@ class ExpenseManagementAgent:
         # Create expense in database
         expense = self.expense_repo.create({
             'id': expense_id,
+            'organization_id': self.organization_id,
             'user_id': user_id,
             'amount': amount,
             'vendor': vendor,
