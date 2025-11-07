@@ -23,6 +23,7 @@ from .routes.webhooks import router as webhooks_router
 # Temporarily disabled due to missing google-cloud dependencies
 # from .routes.gcp_webhooks import router as gcp_webhooks_router
 from .routes.payment import router as payment_router
+from .routes.recurring_expenses import router as recurring_expenses_router, notification_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
 from .tenant_context import tenant_middleware
 
@@ -100,6 +101,8 @@ app.include_router(payment_router)  # Stripe payment endpoints
 app.include_router(ap2_router)
 app.include_router(webhooks_router)
 app.include_router(receipts_router)
+app.include_router(recurring_expenses_router)
+app.include_router(notification_router)
 
 # Include GCP Marketplace webhooks (temporarily disabled)
 # app.include_router(gcp_webhooks_router)
@@ -118,12 +121,25 @@ async def startup_event():
     finally:
         db.close()
 
+    # Start recurring expense scheduler
+    from .scheduler import start_scheduler
+    await start_scheduler()
+    print("[STARTUP] Recurring expense scheduler started")
+
     print("[STARTUP] Registered routes:")
     for route in app.routes:
         if hasattr(route, "path"):
             print(
                 f"  {route.methods if hasattr(route, 'methods') else 'N/A'} {route.path}"
             )
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    # Stop recurring expense scheduler
+    from .scheduler import stop_scheduler
+    await stop_scheduler()
+    print("[SHUTDOWN] Recurring expense scheduler stopped")
 
 
 # Agent will be initialized per-request with database session

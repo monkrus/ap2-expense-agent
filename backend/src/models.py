@@ -312,6 +312,114 @@ class ExpenseComment(Base):
 
 
 # ============================================================================
+# Recurring Expense Models
+# ============================================================================
+
+class RecurringFrequency(str, enum.Enum):
+    WEEKLY = "weekly"
+    BIWEEKLY = "biweekly"
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    YEARLY = "yearly"
+
+
+class RecurringExpenseTemplate(Base):
+    """Template for recurring expense auto-submission"""
+    __tablename__ = "recurring_expense_templates"
+
+    id = Column(String(255), primary_key=True)
+    organization_id = Column(String(255), ForeignKey("organizations.id"), nullable=False, index=True)
+    user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
+
+    # Expense template details
+    vendor = Column(String(255), nullable=False)
+    amount = Column(Numeric(10, 2), nullable=False)
+    category = Column(Enum(ExpenseCategory, name='expensecategory'), nullable=False)
+    description = Column(Text, nullable=False)
+
+    # Recurring schedule
+    frequency = Column(Enum(RecurringFrequency, name='recurringfrequency'), nullable=False)
+    start_date = Column(DateTime, nullable=False)
+    end_date = Column(DateTime, nullable=True)  # Optional end date
+    next_run_date = Column(DateTime, nullable=False, index=True)  # Next scheduled submission
+
+    # Intent Mandate integration (optional)
+    intent_mandate_id = Column(String(255), ForeignKey("intent_mandates.id"), nullable=True)
+    auto_submit = Column(Boolean, default=True, nullable=False)  # Auto-submit or just notify
+
+    # Status
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
+    is_paused = Column(Boolean, default=False, nullable=False)
+
+    # Statistics
+    total_submitted = Column(Integer, default=0, nullable=False)
+    last_submitted_at = Column(DateTime, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    organization = relationship("Organization", backref="recurring_expenses")
+    user = relationship("User", backref="recurring_expense_templates")
+    intent_mandate = relationship("IntentMandate", backref="recurring_expenses")
+    scheduled_expenses = relationship("ScheduledExpense", back_populates="template", cascade="all, delete-orphan")
+
+
+class ScheduledExpense(Base):
+    """Individual scheduled expense instance from a recurring template"""
+    __tablename__ = "scheduled_expenses"
+
+    id = Column(String(255), primary_key=True)
+    template_id = Column(String(255), ForeignKey("recurring_expense_templates.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Scheduled details
+    scheduled_date = Column(DateTime, nullable=False, index=True)
+    status = Column(String(50), nullable=False, default="pending", index=True)  # pending, submitted, failed, skipped
+
+    # Result tracking
+    expense_id = Column(String(255), ForeignKey("expenses.id"), nullable=True)
+    error_message = Column(Text, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    processed_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    template = relationship("RecurringExpenseTemplate", back_populates="scheduled_expenses")
+    expense = relationship("Expense", backref="scheduled_from")
+
+
+class ExpenseNotification(Base):
+    """Notifications for expense-related events"""
+    __tablename__ = "expense_notifications"
+
+    id = Column(String(255), primary_key=True)
+    user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
+
+    # Notification details
+    notification_type = Column(String(100), nullable=False, index=True)  # recurring_submitted, expense_approved, etc.
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+
+    # Related entities
+    expense_id = Column(String(255), ForeignKey("expenses.id"), nullable=True)
+    template_id = Column(String(255), ForeignKey("recurring_expense_templates.id"), nullable=True)
+
+    # Status
+    is_read = Column(Boolean, default=False, nullable=False, index=True)
+    read_at = Column(DateTime, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+    # Relationships
+    user = relationship("User", backref="expense_notifications")
+    expense = relationship("Expense", backref="notifications")
+    template = relationship("RecurringExpenseTemplate", backref="notifications")
+
+
+# ============================================================================
 # AP2 Protocol Mandate Models
 # ============================================================================
 

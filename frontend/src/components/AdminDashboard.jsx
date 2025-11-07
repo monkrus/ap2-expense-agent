@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check, AlertCircle, Plus, Search, Edit2, Trash2, Upload, History, Receipt, Activity, Database, BarChart3, CreditCard, Building2 } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check, AlertCircle, Plus, Search, Edit2, Trash2, Upload, History, Receipt, Activity, Database, BarChart3, CreditCard, Building2, Bot } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import adminAPI from '../services/adminAPI';
 import billingAPI from '../services/billingAPI';
@@ -11,6 +11,7 @@ import RoleBadge from './RoleBadge';
 import ReceiptUpload from './ReceiptUpload';
 import ReceiptList from './ReceiptList';
 import { getRoleTheme } from '../utils/roleThemes';
+import AIAssistant from '../pages/AIAssistant';
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
@@ -24,7 +25,7 @@ const AdminDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'archived', 'users', or 'billing'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'archived', 'users', 'billing', or 'ai-assistant'
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [archivedExpenses, setArchivedExpenses] = useState([]);
@@ -854,6 +855,18 @@ const AdminDashboard = () => {
                 Billing & Usage
               </button>
             )}
+            {/* AI Assistant Tab */}
+            <button
+              onClick={() => setActiveTab('ai-assistant')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'ai-assistant'
+                  ? getTabActiveClasses()
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <Bot className="w-5 h-5" />
+              AI Assistant
+            </button>
           </div>
         </div>
 
@@ -1138,6 +1151,11 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* AI Assistant Tab */}
+        {activeTab === 'ai-assistant' && (
+          <AIAssistant />
         )}
 
         {/* Expenses List - Show for pending, all, and archived tabs */}
