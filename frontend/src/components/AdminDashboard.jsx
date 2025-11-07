@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check, AlertCircle, Plus, Search, Edit2, Trash2, Upload, History, Receipt, Activity, Database, BarChart3, CreditCard, Building2, Bot } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check, AlertCircle, Plus, Search, Edit2, Trash2, Upload, History, Receipt, Activity, Database, BarChart3, CreditCard, Building2, Bot, Repeat } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import adminAPI from '../services/adminAPI';
 import billingAPI from '../services/billingAPI';
@@ -12,6 +12,8 @@ import ReceiptUpload from './ReceiptUpload';
 import ReceiptList from './ReceiptList';
 import { getRoleTheme } from '../utils/roleThemes';
 import AIAssistant from '../pages/AIAssistant';
+import RecurringExpenses from '../pages/RecurringExpenses';
+import NotificationCenter from './NotificationCenter';
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
@@ -25,7 +27,7 @@ const AdminDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'archived', 'users', 'billing', or 'ai-assistant'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'archived', 'users', 'billing', 'ai-assistant', or 'recurring-expenses'
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [archivedExpenses, setArchivedExpenses] = useState([]);
@@ -758,6 +760,7 @@ const AdminDashboard = () => {
               >
                 {loading ? 'Refreshing...' : 'Refresh'}
               </button>
+              <NotificationCenter />
               <button
                 onClick={async () => {
                   await logout();
@@ -866,6 +869,18 @@ const AdminDashboard = () => {
             >
               <Bot className="w-5 h-5" />
               AI Assistant
+            </button>
+            {/* Recurring Expenses Tab */}
+            <button
+              onClick={() => setActiveTab('recurring-expenses')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'recurring-expenses'
+                  ? getTabActiveClasses()
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <Repeat className="w-5 h-5" />
+              Recurring
             </button>
           </div>
         </div>
@@ -1156,6 +1171,11 @@ const AdminDashboard = () => {
         {/* AI Assistant Tab */}
         {activeTab === 'ai-assistant' && (
           <AIAssistant />
+        )}
+
+        {/* Recurring Expenses Tab */}
+        {activeTab === 'recurring-expenses' && (
+          <RecurringExpenses />
         )}
 
         {/* Expenses List - Show for pending, all, and archived tabs */}
