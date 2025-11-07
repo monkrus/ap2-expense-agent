@@ -14,6 +14,7 @@ import { getRoleTheme } from '../utils/roleThemes';
 import AIAssistant from '../pages/AIAssistant';
 import RecurringExpenses from '../pages/RecurringExpenses';
 import NotificationCenter from './NotificationCenter';
+import BatchReceiptUpload from './BatchReceiptUpload';
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
@@ -41,6 +42,7 @@ const AdminDashboard = () => {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showReceiptUpload, setShowReceiptUpload] = useState(false);
   const [showReceiptList, setShowReceiptList] = useState(false);
+  const [showBatchUpload, setShowBatchUpload] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [rejectingExpense, setRejectingExpense] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -748,6 +750,13 @@ const AdminDashboard = () => {
               >
                 <Key className="w-5 h-5" />
                 Change Password
+              </button>
+              <button
+                onClick={() => setShowBatchUpload(true)}
+                className="flex items-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+              >
+                <Upload className="w-5 h-5" />
+                Batch Upload
               </button>
               <button
                 onClick={() => {
@@ -1750,6 +1759,20 @@ const AdminDashboard = () => {
               setShowReceiptList(false);
               setSelectedExpense(null);
             }}
+          />
+        )}
+
+        {/* Batch Receipt Upload Modal */}
+        {showBatchUpload && (
+          <BatchReceiptUpload
+            onSuccess={() => {
+              setShowBatchUpload(false);
+              // Refresh expenses after successful batch upload
+              fetchPendingExpenses();
+              fetchAllExpenses();
+              fetchDashboardStats();
+            }}
+            onCancel={() => setShowBatchUpload(false)}
           />
         )}
       </div>
