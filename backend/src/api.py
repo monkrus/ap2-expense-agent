@@ -24,6 +24,7 @@ from .routes.webhooks import router as webhooks_router
 # from .routes.gcp_webhooks import router as gcp_webhooks_router
 from .routes.payment import router as payment_router
 from .routes.recurring_expenses import router as recurring_expenses_router, notification_router
+from .routes.budgets import router as budgets_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
 from .tenant_context import tenant_middleware
 
@@ -103,6 +104,7 @@ app.include_router(webhooks_router)
 app.include_router(receipts_router)
 app.include_router(recurring_expenses_router)
 app.include_router(notification_router)
+app.include_router(budgets_router)
 
 # Include GCP Marketplace webhooks (temporarily disabled)
 # app.include_router(gcp_webhooks_router)
