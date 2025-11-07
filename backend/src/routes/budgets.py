@@ -3,7 +3,7 @@ API endpoints for budget management and alerts.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, func
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -100,7 +100,7 @@ class BudgetAlertResponse(BaseModel):
 # Helper Functions
 # ============================================================================
 
-async def get_user_organization(db: AsyncSession, user_id: str) -> Optional[str]:
+def get_user_organization(db: Session, user_id: str) -> Optional[str]:
     """Get the organization ID for a user"""
     stmt = select(OrganizationMember).where(
         and_(
@@ -108,13 +108,13 @@ async def get_user_organization(db: AsyncSession, user_id: str) -> Optional[str]
             OrganizationMember.is_active == True
         )
     ).limit(1)
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     member = result.scalar_one_or_none()
     return member.organization_id if member else None
 
 
-async def calculate_budget_spending(
-    db: AsyncSession,
+def calculate_budget_spending(
+    db: Session,
     budget: Budget,
     start_date: datetime,
     end_date: datetime
@@ -137,7 +137,7 @@ async def calculate_budget_spending(
     if budget.user_id:
         query = query.where(Expense.user_id == budget.user_id)
 
-    result = await db.execute(query)
+    result = db.execute(query)
     total = result.scalar_one()
     return Decimal(total or 0)
 
@@ -196,15 +196,15 @@ def calculate_budget_status(percentage_used: float, warning: int, critical: int)
 # ============================================================================
 
 @router.post("", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED)
-async def create_budget(
+def create_budget(
     data: BudgetCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Create a new budget"""
 
     # Get user's organization
-    org_id = await get_user_organization(db, current_user.id)
+    org_id = get_user_organization(db, current_user.id)
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -242,12 +242,12 @@ async def create_budget(
     )
 
     db.add(budget)
-    await db.commit()
-    await db.refresh(budget)
+    db.commit()
+    db.refresh(budget)
 
     # Calculate current spending
     start_date, end_date = get_budget_period_dates(budget)
-    current_spending = await calculate_budget_spending(db, budget, start_date, end_date)
+    current_spending = calculate_budget_spending(db, budget, start_date, end_date)
     percentage_used = float((current_spending / budget.amount) * 100) if budget.amount > 0 else 0
     remaining = float(budget.amount - current_spending)
     status_str = calculate_budget_status(percentage_used, budget.warning_threshold, budget.critical_threshold)
@@ -275,15 +275,15 @@ async def create_budget(
 
 
 @router.get("", response_model=List[BudgetResponse])
-async def list_budgets(
+def list_budgets(
     active_only: bool = True,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """List all budgets for the organization"""
 
     # Get user's organization
-    org_id = await get_user_organization(db, current_user.id)
+    org_id = get_user_organization(db, current_user.id)
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -303,14 +303,14 @@ async def list_budgets(
 
     query = query.order_by(Budget.created_at.desc())
 
-    result = await db.execute(query)
+    result = db.execute(query)
     budgets = result.scalars().all()
 
     # Calculate spending for each budget
     budget_responses = []
     for budget in budgets:
         start_date, end_date = get_budget_period_dates(budget)
-        current_spending = await calculate_budget_spending(db, budget, start_date, end_date)
+        current_spending = calculate_budget_spending(db, budget, start_date, end_date)
         percentage_used = float((current_spending / budget.amount) * 100) if budget.amount > 0 else 0
         remaining = float(budget.amount - current_spending)
         status_str = calculate_budget_status(percentage_used, budget.warning_threshold, budget.critical_threshold)
@@ -340,14 +340,14 @@ async def list_budgets(
 
 
 @router.get("/{budget_id}", response_model=BudgetResponse)
-async def get_budget(
+def get_budget(
     budget_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Get a specific budget"""
 
-    org_id = await get_user_organization(db, current_user.id)
+    org_id = get_user_organization(db, current_user.id)
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -360,7 +360,7 @@ async def get_budget(
             Budget.organization_id == org_id
         )
     )
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     budget = result.scalar_one_or_none()
 
     if not budget:
@@ -379,7 +379,7 @@ async def get_budget(
 
     # Calculate current spending
     start_date, end_date = get_budget_period_dates(budget)
-    current_spending = await calculate_budget_spending(db, budget, start_date, end_date)
+    current_spending = calculate_budget_spending(db, budget, start_date, end_date)
     percentage_used = float((current_spending / budget.amount) * 100) if budget.amount > 0 else 0
     remaining = float(budget.amount - current_spending)
     status_str = calculate_budget_status(percentage_used, budget.warning_threshold, budget.critical_threshold)
@@ -407,11 +407,11 @@ async def get_budget(
 
 
 @router.patch("/{budget_id}", response_model=BudgetResponse)
-async def update_budget(
+def update_budget(
     budget_id: str,
     data: BudgetUpdate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Update a budget"""
 
@@ -422,7 +422,7 @@ async def update_budget(
             detail="Only admins and managers can update budgets"
         )
 
-    org_id = await get_user_organization(db, current_user.id)
+    org_id = get_user_organization(db, current_user.id)
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -435,7 +435,7 @@ async def update_budget(
             Budget.organization_id == org_id
         )
     )
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     budget = result.scalar_one_or_none()
 
     if not budget:
@@ -464,12 +464,12 @@ async def update_budget(
     if data.is_active is not None:
         budget.is_active = data.is_active
 
-    await db.commit()
-    await db.refresh(budget)
+    db.commit()
+    db.refresh(budget)
 
     # Calculate current spending
     start_date, end_date = get_budget_period_dates(budget)
-    current_spending = await calculate_budget_spending(db, budget, start_date, end_date)
+    current_spending = calculate_budget_spending(db, budget, start_date, end_date)
     percentage_used = float((current_spending / budget.amount) * 100) if budget.amount > 0 else 0
     remaining = float(budget.amount - current_spending)
     status_str = calculate_budget_status(percentage_used, budget.warning_threshold, budget.critical_threshold)
@@ -497,10 +497,10 @@ async def update_budget(
 
 
 @router.delete("/{budget_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_budget(
+def delete_budget(
     budget_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Delete a budget"""
 
@@ -511,7 +511,7 @@ async def delete_budget(
             detail="Only admins can delete budgets"
         )
 
-    org_id = await get_user_organization(db, current_user.id)
+    org_id = get_user_organization(db, current_user.id)
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -524,7 +524,7 @@ async def delete_budget(
             Budget.organization_id == org_id
         )
     )
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     budget = result.scalar_one_or_none()
 
     if not budget:
@@ -533,8 +533,8 @@ async def delete_budget(
             detail="Budget not found"
         )
 
-    await db.delete(budget)
-    await db.commit()
+    db.delete(budget)
+    db.commit()
 
 
 # ============================================================================
@@ -542,14 +542,14 @@ async def delete_budget(
 # ============================================================================
 
 @router.get("/{budget_id}/alerts", response_model=List[BudgetAlertResponse])
-async def get_budget_alerts(
+def get_budget_alerts(
     budget_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Get all alerts for a budget"""
 
-    org_id = await get_user_organization(db, current_user.id)
+    org_id = get_user_organization(db, current_user.id)
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -563,7 +563,7 @@ async def get_budget_alerts(
             Budget.organization_id == org_id
         )
     )
-    budget_result = await db.execute(budget_stmt)
+    budget_result = db.execute(budget_stmt)
     budget = budget_result.scalar_one_or_none()
 
     if not budget:
@@ -584,7 +584,7 @@ async def get_budget_alerts(
         BudgetAlert.budget_id == budget_id
     ).order_by(BudgetAlert.created_at.desc())
 
-    result = await db.execute(query)
+    result = db.execute(query)
     alerts = result.scalars().all()
 
     return [
@@ -605,15 +605,15 @@ async def get_budget_alerts(
 
 
 @router.post("/{budget_id}/alerts/{alert_id}/acknowledge")
-async def acknowledge_alert(
+def acknowledge_alert(
     budget_id: str,
     alert_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Acknowledge a budget alert"""
 
-    org_id = await get_user_organization(db, current_user.id)
+    org_id = get_user_organization(db, current_user.id)
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -627,7 +627,7 @@ async def acknowledge_alert(
             BudgetAlert.budget_id == budget_id
         )
     )
-    alert_result = await db.execute(alert_stmt)
+    alert_result = db.execute(alert_stmt)
     alert = alert_result.scalar_one_or_none()
 
     if not alert:
@@ -638,7 +638,7 @@ async def acknowledge_alert(
 
     # Verify budget access
     budget_stmt = select(Budget).where(Budget.id == budget_id)
-    budget_result = await db.execute(budget_stmt)
+    budget_result = db.execute(budget_stmt)
     budget = budget_result.scalar_one_or_none()
 
     if not budget or budget.organization_id != org_id:
@@ -652,6 +652,6 @@ async def acknowledge_alert(
     alert.acknowledged_at = datetime.utcnow()
     alert.acknowledged_by = current_user.id
 
-    await db.commit()
+    db.commit()
 
     return {"success": True, "message": "Alert acknowledged"}

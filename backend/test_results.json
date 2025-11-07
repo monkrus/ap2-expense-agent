@@ -3,132 +3,180 @@
     "test": "Login",
     "status": "PASS",
     "message": "Token obtained for user 35d04997-b1f4-4cdb-acc0-b90587fd509a",
-    "timestamp": "2025-11-07T21:27:54.237840"
+    "timestamp": "2025-11-07T21:42:10.185923"
   },
   {
     "test": "Get Pending Expenses",
     "status": "PASS",
-    "message": "Found 9 pending expenses",
-    "timestamp": "2025-11-07T21:27:54.259905"
+    "message": "Found 13 pending expenses",
+    "timestamp": "2025-11-07T21:42:10.219259"
   },
   {
     "test": "Get All Expenses (filter: all)",
     "status": "PASS",
-    "message": "Found 9 expenses",
-    "timestamp": "2025-11-07T21:27:54.282042"
+    "message": "Found 13 expenses",
+    "timestamp": "2025-11-07T21:42:10.245853"
   },
   {
     "test": "Get All Expenses (filter: pending)",
     "status": "PASS",
-    "message": "Found 9 expenses",
-    "timestamp": "2025-11-07T21:27:54.304187"
+    "message": "Found 13 expenses",
+    "timestamp": "2025-11-07T21:42:10.273131"
   },
   {
     "test": "Get All Expenses (filter: approved)",
     "status": "PASS",
     "message": "Found 0 expenses",
-    "timestamp": "2025-11-07T21:27:54.313802"
+    "timestamp": "2025-11-07T21:42:10.282862"
   },
   {
     "test": "Get All Expenses (filter: rejected)",
     "status": "PASS",
     "message": "Found 0 expenses",
-    "timestamp": "2025-11-07T21:27:54.322814"
+    "timestamp": "2025-11-07T21:42:10.291560"
   },
   {
     "test": "Archive All Expenses",
     "status": "PASS",
-    "message": "Archived 0 expenses",
-    "timestamp": "2025-11-07T21:27:54.331123"
+    "message": "Archived 4 expenses",
+    "timestamp": "2025-11-07T21:42:10.326325"
   },
   {
     "test": "Get Archived Expenses",
     "status": "PASS",
-    "message": "Found 0 archived expenses",
-    "timestamp": "2025-11-07T21:27:54.338502"
+    "message": "Found 4 archived expenses",
+    "timestamp": "2025-11-07T21:42:10.347466"
   },
   {
     "test": "Unarchive All Expenses",
     "status": "PASS",
-    "message": "Restored 0 expenses",
-    "timestamp": "2025-11-07T21:27:54.346518"
+    "message": "Restored 4 expenses",
+    "timestamp": "2025-11-07T21:42:10.380386"
   },
   {
     "test": "Get All Users",
     "status": "PASS",
     "message": "Found 4 users",
-    "timestamp": "2025-11-07T21:27:54.356422"
+    "timestamp": "2025-11-07T21:42:10.394947"
   },
   {
     "test": "Get All Permissions",
     "status": "PASS",
     "message": "Permissions loaded",
-    "timestamp": "2025-11-07T21:27:54.363068"
+    "timestamp": "2025-11-07T21:42:10.402391"
   },
   {
     "test": "Get Subscription",
     "status": "FAIL",
     "message": "Status 500",
-    "timestamp": "2025-11-07T21:27:54.392090"
+    "timestamp": "2025-11-07T21:42:10.436667"
   },
   {
     "test": "Get Monthly Usage",
     "status": "FAIL",
     "message": "Status 404",
-    "timestamp": "2025-11-07T21:27:54.401913"
+    "timestamp": "2025-11-07T21:42:10.445628"
   },
   {
     "test": "Get Billing Tiers",
     "status": "PASS",
     "message": "Tiers loaded",
-    "timestamp": "2025-11-07T21:27:54.405973"
+    "timestamp": "2025-11-07T21:42:10.450788"
   },
   {
     "test": "AI Assistant Tab",
     "status": "SKIP",
     "message": "Frontend-only functionality",
-    "timestamp": "2025-11-07T21:27:54.406137"
+    "timestamp": "2025-11-07T21:42:10.450913"
   },
   {
     "test": "Get Recurring Expenses",
-    "status": "FAIL",
-    "message": "Status 500: {\"error\":{\"message\":\"TypeError: object ChunkedIteratorResult can't be used in 'await' expression\",\"code\":\"INTERNAL_ERROR\",\"status\":500}}",
-    "timestamp": "2025-11-07T21:27:54.433531"
+    "status": "PASS",
+    "message": "Found 0 templates",
+    "timestamp": "2025-11-07T21:42:10.464714"
   },
   {
     "test": "Create Recurring Expense",
-    "status": "FAIL",
-    "message": "Status 500: {\"error\":{\"message\":\"TypeError: object ChunkedIteratorResult can't be used in 'await' expression\",\"code\":\"INTERNAL_ERROR\",\"status\":500}}",
-    "timestamp": "2025-11-07T21:27:54.464045"
+    "status": "PASS",
+    "message": "Created template recurring_c06e0f9576d943bf",
+    "timestamp": "2025-11-07T21:42:10.496136"
+  },
+  {
+    "test": "Pause Recurring Expense",
+    "status": "PASS",
+    "message": "Template paused",
+    "timestamp": "2025-11-07T21:42:10.521243"
+  },
+  {
+    "test": "Resume Recurring Expense",
+    "status": "PASS",
+    "message": "Template resumed",
+    "timestamp": "2025-11-07T21:42:10.544851"
+  },
+  {
+    "test": "Update Recurring Expense",
+    "status": "PASS",
+    "message": "Template updated successfully",
+    "timestamp": "2025-11-07T21:42:10.568594"
+  },
+  {
+    "test": "Get Single Recurring Expense",
+    "status": "PASS",
+    "message": "Template retrieved",
+    "timestamp": "2025-11-07T21:42:10.577557"
+  },
+  {
+    "test": "Delete Recurring Expense",
+    "status": "PASS",
+    "message": "Template deleted",
+    "timestamp": "2025-11-07T21:42:10.606995"
   },
   {
     "test": "Get Budgets",
-    "status": "FAIL",
-    "message": "Status 500",
-    "timestamp": "2025-11-07T21:27:54.494282"
+    "status": "PASS",
+    "message": "Found 0 budgets",
+    "timestamp": "2025-11-07T21:42:10.618817"
   },
   {
     "test": "Create Budget",
-    "status": "FAIL",
-    "message": "Status 500: {\"error\":{\"message\":\"TypeError: object ChunkedIteratorResult can't be used in 'await' expression\",\"code\":\"INTERNAL_ERROR\",\"status\":500}}",
-    "timestamp": "2025-11-07T21:27:54.523268"
+    "status": "PASS",
+    "message": "Created budget budget_b6f7a1cd91324ae2",
+    "timestamp": "2025-11-07T21:42:10.645977"
+  },
+  {
+    "test": "Update Budget",
+    "status": "PASS",
+    "message": "Budget updated successfully",
+    "timestamp": "2025-11-07T21:42:10.671134"
+  },
+  {
+    "test": "Get Single Budget",
+    "status": "PASS",
+    "message": "Budget retrieved",
+    "timestamp": "2025-11-07T21:42:10.682259"
+  },
+  {
+    "test": "Delete Budget",
+    "status": "PASS",
+    "message": "Budget deleted",
+    "timestamp": "2025-11-07T21:42:10.707923"
   },
   {
     "test": "Get Notifications",
-    "status": "FAIL",
-    "message": "Status 500",
-    "timestamp": "2025-11-07T21:27:54.552038"
+    "status": "PASS",
+    "message": "Found 0 notifications",
+    "timestamp": "2025-11-07T21:42:10.718037"
   },
   {
     "test": "Get Unread Count",
-    "status": "FAIL",
-    "message": "Status 500",
-    "timestamp": "2025-11-07T21:27:54.580890"
+    "status": "PASS",
+    "message": "0 unread notifications",
+    "timestamp": "2025-11-07T21:42:10.727471"
   },
   {
     "test": "Get Dashboard Stats",
     "status": "PASS",
     "message": "Stats loaded successfully",
-    "timestamp": "2025-11-07T21:27:54.601300"
+    "timestamp": "2025-11-07T21:42:10.749785"
   }
 ]
