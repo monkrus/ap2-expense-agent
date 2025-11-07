@@ -345,6 +345,45 @@ class AdminDashboardTester:
                 else:
                     self.log("Resume Recurring Expense", "FAIL", f"Status {response.status_code}")
 
+                claude/start-app-run-tests-011CUsFhjmtARBb1wf79NhDT
+                # Test UPDATE recurring expense
+                try:
+                    update_data = {
+                        "vendor": "Updated Vendor Name",
+                        "amount": 150.00,
+                        "description": "Updated recurring expense description"
+                    }
+                    response = requests.patch(
+                        f"{BASE_URL}/api/recurring-expenses/{template_id}",
+                        headers=self.get_headers(),
+                        json=update_data
+                    )
+                    if response.status_code == 200:
+                        updated = response.json()
+                        if updated.get("vendor") == "Updated Vendor Name" and updated.get("amount") == 150.00:
+                            self.log("Update Recurring Expense", "PASS", "Template updated successfully")
+                        else:
+                            self.log("Update Recurring Expense", "FAIL", "Updated data doesn't match")
+                    else:
+                        self.log("Update Recurring Expense", "FAIL", f"Status {response.status_code}")
+                except Exception as e:
+                    self.log("Update Recurring Expense", "FAIL", str(e))
+
+                # Test GET single recurring expense
+                try:
+                    response = requests.get(
+                        f"{BASE_URL}/api/recurring-expenses/{template_id}",
+                        headers=self.get_headers()
+                    )
+                    if response.status_code == 200:
+                        self.log("Get Single Recurring Expense", "PASS", "Template retrieved")
+                    else:
+                        self.log("Get Single Recurring Expense", "FAIL", f"Status {response.status_code}")
+                except Exception as e:
+                    self.log("Get Single Recurring Expense", "FAIL", str(e))
+
+
+                main
                 # Test delete
                 response = requests.delete(
                     f"{BASE_URL}/api/recurring-expenses/{template_id}",
@@ -404,6 +443,46 @@ class AdminDashboardTester:
                 budget_id = data.get("id")
                 self.log("Create Budget", "PASS", f"Created budget {budget_id}")
 
+             claude/start-app-run-tests-011CUsFhjmtARBb1wf79NhDT
+                # Test UPDATE budget
+                try:
+                    update_data = {
+                        "name": "Updated Test Budget",
+                        "amount": 6000.00,
+                        "warning_threshold": 70,
+                        "critical_threshold": 85
+                    }
+                    response = requests.patch(
+                        f"{BASE_URL}/api/budgets/{budget_id}",
+                        headers=self.get_headers(),
+                        json=update_data
+                    )
+                    if response.status_code == 200:
+                        updated = response.json()
+                        if updated.get("name") == "Updated Test Budget" and updated.get("amount") == 6000.00:
+                            self.log("Update Budget", "PASS", f"Budget updated successfully")
+                        else:
+                            self.log("Update Budget", "FAIL", "Updated data doesn't match")
+                    else:
+                        self.log("Update Budget", "FAIL", f"Status {response.status_code}")
+                except Exception as e:
+                    self.log("Update Budget", "FAIL", str(e))
+
+                # Test GET single budget
+                try:
+                    response = requests.get(
+                        f"{BASE_URL}/api/budgets/{budget_id}",
+                        headers=self.get_headers()
+                    )
+                    if response.status_code == 200:
+                        self.log("Get Single Budget", "PASS", "Budget retrieved")
+                    else:
+                        self.log("Get Single Budget", "FAIL", f"Status {response.status_code}")
+                except Exception as e:
+                    self.log("Get Single Budget", "FAIL", str(e))
+
+
+               main
                 # Test delete
                 response = requests.delete(
                     f"{BASE_URL}/api/budgets/{budget_id}",

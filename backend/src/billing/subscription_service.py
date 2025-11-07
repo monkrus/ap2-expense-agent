@@ -193,7 +193,14 @@ class SubscriptionService:
             return {
                 "has_subscription": False,
                 "tier": None,
-                "status": "none"
+                "tier_name": None,
+                "status": "none",
+                "current_period_start": None,
+                "current_period_end": None,
+                "trial_end": None,
+                "limits": None,
+                "stripe_customer_id": None,
+                "stripe_subscription_id": None
             }
 
         limits = get_tier_limits(subscription.tier)
