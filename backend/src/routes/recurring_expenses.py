@@ -148,9 +148,15 @@ def create_recurring_expense(
 ):
     """Create a new recurring expense template"""
 
+    claude/start-app-run-tests-011CUsFhjmtARBb1wf79NhDT
     # Get user's organization
     org_id = get_user_organization(db, current_user.id)
     if not org_id:
+
+    # Get user's organization (optional for admins)
+    org_id = get_user_organization(db, current_user.id)
+    if not org_id and current_user.role != 'admin':
+    main
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User is not a member of any organization"

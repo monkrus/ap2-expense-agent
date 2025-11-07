@@ -731,7 +731,7 @@ const AdminDashboard = () => {
                 <button
                   onClick={() => window.location.href = '/organizations'}
                   title="Manage Organizations"
-                  className="flex items-center gap-2 px-4 py-3 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium"
+                  className="flex items-center gap-2 px-4 py-3 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium ml-4"
                 >
                   <Building2 className="w-5 h-5" />
                   Organizations
