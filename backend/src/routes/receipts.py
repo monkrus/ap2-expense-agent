@@ -1,15 +1,17 @@
 """Receipt upload and management routes"""
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 import uuid
 import os
 import shutil
 from pathlib import Path
+import asyncio
 
 from ..database import get_db
 from ..auth import get_current_active_user
 from ..models import User, Receipt, Expense
+from ..services.receipt_ai_service import get_receipt_ai_service
 
 router = APIRouter(
     prefix="/api/v1/receipts",
@@ -120,6 +122,214 @@ async def upload_receipt(
             "uploaded_at": receipt.uploaded_at.isoformat()
         }
     }
+
+
+@router.post("/batch-upload")
+async def batch_upload_receipts(
+    files: List[UploadFile] = File(...),
+    background_tasks: BackgroundTasks = None,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Upload multiple receipts and extract data using AI"""
+
+    if len(files) > 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Maximum 10 files per batch"
+        )
+
+    results = []
+    temp_files = []
+
+    try:
+        # Process each file
+        for file in files:
+            # Validate file
+            validate_file(file)
+
+            # Check file size
+            file_content = await file.read()
+            file_size = len(file_content)
+
+            if file_size > MAX_FILE_SIZE:
+                results.append({
+                    "filename": file.filename,
+                    "success": False,
+                    "error": f"File too large. Maximum size: {MAX_FILE_SIZE / 1024 / 1024}MB"
+                })
+                continue
+
+            # Reset file pointer
+            await file.seek(0)
+
+            # Generate unique filename and save temporarily
+            file_ext = Path(file.filename).suffix.lower()
+            unique_filename = f"{uuid.uuid4().hex}{file_ext}"
+            file_path = UPLOAD_DIR / unique_filename
+
+            try:
+                with open(file_path, "wb") as buffer:
+                    shutil.copyfileobj(file.file, buffer)
+
+                temp_files.append(file_path)
+
+                results.append({
+                    "filename": file.filename,
+                    "temp_filename": unique_filename,
+                    "file_path": str(file_path),
+                    "file_size": file_size,
+                    "content_type": file.content_type,
+                    "success": True
+                })
+
+            except Exception as e:
+                results.append({
+                    "filename": file.filename,
+                    "success": False,
+                    "error": f"Failed to save file: {str(e)}"
+                })
+
+        # Extract data from all successful uploads using AI
+        ai_service = get_receipt_ai_service()
+        successful_files = [r for r in results if r.get("success")]
+
+        if successful_files:
+            file_paths = [r["file_path"] for r in successful_files]
+
+            # Run extraction
+            extractions = await ai_service.batch_extract_receipts(file_paths)
+
+            # Merge extraction data with file info
+            for idx, result in enumerate(successful_files):
+                if idx < len(extractions):
+                    result["extracted_data"] = extractions[idx]
+
+        return {
+            "success": True,
+            "total_files": len(files),
+            "results": results
+        }
+
+    except Exception as e:
+        # Clean up temp files on error
+        for temp_file in temp_files:
+            try:
+                if Path(temp_file).exists():
+                    Path(temp_file).unlink()
+            except:
+                pass
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Batch upload failed: {str(e)}"
+        )
+
+
+@router.post("/create-from-extraction")
+async def create_expense_from_extraction(
+    data: dict,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Create an expense from extracted receipt data"""
+
+    try:
+        # Get required fields
+        vendor = data.get("vendor")
+        amount = data.get("amount")
+        category = data.get("category", "Other")
+        description = data.get("description", "")
+        temp_filename = data.get("temp_filename")
+        original_filename = data.get("original_filename")
+
+        if not vendor or not amount or not temp_filename:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing required fields: vendor, amount, temp_filename"
+            )
+
+        # Verify temp file exists
+        file_path = UPLOAD_DIR / temp_filename
+        if not file_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail="Temporary file not found. Please re-upload."
+            )
+
+        # Get user's organization
+        from ..models import OrganizationMember
+        member = db.query(OrganizationMember).filter(
+            OrganizationMember.user_id == current_user.id,
+            OrganizationMember.is_active == True
+        ).first()
+
+        if not member:
+            raise HTTPException(
+                status_code=400,
+                detail="User is not a member of any organization"
+            )
+
+        # Create expense
+        expense = Expense(
+            id=str(uuid.uuid4()),
+            organization_id=member.organization_id,
+            user_id=current_user.id,
+            vendor=vendor,
+            amount=float(amount),
+            category=category,
+            description=description,
+            status="pending"
+        )
+
+        db.add(expense)
+        db.flush()
+
+        # Get file info
+        file_stat = file_path.stat()
+
+        # Create receipt record
+        receipt = Receipt(
+            id=str(uuid.uuid4()),
+            expense_id=expense.id,
+            filename=temp_filename,
+            original_filename=original_filename or temp_filename,
+            file_path=str(file_path),
+            file_size=file_stat.st_size,
+            content_type=data.get("content_type", "image/jpeg")
+        )
+
+        db.add(receipt)
+        db.commit()
+        db.refresh(expense)
+        db.refresh(receipt)
+
+        return {
+            "success": True,
+            "expense": {
+                "id": expense.id,
+                "vendor": expense.vendor,
+                "amount": float(expense.amount),
+                "category": expense.category,
+                "description": expense.description,
+                "status": expense.status,
+                "created_at": expense.created_at.isoformat()
+            },
+            "receipt": {
+                "id": receipt.id,
+                "filename": receipt.original_filename,
+                "uploaded_at": receipt.uploaded_at.isoformat()
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create expense: {str(e)}"
+        )
 
 
 @router.get("/{expense_id}")

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown, User, LogOut, Copy, Check, Search, Bot } from 'lucide-react';
+import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown, User, LogOut, Copy, Check, Search, Bot, Repeat, TrendingUp } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,6 +11,10 @@ import ReceiptList from './ReceiptList';
 import RoleBadge from './RoleBadge';
 import { getRoleTheme } from '../utils/roleThemes';
 import AIAssistant from '../pages/AIAssistant';
+import RecurringExpenses from '../pages/RecurringExpenses';
+import BudgetManagement from '../pages/BudgetManagement';
+import NotificationCenter from './NotificationCenter';
+import BatchReceiptUpload from './BatchReceiptUpload';
 
 const EmployeeDashboard = () => {
   const { user, logout } = useAuth();
@@ -24,7 +28,7 @@ const EmployeeDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState('active'); // 'active', 'history', or 'ai-assistant'
+  const [activeTab, setActiveTab] = useState('active'); // 'active', 'history', 'ai-assistant', 'recurring-expenses', or 'budgets'
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -33,6 +37,7 @@ const EmployeeDashboard = () => {
   const [showExpenseEdit, setShowExpenseEdit] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showReceiptList, setShowReceiptList] = useState(false);
+  const [showBatchUpload, setShowBatchUpload] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all'); // for history tab
   const [searchQuery, setSearchQuery] = useState(''); // for searching expenses
@@ -332,6 +337,7 @@ const EmployeeDashboard = () => {
                 </p>
                 <p className="text-xs text-gray-400">{user?.email}</p>
               </div>
+              <NotificationCenter />
               <button
                 onClick={async () => {
                   await logout();
@@ -370,6 +376,13 @@ const EmployeeDashboard = () => {
             >
               <Plus className="w-5 h-5" />
               New Expense
+            </button>
+            <button
+              onClick={() => setShowBatchUpload(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            >
+              <Upload className="w-5 h-5" />
+              Batch Upload
             </button>
           </div>
         </div>
@@ -447,6 +460,28 @@ const EmployeeDashboard = () => {
             >
               <Bot className="w-5 h-5" />
               AI Assistant
+            </button>
+            <button
+              onClick={() => setActiveTab('recurring-expenses')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'recurring-expenses'
+                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <Repeat className="w-5 h-5" />
+              Recurring
+            </button>
+            <button
+              onClick={() => setActiveTab('budgets')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'budgets'
+                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <TrendingUp className="w-5 h-5" />
+              Budgets
             </button>
           </div>
         </div>
@@ -600,6 +635,16 @@ const EmployeeDashboard = () => {
         {/* AI Assistant Tab */}
         {activeTab === 'ai-assistant' && (
           <AIAssistant />
+        )}
+
+        {/* Recurring Expenses Tab */}
+        {activeTab === 'recurring-expenses' && (
+          <RecurringExpenses />
+        )}
+
+        {/* Budget Management Tab */}
+        {activeTab === 'budgets' && (
+          <BudgetManagement />
         )}
 
         {/* Expense List */}
@@ -954,6 +999,28 @@ const EmployeeDashboard = () => {
               setShowReceiptList(false);
               setSelectedExpense(null);
             }}
+          />
+        )}
+
+        {/* Batch Receipt Upload Modal */}
+        {showBatchUpload && (
+          <BatchReceiptUpload
+            onSuccess={() => {
+              setShowBatchUpload(false);
+              // Refresh expenses after successful batch upload
+              const fetchExpenses = async () => {
+                try {
+                  const report = await expenseAPI.getExpenseReport(user?.id);
+                  if (report.expenses && Array.isArray(report.expenses)) {
+                    setExpenses(report.expenses);
+                  }
+                } catch (err) {
+                  console.error('Error fetching expenses:', err);
+                }
+              };
+              fetchExpenses();
+            }}
+            onCancel={() => setShowBatchUpload(false)}
           />
         )}
       </div>

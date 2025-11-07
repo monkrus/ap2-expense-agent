@@ -420,6 +420,82 @@ class ExpenseNotification(Base):
 
 
 # ============================================================================
+# Budget Management Models
+# ============================================================================
+
+class BudgetPeriod(str, enum.Enum):
+    """Budget period types"""
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    YEARLY = "yearly"
+
+
+class Budget(Base):
+    """Budget tracking for organizations or users"""
+    __tablename__ = "budgets"
+
+    id = Column(String(255), primary_key=True)
+    organization_id = Column(String(255), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String(255), ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)  # Optional: user-specific budget
+
+    # Budget details
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(Enum(ExpenseCategory, name='expensecategory'), nullable=True)  # Optional: category-specific budget
+
+    # Budget amounts
+    amount = Column(Numeric(12, 2), nullable=False)  # Total budget amount
+    period = Column(Enum(BudgetPeriod, name='budgetperiod'), nullable=False, default=BudgetPeriod.MONTHLY)
+
+    # Alert thresholds (percentages)
+    warning_threshold = Column(Integer, nullable=False, default=75)  # Alert at 75%
+    critical_threshold = Column(Integer, nullable=False, default=90)  # Alert at 90%
+
+    # Status
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    # Timestamps
+    start_date = Column(DateTime, nullable=False)
+    end_date = Column(DateTime, nullable=True)  # Optional: for fixed-term budgets
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    organization = relationship("Organization")
+    user = relationship("User", backref="budgets")
+    alerts = relationship("BudgetAlert", back_populates="budget", cascade="all, delete-orphan")
+
+
+class BudgetAlert(Base):
+    """Budget alert records"""
+    __tablename__ = "budget_alerts"
+
+    id = Column(String(255), primary_key=True)
+    budget_id = Column(String(255), ForeignKey("budgets.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Alert details
+    alert_type = Column(String(50), nullable=False, index=True)  # warning, critical, exceeded
+    threshold_percentage = Column(Integer, nullable=False)
+    actual_amount = Column(Numeric(12, 2), nullable=False)
+    budget_amount = Column(Numeric(12, 2), nullable=False)
+
+    # Alert message
+    message = Column(Text, nullable=False)
+
+    # Status
+    is_acknowledged = Column(Boolean, default=False, nullable=False)
+    acknowledged_at = Column(DateTime, nullable=True)
+    acknowledged_by = Column(String(255), ForeignKey("users.id"), nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+    # Relationships
+    budget = relationship("Budget", back_populates="alerts")
+    acknowledger = relationship("User", foreign_keys=[acknowledged_by])
+
+
+# ============================================================================
 # AP2 Protocol Mandate Models
 # ============================================================================
 
