@@ -3,147 +3,189 @@
     "test": "Login",
     "status": "PASS",
     "message": "Token obtained for emptest (role: employee)",
-    "timestamp": "2025-11-07T21:13:40.304352",
+    "timestamp": "2025-11-07T21:29:28.377117",
     "role": "Employee"
   },
   {
     "test": "Create Expense",
     "status": "PASS",
-    "message": "Created expense None",
-    "timestamp": "2025-11-07T21:13:40.337601",
+    "message": "Created expense 7874d0d2-a479-4920-8e09-1acc3860c221",
+    "timestamp": "2025-11-07T21:29:28.404250",
     "role": "Employee"
   },
   {
     "test": "Get My Expenses",
     "status": "PASS",
-    "message": "Found 3 expenses",
-    "timestamp": "2025-11-07T21:13:40.349251",
+    "message": "Found 8 expenses",
+    "timestamp": "2025-11-07T21:29:28.414266",
+    "role": "Employee"
+  },
+  {
+    "test": "Get Expense Details",
+    "status": "PASS",
+    "message": "Retrieved details for 7874d0d2-a479-4920-8e09-1acc3860c221",
+    "timestamp": "2025-11-07T21:29:28.425174",
+    "role": "Employee"
+  },
+  {
+    "test": "Update Expense",
+    "status": "PASS",
+    "message": "Expense updated successfully",
+    "timestamp": "2025-11-07T21:29:28.446505",
+    "role": "Employee"
+  },
+  {
+    "test": "Withdraw Expense",
+    "status": "PASS",
+    "message": "Expense withdrawn successfully",
+    "timestamp": "2025-11-07T21:29:28.467408",
     "role": "Employee"
   },
   {
     "test": "Create Expense for Receipt",
     "status": "PASS",
-    "message": "Created None",
-    "timestamp": "2025-11-07T21:13:40.384023",
+    "message": "Created 8e3fc038-08e7-4fc2-82c6-76a761714472",
+    "timestamp": "2025-11-07T21:29:28.490753",
     "role": "Employee"
   },
   {
     "test": "Receipt Upload",
     "status": "SKIP",
     "message": "File upload requires multipart/form-data testing",
-    "timestamp": "2025-11-07T21:13:40.384074",
+    "timestamp": "2025-11-07T21:29:28.490812",
     "role": "Employee"
   },
   {
     "test": "View Recurring Expenses",
-    "status": "PASS",
-    "message": "Found 0 templates",
-    "timestamp": "2025-11-07T21:13:40.396018",
+    "status": "FAIL",
+    "message": "Status 500",
+    "timestamp": "2025-11-07T21:29:28.517817",
     "role": "Employee"
   },
   {
     "test": "View Budgets",
-    "status": "PASS",
-    "message": "Found 0 budgets",
-    "timestamp": "2025-11-07T21:13:40.409240",
+    "status": "FAIL",
+    "message": "Status 500",
+    "timestamp": "2025-11-07T21:29:28.544899",
     "role": "Employee"
   },
   {
     "test": "Get Notifications",
-    "status": "PASS",
-    "message": "Found 0 notifications",
-    "timestamp": "2025-11-07T21:13:40.419521",
+    "status": "FAIL",
+    "message": "Status 500",
+    "timestamp": "2025-11-07T21:29:28.571175",
     "role": "Employee"
   },
   {
     "test": "Unread Notifications",
-    "status": "PASS",
-    "message": "0 unread",
-    "timestamp": "2025-11-07T21:13:40.431626",
+    "status": "FAIL",
+    "message": "Status 500",
+    "timestamp": "2025-11-07T21:29:28.595713",
     "role": "Employee"
   },
   {
     "test": "Get Expense Report",
     "status": "PASS",
     "message": "Report generated successfully",
-    "timestamp": "2025-11-07T21:13:40.455975",
+    "timestamp": "2025-11-07T21:29:28.611449",
     "role": "Employee"
   },
   {
     "test": "Login",
     "status": "PASS",
     "message": "Token obtained for testuser (role: manager)",
-    "timestamp": "2025-11-07T21:13:40.813852",
+    "timestamp": "2025-11-07T21:29:28.959462",
     "role": "Manager"
   },
   {
     "test": "Create Expense",
     "status": "PASS",
-    "message": "Created expense None",
-    "timestamp": "2025-11-07T21:13:40.844158",
+    "message": "Created expense 2f7dda57-a73a-4d64-9955-6f9c8b00dd14",
+    "timestamp": "2025-11-07T21:29:28.988455",
     "role": "Manager"
   },
   {
     "test": "Get My Expenses",
     "status": "PASS",
-    "message": "Found 3 expenses",
-    "timestamp": "2025-11-07T21:13:40.853425",
+    "message": "Found 7 expenses",
+    "timestamp": "2025-11-07T21:29:28.997541",
+    "role": "Manager"
+  },
+  {
+    "test": "Get Expense Details",
+    "status": "PASS",
+    "message": "Retrieved details for 2f7dda57-a73a-4d64-9955-6f9c8b00dd14",
+    "timestamp": "2025-11-07T21:29:29.006927",
+    "role": "Manager"
+  },
+  {
+    "test": "Update Expense",
+    "status": "PASS",
+    "message": "Expense updated successfully",
+    "timestamp": "2025-11-07T21:29:29.032072",
+    "role": "Manager"
+  },
+  {
+    "test": "Withdraw Expense",
+    "status": "PASS",
+    "message": "Expense withdrawn successfully",
+    "timestamp": "2025-11-07T21:29:29.055295",
     "role": "Manager"
   },
   {
     "test": "Create Expense for Receipt",
     "status": "PASS",
-    "message": "Created None",
-    "timestamp": "2025-11-07T21:13:40.883248",
+    "message": "Created ad710c2d-d319-49b8-84fb-8258ef0af3d8",
+    "timestamp": "2025-11-07T21:29:29.079128",
     "role": "Manager"
   },
   {
     "test": "Receipt Upload",
     "status": "SKIP",
     "message": "File upload requires multipart/form-data testing",
-    "timestamp": "2025-11-07T21:13:40.883309",
+    "timestamp": "2025-11-07T21:29:29.079179",
     "role": "Manager"
   },
   {
     "test": "View Recurring Expenses",
-    "status": "PASS",
-    "message": "Found 0 templates",
-    "timestamp": "2025-11-07T21:13:40.894344",
+    "status": "FAIL",
+    "message": "Status 500",
+    "timestamp": "2025-11-07T21:29:29.107548",
     "role": "Manager"
   },
   {
     "test": "Create Recurring Template",
-    "status": "PASS",
-    "message": "Created recurring_c3ac5f5abd6f4a52",
-    "timestamp": "2025-11-07T21:13:40.926795",
+    "status": "FAIL",
+    "message": "Status 500",
+    "timestamp": "2025-11-07T21:29:29.138025",
     "role": "Manager"
   },
   {
     "test": "View Budgets",
-    "status": "PASS",
-    "message": "Found 0 budgets",
-    "timestamp": "2025-11-07T21:13:40.974555",
+    "status": "FAIL",
+    "message": "Status 500",
+    "timestamp": "2025-11-07T21:29:29.168506",
     "role": "Manager"
   },
   {
     "test": "Get Notifications",
-    "status": "PASS",
-    "message": "Found 0 notifications",
-    "timestamp": "2025-11-07T21:13:40.983496",
+    "status": "FAIL",
+    "message": "Status 500",
+    "timestamp": "2025-11-07T21:29:29.196446",
     "role": "Manager"
   },
   {
     "test": "Unread Notifications",
-    "status": "PASS",
-    "message": "0 unread",
-    "timestamp": "2025-11-07T21:13:40.992296",
+    "status": "FAIL",
+    "message": "Status 500",
+    "timestamp": "2025-11-07T21:29:29.226017",
     "role": "Manager"
   },
   {
     "test": "Get Expense Report",
     "status": "PASS",
     "message": "Report generated successfully",
-    "timestamp": "2025-11-07T21:13:41.006357",
+    "timestamp": "2025-11-07T21:29:29.243157",
     "role": "Manager"
   }
 ]

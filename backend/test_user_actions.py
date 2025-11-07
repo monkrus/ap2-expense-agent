@@ -118,7 +118,11 @@ class UserDashboardTester:
 
             if response.status_code == 201:
                 data = response.json()
-                self.created_expense_id = data.get("id")
+                # Handle different response formats
+                if "expense" in data:
+                    self.created_expense_id = data["expense"].get("id")
+                else:
+                    self.created_expense_id = data.get("id")
                 self.log("Create Expense", "PASS", f"Created expense {self.created_expense_id}")
             else:
                 self.log("Create Expense", "FAIL", f"Status {response.status_code}: {response.text}")
@@ -222,7 +226,12 @@ class UserDashboardTester:
             )
 
             if response.status_code == 201:
-                expense_id = response.json().get("id")
+                data = response.json()
+                # Handle different response formats
+                if "expense" in data:
+                    expense_id = data["expense"].get("id")
+                else:
+                    expense_id = data.get("id")
                 self.log("Create Expense for Receipt", "PASS", f"Created {expense_id}")
 
                 # Note: Actual file upload would require multipart/form-data
