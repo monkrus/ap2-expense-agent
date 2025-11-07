@@ -53,7 +53,7 @@ class UpgradeSubscriptionRequest(BaseModel):
 
 # Usage tracking endpoints
 @router.post("/usage/track")
-async def track_usage(
+def track_usage(
     request: UsageTrackRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -85,7 +85,7 @@ async def track_usage(
 
 
 @router.get("/usage/monthly", response_model=UsageStatsResponse)
-async def get_monthly_usage(
+def get_monthly_usage(
     usage_type: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -112,7 +112,7 @@ async def get_monthly_usage(
 
 
 @router.get("/usage/check-limit/{usage_type}")
-async def check_usage_limit(
+def check_usage_limit(
     usage_type: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -142,7 +142,7 @@ async def check_usage_limit(
 
 # Subscription management endpoints
 @router.get("/subscription", response_model=SubscriptionResponse)
-async def get_subscription_status(
+def get_subscription_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -154,7 +154,7 @@ async def get_subscription_status(
 
 
 @router.post("/subscription")
-async def create_subscription(
+def create_subscription(
     request: CreateSubscriptionRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -191,7 +191,7 @@ async def create_subscription(
 
 
 @router.put("/subscription/{subscription_id}/upgrade")
-async def upgrade_subscription(
+def upgrade_subscription(
     subscription_id: str,
     request: UpgradeSubscriptionRequest,
     db: Session = Depends(get_db),
@@ -227,7 +227,7 @@ async def upgrade_subscription(
 
 
 @router.delete("/subscription/{subscription_id}")
-async def cancel_subscription(
+def cancel_subscription(
     subscription_id: str,
     immediate: bool = False,
     db: Session = Depends(get_db),
@@ -264,7 +264,7 @@ async def cancel_subscription(
 
 
 @router.post("/subscription/{subscription_id}/reactivate")
-async def reactivate_subscription(
+def reactivate_subscription(
     subscription_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -285,7 +285,7 @@ async def reactivate_subscription(
 
 # Tier information endpoints
 @router.get("/tiers")
-async def get_all_tiers():
+def get_all_tiers():
     """Get information about all subscription tiers"""
     from ..billing.tier_limits import TIER_CONFIGS
 
@@ -310,7 +310,7 @@ async def get_all_tiers():
 
 
 @router.get("/tiers/{tier}")
-async def get_tier_info(tier: SubscriptionTier):
+def get_tier_info(tier: SubscriptionTier):
     """Get information about a specific tier"""
     limits = get_tier_limits(tier)
 

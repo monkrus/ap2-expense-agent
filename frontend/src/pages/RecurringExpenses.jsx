@@ -34,7 +34,7 @@ const RecurringExpenses = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
       const response = await fetch('/api/recurring-expenses?active_only=false', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -72,7 +72,7 @@ const RecurringExpenses = () => {
 
   const handlePause = async (templateId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
       const response = await fetch(`/api/recurring-expenses/${templateId}/pause`, {
         method: 'POST',
         headers: {
@@ -91,7 +91,7 @@ const RecurringExpenses = () => {
 
   const handleResume = async (templateId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
       const response = await fetch(`/api/recurring-expenses/${templateId}/resume`, {
         method: 'POST',
         headers: {
@@ -112,7 +112,7 @@ const RecurringExpenses = () => {
     if (!window.confirm(`Delete recurring expense for ${vendor}?`)) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
       const response = await fetch(`/api/recurring-expenses/${templateId}`, {
         method: 'DELETE',
         headers: {

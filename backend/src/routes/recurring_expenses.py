@@ -3,7 +3,7 @@ API endpoints for managing recurring expenses and notifications.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, func
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -97,7 +97,7 @@ class NotificationResponse(BaseModel):
 # Helper Functions
 # ============================================================================
 
-async def get_user_organization(db: AsyncSession, user_id: str) -> Optional[str]:
+def get_user_organization(db: Session, user_id: str) -> Optional[str]:
     """Get the organization ID for a user"""
     stmt = select(OrganizationMember).where(
         and_(
@@ -105,7 +105,7 @@ async def get_user_organization(db: AsyncSession, user_id: str) -> Optional[str]
             OrganizationMember.is_active == True
         )
     ).limit(1)
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     member = result.scalar_one_or_none()
     return member.organization_id if member else None
 
@@ -141,16 +141,16 @@ def calculate_next_run_date(start_date: datetime, frequency: RecurringFrequency)
 # ============================================================================
 
 @router.post("", response_model=RecurringExpenseResponse, status_code=status.HTTP_201_CREATED)
-async def create_recurring_expense(
+def create_recurring_expense(
     data: RecurringExpenseCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Create a new recurring expense template"""
 
-    # Get user's organization
-    org_id = await get_user_organization(db, current_user.id)
-    if not org_id:
+    # Get user's organization (optional for admins)
+    org_id = get_user_organization(db, current_user.id)
+    if not org_id and current_user.role != 'admin':
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User is not a member of any organization"
@@ -177,17 +177,17 @@ async def create_recurring_expense(
     )
 
     db.add(template)
-    await db.commit()
-    await db.refresh(template)
+    db.commit()
+    db.refresh(template)
 
     return template
 
 
 @router.get("", response_model=List[RecurringExpenseResponse])
-async def list_recurring_expenses(
+def list_recurring_expenses(
     active_only: bool = True,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """List all recurring expense templates for the current user"""
 
@@ -200,17 +200,17 @@ async def list_recurring_expenses(
 
     query = query.order_by(RecurringExpenseTemplate.next_run_date)
 
-    result = await db.execute(query)
+    result = db.execute(query)
     templates = result.scalars().all()
 
     return templates
 
 
 @router.get("/{template_id}", response_model=RecurringExpenseResponse)
-async def get_recurring_expense(
+def get_recurring_expense(
     template_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Get a specific recurring expense template"""
 
@@ -220,7 +220,7 @@ async def get_recurring_expense(
             RecurringExpenseTemplate.user_id == current_user.id
         )
     )
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     template = result.scalar_one_or_none()
 
     if not template:
@@ -233,11 +233,11 @@ async def get_recurring_expense(
 
 
 @router.patch("/{template_id}", response_model=RecurringExpenseResponse)
-async def update_recurring_expense(
+def update_recurring_expense(
     template_id: str,
     data: RecurringExpenseUpdate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Update a recurring expense template"""
 
@@ -247,7 +247,7 @@ async def update_recurring_expense(
             RecurringExpenseTemplate.user_id == current_user.id
         )
     )
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     template = result.scalar_one_or_none()
 
     if not template:
@@ -278,17 +278,17 @@ async def update_recurring_expense(
     if data.is_paused is not None:
         template.is_paused = data.is_paused
 
-    await db.commit()
-    await db.refresh(template)
+    db.commit()
+    db.refresh(template)
 
     return template
 
 
 @router.delete("/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_recurring_expense(
+def delete_recurring_expense(
     template_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Delete a recurring expense template"""
 
@@ -298,7 +298,7 @@ async def delete_recurring_expense(
             RecurringExpenseTemplate.user_id == current_user.id
         )
     )
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     template = result.scalar_one_or_none()
 
     if not template:
@@ -307,15 +307,15 @@ async def delete_recurring_expense(
             detail="Recurring expense template not found"
         )
 
-    await db.delete(template)
-    await db.commit()
+    db.delete(template)
+    db.commit()
 
 
 @router.post("/{template_id}/pause", response_model=RecurringExpenseResponse)
-async def pause_recurring_expense(
+def pause_recurring_expense(
     template_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Pause a recurring expense template"""
 
@@ -325,7 +325,7 @@ async def pause_recurring_expense(
             RecurringExpenseTemplate.user_id == current_user.id
         )
     )
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     template = result.scalar_one_or_none()
 
     if not template:
@@ -335,17 +335,17 @@ async def pause_recurring_expense(
         )
 
     template.is_paused = True
-    await db.commit()
-    await db.refresh(template)
+    db.commit()
+    db.refresh(template)
 
     return template
 
 
 @router.post("/{template_id}/resume", response_model=RecurringExpenseResponse)
-async def resume_recurring_expense(
+def resume_recurring_expense(
     template_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Resume a paused recurring expense template"""
 
@@ -355,7 +355,7 @@ async def resume_recurring_expense(
             RecurringExpenseTemplate.user_id == current_user.id
         )
     )
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     template = result.scalar_one_or_none()
 
     if not template:
@@ -365,8 +365,8 @@ async def resume_recurring_expense(
         )
 
     template.is_paused = False
-    await db.commit()
-    await db.refresh(template)
+    db.commit()
+    db.refresh(template)
 
     return template
 
@@ -376,11 +376,11 @@ async def resume_recurring_expense(
 # ============================================================================
 
 @notification_router.get("", response_model=List[NotificationResponse])
-async def get_notifications(
+def get_notifications(
     unread_only: bool = False,
     limit: int = 50,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Get notifications for the current user"""
 
@@ -393,17 +393,17 @@ async def get_notifications(
 
     query = query.order_by(ExpenseNotification.created_at.desc()).limit(limit)
 
-    result = await db.execute(query)
+    result = db.execute(query)
     notifications = result.scalars().all()
 
     return notifications
 
 
 @notification_router.post("/{notification_id}/read", response_model=NotificationResponse)
-async def mark_notification_as_read(
+def mark_notification_as_read(
     notification_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Mark a notification as read"""
 
@@ -413,7 +413,7 @@ async def mark_notification_as_read(
             ExpenseNotification.user_id == current_user.id
         )
     )
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     notification = result.scalar_one_or_none()
 
     if not notification:
@@ -424,16 +424,16 @@ async def mark_notification_as_read(
 
     notification.is_read = True
     notification.read_at = datetime.utcnow()
-    await db.commit()
-    await db.refresh(notification)
+    db.commit()
+    db.refresh(notification)
 
     return notification
 
 
 @notification_router.post("/mark-all-read")
-async def mark_all_notifications_as_read(
+def mark_all_notifications_as_read(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Mark all notifications as read for the current user"""
 
@@ -443,7 +443,7 @@ async def mark_all_notifications_as_read(
             ExpenseNotification.is_read == False
         )
     )
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     notifications = result.scalars().all()
 
     count = 0
@@ -452,15 +452,15 @@ async def mark_all_notifications_as_read(
         notification.read_at = datetime.utcnow()
         count += 1
 
-    await db.commit()
+    db.commit()
 
     return {"marked_as_read": count}
 
 
 @notification_router.get("/unread-count")
-async def get_unread_count(
+def get_unread_count(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Get the count of unread notifications"""
 
@@ -470,7 +470,7 @@ async def get_unread_count(
             ExpenseNotification.is_read == False
         )
     )
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     count = result.scalar_one()
 
     return {"unread_count": count}
