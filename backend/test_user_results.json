@@ -1,0 +1,149 @@
+[
+  {
+    "test": "Login",
+    "status": "PASS",
+    "message": "Token obtained for emptest (role: employee)",
+    "timestamp": "2025-11-07T21:13:40.304352",
+    "role": "Employee"
+  },
+  {
+    "test": "Create Expense",
+    "status": "PASS",
+    "message": "Created expense None",
+    "timestamp": "2025-11-07T21:13:40.337601",
+    "role": "Employee"
+  },
+  {
+    "test": "Get My Expenses",
+    "status": "PASS",
+    "message": "Found 3 expenses",
+    "timestamp": "2025-11-07T21:13:40.349251",
+    "role": "Employee"
+  },
+  {
+    "test": "Create Expense for Receipt",
+    "status": "PASS",
+    "message": "Created None",
+    "timestamp": "2025-11-07T21:13:40.384023",
+    "role": "Employee"
+  },
+  {
+    "test": "Receipt Upload",
+    "status": "SKIP",
+    "message": "File upload requires multipart/form-data testing",
+    "timestamp": "2025-11-07T21:13:40.384074",
+    "role": "Employee"
+  },
+  {
+    "test": "View Recurring Expenses",
+    "status": "PASS",
+    "message": "Found 0 templates",
+    "timestamp": "2025-11-07T21:13:40.396018",
+    "role": "Employee"
+  },
+  {
+    "test": "View Budgets",
+    "status": "PASS",
+    "message": "Found 0 budgets",
+    "timestamp": "2025-11-07T21:13:40.409240",
+    "role": "Employee"
+  },
+  {
+    "test": "Get Notifications",
+    "status": "PASS",
+    "message": "Found 0 notifications",
+    "timestamp": "2025-11-07T21:13:40.419521",
+    "role": "Employee"
+  },
+  {
+    "test": "Unread Notifications",
+    "status": "PASS",
+    "message": "0 unread",
+    "timestamp": "2025-11-07T21:13:40.431626",
+    "role": "Employee"
+  },
+  {
+    "test": "Get Expense Report",
+    "status": "PASS",
+    "message": "Report generated successfully",
+    "timestamp": "2025-11-07T21:13:40.455975",
+    "role": "Employee"
+  },
+  {
+    "test": "Login",
+    "status": "PASS",
+    "message": "Token obtained for testuser (role: manager)",
+    "timestamp": "2025-11-07T21:13:40.813852",
+    "role": "Manager"
+  },
+  {
+    "test": "Create Expense",
+    "status": "PASS",
+    "message": "Created expense None",
+    "timestamp": "2025-11-07T21:13:40.844158",
+    "role": "Manager"
+  },
+  {
+    "test": "Get My Expenses",
+    "status": "PASS",
+    "message": "Found 3 expenses",
+    "timestamp": "2025-11-07T21:13:40.853425",
+    "role": "Manager"
+  },
+  {
+    "test": "Create Expense for Receipt",
+    "status": "PASS",
+    "message": "Created None",
+    "timestamp": "2025-11-07T21:13:40.883248",
+    "role": "Manager"
+  },
+  {
+    "test": "Receipt Upload",
+    "status": "SKIP",
+    "message": "File upload requires multipart/form-data testing",
+    "timestamp": "2025-11-07T21:13:40.883309",
+    "role": "Manager"
+  },
+  {
+    "test": "View Recurring Expenses",
+    "status": "PASS",
+    "message": "Found 0 templates",
+    "timestamp": "2025-11-07T21:13:40.894344",
+    "role": "Manager"
+  },
+  {
+    "test": "Create Recurring Template",
+    "status": "PASS",
+    "message": "Created recurring_c3ac5f5abd6f4a52",
+    "timestamp": "2025-11-07T21:13:40.926795",
+    "role": "Manager"
+  },
+  {
+    "test": "View Budgets",
+    "status": "PASS",
+    "message": "Found 0 budgets",
+    "timestamp": "2025-11-07T21:13:40.974555",
+    "role": "Manager"
+  },
+  {
+    "test": "Get Notifications",
+    "status": "PASS",
+    "message": "Found 0 notifications",
+    "timestamp": "2025-11-07T21:13:40.983496",
+    "role": "Manager"
+  },
+  {
+    "test": "Unread Notifications",
+    "status": "PASS",
+    "message": "0 unread",
+    "timestamp": "2025-11-07T21:13:40.992296",
+    "role": "Manager"
+  },
+  {
+    "test": "Get Expense Report",
+    "status": "PASS",
+    "message": "Report generated successfully",
+    "timestamp": "2025-11-07T21:13:41.006357",
+    "role": "Manager"
+  }
+]
