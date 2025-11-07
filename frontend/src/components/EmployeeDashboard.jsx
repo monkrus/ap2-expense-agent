@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown, User, LogOut, Copy, Check, Search, Bot, Repeat } from 'lucide-react';
+import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown, User, LogOut, Copy, Check, Search, Bot, Repeat, TrendingUp } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,6 +12,7 @@ import RoleBadge from './RoleBadge';
 import { getRoleTheme } from '../utils/roleThemes';
 import AIAssistant from '../pages/AIAssistant';
 import RecurringExpenses from '../pages/RecurringExpenses';
+import BudgetManagement from '../pages/BudgetManagement';
 import NotificationCenter from './NotificationCenter';
 import BatchReceiptUpload from './BatchReceiptUpload';
 
@@ -27,7 +28,7 @@ const EmployeeDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState('active'); // 'active', 'history', 'ai-assistant', or 'recurring-expenses'
+  const [activeTab, setActiveTab] = useState('active'); // 'active', 'history', 'ai-assistant', 'recurring-expenses', or 'budgets'
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -471,6 +472,17 @@ const EmployeeDashboard = () => {
               <Repeat className="w-5 h-5" />
               Recurring
             </button>
+            <button
+              onClick={() => setActiveTab('budgets')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'budgets'
+                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <TrendingUp className="w-5 h-5" />
+              Budgets
+            </button>
           </div>
         </div>
 
@@ -628,6 +640,11 @@ const EmployeeDashboard = () => {
         {/* Recurring Expenses Tab */}
         {activeTab === 'recurring-expenses' && (
           <RecurringExpenses />
+        )}
+
+        {/* Budget Management Tab */}
+        {activeTab === 'budgets' && (
+          <BudgetManagement />
         )}
 
         {/* Expense List */}

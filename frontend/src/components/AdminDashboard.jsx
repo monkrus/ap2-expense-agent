@@ -13,6 +13,7 @@ import ReceiptList from './ReceiptList';
 import { getRoleTheme } from '../utils/roleThemes';
 import AIAssistant from '../pages/AIAssistant';
 import RecurringExpenses from '../pages/RecurringExpenses';
+import BudgetManagement from '../pages/BudgetManagement';
 import NotificationCenter from './NotificationCenter';
 import BatchReceiptUpload from './BatchReceiptUpload';
 
@@ -28,7 +29,7 @@ const AdminDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'archived', 'users', 'billing', 'ai-assistant', or 'recurring-expenses'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'archived', 'users', 'billing', 'ai-assistant', 'recurring-expenses', or 'budgets'
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [archivedExpenses, setArchivedExpenses] = useState([]);
@@ -891,6 +892,18 @@ const AdminDashboard = () => {
               <Repeat className="w-5 h-5" />
               Recurring
             </button>
+            {/* Budget Management Tab */}
+            <button
+              onClick={() => setActiveTab('budgets')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'budgets'
+                  ? getTabActiveClasses()
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <TrendingUp className="w-5 h-5" />
+              Budgets
+            </button>
           </div>
         </div>
 
@@ -1185,6 +1198,11 @@ const AdminDashboard = () => {
         {/* Recurring Expenses Tab */}
         {activeTab === 'recurring-expenses' && (
           <RecurringExpenses />
+        )}
+
+        {/* Budget Management Tab */}
+        {activeTab === 'budgets' && (
+          <BudgetManagement />
         )}
 
         {/* Expenses List - Show for pending, all, and archived tabs */}
