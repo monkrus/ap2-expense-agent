@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown, User, LogOut, Copy, Check, Search } from 'lucide-react';
+import { Receipt, DollarSign, Clock, CheckCircle, Plus, Key, Trash2, History, Filter, Edit2, Upload, Download, ArrowUpDown, ArrowUp, ArrowDown, User, LogOut, Copy, Check, Search, Bot } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +10,7 @@ import ExpenseExport from './ExpenseExport';
 import ReceiptList from './ReceiptList';
 import RoleBadge from './RoleBadge';
 import { getRoleTheme } from '../utils/roleThemes';
+import AIAssistant from '../pages/AIAssistant';
 
 const EmployeeDashboard = () => {
   const { user, logout } = useAuth();
@@ -23,7 +24,7 @@ const EmployeeDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState('active'); // 'active' or 'history'
+  const [activeTab, setActiveTab] = useState('active'); // 'active', 'history', or 'ai-assistant'
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -436,10 +437,22 @@ const EmployeeDashboard = () => {
               <History className="w-5 h-5" />
               History
             </button>
+            <button
+              onClick={() => setActiveTab('ai-assistant')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'ai-assistant'
+                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <Bot className="w-5 h-5" />
+              AI Assistant
+            </button>
           </div>
         </div>
 
         {/* Search and Filter */}
+        {(activeTab === 'active' || activeTab === 'history') && (
         <div className="bg-white rounded-lg shadow p-4 mb-6">
           <div className="flex items-center gap-3 flex-wrap">
             {/* Search Box */}
@@ -483,6 +496,7 @@ const EmployeeDashboard = () => {
             )}
           </div>
         </div>
+        )}
 
         {/* Expense Form Modal */}
         {showExpenseForm && (
@@ -583,7 +597,13 @@ const EmployeeDashboard = () => {
           </div>
         )}
 
+        {/* AI Assistant Tab */}
+        {activeTab === 'ai-assistant' && (
+          <AIAssistant />
+        )}
+
         {/* Expense List */}
+        {(activeTab === 'active' || activeTab === 'history') && (
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800">
@@ -859,6 +879,7 @@ const EmployeeDashboard = () => {
             </div>
           )}
         </div>
+        )}
 
         {/* Change Password Modal */}
         {showChangePassword && (
