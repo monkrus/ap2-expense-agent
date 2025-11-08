@@ -234,9 +234,37 @@ class UserDashboardTester:
                     expense_id = data.get("id")
                 self.log("Create Expense for Receipt", "PASS", f"Created {expense_id}")
 
-                # Note: Actual file upload would require multipart/form-data
-                # For now, just test the endpoint availability
-                self.log("Receipt Upload", "SKIP", "File upload requires multipart/form-data testing")
+                # Test actual receipt upload with multipart/form-data
+                try:
+                    # Create a minimal test image (1x1 PNG)
+                    import io
+                    test_image = io.BytesIO(
+                        b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01'
+                        b'\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\x00\x01'
+                        b'\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+                    )
+                    test_image.name = 'test_receipt.png'
+
+                    # Upload file using multipart/form-data
+                    files = {'file': ('test_receipt.png', test_image, 'image/png')}
+                    headers_no_content = {
+                        "Authorization": f"Bearer {self.token}"
+                    }
+                    if self.org_id:
+                        headers_no_content["X-Organization-Id"] = self.org_id
+
+                    upload_response = requests.post(
+                        f"{BASE_URL}/api/v1/receipts/upload/{expense_id}",
+                        headers=headers_no_content,
+                        files=files
+                    )
+
+                    if upload_response.status_code == 200:
+                        self.log("Receipt Upload", "PASS", "Receipt uploaded successfully")
+                    else:
+                        self.log("Receipt Upload", "FAIL", f"Status {upload_response.status_code}")
+                except Exception as e:
+                    self.log("Receipt Upload", "FAIL", str(e))
             else:
                 self.log("Create Expense for Receipt", "FAIL", f"Status {response.status_code}")
         except Exception as e:
