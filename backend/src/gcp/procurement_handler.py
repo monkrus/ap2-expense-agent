@@ -3,44 +3,41 @@ GCP Marketplace Procurement Handler
 Handles new customer signups from Google Cloud Marketplace
 """
 
-import uuid
 import secrets
 import string
+import uuid
 from datetime import datetime, timedelta
 from typing import Dict, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
-from ..models import (
-    Organization, OrganizationMember, User, UserRole, OrganizationRole
-)
-from ..models_billing import OrganizationSubscription, BillingEvent
-from ..email_service import EmailService
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
 from ..config import settings
+from ..email_service import EmailService
+from ..models import Organization, OrganizationMember, OrganizationRole, User, UserRole
+from ..models_billing import BillingEvent, OrganizationSubscription
 
 
 def generate_secure_password(length: int = 16) -> str:
     """Generate a secure random password"""
     alphabet = string.ascii_letters + string.digits + string.punctuation
-    password = ''.join(secrets.choice(alphabet) for _ in range(length))
+    password = "".join(secrets.choice(alphabet) for _ in range(length))
     return password
 
 
 def generate_slug(name: str) -> str:
     """Generate URL-friendly slug from organization name"""
     import re
+
     slug = name.lower()
-    slug = re.sub(r'[^a-z0-9]+', '-', slug)
-    slug = slug.strip('-')
+    slug = re.sub(r"[^a-z0-9]+", "-", slug)
+    slug = slug.strip("-")
     # Add random suffix to ensure uniqueness
     slug = f"{slug}-{secrets.token_hex(4)}"
     return slug
 
 
-async def handle_procurement_webhook(
-    webhook_data: Dict,
-    db: Session
-) -> Dict:
+async def handle_procurement_webhook(webhook_data: Dict, db: Session) -> Dict:
     """
     Handle new customer signup from GCP Marketplace
 
@@ -83,16 +80,18 @@ async def handle_procurement_webhook(
             raise ValueError("Missing required fields: entitlement_id or user_email")
 
         # Check if organization already exists for this entitlement
-        existing_sub = db.query(OrganizationSubscription).filter_by(
-            gcp_entitlement_id=entitlement_id
-        ).first()
+        existing_sub = (
+            db.query(OrganizationSubscription)
+            .filter_by(gcp_entitlement_id=entitlement_id)
+            .first()
+        )
 
         if existing_sub:
             # Organization already created, return existing info
             return {
                 "status": "already_exists",
                 "organization_id": existing_sub.organization_id,
-                "message": "Organization already provisioned for this entitlement"
+                "message": "Organization already provisioned for this entitlement",
             }
 
         # === Step 1: Create Organization ===
@@ -105,7 +104,7 @@ async def handle_procurement_webhook(
             currency="USD",
             timezone="UTC",
             max_members=get_tier_max_members(plan),
-            is_active=True
+            is_active=True,
         )
         db.add(organization)
         db.flush()
@@ -122,13 +121,13 @@ async def handle_procurement_webhook(
             admin_user = User(
                 id=str(uuid.uuid4()),
                 email=admin_email,
-                username=admin_email.split('@')[0],
+                username=admin_email.split("@")[0],
                 hashed_password=AuthService.hash_password(temp_password),
-                full_name=admin_email.split('@')[0].replace('.', ' ').title(),
+                full_name=admin_email.split("@")[0].replace(".", " ").title(),
                 role=UserRole.ADMIN,
                 is_active=True,
                 is_verified=True,  # Auto-verify GCP users
-                created_at=datetime.utcnow()
+                created_at=datetime.utcnow(),
             )
             db.add(admin_user)
             db.flush()
@@ -140,7 +139,7 @@ async def handle_procurement_webhook(
             user_id=admin_user.id,
             role=OrganizationRole.OWNER,
             is_active=True,
-            joined_at=datetime.utcnow()
+            joined_at=datetime.utcnow(),
         )
         db.add(membership)
 
@@ -161,9 +160,9 @@ async def handle_procurement_webhook(
             metadata={
                 "source": "gcp_marketplace",
                 "provisioned_at": datetime.utcnow().isoformat(),
-                "initial_plan": plan
+                "initial_plan": plan,
             },
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
         db.add(subscription)
 
@@ -177,10 +176,10 @@ async def handle_procurement_webhook(
                 "account_id": account_id,
                 "plan": plan,
                 "admin_email": admin_email,
-                "company_name": company_name
+                "company_name": company_name,
             },
             status="success",
-            occurred_at=datetime.utcnow()
+            occurred_at=datetime.utcnow(),
         )
         db.add(billing_event)
 
@@ -197,7 +196,7 @@ async def handle_procurement_webhook(
                 admin_email,
                 company_name,
                 organization.slug,
-                temp_password  # Only included if new user
+                temp_password,  # Only included if new user
             )
         except Exception as email_error:
             # Log but don't fail the entire process
@@ -212,7 +211,7 @@ async def handle_procurement_webhook(
             "admin_email": admin_email,
             "subscription_id": subscription.id,
             "tier": plan,
-            "message": "Organization successfully provisioned"
+            "message": "Organization successfully provisioned",
         }
 
     except IntegrityError as e:
@@ -231,7 +230,7 @@ async def handle_procurement_webhook(
                 event_data=webhook_data,
                 status="failed",
                 error_message=str(e),
-                occurred_at=datetime.utcnow()
+                occurred_at=datetime.utcnow(),
             )
             db.add(error_event)
             db.commit()
@@ -246,7 +245,7 @@ async def send_gcp_welcome_email(
     admin_email: str,
     company_name: str,
     org_slug: str,
-    temp_password: Optional[str] = None
+    temp_password: Optional[str] = None,
 ):
     """
     Send welcome email to new GCP Marketplace customer
@@ -335,11 +334,7 @@ async def send_gcp_welcome_email(
         </html>
         """
 
-    await email_service.send_email(
-        to_email=admin_email,
-        subject=subject,
-        body=body
-    )
+    await email_service.send_email(to_email=admin_email, subject=subject, body=body)
 
 
 def get_tier_max_members(tier: str) -> int:
@@ -349,6 +344,6 @@ def get_tier_max_members(tier: str) -> int:
         "free": 5,
         "starter": 25,
         "professional": 100,
-        "enterprise": 10000  # Effectively unlimited
+        "enterprise": 10000,  # Effectively unlimited
     }
     return tier_limits.get(tier.lower(), 25)

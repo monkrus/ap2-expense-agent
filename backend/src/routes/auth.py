@@ -1,44 +1,54 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
 import secrets
 import uuid
+from datetime import datetime, timedelta
 
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+
+from ..auth import AuthService, TOTPService, get_current_active_user, require_admin
 from ..database import get_db
-from ..models import User, PasswordResetToken, UserRole
-from ..schemas import (
-    UserCreate, UserResponse, LoginRequest, LoginResponse,
-    RefreshTokenRequest, TokenResponse, PasswordResetRequest,
-    PasswordResetConfirm, PasswordChange, TOTPSetupResponse,
-    TOTPVerifyRequest, TOTPEnableRequest, TOTPDisableRequest
-)
-from ..auth import (
-    AuthService, TOTPService, get_current_active_user,
-    require_admin
-)
-from ..rate_limit import limiter, RateLimits
 from ..email_service import EmailService
+from ..models import PasswordResetToken, User, UserRole
+from ..rate_limit import RateLimits, limiter
+from ..schemas import (
+    LoginRequest,
+    LoginResponse,
+    PasswordChange,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    RefreshTokenRequest,
+    TokenResponse,
+    TOTPDisableRequest,
+    TOTPEnableRequest,
+    TOTPSetupResponse,
+    TOTPVerifyRequest,
+    UserCreate,
+    UserResponse,
+)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 @limiter.limit(RateLimits.REGISTER)
 async def register(
-    request: Request,
-    user_data: UserCreate,
-    db: Session = Depends(get_db)
+    request: Request, user_data: UserCreate, db: Session = Depends(get_db)
 ):
     """Register a new user"""
     # Check if user already exists
-    existing_user = db.query(User).filter(
-        (User.email == user_data.email) | (User.username == user_data.username)
-    ).first()
+    existing_user = (
+        db.query(User)
+        .filter((User.email == user_data.email) | (User.username == user_data.username))
+        .first()
+    )
 
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this email or username already exists"
+            detail="User with this email or username already exists",
         )
 
     # Create new user
@@ -50,7 +60,7 @@ async def register(
         hashed_password=AuthService.hash_password(user_data.password),
         role=user_data.role,
         is_active=True,
-        is_verified=False
+        is_verified=False,
     )
 
     db.add(user)
@@ -67,7 +77,7 @@ async def register(
         user_id=user.id,
         token=verification_token,
         expires_at=expires_at,
-        used=False
+        used=False,
     )
     db.add(token_entry)
     db.commit()
@@ -76,7 +86,7 @@ async def register(
     EmailService.send_verification_email(
         to_email=user.email,
         username=user.username,
-        verification_token=verification_token
+        verification_token=verification_token,
     )
 
     # Log audit event
@@ -86,17 +96,16 @@ async def register(
         action="user.register",
         resource_type="user",
         resource_id=user.id,
-        request=request
+        request=request,
     )
 
     return user
 
+
 @router.post("/login", response_model=LoginResponse)
 @limiter.limit(RateLimits.LOGIN)
 async def login(
-    request: Request,
-    login_data: LoginRequest,
-    db: Session = Depends(get_db)
+    request: Request, login_data: LoginRequest, db: Session = Depends(get_db)
 ):
     """Login with username and password"""
     # Find user
@@ -113,7 +122,7 @@ async def login(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Your account has been suspended. Please contact your administrator."
+            detail="Your account has been suspended. Please contact your administrator.",
         )
 
     # Check if account is locked
@@ -121,7 +130,7 @@ async def login(
         lockout_minutes = (user.locked_until - datetime.utcnow()).total_seconds() / 60
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
-            detail=f"Account locked due to too many failed attempts. Try again in {int(lockout_minutes)} minutes."
+            detail=f"Account locked due to too many failed attempts. Try again in {int(lockout_minutes)} minutes.",
         )
 
     # Verify password
@@ -136,7 +145,7 @@ async def login(
             db.commit()
             raise HTTPException(
                 status_code=status.HTTP_423_LOCKED,
-                detail="Account locked due to too many failed login attempts. Try again in 30 minutes."
+                detail="Account locked due to too many failed login attempts. Try again in 30 minutes.",
             )
 
         db.commit()
@@ -156,8 +165,7 @@ async def login(
     if user.totp_enabled:
         if not login_data.totp_code:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="2FA code required"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="2FA code required"
             )
 
         if not TOTPService.verify_totp(user.totp_secret, login_data.totp_code):
@@ -165,8 +173,7 @@ async def login(
             backup_codes = user.backup_codes.split(",") if user.backup_codes else []
             if login_data.totp_code not in backup_codes:
                 raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid 2FA code"
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid 2FA code"
                 )
             # Remove used backup code
             backup_codes.remove(login_data.totp_code)
@@ -181,9 +188,7 @@ async def login(
         data={"sub": user.id, "username": user.username, "role": user.role.value}
     )
     refresh_token = AuthService.create_refresh_token(
-        user_id=user.id,
-        db=db,
-        device_info=request.headers.get("User-Agent")
+        user_id=user.id, db=db, device_info=request.headers.get("User-Agent")
     )
 
     # Create session
@@ -196,32 +201,32 @@ async def login(
         action="user.login",
         resource_type="user",
         resource_id=user.id,
-        request=request
+        request=request,
     )
 
     return LoginResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=60 * 60,  # 1 hour
-        user=UserResponse.from_orm(user)
+        user=UserResponse.from_orm(user),
     )
+
 
 @router.post("/login/form", response_model=LoginResponse)
 async def login_form(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """OAuth2 compatible login endpoint"""
     login_data = LoginRequest(username=form_data.username, password=form_data.password)
     return await login(login_data, request, db)
 
+
 @router.post("/refresh", response_model=TokenResponse)
 @limiter.limit(RateLimits.REFRESH_TOKEN)
 async def refresh_token(
-    request: Request,
-    refresh_data: RefreshTokenRequest,
-    db: Session = Depends(get_db)
+    request: Request, refresh_data: RefreshTokenRequest, db: Session = Depends(get_db)
 ):
     """Refresh access token using refresh token"""
     refresh_token = AuthService.verify_refresh_token(refresh_data.refresh_token, db)
@@ -233,24 +238,22 @@ async def refresh_token(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Your account has been suspended. Please contact your administrator."
+            detail="Your account has been suspended. Please contact your administrator.",
         )
 
     access_token = AuthService.create_access_token(
         data={"sub": user.id, "username": user.username, "role": user.role.value}
     )
 
-    return TokenResponse(
-        access_token=access_token,
-        expires_in=60 * 60
-    )
+    return TokenResponse(access_token=access_token, expires_in=60 * 60)
+
 
 @router.post("/logout")
 async def logout(
     refresh_token: str,
     request: Request,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Logout and revoke refresh token"""
     AuthService.revoke_refresh_token(refresh_token, db)
@@ -262,17 +265,16 @@ async def logout(
         action="user.logout",
         resource_type="user",
         resource_id=current_user.id,
-        request=request
+        request=request,
     )
 
     return {"message": "Successfully logged out"}
 
+
 @router.post("/password/reset-request")
 @limiter.limit(RateLimits.PASSWORD_RESET)
 async def request_password_reset(
-    request: Request,
-    reset_data: PasswordResetRequest,
-    db: Session = Depends(get_db)
+    request: Request, reset_data: PasswordResetRequest, db: Session = Depends(get_db)
 ):
     """Request a password reset"""
     user = db.query(User).filter(User.email == reset_data.email).first()
@@ -286,10 +288,7 @@ async def request_password_reset(
     expires_at = datetime.utcnow() + timedelta(hours=1)
 
     reset_token = PasswordResetToken(
-        id=str(uuid.uuid4()),
-        user_id=user.id,
-        token=token,
-        expires_at=expires_at
+        id=str(uuid.uuid4()), user_id=user.id, token=token, expires_at=expires_at
     )
 
     db.add(reset_token)
@@ -297,9 +296,7 @@ async def request_password_reset(
 
     # Send password reset email
     EmailService.send_password_reset_email(
-        to_email=user.email,
-        username=user.username,
-        reset_token=token
+        to_email=user.email, username=user.username, reset_token=token
     )
 
     # Log audit event
@@ -309,15 +306,14 @@ async def request_password_reset(
         action="user.password_reset_request",
         resource_type="user",
         resource_id=user.id,
-        request=request
+        request=request,
     )
 
     # In development/test mode, return the token for testing
     # In production, only send via email
     from ..config import settings
-    response_data = {
-        "message": "If the email exists, a reset link has been sent"
-    }
+
+    response_data = {"message": "If the email exists, a reset link has been sent"}
 
     # Return token in test/dev environments (when database is SQLite)
     if settings.database_url and "sqlite" in settings.database_url.lower():
@@ -325,28 +321,30 @@ async def request_password_reset(
 
     return response_data
 
+
 @router.post("/password/reset-confirm")
 async def confirm_password_reset(
-    reset_data: PasswordResetConfirm,
-    request: Request,
-    db: Session = Depends(get_db)
+    reset_data: PasswordResetConfirm, request: Request, db: Session = Depends(get_db)
 ):
     """Confirm password reset with token"""
-    reset_token = db.query(PasswordResetToken).filter(
-        PasswordResetToken.token == reset_data.token,
-        PasswordResetToken.used == False
-    ).first()
+    reset_token = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.token == reset_data.token,
+            PasswordResetToken.used == False,
+        )
+        .first()
+    )
 
     if not reset_token:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired reset token"
+            detail="Invalid or expired reset token",
         )
 
     if reset_token.expires_at < datetime.utcnow():
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reset token has expired"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Reset token has expired"
         )
 
     # Update password
@@ -365,24 +363,26 @@ async def confirm_password_reset(
         action="user.password_reset_confirm",
         resource_type="user",
         resource_id=user.id,
-        request=request
+        request=request,
     )
 
     return {"message": "Password successfully reset"}
+
 
 @router.post("/password/change")
 async def change_password(
     password_data: PasswordChange,
     request: Request,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Change password for authenticated user"""
     # Verify old password
-    if not AuthService.verify_password(password_data.old_password, current_user.hashed_password):
+    if not AuthService.verify_password(
+        password_data.old_password, current_user.hashed_password
+    ):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect current password"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect current password"
         )
 
     # Update password
@@ -396,27 +396,27 @@ async def change_password(
         action="user.password_change",
         resource_type="user",
         resource_id=current_user.id,
-        request=request
+        request=request,
     )
 
     return {"message": "Password successfully changed"}
+
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
     """Get current user information"""
     return current_user
 
+
 # 2FA/TOTP Endpoints
 @router.post("/2fa/setup", response_model=TOTPSetupResponse)
 async def setup_2fa(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """Setup 2FA for current user"""
     if current_user.totp_enabled:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="2FA is already enabled"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="2FA is already enabled"
         )
 
     # Generate secret
@@ -434,36 +434,33 @@ async def setup_2fa(
     db.commit()
 
     return TOTPSetupResponse(
-        secret=secret,
-        qr_code_url=qr_code_url,
-        backup_codes=backup_codes
+        secret=secret, qr_code_url=qr_code_url, backup_codes=backup_codes
     )
+
 
 @router.post("/2fa/enable")
 async def enable_2fa(
     totp_data: TOTPEnableRequest,
     request: Request,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Enable 2FA after verification"""
     if current_user.totp_enabled:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="2FA is already enabled"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="2FA is already enabled"
         )
 
     if not current_user.totp_secret:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="2FA setup not completed. Call /2fa/setup first"
+            detail="2FA setup not completed. Call /2fa/setup first",
         )
 
     # Verify TOTP code
     if not TOTPService.verify_totp(current_user.totp_secret, totp_data.totp_code):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid 2FA code"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid 2FA code"
         )
 
     # Enable 2FA
@@ -477,38 +474,38 @@ async def enable_2fa(
         action="user.2fa_enabled",
         resource_type="user",
         resource_id=current_user.id,
-        request=request
+        request=request,
     )
 
     return {"message": "2FA successfully enabled"}
+
 
 @router.post("/2fa/disable")
 async def disable_2fa(
     totp_data: TOTPDisableRequest,
     request: Request,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Disable 2FA"""
     if not current_user.totp_enabled:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="2FA is not enabled"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="2FA is not enabled"
         )
 
     # Verify password
-    if not AuthService.verify_password(totp_data.password, current_user.hashed_password):
+    if not AuthService.verify_password(
+        totp_data.password, current_user.hashed_password
+    ):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect password"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect password"
         )
 
     # Verify TOTP code if provided
     if totp_data.totp_code:
         if not TOTPService.verify_totp(current_user.totp_secret, totp_data.totp_code):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid 2FA code"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid 2FA code"
             )
 
     # Disable 2FA
@@ -524,21 +521,20 @@ async def disable_2fa(
         action="user.2fa_disabled",
         resource_type="user",
         resource_id=current_user.id,
-        request=request
+        request=request,
     )
 
     return {"message": "2FA successfully disabled"}
 
+
 @router.post("/2fa/verify")
 async def verify_2fa(
-    totp_data: TOTPVerifyRequest,
-    current_user: User = Depends(get_current_active_user)
+    totp_data: TOTPVerifyRequest, current_user: User = Depends(get_current_active_user)
 ):
     """Verify a 2FA code (for testing)"""
     if not current_user.totp_enabled:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="2FA is not enabled"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="2FA is not enabled"
         )
 
     if TOTPService.verify_totp(current_user.totp_secret, totp_data.totp_code):
@@ -551,37 +547,34 @@ async def verify_2fa(
 # EMAIL VERIFICATION ENDPOINTS
 # ============================================================================
 
+
 @router.post("/verify-email")
-async def verify_email(
-    token: str,
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def verify_email(token: str, request: Request, db: Session = Depends(get_db)):
     """Verify email address with token"""
     # Find token
-    token_entry = db.query(PasswordResetToken).filter(
-        PasswordResetToken.token == token,
-        PasswordResetToken.used == False
-    ).first()
+    token_entry = (
+        db.query(PasswordResetToken)
+        .filter(PasswordResetToken.token == token, PasswordResetToken.used == False)
+        .first()
+    )
 
     if not token_entry:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired verification token"
+            detail="Invalid or expired verification token",
         )
 
     if token_entry.expires_at < datetime.utcnow():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Verification token has expired"
+            detail="Verification token has expired",
         )
 
     # Get user and verify
     user = db.query(User).filter(User.id == token_entry.user_id).first()
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
     # Mark as verified
@@ -591,9 +584,7 @@ async def verify_email(
 
     # Send welcome email
     EmailService.send_welcome_email(
-        to_email=user.email,
-        username=user.username,
-        full_name=user.full_name
+        to_email=user.email, username=user.username, full_name=user.full_name
     )
 
     # Log audit event
@@ -603,7 +594,7 @@ async def verify_email(
         action="user.email_verified",
         resource_type="user",
         resource_id=user.id,
-        request=request
+        request=request,
     )
 
     return {"message": "Email verified successfully"}
@@ -612,16 +603,16 @@ async def verify_email(
 @router.post("/resend-verification")
 @limiter.limit(RateLimits.PASSWORD_RESET)
 async def resend_verification(
-    request: Request,
-    email: str,
-    db: Session = Depends(get_db)
+    request: Request, email: str, db: Session = Depends(get_db)
 ):
     """Resend verification email"""
     user = db.query(User).filter(User.email == email).first()
 
     if not user:
         # Don't reveal if user exists
-        return {"message": "If the email exists and is unverified, a verification link has been sent"}
+        return {
+            "message": "If the email exists and is unverified, a verification link has been sent"
+        }
 
     if user.is_verified:
         return {"message": "Email is already verified"}
@@ -635,7 +626,7 @@ async def resend_verification(
         user_id=user.id,
         token=verification_token,
         expires_at=expires_at,
-        used=False
+        used=False,
     )
     db.add(token_entry)
     db.commit()
@@ -644,7 +635,9 @@ async def resend_verification(
     EmailService.send_verification_email(
         to_email=user.email,
         username=user.username,
-        verification_token=verification_token
+        verification_token=verification_token,
     )
 
-    return {"message": "If the email exists and is unverified, a verification link has been sent"}
+    return {
+        "message": "If the email exists and is unverified, a verification link has been sent"
+    }

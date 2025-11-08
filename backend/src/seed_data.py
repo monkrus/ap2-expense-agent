@@ -2,11 +2,14 @@
 Database seeding with default test users.
 These users will ALWAYS be created if they don't exist.
 """
-from datetime import datetime
+
 import uuid
+from datetime import datetime
+
 from sqlalchemy.orm import Session
-from .models import User, UserRole
+
 from .auth import AuthService
+from .models import User, UserRole
 
 # FIXED TEST USERS - DO NOT MODIFY
 DEFAULT_USERS = [
@@ -15,29 +18,29 @@ DEFAULT_USERS = [
         "email": "admintest@example.com",
         "full_name": "Admin Test User",
         "role": UserRole.ADMIN,
-        "password": "AgentTest!"
+        "password": "AgentTest!",
     },
     {
         "username": "testuser",
         "email": "testuser@example.com",
         "full_name": "Test Manager User",
         "role": UserRole.MANAGER,
-        "password": "AgentTest!"
+        "password": "AgentTest!",
     },
     {
         "username": "emptest",
         "email": "emptest@example.com",
         "full_name": "Employee Test 1",
         "role": UserRole.EMPLOYEE,
-        "password": "AgentTest!"
+        "password": "AgentTest!",
     },
     {
         "username": "emptest2",
         "email": "emptest2@example.com",
         "full_name": "Employee Test 2",
         "role": UserRole.EMPLOYEE,
-        "password": "AgentTest!"
-    }
+        "password": "AgentTest!",
+    },
 ]
 
 
@@ -57,24 +60,21 @@ def seed_default_users(db: Session, force_password_reset: bool = False) -> dict:
     Returns:
         dict: Statistics about seeding operation
     """
-    stats = {
-        "created": 0,
-        "updated": 0,
-        "skipped": 0,
-        "total": len(DEFAULT_USERS)
-    }
+    stats = {"created": 0, "updated": 0, "skipped": 0, "total": len(DEFAULT_USERS)}
 
     try:
         for user_data in DEFAULT_USERS:
             # Check if user exists
-            existing_user = db.query(User).filter(
-                User.username == user_data["username"]
-            ).first()
+            existing_user = (
+                db.query(User).filter(User.username == user_data["username"]).first()
+            )
 
             if existing_user:
                 # User exists - optionally reset password
                 if force_password_reset:
-                    existing_user.hashed_password = AuthService.hash_password(user_data["password"])
+                    existing_user.hashed_password = AuthService.hash_password(
+                        user_data["password"]
+                    )
                     existing_user.failed_login_attempts = 0
                     existing_user.locked_until = None
                     existing_user.last_failed_login = None
@@ -95,7 +95,7 @@ def seed_default_users(db: Session, force_password_reset: bool = False) -> dict:
                     is_active=True,
                     is_verified=True,
                     failed_login_attempts=0,
-                    created_at=datetime.utcnow()
+                    created_at=datetime.utcnow(),
                 )
                 db.add(new_user)
                 stats["created"] += 1

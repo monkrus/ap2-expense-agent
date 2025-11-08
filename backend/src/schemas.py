@@ -1,7 +1,10 @@
-from pydantic import BaseModel, EmailStr, Field, validator
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel, EmailStr, Field, validator
+
 from .models import UserRole
+
 
 # User Schemas
 class UserBase(BaseModel):
@@ -9,21 +12,23 @@ class UserBase(BaseModel):
     username: str
     full_name: Optional[str] = None
 
+
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
     role: UserRole = UserRole.EMPLOYEE
 
-    @validator('password')
+    @validator("password")
     def validate_password(cls, v):
         if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters')
+            raise ValueError("Password must be at least 8 characters")
         if not any(c.isupper() for c in v):
-            raise ValueError('Password must contain at least one uppercase letter')
+            raise ValueError("Password must contain at least one uppercase letter")
         if not any(c.islower() for c in v):
-            raise ValueError('Password must contain at least one lowercase letter')
+            raise ValueError("Password must contain at least one lowercase letter")
         if not any(c.isdigit() for c in v):
-            raise ValueError('Password must contain at least one digit')
+            raise ValueError("Password must contain at least one digit")
         return v
+
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
@@ -31,6 +36,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
+
 
 class UserResponse(UserBase):
     id: str
@@ -44,11 +50,13 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
+
 # Authentication Schemas
 class LoginRequest(BaseModel):
     username: str
     password: str
     totp_code: Optional[str] = None
+
 
 class LoginResponse(BaseModel):
     access_token: str
@@ -57,24 +65,30 @@ class LoginResponse(BaseModel):
     expires_in: int
     user: UserResponse
 
+
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
 
+
 class PasswordResetRequest(BaseModel):
     email: EmailStr
+
 
 class PasswordResetConfirm(BaseModel):
     token: str
     new_password: str = Field(..., min_length=8)
 
+
 class PasswordChange(BaseModel):
     old_password: str
     new_password: str = Field(..., min_length=8)
+
 
 # 2FA Schemas
 class TOTPSetupResponse(BaseModel):
@@ -82,15 +96,19 @@ class TOTPSetupResponse(BaseModel):
     qr_code_url: str
     backup_codes: List[str]
 
+
 class TOTPVerifyRequest(BaseModel):
     totp_code: str
+
 
 class TOTPEnableRequest(BaseModel):
     totp_code: str
 
+
 class TOTPDisableRequest(BaseModel):
     password: str
     totp_code: Optional[str] = None
+
 
 # Session Schemas
 class SessionResponse(BaseModel):
@@ -104,6 +122,7 @@ class SessionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 # OAuth2 Schemas
 class OAuth2AuthorizeRequest(BaseModel):
     client_id: str
@@ -112,6 +131,7 @@ class OAuth2AuthorizeRequest(BaseModel):
     scope: Optional[str] = "read write"
     state: Optional[str] = None
 
+
 class OAuth2TokenRequest(BaseModel):
     grant_type: str
     code: Optional[str] = None
@@ -119,6 +139,7 @@ class OAuth2TokenRequest(BaseModel):
     client_id: str
     client_secret: str
     redirect_uri: Optional[str] = None
+
 
 class OAuth2TokenResponse(BaseModel):
     access_token: str
@@ -131,6 +152,7 @@ class OAuth2TokenResponse(BaseModel):
 # ============================================================================
 # Organization Schemas (Multi-Tenancy)
 # ============================================================================
+
 
 class OrganizationCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)

@@ -5,21 +5,22 @@ Runs as a background task to process scheduled expense submissions.
 
 import asyncio
 import logging
+import uuid
 from datetime import datetime, timedelta
 from typing import Optional
-from sqlalchemy import select, and_
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import SessionLocal
 from src.models import (
-    RecurringExpenseTemplate,
-    ScheduledExpense,
     Expense,
     ExpenseNotification,
     ExpenseStatus,
-    RecurringFrequency
+    RecurringExpenseTemplate,
+    RecurringFrequency,
+    ScheduledExpense,
 )
-import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,9 @@ class RecurringExpenseScheduler:
 
         self.running = True
         self.task = asyncio.create_task(self._run())
-        logger.info(f"Recurring expense scheduler started (check interval: {self.check_interval}s)")
+        logger.info(
+            f"Recurring expense scheduler started (check interval: {self.check_interval}s)"
+        )
 
     async def stop(self):
         """Stop the scheduler"""
@@ -83,30 +86,29 @@ class RecurringExpenseScheduler:
                 and_(
                     RecurringExpenseTemplate.is_active == True,
                     RecurringExpenseTemplate.is_paused == False,
-                    RecurringExpenseTemplate.next_run_date <= now
+                    RecurringExpenseTemplate.next_run_date <= now,
                 )
             )
 
             result = await db.execute(stmt)
             templates = result.scalars().all()
 
-            logger.info(f"Found {len(templates)} recurring expense templates due for processing")
+            logger.info(
+                f"Found {len(templates)} recurring expense templates due for processing"
+            )
 
             for template in templates:
                 try:
                     await self._process_template(db, template)
                 except Exception as e:
                     logger.error(
-                        f"Error processing template {template.id}: {e}",
-                        exc_info=True
+                        f"Error processing template {template.id}: {e}", exc_info=True
                     )
 
             await db.commit()
 
     async def _process_template(
-        self,
-        db: AsyncSession,
-        template: RecurringExpenseTemplate
+        self, db: AsyncSession, template: RecurringExpenseTemplate
     ):
         """
         Process a single recurring expense template.
@@ -128,7 +130,7 @@ class RecurringExpenseScheduler:
             id=f"scheduled_{uuid.uuid4().hex[:16]}",
             template_id=template.id,
             scheduled_date=template.next_run_date,
-            status="pending"
+            status="pending",
         )
         db.add(scheduled)
 
@@ -152,10 +154,12 @@ class RecurringExpenseScheduler:
                     f"Recurring expense auto-submitted: {template.vendor}",
                     f"Your recurring expense for {template.vendor} (${template.amount}) has been automatically submitted.",
                     expense_id=expense.id,
-                    template_id=template.id
+                    template_id=template.id,
                 )
 
-                logger.info(f"Auto-submitted expense {expense.id} from template {template.id}")
+                logger.info(
+                    f"Auto-submitted expense {expense.id} from template {template.id}"
+                )
 
             else:
                 # Just create a notification for manual submission
@@ -165,7 +169,7 @@ class RecurringExpenseScheduler:
                     "recurring_reminder",
                     f"Reminder: Recurring expense due - {template.vendor}",
                     f"Your recurring expense for {template.vendor} (${template.amount}) is due. Please submit it manually.",
-                    template_id=template.id
+                    template_id=template.id,
                 )
                 scheduled.status = "skipped"
                 scheduled.processed_at = datetime.utcnow()
@@ -178,16 +182,15 @@ class RecurringExpenseScheduler:
 
         # Calculate next run date
         template.next_run_date = self._calculate_next_run_date(
-            template.next_run_date,
-            template.frequency
+            template.next_run_date, template.frequency
         )
 
-        logger.info(f"Next run date for template {template.id}: {template.next_run_date}")
+        logger.info(
+            f"Next run date for template {template.id}: {template.next_run_date}"
+        )
 
     async def _submit_expense(
-        self,
-        db: AsyncSession,
-        template: RecurringExpenseTemplate
+        self, db: AsyncSession, template: RecurringExpenseTemplate
     ) -> Expense:
         """
         Submit an expense from a template.
@@ -209,7 +212,7 @@ class RecurringExpenseScheduler:
             description=f"{template.description} (Auto-submitted from recurring template)",
             status=ExpenseStatus.PENDING,
             date=datetime.utcnow(),
-            intent_mandate_id=template.intent_mandate_id
+            intent_mandate_id=template.intent_mandate_id,
         )
 
         db.add(expense)
@@ -223,7 +226,7 @@ class RecurringExpenseScheduler:
         title: str,
         message: str,
         expense_id: Optional[str] = None,
-        template_id: Optional[str] = None
+        template_id: Optional[str] = None,
     ):
         """Create a notification for the user"""
         notification = ExpenseNotification(
@@ -233,14 +236,12 @@ class RecurringExpenseScheduler:
             title=title,
             message=message,
             expense_id=expense_id,
-            template_id=template_id
+            template_id=template_id,
         )
         db.add(notification)
 
     def _calculate_next_run_date(
-        self,
-        current_date: datetime,
-        frequency: RecurringFrequency
+        self, current_date: datetime, frequency: RecurringFrequency
     ) -> datetime:
         """
         Calculate the next run date based on frequency.
@@ -287,7 +288,9 @@ async def get_scheduler() -> RecurringExpenseScheduler:
     """Get or create the global scheduler instance"""
     global _scheduler
     if _scheduler is None:
-        _scheduler = RecurringExpenseScheduler(check_interval=300)  # Check every 5 minutes
+        _scheduler = RecurringExpenseScheduler(
+            check_interval=300
+        )  # Check every 5 minutes
     return _scheduler
 
 

@@ -2,12 +2,15 @@
 AP2 Protocol Payment Service
 Implements Google's Agent Payments Protocol for cryptographic payment verification
 """
-import uuid
+
 import json
+import uuid
 from datetime import datetime, timedelta
 from typing import Dict, Optional
+
 from sqlalchemy.orm import Session
-from ..models import IntentMandate, CartMandate, PaymentMandate, User
+
+from ..models import CartMandate, IntentMandate, PaymentMandate, User
 from .stripe_processor import StripePaymentProcessor
 
 
@@ -26,10 +29,7 @@ class AP2PaymentService:
         self.stripe = StripePaymentProcessor(db)
 
     async def create_intent_mandate(
-        self,
-        user_id: str,
-        constraints: Dict,
-        expiration_hours: int = 24
+        self, user_id: str, constraints: Dict, expiration_hours: int = 24
     ) -> IntentMandate:
         """
         Create Intent Mandate - User's authorization to make purchases
@@ -64,7 +64,7 @@ class AP2PaymentService:
             timestamp=now,
             expiration=expiration,
             status="active",
-            signature=self._generate_signature(user_id, constraints, now)
+            signature=self._generate_signature(user_id, constraints, now),
         )
 
         self.db.add(intent_mandate)
@@ -78,7 +78,7 @@ class AP2PaymentService:
         intent_mandate_id: str,
         items: list[Dict],
         merchant: str,
-        user_signature: str
+        user_signature: str,
     ) -> CartMandate:
         """
         Create Cart Mandate - Specific items for approval
@@ -103,13 +103,16 @@ class AP2PaymentService:
         ]
         """
         # Verify intent mandate exists and is active
-        intent_mandate = self.db.query(IntentMandate).filter_by(
-            id=intent_mandate_id,
-            status="active"
-        ).first()
+        intent_mandate = (
+            self.db.query(IntentMandate)
+            .filter_by(id=intent_mandate_id, status="active")
+            .first()
+        )
 
         if not intent_mandate:
-            raise ValueError(f"Intent mandate {intent_mandate_id} not found or inactive")
+            raise ValueError(
+                f"Intent mandate {intent_mandate_id} not found or inactive"
+            )
 
         # Check if expired
         if intent_mandate.expiration < datetime.utcnow():
@@ -122,7 +125,9 @@ class AP2PaymentService:
         total = sum(item.get("amount", 0) for item in items)
 
         if "max_amount" in constraints and total > constraints["max_amount"]:
-            raise ValueError(f"Cart total ${total} exceeds max amount ${constraints['max_amount']}")
+            raise ValueError(
+                f"Cart total ${total} exceeds max amount ${constraints['max_amount']}"
+            )
 
         # Create cart mandate
         cart_mandate = CartMandate(
@@ -133,7 +138,7 @@ class AP2PaymentService:
             merchant=merchant,
             timestamp=datetime.utcnow(),
             user_signature=user_signature,
-            status="pending"
+            status="pending",
         )
 
         self.db.add(cart_mandate)
@@ -143,9 +148,7 @@ class AP2PaymentService:
         return cart_mandate
 
     async def create_payment_mandate(
-        self,
-        cart_mandate_id: str,
-        payment_method: str
+        self, cart_mandate_id: str, payment_method: str
     ) -> PaymentMandate:
         """
         Create Payment Mandate - Execute payment with audit trail
@@ -164,7 +167,9 @@ class AP2PaymentService:
             raise ValueError(f"Cart mandate {cart_mandate_id} not found")
 
         if cart_mandate.status != "pending":
-            raise ValueError(f"Cart mandate status is {cart_mandate.status}, must be pending")
+            raise ValueError(
+                f"Cart mandate status is {cart_mandate.status}, must be pending"
+            )
 
         # Create audit trail
         audit_trail = {
@@ -174,7 +179,7 @@ class AP2PaymentService:
             "payment_method": payment_method,
             "total_amount": float(cart_mandate.total),
             "merchant": cart_mandate.merchant,
-            "items_count": len(json.loads(cart_mandate.items))
+            "items_count": len(json.loads(cart_mandate.items)),
         }
 
         # Create payment mandate
@@ -184,7 +189,7 @@ class AP2PaymentService:
             payment_method=payment_method,
             status="pending",
             audit_trail=json.dumps(audit_trail),
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
 
         self.db.add(payment_mandate)
@@ -194,9 +199,7 @@ class AP2PaymentService:
         return payment_mandate
 
     async def execute_payment(
-        self,
-        payment_mandate_id: str,
-        stripe_customer_id: Optional[str] = None
+        self, payment_mandate_id: str, stripe_customer_id: Optional[str] = None
     ) -> Dict:
         """
         Execute payment using Stripe
@@ -209,13 +212,17 @@ class AP2PaymentService:
             Payment result
         """
         # Get payment mandate
-        payment_mandate = self.db.query(PaymentMandate).filter_by(id=payment_mandate_id).first()
+        payment_mandate = (
+            self.db.query(PaymentMandate).filter_by(id=payment_mandate_id).first()
+        )
 
         if not payment_mandate:
             raise ValueError(f"Payment mandate {payment_mandate_id} not found")
 
         if payment_mandate.status != "pending":
-            raise ValueError(f"Payment mandate status is {payment_mandate.status}, must be pending")
+            raise ValueError(
+                f"Payment mandate status is {payment_mandate.status}, must be pending"
+            )
 
         # Get cart mandate
         cart_mandate = payment_mandate.cart_mandate
@@ -228,7 +235,7 @@ class AP2PaymentService:
             payment_result = await self.stripe.process_payment_mandate(
                 payment_mandate=payment_mandate,
                 amount=float(cart_mandate.total),
-                customer_id=stripe_customer_id
+                customer_id=stripe_customer_id,
             )
 
             if payment_result["success"]:
@@ -244,7 +251,7 @@ class AP2PaymentService:
                     "payment_mandate_id": payment_mandate_id,
                     "transaction_id": payment_result.get("transaction_id"),
                     "amount": float(cart_mandate.total),
-                    "status": "completed"
+                    "status": "completed",
                 }
             else:
                 # Payment failed
@@ -258,7 +265,7 @@ class AP2PaymentService:
                     "success": False,
                     "payment_mandate_id": payment_mandate_id,
                     "error": payment_result.get("error"),
-                    "message": payment_result.get("message")
+                    "message": payment_result.get("message"),
                 }
 
         except Exception as e:
@@ -272,10 +279,12 @@ class AP2PaymentService:
                 "success": False,
                 "payment_mandate_id": payment_mandate_id,
                 "error": "exception",
-                "message": str(e)
+                "message": str(e),
             }
 
-    def _generate_signature(self, user_id: str, constraints: Dict, timestamp: datetime) -> str:
+    def _generate_signature(
+        self, user_id: str, constraints: Dict, timestamp: datetime
+    ) -> str:
         """
         Generate cryptographic signature for intent mandate
 
@@ -289,7 +298,9 @@ class AP2PaymentService:
 
         return signature
 
-    async def get_mandate_status(self, mandate_id: str, mandate_type: str = "payment") -> Dict:
+    async def get_mandate_status(
+        self, mandate_id: str, mandate_type: str = "payment"
+    ) -> Dict:
         """
         Get status of any mandate
 
@@ -316,8 +327,14 @@ class AP2PaymentService:
             "id": mandate.id,
             "type": mandate_type,
             "status": mandate.status,
-            "timestamp": mandate.timestamp.isoformat() if hasattr(mandate, 'timestamp') else None,
-            "created_at": mandate.created_at.isoformat() if hasattr(mandate, 'created_at') else None
+            "timestamp": (
+                mandate.timestamp.isoformat() if hasattr(mandate, "timestamp") else None
+            ),
+            "created_at": (
+                mandate.created_at.isoformat()
+                if hasattr(mandate, "created_at")
+                else None
+            ),
         }
 
     async def complete_ap2_flow(
@@ -326,7 +343,7 @@ class AP2PaymentService:
         items: list[Dict],
         merchant: str,
         constraints: Optional[Dict] = None,
-        stripe_customer_id: Optional[str] = None
+        stripe_customer_id: Optional[str] = None,
     ) -> Dict:
         """
         Complete full AP2 payment flow in one call
@@ -352,40 +369,35 @@ class AP2PaymentService:
             constraints = {
                 "max_amount": total * 1.1,  # 10% buffer
                 "merchant": merchant,
-                "approval_required": False
+                "approval_required": False,
             }
 
         # Step 1: Create Intent Mandate
         intent_mandate = await self.create_intent_mandate(
-            user_id=user_id,
-            constraints=constraints
+            user_id=user_id, constraints=constraints
         )
 
         # Step 2: Create Cart Mandate
         # Generate user signature (in production, this would be actual cryptographic signature)
         user_signature = self._generate_signature(
-            user_id,
-            {"items": items, "merchant": merchant},
-            datetime.utcnow()
+            user_id, {"items": items, "merchant": merchant}, datetime.utcnow()
         )
 
         cart_mandate = await self.create_cart_mandate(
             intent_mandate_id=intent_mandate.id,
             items=items,
             merchant=merchant,
-            user_signature=user_signature
+            user_signature=user_signature,
         )
 
         # Step 3: Create Payment Mandate
         payment_mandate = await self.create_payment_mandate(
-            cart_mandate_id=cart_mandate.id,
-            payment_method="stripe"
+            cart_mandate_id=cart_mandate.id, payment_method="stripe"
         )
 
         # Step 4: Execute Payment
         payment_result = await self.execute_payment(
-            payment_mandate_id=payment_mandate.id,
-            stripe_customer_id=stripe_customer_id
+            payment_mandate_id=payment_mandate.id, stripe_customer_id=stripe_customer_id
         )
 
         return {
@@ -393,5 +405,5 @@ class AP2PaymentService:
             "cart_mandate_id": cart_mandate.id,
             "payment_mandate_id": payment_mandate.id,
             "payment_result": payment_result,
-            "ap2_flow_complete": payment_result["success"]
+            "ap2_flow_complete": payment_result["success"],
         }

@@ -3,12 +3,12 @@ Email notification service for expense management system.
 Sends notifications for expense lifecycle events.
 """
 
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from typing import Optional, List
-from datetime import datetime
 import logging
+import smtplib
+from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import List, Optional
 
 from ..config import settings
 
@@ -31,7 +31,7 @@ class NotificationService:
         to_email: str,
         subject: str,
         html_body: str,
-        text_body: Optional[str] = None
+        text_body: Optional[str] = None,
     ) -> bool:
         """
         Send an email using SMTP.
@@ -46,22 +46,24 @@ class NotificationService:
             True if sent successfully, False otherwise
         """
         if not self.enabled:
-            logger.info(f"Notifications disabled. Would have sent: {subject} to {to_email}")
+            logger.info(
+                f"Notifications disabled. Would have sent: {subject} to {to_email}"
+            )
             return True
 
         try:
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
-            msg['From'] = self.from_email
-            msg['To'] = to_email
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = self.from_email
+            msg["To"] = to_email
 
             # Add plain text version
             if text_body:
-                part1 = MIMEText(text_body, 'plain')
+                part1 = MIMEText(text_body, "plain")
                 msg.attach(part1)
 
             # Add HTML version
-            part2 = MIMEText(html_body, 'html')
+            part2 = MIMEText(html_body, "html")
             msg.attach(part2)
 
             # Send email
@@ -85,7 +87,7 @@ class NotificationService:
         employee_email: str,
         amount: float,
         category: str,
-        description: str
+        description: str,
     ) -> bool:
         """Notify employee that their expense was submitted."""
         subject = f"Expense Submitted: {expense_id}"
@@ -141,7 +143,7 @@ class NotificationService:
         employee_email: str,
         amount: float,
         approved_by: str,
-        transaction_id: str
+        transaction_id: str,
     ) -> bool:
         """Notify employee that their expense was approved."""
         subject = f"✅ Expense Approved: {expense_id}"
@@ -200,7 +202,7 @@ class NotificationService:
         employee_email: str,
         amount: float,
         rejected_by: str,
-        rejection_reason: Optional[str] = None
+        rejection_reason: Optional[str] = None,
     ) -> bool:
         """Notify employee that their expense was rejected."""
         subject = f"❌ Expense Rejected: {expense_id}"
@@ -272,7 +274,7 @@ class NotificationService:
         manager_email: str,
         amount: float,
         category: str,
-        description: str
+        description: str,
     ) -> bool:
         """Notify manager of a new expense awaiting approval."""
         subject = f"🔔 New Expense Awaiting Approval: {expense_id}"
@@ -330,7 +332,7 @@ class NotificationService:
         recipient_email: str,
         commenter_name: str,
         comment_text: str,
-        amount: float
+        amount: float,
     ) -> bool:
         """Notify when a comment is added to an expense."""
         subject = f"💬 New Comment on Expense: {expense_id}"

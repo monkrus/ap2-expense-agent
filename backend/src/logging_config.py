@@ -3,15 +3,15 @@ Structured Logging Configuration
 Provides comprehensive logging with JSON formatting and log aggregation support
 """
 
+import json
 import logging
 import logging.handlers
-import json
-import sys
 import os
-from datetime import datetime
-from typing import Any, Dict
-from pathlib import Path
+import sys
 import traceback
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict
 
 
 class JSONFormatter(logging.Formatter):
@@ -34,7 +34,7 @@ class JSONFormatter(logging.Formatter):
             log_data["exception"] = {
                 "type": record.exc_info[0].__name__,
                 "message": str(record.exc_info[1]),
-                "traceback": traceback.format_exception(*record.exc_info)
+                "traceback": traceback.format_exception(*record.exc_info),
             }
 
         # Add extra fields
@@ -63,7 +63,7 @@ def setup_logging(
     level: str = "INFO",
     log_file: str = "logs/app.log",
     max_bytes: int = 10485760,  # 10MB
-    backup_count: int = 5
+    backup_count: int = 5,
 ) -> None:
     """
     Configure application logging
@@ -91,9 +91,7 @@ def setup_logging(
         console_handler.setFormatter(JSONFormatter())
     else:
         console_handler.setFormatter(
-            logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-            )
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         )
     root_logger.addHandler(console_handler)
 
@@ -104,18 +102,15 @@ def setup_logging(
             # Use time-based rotation on Windows (daily rotation)
             file_handler = logging.handlers.TimedRotatingFileHandler(
                 log_file,
-                when='midnight',
+                when="midnight",
                 interval=1,
                 backupCount=backup_count,
-                encoding='utf-8'
+                encoding="utf-8",
             )
         else:
             # Use size-based rotation on Unix/Linux
             file_handler = logging.handlers.RotatingFileHandler(
-                log_file,
-                maxBytes=max_bytes,
-                backupCount=backup_count,
-                encoding='utf-8'
+                log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
             )
         file_handler.setFormatter(JSONFormatter())
         root_logger.addHandler(file_handler)
@@ -128,17 +123,17 @@ def setup_logging(
         if sys.platform == "win32":
             error_file_handler = logging.handlers.TimedRotatingFileHandler(
                 log_file.replace(".log", "_error.log"),
-                when='midnight',
+                when="midnight",
                 interval=1,
                 backupCount=backup_count,
-                encoding='utf-8'
+                encoding="utf-8",
             )
         else:
             error_file_handler = logging.handlers.RotatingFileHandler(
                 log_file.replace(".log", "_error.log"),
                 maxBytes=max_bytes,
                 backupCount=backup_count,
-                encoding='utf-8'
+                encoding="utf-8",
             )
         error_file_handler.setLevel(logging.ERROR)
         error_file_handler.setFormatter(JSONFormatter())
@@ -193,7 +188,7 @@ class RequestLogger:
         response_time: float,
         user_id: str = None,
         organization_id: str = None,
-        request_id: str = None
+        request_id: str = None,
     ):
         """Log HTTP request"""
         logger = logging.getLogger("http.access")
@@ -206,8 +201,8 @@ class RequestLogger:
                 "response_time": response_time,
                 "user_id": user_id,
                 "organization_id": organization_id,
-                "request_id": request_id
-            }
+                "request_id": request_id,
+            },
         )
 
     @staticmethod
@@ -217,7 +212,7 @@ class RequestLogger:
         error: Exception,
         user_id: str = None,
         organization_id: str = None,
-        request_id: str = None
+        request_id: str = None,
     ):
         """Log HTTP error"""
         logger = logging.getLogger("http.error")
@@ -229,8 +224,8 @@ class RequestLogger:
                 "endpoint": endpoint,
                 "user_id": user_id,
                 "organization_id": organization_id,
-                "request_id": request_id
-            }
+                "request_id": request_id,
+            },
         )
 
 
@@ -247,8 +242,8 @@ class AuditLogger:
                 "event": "auth_success",
                 "user_id": user_id,
                 "auth_method": method,
-                "ip_address": ip_address
-            }
+                "ip_address": ip_address,
+            },
         )
 
     @staticmethod
@@ -261,8 +256,8 @@ class AuditLogger:
                 "event": "auth_failure",
                 "username": username,
                 "reason": reason,
-                "ip_address": ip_address
-            }
+                "ip_address": ip_address,
+            },
         )
 
     @staticmethod
@@ -275,12 +270,14 @@ class AuditLogger:
                 "event": "permission_denied",
                 "user_id": user_id,
                 "resource": resource,
-                "action": action
-            }
+                "action": action,
+            },
         )
 
     @staticmethod
-    def log_data_access(user_id: str, resource_type: str, resource_id: str, action: str):
+    def log_data_access(
+        user_id: str, resource_type: str, resource_id: str, action: str
+    ):
         """Log data access"""
         logger = logging.getLogger("audit.data")
         logger.info(
@@ -290,15 +287,13 @@ class AuditLogger:
                 "user_id": user_id,
                 "resource_type": resource_type,
                 "resource_id": resource_id,
-                "action": action
-            }
+                "action": action,
+            },
         )
 
     @staticmethod
     def log_sensitive_operation(
-        user_id: str,
-        operation: str,
-        details: Dict[str, Any] = None
+        user_id: str, operation: str, details: Dict[str, Any] = None
     ):
         """Log sensitive operation"""
         logger = logging.getLogger("audit.sensitive")
@@ -308,8 +303,8 @@ class AuditLogger:
                 "event": "sensitive_operation",
                 "user_id": user_id,
                 "operation": operation,
-                "details": details or {}
-            }
+                "details": details or {},
+            },
         )
 
 
@@ -317,5 +312,5 @@ class AuditLogger:
 if not logging.getLogger().handlers:
     setup_logging(
         level=os.getenv("LOG_LEVEL", "INFO"),
-        log_file=os.getenv("LOG_FILE", "logs/app.log")
+        log_file=os.getenv("LOG_FILE", "logs/app.log"),
     )

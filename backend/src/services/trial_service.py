@@ -4,15 +4,16 @@ Trial Management Service
 Handles trial expiration, conversion, and notifications
 """
 
-from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from sqlalchemy import and_
-from typing import List, Dict
 import logging
-
-from ..models_billing import OrganizationSubscription, BillingTier, BillingEvent
-from ..models import Organization, User, OrganizationMember
 import uuid
+from datetime import datetime, timedelta
+from typing import Dict, List
+
+from sqlalchemy import and_
+from sqlalchemy.orm import Session
+
+from ..models import Organization, OrganizationMember, User
+from ..models_billing import BillingEvent, BillingTier, OrganizationSubscription
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,9 @@ class TrialService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_expiring_trials(self, days_before_expiry: int = 3) -> List[OrganizationSubscription]:
+    def get_expiring_trials(
+        self, days_before_expiry: int = 3
+    ) -> List[OrganizationSubscription]:
         """
         Get trials that will expire within the specified number of days
 
@@ -36,14 +39,18 @@ class TrialService:
         try:
             cutoff_date = datetime.utcnow() + timedelta(days=days_before_expiry)
 
-            subscriptions = self.db.query(OrganizationSubscription).filter(
-                and_(
-                    OrganizationSubscription.is_trial == True,
-                    OrganizationSubscription.status == "active",
-                    OrganizationSubscription.trial_end <= cutoff_date,
-                    OrganizationSubscription.trial_end > datetime.utcnow()
+            subscriptions = (
+                self.db.query(OrganizationSubscription)
+                .filter(
+                    and_(
+                        OrganizationSubscription.is_trial == True,
+                        OrganizationSubscription.status == "active",
+                        OrganizationSubscription.trial_end <= cutoff_date,
+                        OrganizationSubscription.trial_end > datetime.utcnow(),
+                    )
                 )
-            ).all()
+                .all()
+            )
 
             return subscriptions
 
@@ -59,13 +66,17 @@ class TrialService:
             List of subscriptions with expired trials
         """
         try:
-            subscriptions = self.db.query(OrganizationSubscription).filter(
-                and_(
-                    OrganizationSubscription.is_trial == True,
-                    OrganizationSubscription.status == "active",
-                    OrganizationSubscription.trial_end <= datetime.utcnow()
+            subscriptions = (
+                self.db.query(OrganizationSubscription)
+                .filter(
+                    and_(
+                        OrganizationSubscription.is_trial == True,
+                        OrganizationSubscription.status == "active",
+                        OrganizationSubscription.trial_end <= datetime.utcnow(),
+                    )
                 )
-            ).all()
+                .all()
+            )
 
             return subscriptions
 
@@ -86,9 +97,11 @@ class TrialService:
             Result dict with success status and details
         """
         try:
-            subscription = self.db.query(OrganizationSubscription).filter(
-                OrganizationSubscription.id == subscription_id
-            ).first()
+            subscription = (
+                self.db.query(OrganizationSubscription)
+                .filter(OrganizationSubscription.id == subscription_id)
+                .first()
+            )
 
             if not subscription:
                 return {"success": False, "error": "Subscription not found"}
@@ -96,19 +109,24 @@ class TrialService:
             if not subscription.is_trial:
                 return {"success": False, "error": "Subscription is not a trial"}
 
-            organization = self.db.query(Organization).filter(
-                Organization.id == subscription.organization_id
-            ).first()
+            organization = (
+                self.db.query(Organization)
+                .filter(Organization.id == subscription.organization_id)
+                .first()
+            )
 
             if not organization:
                 return {"success": False, "error": "Organization not found"}
 
             # Check if organization has payment method
-            if not organization.stripe_customer_id and not subscription.gcp_entitlement_id:
+            if (
+                not organization.stripe_customer_id
+                and not subscription.gcp_entitlement_id
+            ):
                 return {
                     "success": False,
                     "error": "No payment method on file",
-                    "requires_payment": True
+                    "requires_payment": True,
                 }
 
             # Convert to paid subscription
@@ -124,20 +142,22 @@ class TrialService:
                 event_data={
                     "subscription_id": subscription_id,
                     "tier": subscription.tier_id,
-                    "conversion_date": datetime.utcnow().isoformat()
+                    "conversion_date": datetime.utcnow().isoformat(),
                 },
-                status="success"
+                status="success",
             )
             self.db.add(event)
 
             self.db.commit()
 
-            logger.info(f"Successfully converted trial to paid for org {organization.id}")
+            logger.info(
+                f"Successfully converted trial to paid for org {organization.id}"
+            )
 
             return {
                 "success": True,
                 "subscription_id": subscription_id,
-                "organization_id": organization.id
+                "organization_id": organization.id,
             }
 
         except Exception as e:
@@ -156,9 +176,11 @@ class TrialService:
             Result dict with success status
         """
         try:
-            subscription = self.db.query(OrganizationSubscription).filter(
-                OrganizationSubscription.id == subscription_id
-            ).first()
+            subscription = (
+                self.db.query(OrganizationSubscription)
+                .filter(OrganizationSubscription.id == subscription_id)
+                .first()
+            )
 
             if not subscription:
                 return {"success": False, "error": "Subscription not found"}
@@ -173,9 +195,13 @@ class TrialService:
                 event_type="trial_expired",
                 event_data={
                     "subscription_id": subscription_id,
-                    "trial_end": subscription.trial_end.isoformat() if subscription.trial_end else None
+                    "trial_end": (
+                        subscription.trial_end.isoformat()
+                        if subscription.trial_end
+                        else None
+                    ),
                 },
-                status="success"
+                status="success",
             )
             self.db.add(event)
 
@@ -186,7 +212,7 @@ class TrialService:
             return {
                 "success": True,
                 "subscription_id": subscription_id,
-                "organization_id": subscription.organization_id
+                "organization_id": subscription.organization_id,
             }
 
         except Exception as e:
@@ -194,7 +220,9 @@ class TrialService:
             self.db.rollback()
             return {"success": False, "error": str(e)}
 
-    def send_trial_expiry_warning(self, subscription: OrganizationSubscription, days_remaining: int):
+    def send_trial_expiry_warning(
+        self, subscription: OrganizationSubscription, days_remaining: int
+    ):
         """
         Send email notification about expiring trial
 
@@ -203,25 +231,36 @@ class TrialService:
             days_remaining: Number of days until trial expires
         """
         try:
-            organization = self.db.query(Organization).filter(
-                Organization.id == subscription.organization_id
-            ).first()
+            organization = (
+                self.db.query(Organization)
+                .filter(Organization.id == subscription.organization_id)
+                .first()
+            )
 
             if not organization:
-                logger.warning(f"Organization not found for subscription {subscription.id}")
+                logger.warning(
+                    f"Organization not found for subscription {subscription.id}"
+                )
                 return
 
             # Get organization admins/owners
-            admins = self.db.query(User).join(OrganizationMember).filter(
-                and_(
-                    OrganizationMember.organization_id == organization.id,
-                    OrganizationMember.role.in_(["owner", "admin"])
+            admins = (
+                self.db.query(User)
+                .join(OrganizationMember)
+                .filter(
+                    and_(
+                        OrganizationMember.organization_id == organization.id,
+                        OrganizationMember.role.in_(["owner", "admin"]),
+                    )
                 )
-            ).all()
+                .all()
+            )
 
-            tier = self.db.query(BillingTier).filter(
-                BillingTier.id == subscription.tier_id
-            ).first()
+            tier = (
+                self.db.query(BillingTier)
+                .filter(BillingTier.id == subscription.tier_id)
+                .first()
+            )
 
             tier_name = tier.tier_display_name if tier else "Unknown"
 
@@ -240,9 +279,9 @@ class TrialService:
                 event_data={
                     "subscription_id": subscription.id,
                     "days_remaining": days_remaining,
-                    "admins_notified": len(admins)
+                    "admins_notified": len(admins),
                 },
-                status="success"
+                status="success",
             )
             self.db.add(event)
             self.db.commit()
@@ -266,23 +305,27 @@ class TrialService:
 
                 for subscription in expiring:
                     # Check if we already sent warning for this day
-                    recent_warning = self.db.query(BillingEvent).filter(
-                        and_(
-                            BillingEvent.organization_id == subscription.organization_id,
-                            BillingEvent.event_type == "trial_expiry_warning",
-                            BillingEvent.event_data["days_remaining"].astext == str(days),
-                            BillingEvent.created_at >= datetime.utcnow() - timedelta(hours=24)
+                    recent_warning = (
+                        self.db.query(BillingEvent)
+                        .filter(
+                            and_(
+                                BillingEvent.organization_id
+                                == subscription.organization_id,
+                                BillingEvent.event_type == "trial_expiry_warning",
+                                BillingEvent.event_data["days_remaining"].astext
+                                == str(days),
+                                BillingEvent.created_at
+                                >= datetime.utcnow() - timedelta(hours=24),
+                            )
                         )
-                    ).first()
+                        .first()
+                    )
 
                     if not recent_warning:
                         self.send_trial_expiry_warning(subscription, days)
                         warnings_sent += 1
 
-            return {
-                "success": True,
-                "warnings_sent": warnings_sent
-            }
+            return {"success": True, "warnings_sent": warnings_sent}
 
         except Exception as e:
             logger.error(f"Error processing expiring trials: {e}")
@@ -303,14 +346,15 @@ class TrialService:
             errors = []
 
             for subscription in expired:
-                organization = self.db.query(Organization).filter(
-                    Organization.id == subscription.organization_id
-                ).first()
+                organization = (
+                    self.db.query(Organization)
+                    .filter(Organization.id == subscription.organization_id)
+                    .first()
+                )
 
                 # Check if organization has payment method
-                has_payment_method = (
-                    organization and
-                    (organization.stripe_customer_id or subscription.gcp_entitlement_id)
+                has_payment_method = organization and (
+                    organization.stripe_customer_id or subscription.gcp_entitlement_id
                 )
 
                 if has_payment_method:
@@ -319,27 +363,31 @@ class TrialService:
                     if result["success"]:
                         converted_count += 1
                     else:
-                        errors.append({
-                            "subscription_id": subscription.id,
-                            "error": result.get("error")
-                        })
+                        errors.append(
+                            {
+                                "subscription_id": subscription.id,
+                                "error": result.get("error"),
+                            }
+                        )
                 else:
                     # Suspend the subscription
                     result = self.suspend_expired_trial(subscription.id)
                     if result["success"]:
                         suspended_count += 1
                     else:
-                        errors.append({
-                            "subscription_id": subscription.id,
-                            "error": result.get("error")
-                        })
+                        errors.append(
+                            {
+                                "subscription_id": subscription.id,
+                                "error": result.get("error"),
+                            }
+                        )
 
             return {
                 "success": True,
                 "expired_trials_processed": len(expired),
                 "converted": converted_count,
                 "suspended": suspended_count,
-                "errors": errors
+                "errors": errors,
             }
 
         except Exception as e:

@@ -16,7 +16,6 @@ from fastapi import HTTPException, status
 
 from .models import UserRole
 
-
 # ============================================================================
 # PERMISSION DEFINITIONS
 # ============================================================================
@@ -113,39 +112,31 @@ _EMPLOYEE_PERMISSIONS = {
     Permission.EXPENSE_VIEW_OWN,
     Permission.EXPENSE_EDIT_OWN,
     Permission.EXPENSE_DELETE_OWN,
-
     # Comments
     Permission.COMMENT_CREATE,
     Permission.COMMENT_VIEW,
     Permission.COMMENT_EDIT_OWN,
     Permission.COMMENT_DELETE_OWN,
-
     # Receipts
     Permission.RECEIPT_UPLOAD,
     Permission.RECEIPT_VIEW_OWN,
     Permission.RECEIPT_DELETE_OWN,
-
     # Users
     Permission.USER_VIEW_OWN,
     Permission.USER_EDIT_OWN,
-
     # Reports
     Permission.REPORT_VIEW_OWN,
-
     # Audit
     Permission.AUDIT_VIEW_OWN,
 }
 
 ROLE_PERMISSIONS: dict[UserRole, Set[Permission]] = {
-
     # ===== EMPLOYEE ROLE =====
     UserRole.EMPLOYEE: _EMPLOYEE_PERMISSIONS,
-
     # ===== MANAGER ROLE =====
     UserRole.MANAGER: {
         # All employee permissions
         *_EMPLOYEE_PERMISSIONS,
-
         # Expenses - View/approve/edit department only (with $5K limit for approval)
         Permission.EXPENSE_VIEW_DEPARTMENT,
         Permission.EXPENSE_EDIT_DEPARTMENT,
@@ -153,47 +144,36 @@ ROLE_PERMISSIONS: dict[UserRole, Set[Permission]] = {
         Permission.EXPENSE_REJECT_DEPARTMENT,
         Permission.EXPENSE_BULK_APPROVE,
         Permission.EXPENSE_BULK_REJECT,
-
         # Receipts - Department
         Permission.RECEIPT_VIEW_ALL,
-
         # Users - Department
         Permission.USER_VIEW_DEPARTMENT,
-
         # Reports - Department
         Permission.REPORT_VIEW_DEPARTMENT,
         Permission.REPORT_EXPORT,
-
         # Audit - Department
         Permission.AUDIT_VIEW_DEPARTMENT,
     },
-
     # ===== ACCOUNTANT ROLE =====
     # Read-only role with full visibility for audit and compliance
     UserRole.ACCOUNTANT: {
         # All employee permissions
         *_EMPLOYEE_PERMISSIONS,
-
         # Expenses - View all (read-only, cannot approve)
         Permission.EXPENSE_VIEW_ALL,
         Permission.EXPENSE_VIEW_DEPARTMENT,
-
         # Receipts - View all
         Permission.RECEIPT_VIEW_ALL,
-
         # Users - View all
         Permission.USER_VIEW_ALL,
-
         # Reports - View and export all
         Permission.REPORT_VIEW_ALL,
         Permission.REPORT_VIEW_DEPARTMENT,
         Permission.REPORT_EXPORT,
-
         # Audit - View all
         Permission.AUDIT_VIEW_ALL,
         Permission.AUDIT_VIEW_DEPARTMENT,
     },
-
     # ===== ADMIN ROLE =====
     UserRole.ADMIN: {
         # All permissions (superuser)
@@ -279,26 +259,29 @@ def require_permission(permission: Permission):
         async def get_all_expenses(current_user: User = Depends(get_current_user)):
             ...
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Extract current_user from kwargs
-            current_user = kwargs.get('current_user')
+            current_user = kwargs.get("current_user")
             if not current_user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
+                    detail="Authentication required",
                 )
 
             # Check permission
             if not has_permission(current_user.role, permission):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Permission denied: {permission.value} required"
+                    detail=f"Permission denied: {permission.value} required",
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -312,25 +295,28 @@ def require_any_permission(*permissions: Permission):
             Permission.EXPENSE_APPROVE_ALL
         )
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            current_user = kwargs.get('current_user')
+            current_user = kwargs.get("current_user")
             if not current_user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
+                    detail="Authentication required",
                 )
 
             if not has_any_permission(current_user.role, list(permissions)):
                 perms_str = ", ".join([p.value for p in permissions])
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Permission denied: one of [{perms_str}] required"
+                    detail=f"Permission denied: one of [{perms_str}] required",
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -344,25 +330,28 @@ def require_all_permissions(*permissions: Permission):
             Permission.REPORT_EXPORT
         )
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            current_user = kwargs.get('current_user')
+            current_user = kwargs.get("current_user")
             if not current_user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
+                    detail="Authentication required",
                 )
 
             if not has_all_permissions(current_user.role, list(permissions)):
                 perms_str = ", ".join([p.value for p in permissions])
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Permission denied: all of [{perms_str}] required"
+                    detail=f"Permission denied: all of [{perms_str}] required",
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -371,8 +360,9 @@ def require_all_permissions(*permissions: Permission):
 # ============================================================================
 
 
-def check_permission(user_role: UserRole, permission: Permission,
-                     raise_exception: bool = True) -> bool:
+def check_permission(
+    user_role: UserRole, permission: Permission, raise_exception: bool = True
+) -> bool:
     """
     Check permission and optionally raise HTTPException.
 
@@ -392,15 +382,19 @@ def check_permission(user_role: UserRole, permission: Permission,
     if not has_perm and raise_exception:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Permission denied: {permission.value} required"
+            detail=f"Permission denied: {permission.value} required",
         )
 
     return has_perm
 
 
-def check_expense_access(user_role: UserRole, user_id: str,
-                         expense_user_id: str, user_department_id: Optional[str] = None,
-                         expense_owner_department_id: Optional[str] = None) -> bool:
+def check_expense_access(
+    user_role: UserRole,
+    user_id: str,
+    expense_user_id: str,
+    user_department_id: Optional[str] = None,
+    expense_owner_department_id: Optional[str] = None,
+) -> bool:
     """
     Check if user can access an expense based on role and ownership.
 
@@ -435,21 +429,25 @@ def check_expense_access(user_role: UserRole, user_id: str,
             else:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You can only view expenses from your department"
+                    detail="You can only view expenses from your department",
                 )
         # If departments not set, allow access (backward compatibility)
         return True
 
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail="You don't have permission to access this expense"
+        detail="You don't have permission to access this expense",
     )
 
 
-def can_approve_expense(user_role: UserRole, expense_amount: float,
-                        expense_user_id: str, user_id: str,
-                        user_department_id: Optional[str] = None,
-                        expense_owner_department_id: Optional[str] = None) -> bool:
+def can_approve_expense(
+    user_role: UserRole,
+    expense_amount: float,
+    expense_user_id: str,
+    user_id: str,
+    user_department_id: Optional[str] = None,
+    expense_owner_department_id: Optional[str] = None,
+) -> bool:
     """
     Check if user can approve an expense with advanced logic.
 
@@ -479,7 +477,7 @@ def can_approve_expense(user_role: UserRole, expense_amount: float,
             if user_department_id != expense_owner_department_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You can only approve expenses from your department"
+                    detail="You can only approve expenses from your department",
                 )
 
         # Check amount limit for managers
@@ -489,7 +487,7 @@ def can_approve_expense(user_role: UserRole, expense_amount: float,
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Expenses over ${MANAGER_APPROVAL_LIMIT} require admin approval"
+                detail=f"Expenses over ${MANAGER_APPROVAL_LIMIT} require admin approval",
             )
 
     return False
