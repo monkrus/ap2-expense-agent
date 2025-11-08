@@ -7,7 +7,8 @@ import uuid
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi import (APIRouter, BackgroundTasks, Depends, File, HTTPException,
+                     UploadFile)
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_active_user

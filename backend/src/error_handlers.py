@@ -376,7 +376,8 @@ def init_error_tracking():
         try:
             import sentry_sdk
             from sentry_sdk.integrations.fastapi import FastApiIntegration
-            from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+            from sentry_sdk.integrations.sqlalchemy import \
+                SqlalchemyIntegration
 
             sentry_sdk.init(
                 dsn=sentry_dsn,

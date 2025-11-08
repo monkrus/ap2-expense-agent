@@ -17,7 +17,8 @@ from ..config import settings
 from ..database import get_db
 from ..integrations.stripe_integration import StripeIntegration
 from ..models import Organization, OrganizationMember, User
-from ..models_billing import BillingEvent, BillingTier, OrganizationSubscription
+from ..models_billing import (BillingEvent, BillingTier,
+                              OrganizationSubscription)
 
 logger = logging.getLogger(__name__)
 

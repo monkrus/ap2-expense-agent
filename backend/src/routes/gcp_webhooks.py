@@ -11,11 +11,8 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..database import get_db
-from ..gcp import (
-    handle_entitlement_cancellation,
-    handle_entitlement_update,
-    handle_procurement_webhook,
-)
+from ..gcp import (handle_entitlement_cancellation, handle_entitlement_update,
+                   handle_procurement_webhook)
 from ..gcp.marketplace_client import GCPMarketplaceClient
 from ..gcp.usage_reporter import run_hourly_usage_reporting
 from ..services.trial_service import TrialService

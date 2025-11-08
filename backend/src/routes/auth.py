@@ -6,26 +6,17 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from ..auth import AuthService, TOTPService, get_current_active_user, require_admin
+from ..auth import (AuthService, TOTPService, get_current_active_user,
+                    require_admin)
 from ..database import get_db
 from ..email_service import EmailService
 from ..models import PasswordResetToken, User, UserRole
 from ..rate_limit import RateLimits, limiter
-from ..schemas import (
-    LoginRequest,
-    LoginResponse,
-    PasswordChange,
-    PasswordResetConfirm,
-    PasswordResetRequest,
-    RefreshTokenRequest,
-    TokenResponse,
-    TOTPDisableRequest,
-    TOTPEnableRequest,
-    TOTPSetupResponse,
-    TOTPVerifyRequest,
-    UserCreate,
-    UserResponse,
-)
+from ..schemas import (LoginRequest, LoginResponse, PasswordChange,
+                       PasswordResetConfirm, PasswordResetRequest,
+                       RefreshTokenRequest, TokenResponse, TOTPDisableRequest,
+                       TOTPEnableRequest, TOTPSetupResponse, TOTPVerifyRequest,
+                       UserCreate, UserResponse)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 

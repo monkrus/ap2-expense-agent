@@ -12,7 +12,8 @@ from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from ..models import AuditLog, CartMandate, Expense, IntentMandate, PaymentMandate, User
+from ..models import (AuditLog, CartMandate, Expense, IntentMandate,
+                      PaymentMandate, User)
 from ..repository import AP2Repository
 
 

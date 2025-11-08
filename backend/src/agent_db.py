@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import time
+import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
@@ -318,8 +319,8 @@ class ExpenseManagementAgent:
             else ExpenseCategory.OTHER
         )
 
-        # Generate unique ID
-        expense_id = f"EXP-{int(time.time() * 1000):03d}"
+        # Generate unique ID using timestamp and uuid to prevent collisions
+        expense_id = f"EXP-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}"
 
         # Create expense in database
         expense = self.expense_repo.create(

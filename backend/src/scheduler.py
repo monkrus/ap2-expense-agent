@@ -13,14 +13,9 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import SessionLocal
-from src.models import (
-    Expense,
-    ExpenseNotification,
-    ExpenseStatus,
-    RecurringExpenseTemplate,
-    RecurringFrequency,
-    ScheduledExpense,
-)
+from src.models import (Expense, ExpenseNotification, ExpenseStatus,
+                        RecurringExpenseTemplate, RecurringFrequency,
+                        ScheduledExpense)
 
 logger = logging.getLogger(__name__)
 
