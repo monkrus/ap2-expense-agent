@@ -43,9 +43,6 @@ def upgrade() -> None:
         sa.Column('totp_secret', sa.String(), nullable=True),
         sa.Column('totp_enabled', sa.Boolean(), nullable=True, server_default='false'),
         sa.Column('backup_codes', sa.Text(), nullable=True),
-        sa.Column('failed_login_attempts', sa.Integer(), nullable=False, server_default='0'),
-        sa.Column('locked_until', sa.DateTime(), nullable=True),
-        sa.Column('last_failed_login', sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('email'),
         sa.UniqueConstraint('username')
