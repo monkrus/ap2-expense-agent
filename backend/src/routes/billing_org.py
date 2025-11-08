@@ -36,7 +36,7 @@ def get_user_organization(db: Session, user_id: str) -> Optional[str]:
 
 
 @router.get("/subscription")
-async def get_organization_subscription(
+def get_organization_subscription(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -90,7 +90,7 @@ async def get_organization_subscription(
 
 
 @router.get("/usage/monthly")
-async def get_monthly_usage(
+def get_monthly_usage(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -203,7 +203,7 @@ async def get_monthly_usage(
 
 
 @router.get("/tiers")
-async def get_all_tiers(db: Session = Depends(get_db)):
+def get_all_tiers(db: Session = Depends(get_db)):
     """Get all available billing tiers"""
 
     tiers = db.query(BillingTier).filter(
@@ -227,7 +227,7 @@ async def get_all_tiers(db: Session = Depends(get_db)):
 
 
 @router.get("/tiers/{tier_name}")
-async def get_tier_info(
+def get_tier_info(
     tier_name: str,
     db: Session = Depends(get_db)
 ):
@@ -255,7 +255,7 @@ async def get_tier_info(
 
 
 @router.put("/subscription/upgrade")
-async def upgrade_subscription(
+def upgrade_subscription(
     new_tier: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -323,7 +323,7 @@ async def upgrade_subscription(
 
 
 @router.post("/subscription")
-async def create_organization_subscription(
+def create_organization_subscription(
     request: CreateSubscriptionRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)

@@ -1,6 +1,6 @@
 # AP2 Expense Management Agent - Testing Guide
 
-**Last Updated**: October 12, 2025
+**Last Updated**: November 7, 2025
 **Application Version**: 1.0.0
 
 ## Table of Contents
@@ -53,8 +53,8 @@ npm run dev
 
 ```
 Username: admintest
-Password: Admin123!
-Email: admin@test.com
+Password: AgentTest!
+Email: admintest@example.com
 Role: ADMIN
 ```
 
@@ -66,12 +66,32 @@ Role: ADMIN
 - ✅ Manage users and organizations
 - ✅ Access billing and subscription data
 
+### Manager User (Manager Access)
+
+```
+Username: testuser
+Password: AgentTest!
+Email: testuser@example.com
+Role: MANAGER
+```
+
+**Permissions**:
+- ✅ Submit new expenses
+- ✅ View own expenses
+- ✅ Edit pending expenses
+- ✅ Upload receipts
+- ✅ Export own expense reports
+- ✅ View and manage budgets (read-only)
+- ✅ View recurring expense templates
+- ❌ Cannot create/edit budgets (admin only)
+- ❌ Cannot approve/reject expenses
+
 ### Employee User (Standard Access)
 
 ```
 Username: emptest
-Password: Employee123!
-Email: employee@test.com
+Password: AgentTest!
+Email: emptest@example.com
 Role: EMPLOYEE
 ```
 
@@ -88,18 +108,493 @@ Role: EMPLOYEE
 ### Additional Test Users
 
 ```
-Username: testuser
-Email: test@test.com
+Username: emptest2
+Email: emptest2@example.com
+Password: AgentTest!
 Role: EMPLOYEE
-Status: Active, Unverified
-
-Username: newuser123
-Email: newuser@example.com
-Role: EMPLOYEE
-Status: Active, Unverified
+Status: Active
 ```
 
-**Note**: Set passwords for additional users using the admin panel or password reset flow.
+**Note**: All test users use the password `AgentTest!` for consistency. The database is automatically seeded with these users on startup.
+
+---
+
+## 🧪 Comprehensive Manual Testing Checklist
+
+**Purpose**: Complete end-to-end testing of all features including new Phase 2-4 features (Recurring Expenses, Batch Upload, Budget Management).
+
+**Estimated Time**: 60-90 minutes
+**Prerequisites**: Application running on localhost:5173, all test users created
+
+---
+
+### Phase 1: Basic Login & Navigation ✅
+
+**Objective**: Verify authentication and role-based dashboard access.
+
+**Test Steps**:
+
+1. **Admin Login**
+   - [ ] Navigate to http://localhost:5173
+   - [ ] Login with `admintest` / `AgentTest!`
+   - [ ] ✅ Verify dashboard loads successfully
+   - [ ] ✅ Verify all admin tabs are visible:
+     - Pending Approvals
+     - All Expenses
+     - Archived
+     - User Management
+     - Billing & Usage
+     - AI Assistant
+     - Recurring
+     - **Budgets** (NEW!)
+   - [ ] ✅ Logout successfully
+
+2. **Manager Login**
+   - [ ] Login with `testuser` / `AgentTest!`
+   - [ ] ✅ Verify manager dashboard has tabs:
+     - Active Expenses
+     - History
+     - AI Assistant
+     - **Recurring** (NEW!)
+     - **Budgets** (NEW! - Read-only)
+   - [ ] ✅ Verify no admin-only tabs visible
+   - [ ] ✅ Logout successfully
+
+3. **Employee Login**
+   - [ ] Login with `emptest` / `AgentTest!`
+   - [ ] ✅ Verify employee dashboard has tabs:
+     - Active Expenses
+     - History
+     - AI Assistant
+     - **Recurring** (NEW!)
+     - **Budgets** (NEW! - Read-only)
+   - [ ] ✅ Logout successfully
+
+**Expected Results**: All roles can login, see appropriate tabs, no unauthorized access.
+
+---
+
+### Phase 2: Test NEW Feature - Recurring Expenses 🆕
+
+**Objective**: Test recurring expense template creation, management, and scheduling.
+
+**Test as Employee** (`testuser` or `emptest`):
+
+1. **Create Recurring Template**
+   - [ ] Click "Recurring" tab
+   - [ ] Click "Create Recurring Expense" button
+   - [ ] Fill out form:
+     - **Vendor**: AWS
+     - **Amount**: 99.99
+     - **Category**: Software
+     - **Frequency**: Monthly
+     - **Description**: AWS hosting costs
+     - **Auto-submit**: ON (toggle enabled)
+     - **Next run date**: Today's date
+   - [ ] Click "Submit"
+   - [ ] ✅ Verify: Success message appears
+   - [ ] ✅ Verify: Template appears in list
+   - [ ] ✅ Verify: Shows "Active" status
+   - [ ] ✅ Verify: Stats show correct count
+
+2. **Pause Template**
+   - [ ] Find the AWS template in list
+   - [ ] Click "Pause" button
+   - [ ] ✅ Verify: Status changes to "Paused"
+   - [ ] ✅ Verify: Pause button changes to "Resume"
+
+3. **Resume Template**
+   - [ ] Click "Resume" button on paused template
+   - [ ] ✅ Verify: Status changes back to "Active"
+   - [ ] ✅ Verify: Resume button changes to "Pause"
+
+4. **Edit Template**
+   - [ ] Click "Edit" icon (pencil) on template
+   - [ ] Change amount to: 149.99
+   - [ ] Update description
+   - [ ] Click "Save"
+   - [ ] ✅ Verify: Changes saved successfully
+   - [ ] ✅ Verify: Updated amount displays in list
+
+5. **Create Additional Templates**
+   - [ ] Create 2-3 more templates with different frequencies:
+     - Weekly template (Office supplies)
+     - Quarterly template (Software license)
+   - [ ] ✅ Verify: All templates show in list
+   - [ ] ✅ Verify: Stats update correctly
+
+6. **Delete Template**
+   - [ ] Click "Delete" icon (trash) on one template
+   - [ ] Confirm deletion in dialog
+   - [ ] ✅ Verify: Template removed from list
+   - [ ] ✅ Verify: Stats update
+
+**Expected Results**:
+- ✅ Templates created successfully
+- ✅ List shows templates with correct stats
+- ✅ Pause/Resume works correctly
+- ✅ Edit updates template
+- ✅ Delete removes template
+- ⚠️ **Known Limitation**: Auto-submission requires scheduler (may not work without background worker)
+
+---
+
+### Phase 3: Test NEW Feature - Batch Receipt Upload 🆕
+
+**Objective**: Test multi-file upload with AI extraction and bulk expense creation.
+
+**Test as Employee** (`testuser` or `emptest`):
+
+1. **Open Batch Upload**
+   - [ ] Go to "Active Expenses" tab
+   - [ ] Click purple "Batch Upload" button
+   - [ ] ✅ Verify: Upload modal/page opens
+   - [ ] ✅ Verify: Drag-drop area visible
+   - [ ] ✅ Verify: File browser button present
+
+2. **Upload Multiple Receipts**
+   - [ ] Drag and drop 2-3 receipt images (JPG/PNG)
+     - Or click to browse and select files
+   - [ ] ✅ Verify: Files appear in upload list
+   - [ ] ✅ Verify: File names and sizes shown
+   - [ ] ✅ Verify: Preview thumbnails visible (if applicable)
+
+3. **Extract Data with AI**
+   - [ ] Click "Upload & Extract Data" button
+   - [ ] Wait 5-10 seconds for processing
+   - [ ] ✅ Verify: Loading indicator shows
+   - [ ] ✅ Verify: Extracted data appears for each receipt:
+     - Vendor name
+     - Amount
+     - Category
+     - Confidence score
+   - [ ] ⚠️ **If GOOGLE_API_KEY not set**:
+     - Fields may be empty/default values
+     - Can still manually fill and create expenses
+
+4. **Edit Extracted Data**
+   - [ ] Click "Edit" on one receipt
+   - [ ] Modify the vendor name
+   - [ ] Update amount if needed
+   - [ ] Click "Save"
+   - [ ] ✅ Verify: Changes reflected in preview
+
+5. **Create Individual Expense**
+   - [ ] Click "Create" button on single receipt
+   - [ ] ✅ Verify: Expense created successfully
+   - [ ] ✅ Verify: Receipt removed from batch list
+   - [ ] Go to "Active Expenses" tab
+   - [ ] ✅ Verify: New expense appears with attached receipt
+
+6. **Create All Expenses (Bulk)**
+   - [ ] Return to batch upload (upload more receipts if needed)
+   - [ ] Click "Create All Expenses" button
+   - [ ] ✅ Verify: All receipts converted to expenses
+   - [ ] ✅ Verify: Success message shows count
+   - [ ] Go to "Active Expenses" tab
+   - [ ] ✅ Verify: All new expenses appear in list
+
+**Expected Results**:
+- ✅ Batch upload modal/page opens
+- ✅ Multiple files upload successfully
+- ⚠️ AI extraction may fail without GOOGLE_API_KEY
+  - Without API key: Can still manually fill fields
+  - With API key: Auto-extraction works
+- ✅ Edit functionality works
+- ✅ Individual and bulk creation works
+- ✅ Receipts attached to created expenses
+
+---
+
+### Phase 4: Test NEW Feature - Budget Management 🆕
+
+**Objective**: Test budget creation, monitoring, alerts, and role-based access control.
+
+**Test as Admin** (`admintest`):
+
+1. **View Budget Dashboard**
+   - [ ] Click "Budgets" tab
+   - [ ] ✅ Verify: Stats cards display:
+     - Total Budgets (count)
+     - Total Budget Amount ($)
+     - Total Spent ($)
+     - Budget Status breakdown (On Track/Warning/Critical/Exceeded)
+   - [ ] ✅ Verify: Budget list/table visible
+   - [ ] ✅ Verify: Filter buttons present
+   - [ ] ✅ Verify: "Create Budget" button visible (admin only)
+
+2. **Create Organization-Wide Budget**
+   - [ ] Click "Create Budget"
+   - [ ] Fill out form:
+     - **Name**: Q4 2024 Marketing
+     - **Description**: Marketing budget for Q4
+     - **Amount**: 50000
+     - **Period**: Quarterly
+     - **Category**: (Leave blank for all categories)
+     - **User**: (Leave blank for organization-wide)
+     - **Warning Threshold**: 75%
+     - **Critical Threshold**: 90%
+     - **Start Date**: Today's date
+   - [ ] Click "Create Budget"
+   - [ ] ✅ Verify: Success message
+   - [ ] ✅ Verify: Budget appears in list
+   - [ ] ✅ Verify: Shows correct details:
+     - Progress bar at 0% (or based on existing expenses)
+     - Status: "ON TRACK" (green badge)
+     - Remaining amount shown
+     - Period and dates displayed
+
+3. **Create Category-Specific Budget**
+   - [ ] Click "Create Budget"
+   - [ ] Fill form:
+     - **Name**: Software Subscriptions
+     - **Amount**: 10000
+     - **Period**: Monthly
+     - **Category**: Software (select from dropdown)
+     - Leave user blank
+   - [ ] Create budget
+   - [ ] ✅ Verify: Budget created with category filter
+   - [ ] ✅ Verify: Only expenses in "Software" category count toward this budget
+
+4. **Create User-Specific Budget**
+   - [ ] Create another budget:
+     - **Name**: John's Travel Budget
+     - **Amount**: 5000
+     - **Period**: Monthly
+     - **User**: Select `testuser` from dropdown
+   - [ ] ✅ Verify: Budget created
+   - [ ] ✅ Verify: Only testuser's expenses count toward this budget
+
+5. **Create Small Test Budget** (for Phase 5 testing)
+   - [ ] Create budget:
+     - **Name**: Test Alert Budget
+     - **Amount**: 100
+     - **Period**: Monthly
+     - **Start Date**: Today
+   - [ ] ✅ Verify: Created successfully
+   - [ ] Note: Will use this in Phase 5 to test status changes
+
+6. **Edit Budget**
+   - [ ] Click "Edit" icon on a budget
+   - [ ] Change amount to: 12000
+   - [ ] Update description
+   - [ ] Click "Save"
+   - [ ] ✅ Verify: Changes saved
+   - [ ] ✅ Verify: Updated values display
+
+7. **Test Filters**
+   - [ ] Click status filter buttons:
+     - "All"
+     - "On Track"
+     - "Warning"
+     - "Critical"
+     - "Exceeded"
+   - [ ] ✅ Verify: List filters correctly based on budget status
+   - [ ] Toggle "Active only" checkbox
+   - [ ] ✅ Verify: Shows/hides inactive budgets
+
+8. **View Budget Details**
+   - [ ] Click on a budget row to expand/view details
+   - [ ] ✅ Verify: Detailed view shows:
+     - Full description
+     - Spending breakdown
+     - Associated expenses list
+     - Timeline/history
+
+**Test as Manager/Employee** (`testuser` or `emptest`):
+
+9. **Verify Read-Only Access**
+   - [ ] Logout as admin
+   - [ ] Login as `testuser`
+   - [ ] Go to "Budgets" tab
+   - [ ] ✅ Verify: Can VIEW budgets
+   - [ ] ✅ Verify: Stats display correctly
+   - [ ] ✅ Verify: Budget list visible
+   - [ ] ✅ Verify: NO "Create Budget" button (read-only)
+   - [ ] ✅ Verify: NO Edit/Delete buttons visible
+   - [ ] ✅ Verify: Can view budget details but not modify
+
+**Expected Results**:
+- ✅ Budget creation works (admin only)
+- ✅ Stats calculated correctly
+- ✅ Progress bars display and update
+- ✅ Status colors correct (green/yellow/orange/red)
+- ✅ Edit/Delete work (admin only)
+- ✅ Filters work correctly
+- ✅ Real-time spending calculation
+- ✅ Employees/Managers have read-only access
+
+---
+
+### Phase 5: Test Budget Status Changes & Alerts 🎯
+
+**Objective**: Verify budget alert thresholds trigger correctly and status colors update in real-time.
+
+**Prerequisites**: "Test Alert Budget" created in Phase 4 with $100 limit.
+
+**Test as Employee** (`testuser` or `emptest`):
+
+1. **Check Initial State**
+   - [ ] Go to "Budgets" tab
+   - [ ] Find "Test Alert Budget" ($100)
+   - [ ] ✅ Verify: Status is "ON TRACK" (green)
+   - [ ] ✅ Verify: Progress bar at 0%
+   - [ ] ✅ Verify: Remaining: $100
+
+2. **Submit First Expense (50% Usage)**
+   - [ ] Go to "Active Expenses"
+   - [ ] Create expense:
+     - Amount: $50
+     - Vendor: Test Vendor 1
+     - Category: (match budget category if set)
+   - [ ] Submit expense
+   - [ ] **Have admin approve it** (or if auto-approved, wait)
+   - [ ] Return to "Budgets" tab
+   - [ ] ✅ Verify: Progress bar now at 50%
+   - [ ] ✅ Verify: Status still "ON TRACK" (green) - below 75% threshold
+   - [ ] ✅ Verify: Remaining: $50
+
+3. **Submit Second Expense (80% Usage - WARNING)**
+   - [ ] Create another expense:
+     - Amount: $30
+     - Vendor: Test Vendor 2
+   - [ ] Submit and get it approved
+   - [ ] Check "Budgets" tab
+   - [ ] ✅ Verify: Progress bar at 80%
+   - [ ] ✅ Verify: Status changed to "WARNING" (yellow/amber badge)
+   - [ ] ✅ Verify: Remaining: $20
+   - [ ] ✅ Verify: Alert notification may appear
+
+4. **Submit Third Expense (95% Usage - CRITICAL)**
+   - [ ] Create expense:
+     - Amount: $15
+     - Vendor: Test Vendor 3
+   - [ ] Submit and get approved
+   - [ ] Check "Budgets" tab
+   - [ ] ✅ Verify: Progress bar at 95%
+   - [ ] ✅ Verify: Status changed to "CRITICAL" (orange badge)
+   - [ ] ✅ Verify: Remaining: $5
+   - [ ] ✅ Verify: Critical alert notification
+
+5. **Submit Fourth Expense (105% Usage - EXCEEDED)**
+   - [ ] Create expense:
+     - Amount: $10
+     - Vendor: Test Vendor 4
+   - [ ] Submit and get approved
+   - [ ] Check "Budgets" tab
+   - [ ] ✅ Verify: Progress bar at 105% (may show as 100% full + indicator)
+   - [ ] ✅ Verify: Status changed to "EXCEEDED" (red badge)
+   - [ ] ✅ Verify: Remaining: -$5 (over budget)
+   - [ ] ✅ Verify: Exceeded alert notification
+
+6. **Verify Alert History**
+   - [ ] Click on the budget to view details
+   - [ ] Look for "Alerts" or "History" section
+   - [ ] ✅ Verify: Alert history shows:
+     - Warning alert at 80%
+     - Critical alert at 95%
+     - Exceeded alert at 105%
+   - [ ] ✅ Verify: Timestamps recorded
+   - [ ] ✅ Verify: Percentage at time of alert shown
+
+**Expected Results**:
+- ✅ Budget status updates in real-time (or after page refresh)
+- ✅ Progress bar fills up correctly
+- ✅ Status colors change correctly:
+  - **0-74%**: Green "ON TRACK"
+  - **75-89%**: Yellow/Amber "WARNING"
+  - **90-99%**: Orange "CRITICAL"
+  - **100%+**: Red "EXCEEDED"
+- ✅ Percentage shown accurately
+- ✅ Remaining amount calculates correctly (including negative for over-budget)
+- ✅ Alerts triggered at correct thresholds
+- ✅ Alert history recorded
+
+---
+
+### Phase 6: Test Notifications 🔔
+
+**Objective**: Verify notification center displays alerts and mark-as-read functionality works.
+
+**Test as any user**:
+
+1. **Locate Notification Center**
+   - [ ] Look for bell icon in top-right corner of dashboard
+   - [ ] ✅ Verify: Bell icon visible
+   - [ ] ✅ Verify: Unread count badge displayed (if notifications exist)
+
+2. **View Notifications**
+   - [ ] Click bell icon
+   - [ ] ✅ Verify: Notification dropdown/panel opens
+   - [ ] ✅ Verify: Shows list of notifications
+   - [ ] ✅ Verify: Unread notifications highlighted/bolded
+   - [ ] ✅ Verify: Notification types visible:
+     - Expense approvals/rejections
+     - Budget alerts
+     - System notifications
+   - [ ] ✅ Verify: Timestamps show (e.g., "5 minutes ago")
+
+3. **Read Notification**
+   - [ ] Click on an unread notification
+   - [ ] ✅ Verify: Notification opens/expands
+   - [ ] ✅ Verify: Full details displayed
+   - [ ] ✅ Verify: Styling changes to show as "read"
+
+4. **Mark as Read**
+   - [ ] Find "Mark as read" button/link on notification
+   - [ ] Click it
+   - [ ] ✅ Verify: Notification marked as read
+   - [ ] ✅ Verify: Unread count badge decreases
+   - [ ] ✅ Verify: Notification moves to "Read" section (if separate)
+
+5. **Mark All as Read**
+   - [ ] Look for "Mark all as read" button
+   - [ ] Click it
+   - [ ] ✅ Verify: All notifications marked as read
+   - [ ] ✅ Verify: Badge count goes to 0 or disappears
+   - [ ] ✅ Verify: No unread notifications highlighted
+
+6. **Notification Persistence**
+   - [ ] Close notification panel
+   - [ ] Refresh page
+   - [ ] Open notification panel again
+   - [ ] ✅ Verify: Read/unread status persists
+   - [ ] ✅ Verify: Badge count accurate after refresh
+
+7. **Test Budget Alert Notifications** (if Phase 5 completed)
+   - [ ] Check for budget alert notifications from Phase 5
+   - [ ] ✅ Verify: Warning, Critical, and Exceeded alerts appear
+   - [ ] ✅ Verify: Clear notification text ("Budget 'Test Alert Budget' has exceeded 75% threshold")
+   - [ ] ✅ Verify: Click notification navigates to budget page (if applicable)
+
+**Expected Results**:
+- ✅ Notification center visible and accessible
+- ✅ Unread count badge shows correct number
+- ✅ Dropdown/panel works smoothly
+- ✅ Mark as read functionality works
+- ✅ Notifications persist across sessions
+- ✅ Budget alerts appear as notifications
+- ✅ Different notification types distinguishable
+
+---
+
+## Test Completion Checklist
+
+After completing all phases, verify:
+
+- [ ] All Phase 1 tests passed (Login & Navigation)
+- [ ] All Phase 2 tests passed (Recurring Expenses)
+- [ ] All Phase 3 tests passed (Batch Receipt Upload)
+- [ ] All Phase 4 tests passed (Budget Management)
+- [ ] All Phase 5 tests passed (Budget Status Changes)
+- [ ] All Phase 6 tests passed (Notifications)
+- [ ] No critical bugs found
+- [ ] Performance acceptable (page loads <2 seconds)
+- [ ] No console errors in browser
+- [ ] All user roles tested
+- [ ] Documented any issues found
+
+**Overall Testing Status**: ☐ Pass ☐ Fail ☐ Pass with Minor Issues
 
 ---
 
@@ -342,7 +837,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admintest",
-    "password": "Admin123!"
+    "password": "AgentTest!"
   }'
 ```
 
@@ -369,7 +864,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 # First, login as employee and get token
 TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"emptest","password":"Employee123!"}' \
+  -d '{"username":"emptest","password":"AgentTest!"}' \
   | jq -r '.access_token')
 
 # Submit expense
@@ -391,7 +886,7 @@ curl -X POST http://localhost:8000/api/v1/expenses \
 # Login as admin
 ADMIN_TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admintest","password":"Admin123!"}' \
+  -d '{"username":"admintest","password":"AgentTest!"}' \
   | jq -r '.access_token')
 
 # Get pending expenses

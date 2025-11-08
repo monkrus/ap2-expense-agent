@@ -26,7 +26,7 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
 
   const fetchIntentMandates = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
       const response = await fetch('/api/ap2/user/mandates', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -83,7 +83,7 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
       const url = isEditing
         ? `/api/recurring-expenses/${template.id}`
         : '/api/recurring-expenses';
