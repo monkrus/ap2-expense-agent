@@ -53,12 +53,13 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio
 
-      - name: Run database migrations
+      - name: Reset database and run migrations
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379/0
         run: |
+          alembic downgrade base || true
           alembic upgrade head
 
       - name: Run tests with coverage
