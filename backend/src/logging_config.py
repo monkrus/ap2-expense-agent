@@ -308,8 +308,8 @@ class AuditLogger:
         )
 
 
-# Initialize logging on module import
-if not logging.getLogger().handlers:
+# Initialize logging on module import (skip in test environment to reduce output)
+if not logging.getLogger().handlers and os.getenv("ENVIRONMENT") != "test":
     setup_logging(
         level=os.getenv("LOG_LEVEL", "INFO"),
         log_file=os.getenv("LOG_FILE", "logs/app.log"),

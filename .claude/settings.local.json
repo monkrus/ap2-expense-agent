@@ -87,7 +87,10 @@
       "Bash(npm test:*)",
       "Bash(npx playwright install)",
       "Bash(npm ci:*)",
-      "Bash(npx playwright install:*)"
+      "Bash(npx playwright install:*)",
+      "Bash(alembic current:*)",
+      "Bash(alembic downgrade:*)",
+      "Bash(alembic upgrade:*)"
     ],
     "deny": [],
     "ask": []
