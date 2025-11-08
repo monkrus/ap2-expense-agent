@@ -136,7 +136,7 @@ jobs:
 
       - name: Run isort (import sorting check)
         working-directory: ./backend
-        run: isort --check-only src/
+        run: isort --profile black --check-only src/
 
       - name: Run flake8 (linter)
         working-directory: ./backend
@@ -149,6 +149,9 @@ jobs:
   security-scan:
     name: Security Scanning
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -164,6 +167,7 @@ jobs:
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
         with:
           sarif_file: 'trivy-results.sarif'
 

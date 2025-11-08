@@ -17,10 +17,15 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create ENUM type for user roles
-    user_role_enum = postgresql.ENUM('admin', 'manager', 'employee', 'accountant', name='userrole', create_type=True)
-    user_role_enum.create(op.get_bind(), checkfirst=True)
-    
+    # Create ENUM type for user roles if it doesn't exist
+    conn = op.get_bind()
+    result = conn.execute(sa.text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userrole')"))
+    type_exists = result.scalar()
+
+    if not type_exists:
+        user_role_enum = postgresql.ENUM('admin', 'manager', 'employee', 'accountant', name='userrole', create_type=False)
+        user_role_enum.create(conn, checkfirst=False)
+
     # Create users table
     op.create_table('users',
         sa.Column('id', sa.String(), nullable=False),
@@ -28,7 +33,7 @@ def upgrade() -> None:
         sa.Column('username', sa.String(), nullable=False),
         sa.Column('hashed_password', sa.String(), nullable=False),
         sa.Column('full_name', sa.String(), nullable=True),
-        sa.Column('role', user_role_enum, nullable=False, server_default='employee'),
+        sa.Column('role', postgresql.ENUM('admin', 'manager', 'employee', 'accountant', name='userrole', create_type=False), nullable=False, server_default='employee'),
         sa.Column('is_active', sa.Boolean(), nullable=True, server_default='true'),
         sa.Column('is_verified', sa.Boolean(), nullable=True, server_default='false'),
         sa.Column('created_at', sa.DateTime(), nullable=True, server_default=sa.text('NOW()')),
