@@ -20,7 +20,7 @@ passlib[bcrypt]==1.7.4
 bcrypt<5.0  # bcrypt 5.0 has compatibility issues with passlib 1.7.4
 pyotp==2.9.0
 qrcode[pil]==7.4.2
-pillow==11.2.0
+pillow==10.3.0
 email-validator==2.1.0
 slowapi==0.1.9
 stripe==11.1.0

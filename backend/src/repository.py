@@ -10,8 +10,15 @@ from typing import Dict, List, Optional
 from sqlalchemy import and_, desc, or_
 from sqlalchemy.orm import Session
 
-from .models import (CartMandate, Expense, ExpenseCategory, ExpenseStatus,
-                     IntentMandate, PaymentMandate, User)
+from .models import (
+    CartMandate,
+    Expense,
+    ExpenseCategory,
+    ExpenseStatus,
+    IntentMandate,
+    PaymentMandate,
+    User,
+)
 
 
 class ExpenseRepository:

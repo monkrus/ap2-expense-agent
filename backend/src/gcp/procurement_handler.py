@@ -14,8 +14,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..email_service import EmailService
-from ..models import (Organization, OrganizationMember, OrganizationRole, User,
-                      UserRole)
+from ..models import Organization, OrganizationMember, OrganizationRole, User, UserRole
 from ..models_billing import BillingEvent, OrganizationSubscription
 
 

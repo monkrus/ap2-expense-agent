@@ -11,8 +11,12 @@ from .config import settings
 from .database import get_db, init_db
 from .error_handlers import register_exception_handlers
 from .models import User
-from .permissions import (Permission, can_approve_expense, check_permission,
-                          has_any_permission)
+from .permissions import (
+    Permission,
+    can_approve_expense,
+    check_permission,
+    has_any_permission,
+)
 from .rate_limit import limiter, rate_limit_handler
 from .routes import admin_router, auth_router, oauth_router, users_router
 from .routes.ap2 import router as ap2_router
@@ -20,6 +24,7 @@ from .routes.billing import router as billing_router
 from .routes.billing_org import router as billing_org_router
 from .routes.budgets import router as budgets_router
 from .routes.organizations import router as organizations_router
+
 # Temporarily disabled due to missing google-cloud dependencies
 # from .routes.gcp_webhooks import router as gcp_webhooks_router
 from .routes.payment import router as payment_router
@@ -1369,8 +1374,7 @@ async def bulk_approve_expenses(
 
                 # Send approval notification
                 try:
-                    from .services.notification_service import \
-                        notification_service
+                    from .services.notification_service import notification_service
 
                     employee = (
                         db.query(UserModel)
@@ -1520,8 +1524,7 @@ async def bulk_reject_expenses(
 
                 # Send rejection notification
                 try:
-                    from .services.notification_service import \
-                        notification_service
+                    from .services.notification_service import notification_service
 
                     employee = (
                         db.query(UserModel)

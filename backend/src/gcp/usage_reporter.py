@@ -12,8 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..models import OrganizationMember, User
-from ..models_billing import (BillingEvent, OrganizationSubscription,
-                              UsageMetric)
+from ..models_billing import BillingEvent, OrganizationSubscription, UsageMetric
 from .marketplace_client import get_gcp_marketplace_client
 
 
