@@ -34,6 +34,7 @@ def upgrade() -> None:
         sa.Column('hashed_password', sa.String(), nullable=False),
         sa.Column('full_name', sa.String(), nullable=True),
         sa.Column('role', postgresql.ENUM('admin', 'manager', 'employee', 'accountant', name='userrole', create_type=False), nullable=False, server_default='employee'),
+        sa.Column('department_id', sa.String(length=255), nullable=True),
         sa.Column('is_active', sa.Boolean(), nullable=True, server_default='true'),
         sa.Column('is_verified', sa.Boolean(), nullable=True, server_default='false'),
         sa.Column('created_at', sa.DateTime(), nullable=True, server_default=sa.text('NOW()')),
@@ -42,6 +43,9 @@ def upgrade() -> None:
         sa.Column('totp_secret', sa.String(), nullable=True),
         sa.Column('totp_enabled', sa.Boolean(), nullable=True, server_default='false'),
         sa.Column('backup_codes', sa.Text(), nullable=True),
+        sa.Column('failed_login_attempts', sa.Integer(), nullable=False, server_default='0'),
+        sa.Column('locked_until', sa.DateTime(), nullable=True),
+        sa.Column('last_failed_login', sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('email'),
         sa.UniqueConstraint('username')
@@ -50,6 +54,7 @@ def upgrade() -> None:
     # Create indexes
     op.create_index('ix_users_email', 'users', ['email'])
     op.create_index('ix_users_username', 'users', ['username'])
+    op.create_index('ix_users_department_id', 'users', ['department_id'])
 
     # Create refresh_tokens table
     op.create_table('refresh_tokens',
