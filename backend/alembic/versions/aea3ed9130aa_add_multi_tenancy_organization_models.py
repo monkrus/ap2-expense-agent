@@ -7,6 +7,7 @@ Create Date: 2025-10-06 20:21:06.924969
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -17,8 +18,11 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create organizationrole enum
-    op.execute("CREATE TYPE organizationrole AS ENUM ('owner', 'admin', 'manager', 'member')")
+    # Create organizationrole enum if it doesn't exist
+    conn = op.get_bind()
+    result = conn.execute(sa.text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'organizationrole')"))
+    if not result.scalar():
+        op.execute("CREATE TYPE organizationrole AS ENUM ('owner', 'admin', 'manager', 'member')")
 
     # Create organizations table
     op.create_table(
@@ -46,7 +50,7 @@ def upgrade() -> None:
         sa.Column('id', sa.String(length=255), nullable=False),
         sa.Column('organization_id', sa.String(length=255), nullable=False),
         sa.Column('user_id', sa.String(length=255), nullable=False),
-        sa.Column('role', sa.Enum('owner', 'admin', 'manager', 'member', name='organizationrole'), nullable=False, server_default='member'),
+        sa.Column('role', postgresql.ENUM('owner', 'admin', 'manager', 'member', name='organizationrole', create_type=False), nullable=False, server_default='member'),
         sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'),
         sa.Column('joined_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
         sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ondelete='CASCADE'),
@@ -63,7 +67,7 @@ def upgrade() -> None:
         sa.Column('id', sa.String(length=255), nullable=False),
         sa.Column('organization_id', sa.String(length=255), nullable=False),
         sa.Column('email', sa.String(length=255), nullable=False),
-        sa.Column('role', sa.Enum('owner', 'admin', 'manager', 'member', name='organizationrole'), nullable=False, server_default='member'),
+        sa.Column('role', postgresql.ENUM('owner', 'admin', 'manager', 'member', name='organizationrole', create_type=False), nullable=False, server_default='member'),
         sa.Column('invited_by', sa.String(length=255), nullable=False),
         sa.Column('token', sa.String(length=255), nullable=False),
         sa.Column('status', sa.String(length=50), nullable=False, server_default='pending'),
