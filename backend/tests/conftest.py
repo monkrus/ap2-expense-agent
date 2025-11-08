@@ -4,44 +4,56 @@ Pytest configuration and fixtures for testing
 import os
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-# Set testing environment variable BEFORE importing app
-os.environ["TESTING"] = "true"
-
-from src.api import app
-from src.database import get_db
-from src.models import Base, User, UserRole, Organization, OrganizationMember, OrganizationRole, Expense
-from src.auth import AuthService
-from src.cache import cache
 from datetime import datetime, timedelta
 import uuid
 
+# Set testing environment variable BEFORE importing app
+os.environ["TESTING"] = "true"
+os.environ["ENVIRONMENT"] = "test"
 
-# Test database setup (in-memory SQLite)
-SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
+from src.api import app
+from src.database import get_db
+from src.models import Base, User, UserRole, Organization, OrganizationMember, OrganizationRole, Expense, ExpenseStatus, ExpenseCategory
+from src.auth import AuthService
+from src.cache import cache
 
-engine = create_engine(
-    SQLALCHEMY_TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+
+# Use PostgreSQL for tests (matches CI environment)
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://test_user:test_password@localhost:5432/test_db"
 )
 
+# Create test engine
+engine = create_engine(DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database():
+    """Setup test database schema once for all tests"""
+    # Create all tables
+    Base.metadata.create_all(bind=engine)
+    yield
+    # Drop all tables after all tests
+    Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture(scope="function")
 def db_session():
-    """Create a fresh database session for each test"""
-    Base.metadata.create_all(bind=engine)
-    session = TestingSessionLocal()
+    """Create a fresh database session for each test with transaction rollback"""
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = TestingSessionLocal(bind=connection)
+
     try:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=engine)
+        transaction.rollback()
+        connection.close()
 
 
 @pytest.fixture(scope="function")
@@ -58,6 +70,10 @@ def client(db_session):
         yield test_client
     app.dependency_overrides.clear()
 
+
+# ============================================================================
+# User Fixtures
+# ============================================================================
 
 @pytest.fixture
 def test_user(db_session):
@@ -321,12 +337,11 @@ def test_expense(db_session, test_organization, test_user):
         organization_id=test_organization.id,
         user_id=test_user.id,
         amount=150.00,
-        currency="USD",
+        vendor="Test Merchant",
         description="Test expense",
-        category="meals",
-        status="pending",
-        merchant="Test Merchant",
-        expense_date=datetime.utcnow(),
+        category=ExpenseCategory.MEALS,
+        status=ExpenseStatus.PENDING,
+        date=datetime.utcnow(),
         created_at=datetime.utcnow()
     )
     db_session.add(expense)
@@ -345,12 +360,11 @@ def multiple_expenses(db_session, test_organization, test_user):
             organization_id=test_organization.id,
             user_id=test_user.id,
             amount=100.00 + (i * 50),
-            currency="USD",
+            vendor=f"Merchant {i+1}",
             description=f"Test expense {i+1}",
-            category="meals" if i % 2 == 0 else "transport",
-            status="pending",
-            merchant=f"Merchant {i+1}",
-            expense_date=datetime.utcnow() - timedelta(days=i),
+            category=ExpenseCategory.MEALS if i % 2 == 0 else ExpenseCategory.TRAVEL,
+            status=ExpenseStatus.PENDING,
+            date=datetime.utcnow() - timedelta(days=i),
             created_at=datetime.utcnow()
         )
         db_session.add(expense)
@@ -364,40 +378,17 @@ def sample_expense_data(test_organization):
     """Sample expense data for testing"""
     return {
         "amount": 150.00,
-        "currency": "USD",
+        "vendor": "Test Restaurant",
         "description": "Test business lunch",
-        "category": "meals",
+        "category": "Meals",
         "date": datetime.utcnow().isoformat(),
-        "merchant": "Test Restaurant",
-        "receipt_url": "https://example.com/receipt.pdf",
         "organization_id": test_organization.id
     }
 
 
 # ============================================================================
-# Cache Fixtures
+# Factory Fixtures
 # ============================================================================
-
-@pytest.fixture(autouse=True)
-def cleanup_cache():
-    """Clean up cache after each test"""
-    yield
-    if cache.available:
-        try:
-            cache.redis_client.flushdb()
-        except:
-            pass
-
-
-# ============================================================================
-# Additional Fixtures for New Tests
-# ============================================================================
-
-@pytest.fixture
-def employee_headers(auth_headers):
-    """Alias for employee authentication headers"""
-    return auth_headers
-
 
 @pytest.fixture
 def sample_user(db_session):
@@ -427,8 +418,6 @@ def sample_user(db_session):
 @pytest.fixture
 def sample_expense(db_session, test_user, test_organization):
     """Factory fixture to create expenses with specific attributes"""
-    from src.models import ExpenseStatus, ExpenseCategory
-
     def _create_expense(user=None, status=ExpenseStatus.PENDING, **kwargs):
         user = user or test_user
         expense = Expense(
@@ -448,3 +437,28 @@ def sample_expense(db_session, test_user, test_organization):
         db_session.refresh(expense)
         return expense
     return _create_expense
+
+
+# ============================================================================
+# Convenience Fixtures
+# ============================================================================
+
+@pytest.fixture
+def employee_headers(auth_headers):
+    """Alias for employee authentication headers"""
+    return auth_headers
+
+
+# ============================================================================
+# Cache Fixtures
+# ============================================================================
+
+@pytest.fixture(autouse=True)
+def cleanup_cache():
+    """Clean up cache after each test"""
+    yield
+    if cache.available:
+        try:
+            cache.redis_client.flushdb()
+        except:
+            pass
