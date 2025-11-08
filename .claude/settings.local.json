@@ -70,7 +70,15 @@
       "Bash(cmd /c \"copy /b backend\\src\\routes\\budgets.py +,,\")",
       "Bash(cmd /c \"taskkill /F /FI \"\"PID eq 26192\"\"\")",
       "Bash(cmd /c \"tasklist | findstr 26192\")",
-      "Bash(cmd /c \"tasklist /FI \"\"IMAGENAME eq python.exe\"\"\")"
+      "Bash(cmd /c \"tasklist /FI \"\"IMAGENAME eq python.exe\"\"\")",
+      "Bash(gh pr list:*)",
+      "Bash(gh run:*)",
+      "Bash(black:*)",
+      "Bash(isort:*)",
+      "Bash(flake8:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run type-check:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
