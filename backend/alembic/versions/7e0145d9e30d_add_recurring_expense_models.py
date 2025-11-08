@@ -93,19 +93,13 @@ def upgrade() -> None:
     op.create_index(op.f('ix_scheduled_expenses_scheduled_date'), 'scheduled_expenses', ['scheduled_date'], unique=False)
     op.create_index(op.f('ix_scheduled_expenses_status'), 'scheduled_expenses', ['status'], unique=False)
     op.create_index(op.f('ix_scheduled_expenses_template_id'), 'scheduled_expenses', ['template_id'], unique=False)
-    op.drop_table('billing_tiers')
-    op.drop_index('ix_billing_events_event_type', table_name='billing_events')
-    op.drop_index('ix_billing_events_occurred_at', table_name='billing_events')
-    op.drop_index('ix_billing_events_organization_id', table_name='billing_events')
-    op.drop_table('billing_events')
-    op.drop_index('idx_usage_org_period', table_name='usage_metrics')
-    op.drop_index('idx_usage_reported', table_name='usage_metrics')
-    op.drop_index('ix_usage_metrics_organization_id', table_name='usage_metrics')
-    op.drop_index('ix_usage_metrics_period_end', table_name='usage_metrics')
-    op.drop_index('ix_usage_metrics_period_start', table_name='usage_metrics')
-    op.drop_table('usage_metrics')
-    op.drop_index('ix_organization_subscriptions_organization_id', table_name='organization_subscriptions')
-    op.drop_table('organization_subscriptions')
+
+    # Drop old billing tables if they exist (these were replaced by newer billing system)
+    # Use raw SQL with IF EXISTS to prevent errors in fresh databases
+    conn.execute(sa.text("DROP TABLE IF EXISTS billing_tiers CASCADE"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS billing_events CASCADE"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS usage_metrics CASCADE"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS organization_subscriptions CASCADE"))
     # ### end Alembic commands ###
 
 
