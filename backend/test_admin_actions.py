@@ -273,11 +273,43 @@ class AdminDashboardTester:
     # ============================================================================
 
     def test_ai_assistant_tab(self):
-        """Test AI Assistant tab"""
+        """Test AI Assistant tab - batch receipt upload with AI extraction"""
         print("\n🤖 Testing AI ASSISTANT Tab...")
 
-        # This tab uses frontend-only functionality for now
-        self.log("AI Assistant Tab", "SKIP", "Frontend-only functionality")
+        # Test AI-powered batch receipt upload endpoint
+        try:
+            # Create a minimal test image (1x1 PNG)
+            import io
+            test_image = io.BytesIO(
+                b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01'
+                b'\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\x00\x01'
+                b'\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+            )
+            test_image.name = 'test_ai_receipt.png'
+
+            # Upload file to batch-upload endpoint (AI-powered)
+            files = {'files': ('test_ai_receipt.png', test_image, 'image/png')}
+            headers_no_content = {
+                "Authorization": f"Bearer {self.token}"
+            }
+
+            response = requests.post(
+                f"{BASE_URL}/api/v1/receipts/batch-upload",
+                headers=headers_no_content,
+                files=files
+            )
+
+            # Accept both success (AI works) and fallback (AI not configured)
+            if response.status_code == 200:
+                data = response.json()
+                if 'results' in data or 'extractions' in data:
+                    self.log("AI Assistant Tab", "PASS", "AI batch upload endpoint working")
+                else:
+                    self.log("AI Assistant Tab", "PASS", "AI service endpoint accessible")
+            else:
+                self.log("AI Assistant Tab", "FAIL", f"Status {response.status_code}")
+        except Exception as e:
+            self.log("AI Assistant Tab", "FAIL", str(e))
 
     # ============================================================================
     # TAB 7: RECURRING EXPENSES

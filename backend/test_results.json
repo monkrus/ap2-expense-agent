@@ -3,180 +3,180 @@
     "test": "Login",
     "status": "PASS",
     "message": "Token obtained for user 35d04997-b1f4-4cdb-acc0-b90587fd509a",
-    "timestamp": "2025-11-08T00:09:42.217523"
+    "timestamp": "2025-11-08T03:25:46.907280"
   },
   {
     "test": "Get Pending Expenses",
     "status": "PASS",
     "message": "Found 19 pending expenses",
-    "timestamp": "2025-11-08T00:09:42.249245"
+    "timestamp": "2025-11-08T03:25:46.944801"
   },
   {
     "test": "Get All Expenses (filter: all)",
     "status": "PASS",
     "message": "Found 19 expenses",
-    "timestamp": "2025-11-08T00:09:42.278423"
+    "timestamp": "2025-11-08T03:25:46.984994"
   },
   {
     "test": "Get All Expenses (filter: pending)",
     "status": "PASS",
     "message": "Found 19 expenses",
-    "timestamp": "2025-11-08T00:09:42.310195"
+    "timestamp": "2025-11-08T03:25:47.021427"
   },
   {
     "test": "Get All Expenses (filter: approved)",
     "status": "PASS",
     "message": "Found 0 expenses",
-    "timestamp": "2025-11-08T00:09:42.317233"
+    "timestamp": "2025-11-08T03:25:47.030694"
   },
   {
     "test": "Get All Expenses (filter: rejected)",
     "status": "PASS",
     "message": "Found 0 expenses",
-    "timestamp": "2025-11-08T00:09:42.324324"
+    "timestamp": "2025-11-08T03:25:47.039350"
   },
   {
     "test": "Archive All Expenses",
     "status": "PASS",
     "message": "Archived 10 expenses",
-    "timestamp": "2025-11-08T00:09:42.354473"
+    "timestamp": "2025-11-08T03:25:47.083402"
   },
   {
     "test": "Get Archived Expenses",
     "status": "PASS",
     "message": "Found 10 archived expenses",
-    "timestamp": "2025-11-08T00:09:42.382633"
+    "timestamp": "2025-11-08T03:25:47.122053"
   },
   {
     "test": "Unarchive All Expenses",
     "status": "PASS",
     "message": "Restored 10 expenses",
-    "timestamp": "2025-11-08T00:09:42.412777"
+    "timestamp": "2025-11-08T03:25:47.157692"
   },
   {
     "test": "Get All Users",
     "status": "PASS",
     "message": "Found 4 users",
-    "timestamp": "2025-11-08T00:09:42.423041"
+    "timestamp": "2025-11-08T03:25:47.170930"
   },
   {
     "test": "Get All Permissions",
     "status": "PASS",
     "message": "Permissions loaded",
-    "timestamp": "2025-11-08T00:09:42.428590"
+    "timestamp": "2025-11-08T03:25:47.177723"
   },
   {
     "test": "Get Subscription",
     "status": "PASS",
     "message": "Subscription endpoint accessible",
-    "timestamp": "2025-11-08T00:09:42.436819"
+    "timestamp": "2025-11-08T03:25:47.188795"
   },
   {
     "test": "Get Monthly Usage",
     "status": "PASS",
     "message": "Usage data retrieved",
-    "timestamp": "2025-11-08T00:09:42.446723"
+    "timestamp": "2025-11-08T03:25:47.202050"
   },
   {
     "test": "Get Billing Tiers",
     "status": "PASS",
     "message": "Tiers loaded",
-    "timestamp": "2025-11-08T00:09:42.449479"
+    "timestamp": "2025-11-08T03:25:47.205553"
   },
   {
     "test": "AI Assistant Tab",
-    "status": "SKIP",
-    "message": "Frontend-only functionality",
-    "timestamp": "2025-11-08T00:09:42.449567"
+    "status": "PASS",
+    "message": "AI batch upload endpoint working",
+    "timestamp": "2025-11-08T03:25:47.213366"
   },
   {
     "test": "Get Recurring Expenses",
     "status": "PASS",
     "message": "Found 0 templates",
-    "timestamp": "2025-11-08T00:09:42.456498"
+    "timestamp": "2025-11-08T03:25:47.223207"
   },
   {
     "test": "Create Recurring Expense",
     "status": "PASS",
-    "message": "Created template recurring_6a75c378a4d44ef0",
-    "timestamp": "2025-11-08T00:09:42.475579"
+    "message": "Created template recurring_0e5764674ea84b1a",
+    "timestamp": "2025-11-08T03:25:47.251857"
   },
   {
     "test": "Pause Recurring Expense",
     "status": "PASS",
     "message": "Template paused",
-    "timestamp": "2025-11-08T00:09:42.496054"
+    "timestamp": "2025-11-08T03:25:47.274336"
   },
   {
     "test": "Resume Recurring Expense",
     "status": "PASS",
     "message": "Template resumed",
-    "timestamp": "2025-11-08T00:09:42.512978"
+    "timestamp": "2025-11-08T03:25:47.296155"
   },
   {
     "test": "Update Recurring Expense",
     "status": "PASS",
     "message": "Template updated successfully",
-    "timestamp": "2025-11-08T00:09:42.530489"
+    "timestamp": "2025-11-08T03:25:47.319118"
   },
   {
     "test": "Get Single Recurring Expense",
     "status": "PASS",
     "message": "Template retrieved",
-    "timestamp": "2025-11-08T00:09:42.536803"
+    "timestamp": "2025-11-08T03:25:47.327913"
   },
   {
     "test": "Delete Recurring Expense",
     "status": "PASS",
     "message": "Template deleted",
-    "timestamp": "2025-11-08T00:09:42.555062"
+    "timestamp": "2025-11-08T03:25:47.354826"
   },
   {
     "test": "Get Budgets",
     "status": "PASS",
     "message": "Found 0 budgets",
-    "timestamp": "2025-11-08T00:09:42.562516"
+    "timestamp": "2025-11-08T03:25:47.365497"
   },
   {
     "test": "Create Budget",
     "status": "PASS",
-    "message": "Created budget budget_ddba1590dc7c4770",
-    "timestamp": "2025-11-08T00:09:42.584409"
+    "message": "Created budget budget_cb5b903813a84c6a",
+    "timestamp": "2025-11-08T03:25:47.390507"
   },
   {
     "test": "Update Budget",
     "status": "PASS",
     "message": "Budget updated successfully",
-    "timestamp": "2025-11-08T00:09:42.605174"
+    "timestamp": "2025-11-08T03:25:47.414898"
   },
   {
     "test": "Get Single Budget",
     "status": "PASS",
     "message": "Budget retrieved",
-    "timestamp": "2025-11-08T00:09:42.613812"
+    "timestamp": "2025-11-08T03:25:47.426385"
   },
   {
     "test": "Delete Budget",
     "status": "PASS",
     "message": "Budget deleted",
-    "timestamp": "2025-11-08T00:09:42.633056"
+    "timestamp": "2025-11-08T03:25:47.450992"
   },
   {
     "test": "Get Notifications",
     "status": "PASS",
     "message": "Found 0 notifications",
-    "timestamp": "2025-11-08T00:09:42.639919"
+    "timestamp": "2025-11-08T03:25:47.461030"
   },
   {
     "test": "Get Unread Count",
     "status": "PASS",
     "message": "0 unread notifications",
-    "timestamp": "2025-11-08T00:09:42.646404"
+    "timestamp": "2025-11-08T03:25:47.472509"
   },
   {
     "test": "Get Dashboard Stats",
     "status": "PASS",
     "message": "Stats loaded successfully",
-    "timestamp": "2025-11-08T00:09:42.665076"
+    "timestamp": "2025-11-08T03:25:47.492626"
   }
 ]
