@@ -56,3 +56,7 @@ frontend/nul
 test_login.json
 backend/.venv/
 dump.rdb
+
+# Upload directories (dynamically generated)
+backend/uploads/
+uploads/
