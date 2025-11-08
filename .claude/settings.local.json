@@ -78,7 +78,16 @@
       "Bash(flake8:*)",
       "Bash(npm run lint)",
       "Bash(npm run type-check:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(set DATABASE_URL=postgresql://test_user:test_password@localhost:5432/test_db)",
+      "Bash(set REDIS_URL=redis://localhost:6379/0:*)",
+      "Bash(set:*)",
+      "Bash(set JWT_SECRET_KEY=test-secret-key:*)",
+      "Bash(pytest:*)",
+      "Bash(npm test:*)",
+      "Bash(npx playwright install)",
+      "Bash(npm ci:*)",
+      "Bash(npx playwright install:*)"
     ],
     "deny": [],
     "ask": []
