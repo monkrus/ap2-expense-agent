@@ -1,18 +1,26 @@
 """
 Billing service for usage tracking and Google Cloud Marketplace integration
 """
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_
-import uuid
-import json
-import requests
-from ..models_billing import UsageMetric, BillingTier, OrganizationSubscription, BillingEvent
-from ..models import Organization, Expense, User
-from ..gcp.marketplace_client import GCPMarketplaceClient
-import logging
+
 import asyncio
+import json
+import logging
+import uuid
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
+import requests
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import Session
+
+from ..gcp.marketplace_client import GCPMarketplaceClient
+from ..models import Expense, Organization, User
+from ..models_billing import (
+    BillingEvent,
+    BillingTier,
+    OrganizationSubscription,
+    UsageMetric,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,17 +41,23 @@ class BillingService:
         try:
             # This is typically called from middleware
             # For now, we'll increment a counter in the current period
-            period_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            period_start = datetime.utcnow().replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
             period_end = period_start + timedelta(days=1)
 
             # Try to find existing metric for today
-            metric = self.db.query(UsageMetric).filter(
-                and_(
-                    UsageMetric.organization_id == organization_id,
-                    UsageMetric.metric_type == "api_calls",
-                    UsageMetric.period_start == period_start
+            metric = (
+                self.db.query(UsageMetric)
+                .filter(
+                    and_(
+                        UsageMetric.organization_id == organization_id,
+                        UsageMetric.metric_type == "api_calls",
+                        UsageMetric.period_start == period_start,
+                    )
                 )
-            ).first()
+                .first()
+            )
 
             if metric:
                 metric.metric_value += 1
@@ -59,7 +73,7 @@ class BillingService:
                     period_start=period_start,
                     period_end=period_end,
                     reported_to_gcp=False,
-                    metadata={endpoint: 1}
+                    metadata={endpoint: 1},
                 )
                 self.db.add(metric)
 
@@ -71,19 +85,25 @@ class BillingService:
     def track_storage_usage(self, organization_id: str, storage_bytes: int) -> None:
         """Track storage usage (e.g., receipt uploads)"""
         try:
-            period_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            period_start = datetime.utcnow().replace(
+                day=1, hour=0, minute=0, second=0, microsecond=0
+            )
             next_month = period_start + timedelta(days=32)
             period_end = next_month.replace(day=1)
 
-            storage_gb = storage_bytes / (1024 ** 3)
+            storage_gb = storage_bytes / (1024**3)
 
-            metric = self.db.query(UsageMetric).filter(
-                and_(
-                    UsageMetric.organization_id == organization_id,
-                    UsageMetric.metric_type == "storage_gb",
-                    UsageMetric.period_start == period_start
+            metric = (
+                self.db.query(UsageMetric)
+                .filter(
+                    and_(
+                        UsageMetric.organization_id == organization_id,
+                        UsageMetric.metric_type == "storage_gb",
+                        UsageMetric.period_start == period_start,
+                    )
                 )
-            ).first()
+                .first()
+            )
 
             if metric:
                 metric.metric_value = storage_gb  # Current value, not cumulative
@@ -96,7 +116,7 @@ class BillingService:
                     unit="gb",
                     period_start=period_start,
                     period_end=period_end,
-                    reported_to_gcp=False
+                    reported_to_gcp=False,
                 )
                 self.db.add(metric)
 
@@ -108,23 +128,32 @@ class BillingService:
     def track_active_users(self, organization_id: str) -> None:
         """Track active users for the current month"""
         try:
-            period_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            period_start = datetime.utcnow().replace(
+                day=1, hour=0, minute=0, second=0, microsecond=0
+            )
             next_month = period_start + timedelta(days=32)
             period_end = next_month.replace(day=1)
 
             # Count active users in this organization
             from ..models import OrganizationMember
-            active_count = self.db.query(func.count(OrganizationMember.id)).filter(
-                OrganizationMember.organization_id == organization_id
-            ).scalar()
 
-            metric = self.db.query(UsageMetric).filter(
-                and_(
-                    UsageMetric.organization_id == organization_id,
-                    UsageMetric.metric_type == "active_users",
-                    UsageMetric.period_start == period_start
+            active_count = (
+                self.db.query(func.count(OrganizationMember.id))
+                .filter(OrganizationMember.organization_id == organization_id)
+                .scalar()
+            )
+
+            metric = (
+                self.db.query(UsageMetric)
+                .filter(
+                    and_(
+                        UsageMetric.organization_id == organization_id,
+                        UsageMetric.metric_type == "active_users",
+                        UsageMetric.period_start == period_start,
+                    )
                 )
-            ).first()
+                .first()
+            )
 
             if metric:
                 metric.metric_value = active_count
@@ -137,7 +166,7 @@ class BillingService:
                     unit="users",
                     period_start=period_start,
                     period_end=period_end,
-                    reported_to_gcp=False
+                    reported_to_gcp=False,
                 )
                 self.db.add(metric)
 
@@ -146,21 +175,27 @@ class BillingService:
             logger.error(f"Error tracking active users: {e}")
             self.db.rollback()
 
-    def get_usage_summary(self, organization_id: str, start_date: datetime, end_date: datetime) -> Dict:
+    def get_usage_summary(
+        self, organization_id: str, start_date: datetime, end_date: datetime
+    ) -> Dict:
         """Get usage summary for a date range"""
-        metrics = self.db.query(UsageMetric).filter(
-            and_(
-                UsageMetric.organization_id == organization_id,
-                UsageMetric.period_start >= start_date,
-                UsageMetric.period_end <= end_date
+        metrics = (
+            self.db.query(UsageMetric)
+            .filter(
+                and_(
+                    UsageMetric.organization_id == organization_id,
+                    UsageMetric.period_start >= start_date,
+                    UsageMetric.period_end <= end_date,
+                )
             )
-        ).all()
+            .all()
+        )
 
         summary = {
             "organization_id": organization_id,
             "period_start": start_date.isoformat(),
             "period_end": end_date.isoformat(),
-            "metrics": {}
+            "metrics": {},
         }
 
         for metric in metrics:
@@ -169,16 +204,18 @@ class BillingService:
                 summary["metrics"][metric_type] = {
                     "total": 0,
                     "unit": metric.unit,
-                    "details": []
+                    "details": [],
                 }
 
             summary["metrics"][metric_type]["total"] += metric.metric_value
-            summary["metrics"][metric_type]["details"].append({
-                "period_start": metric.period_start.isoformat(),
-                "period_end": metric.period_end.isoformat(),
-                "value": metric.metric_value,
-                "reported": metric.reported_to_gcp
-            })
+            summary["metrics"][metric_type]["details"].append(
+                {
+                    "period_start": metric.period_start.isoformat(),
+                    "period_end": metric.period_end.isoformat(),
+                    "value": metric.metric_value,
+                    "reported": metric.reported_to_gcp,
+                }
+            )
 
         return summary
 
@@ -199,14 +236,14 @@ class BillingService:
                     "api_calls": 1000,
                     "storage_gb": 1,
                     "active_users": 3,
-                    "expenses_per_month": 50
+                    "expenses_per_month": 50,
                 },
                 "features": [
                     "Basic expense tracking",
                     "Email support",
                     "1GB storage",
-                    "Up to 3 users"
-                ]
+                    "Up to 3 users",
+                ],
             },
             {
                 "id": "tier_starter",
@@ -218,12 +255,12 @@ class BillingService:
                     "api_calls": 10000,
                     "storage_gb": 10,
                     "active_users": 10,
-                    "expenses_per_month": 500
+                    "expenses_per_month": 500,
                 },
                 "overage_pricing": {
                     "api_calls": 0.01,  # $0.01 per 100 calls
                     "storage_gb": 0.50,
-                    "active_users": 5.00
+                    "active_users": 5.00,
                 },
                 "features": [
                     "Everything in Free",
@@ -231,8 +268,8 @@ class BillingService:
                     "Complete audit trails",
                     "Priority email support",
                     "10GB storage",
-                    "Up to 10 users"
-                ]
+                    "Up to 10 users",
+                ],
             },
             {
                 "id": "tier_professional",
@@ -244,12 +281,12 @@ class BillingService:
                     "api_calls": 50000,
                     "storage_gb": 50,
                     "active_users": 50,
-                    "expenses_per_month": 5000
+                    "expenses_per_month": 5000,
                 },
                 "overage_pricing": {
                     "api_calls": 0.008,
                     "storage_gb": 0.40,
-                    "active_users": 4.00
+                    "active_users": 4.00,
                 },
                 "features": [
                     "Everything in Starter",
@@ -259,8 +296,8 @@ class BillingService:
                     "Phone support",
                     "50GB storage",
                     "Up to 50 users",
-                    "SSO integration"
-                ]
+                    "SSO integration",
+                ],
             },
             {
                 "id": "tier_enterprise",
@@ -272,7 +309,7 @@ class BillingService:
                     "api_calls": 1000000,
                     "storage_gb": 500,
                     "active_users": 1000,
-                    "expenses_per_month": 100000
+                    "expenses_per_month": 100000,
                 },
                 "features": [
                     "Everything in Professional",
@@ -283,15 +320,17 @@ class BillingService:
                     "500GB storage",
                     "Unlimited users",
                     "White-label option",
-                    "Custom contract"
-                ]
-            }
+                    "Custom contract",
+                ],
+            },
         ]
 
         for tier_data in tiers:
-            existing = self.db.query(BillingTier).filter(
-                BillingTier.tier_name == tier_data["tier_name"]
-            ).first()
+            existing = (
+                self.db.query(BillingTier)
+                .filter(BillingTier.tier_name == tier_data["tier_name"])
+                .first()
+            )
 
             if not existing:
                 tier = BillingTier(**tier_data)
@@ -308,17 +347,20 @@ class BillingService:
 
         tiers = query.all()
 
-        return [{
-            "id": tier.id,
-            "tier_name": tier.tier_name,
-            "display_name": tier.display_name,
-            "description": tier.description,
-            "base_price_monthly": tier.base_price_monthly,
-            "currency": tier.currency,
-            "limits": tier.limits,
-            "overage_pricing": tier.overage_pricing,
-            "features": tier.features
-        } for tier in tiers]
+        return [
+            {
+                "id": tier.id,
+                "tier_name": tier.tier_name,
+                "display_name": tier.display_name,
+                "description": tier.description,
+                "base_price_monthly": tier.base_price_monthly,
+                "currency": tier.currency,
+                "limits": tier.limits,
+                "overage_pricing": tier.overage_pricing,
+                "features": tier.features,
+            }
+            for tier in tiers
+        ]
 
     # ========================================================================
     # Subscriptions
@@ -329,23 +371,29 @@ class BillingService:
         organization_id: str,
         tier_name: str,
         gcp_account_id: Optional[str] = None,
-        is_trial: bool = False
+        is_trial: bool = False,
     ) -> Dict:
         """Create a subscription for an organization"""
-        tier = self.db.query(BillingTier).filter(
-            BillingTier.tier_name == tier_name
-        ).first()
+        tier = (
+            self.db.query(BillingTier)
+            .filter(BillingTier.tier_name == tier_name)
+            .first()
+        )
 
         if not tier:
             raise ValueError(f"Billing tier '{tier_name}' not found")
 
         # Check if subscription already exists
-        existing = self.db.query(OrganizationSubscription).filter(
-            OrganizationSubscription.organization_id == organization_id
-        ).first()
+        existing = (
+            self.db.query(OrganizationSubscription)
+            .filter(OrganizationSubscription.organization_id == organization_id)
+            .first()
+        )
 
         if existing:
-            raise ValueError(f"Subscription already exists for organization {organization_id}")
+            raise ValueError(
+                f"Subscription already exists for organization {organization_id}"
+            )
 
         now = datetime.utcnow()
         subscription = OrganizationSubscription(
@@ -361,7 +409,7 @@ class BillingService:
             is_trial=is_trial,
             trial_start=now if is_trial else None,
             trial_end=now + timedelta(days=14) if is_trial else None,
-            current_period_usage={}
+            current_period_usage={},
         )
 
         self.db.add(subscription)
@@ -374,9 +422,9 @@ class BillingService:
             event_data={
                 "subscription_id": subscription.id,
                 "tier_name": tier_name,
-                "is_trial": is_trial
+                "is_trial": is_trial,
             },
-            status="success"
+            status="success",
         )
         self.db.add(event)
 
@@ -388,21 +436,25 @@ class BillingService:
             "tier_name": tier_name,
             "status": subscription.status,
             "billing_period_end": subscription.billing_period_end.isoformat(),
-            "is_trial": is_trial
+            "is_trial": is_trial,
         }
 
     def get_subscription(self, organization_id: str) -> Optional[Dict]:
         """Get subscription for an organization"""
-        subscription = self.db.query(OrganizationSubscription).filter(
-            OrganizationSubscription.organization_id == organization_id
-        ).first()
+        subscription = (
+            self.db.query(OrganizationSubscription)
+            .filter(OrganizationSubscription.organization_id == organization_id)
+            .first()
+        )
 
         if not subscription:
             return None
 
-        tier = self.db.query(BillingTier).filter(
-            BillingTier.id == subscription.tier_id
-        ).first()
+        tier = (
+            self.db.query(BillingTier)
+            .filter(BillingTier.id == subscription.tier_id)
+            .first()
+        )
 
         return {
             "subscription_id": subscription.id,
@@ -412,16 +464,26 @@ class BillingService:
                 "name": tier.tier_name,
                 "display_name": tier.display_name,
                 "base_price": tier.base_price_monthly,
-                "limits": tier.limits
+                "limits": tier.limits,
             },
             "status": subscription.status,
             "is_trial": subscription.is_trial,
-            "billing_period_start": subscription.billing_period_start.isoformat() if subscription.billing_period_start else None,
-            "billing_period_end": subscription.billing_period_end.isoformat() if subscription.billing_period_end else None,
-            "current_period_usage": subscription.current_period_usage or {}
+            "billing_period_start": (
+                subscription.billing_period_start.isoformat()
+                if subscription.billing_period_start
+                else None
+            ),
+            "billing_period_end": (
+                subscription.billing_period_end.isoformat()
+                if subscription.billing_period_end
+                else None
+            ),
+            "current_period_usage": subscription.current_period_usage or {},
         }
 
-    def check_usage_limits(self, organization_id: str, metric_type: str) -> Tuple[bool, Dict]:
+    def check_usage_limits(
+        self, organization_id: str, metric_type: str
+    ) -> Tuple[bool, Dict]:
         """Check if organization has exceeded usage limits"""
         subscription = self.get_subscription(organization_id)
 
@@ -440,13 +502,18 @@ class BillingService:
 
         # Get current period usage
         period_start = subscription["billing_period_start"]
-        current_usage = self.db.query(func.sum(UsageMetric.metric_value)).filter(
-            and_(
-                UsageMetric.organization_id == organization_id,
-                UsageMetric.metric_type == metric_type,
-                UsageMetric.period_start >= datetime.fromisoformat(period_start)
+        current_usage = (
+            self.db.query(func.sum(UsageMetric.metric_value))
+            .filter(
+                and_(
+                    UsageMetric.organization_id == organization_id,
+                    UsageMetric.metric_type == metric_type,
+                    UsageMetric.period_start >= datetime.fromisoformat(period_start),
+                )
             )
-        ).scalar() or 0
+            .scalar()
+            or 0
+        )
 
         allowed = current_usage < limit
 
@@ -454,14 +521,16 @@ class BillingService:
             "allowed": allowed,
             "current_usage": current_usage,
             "limit": limit,
-            "percentage_used": (current_usage / limit * 100) if limit > 0 else 0
+            "percentage_used": (current_usage / limit * 100) if limit > 0 else 0,
         }
 
     # ========================================================================
     # Google Cloud Marketplace Integration
     # ========================================================================
 
-    def report_usage_to_gcp(self, organization_id: str, period_start: datetime, period_end: datetime) -> Dict:
+    def report_usage_to_gcp(
+        self, organization_id: str, period_start: datetime, period_end: datetime
+    ) -> Dict:
         """Report usage to Google Cloud Marketplace"""
         try:
             subscription = self.get_subscription(organization_id)
@@ -471,14 +540,18 @@ class BillingService:
                 return {"success": False, "error": "No GCP account ID"}
 
             # Get metrics for the period
-            metrics = self.db.query(UsageMetric).filter(
-                and_(
-                    UsageMetric.organization_id == organization_id,
-                    UsageMetric.period_start >= period_start,
-                    UsageMetric.period_end <= period_end,
-                    UsageMetric.reported_to_gcp == False
+            metrics = (
+                self.db.query(UsageMetric)
+                .filter(
+                    and_(
+                        UsageMetric.organization_id == organization_id,
+                        UsageMetric.period_start >= period_start,
+                        UsageMetric.period_end <= period_end,
+                        UsageMetric.reported_to_gcp == False,
+                    )
                 )
-            ).all()
+                .all()
+            )
 
             if not metrics:
                 return {"success": True, "message": "No unreported metrics"}
@@ -491,7 +564,7 @@ class BillingService:
                 "usageReportingId": organization_id,
                 "startTime": period_start.isoformat() + "Z",
                 "endTime": period_end.isoformat() + "Z",
-                "metricValueSets": []
+                "metricValueSets": [],
             }
 
             # Aggregate metrics by type
@@ -503,12 +576,12 @@ class BillingService:
 
             # Add to report
             for metric_type, value in metric_values.items():
-                usage_report["metricValueSets"].append({
-                    "metricName": f"compute.googleapis.com/{metric_type}",
-                    "metricValues": [{
-                        "int64Value": str(int(value))
-                    }]
-                })
+                usage_report["metricValueSets"].append(
+                    {
+                        "metricName": f"compute.googleapis.com/{metric_type}",
+                        "metricValues": [{"int64Value": str(int(value))}],
+                    }
+                )
 
             # Send usage report to GCP Marketplace
             gcp_response = None
@@ -517,11 +590,13 @@ class BillingService:
 
             try:
                 # Call GCP Marketplace API
-                gcp_response = asyncio.run(self.gcp_client.report_usage(
-                    entitlement_id=subscription["gcp_entitlement_id"],
-                    metrics=metric_values,
-                    timestamp=period_start.isoformat() + 'Z'
-                ))
+                gcp_response = asyncio.run(
+                    self.gcp_client.report_usage(
+                        entitlement_id=subscription["gcp_entitlement_id"],
+                        metrics=metric_values,
+                        timestamp=period_start.isoformat() + "Z",
+                    )
+                )
 
                 # Check if GCP reporting was successful
                 if gcp_response.get("status") == "success":
@@ -530,23 +605,31 @@ class BillingService:
                         metric.reported_to_gcp = True
                         metric.reported_at = datetime.utcnow()
                         metric.report_response = gcp_response
-                    logger.info(f"Successfully reported usage to GCP for org {organization_id}: {len(metrics)} metrics")
+                    logger.info(
+                        f"Successfully reported usage to GCP for org {organization_id}: {len(metrics)} metrics"
+                    )
                 elif gcp_response.get("status") == "skipped":
                     # GCP credentials not configured - mark as reported anyway for testing
                     for metric in metrics:
                         metric.reported_to_gcp = True
                         metric.reported_at = datetime.utcnow()
                         metric.report_response = gcp_response
-                    logger.warning(f"GCP reporting skipped (no credentials) for org {organization_id}")
+                    logger.warning(
+                        f"GCP reporting skipped (no credentials) for org {organization_id}"
+                    )
                 else:
                     event_status = "failed"
                     error_message = gcp_response.get("error", "Unknown GCP error")
-                    logger.error(f"GCP usage reporting failed for org {organization_id}: {error_message}")
+                    logger.error(
+                        f"GCP usage reporting failed for org {organization_id}: {error_message}"
+                    )
 
             except Exception as gcp_error:
                 event_status = "failed"
                 error_message = str(gcp_error)
-                logger.error(f"Exception reporting usage to GCP for org {organization_id}: {gcp_error}")
+                logger.error(
+                    f"Exception reporting usage to GCP for org {organization_id}: {gcp_error}"
+                )
 
             # Log event
             event = BillingEvent(
@@ -559,19 +642,20 @@ class BillingService:
                     "metrics_count": len(metrics),
                     "report": usage_report,
                     "gcp_response": gcp_response,
-                    "error": error_message
+                    "error": error_message,
                 },
-                status=event_status
+                status=event_status,
             )
             self.db.add(event)
 
             self.db.commit()
 
             return {
-                "success": event_status == "success" or gcp_response.get("status") == "skipped",
+                "success": event_status == "success"
+                or gcp_response.get("status") == "skipped",
                 "metrics_reported": len(metrics),
                 "report": usage_report,
-                "gcp_response": gcp_response
+                "gcp_response": gcp_response,
             }
 
         except Exception as e:
@@ -584,10 +668,10 @@ class BillingService:
                 event_type="usage_reported",
                 event_data={
                     "period_start": period_start.isoformat(),
-                    "period_end": period_end.isoformat()
+                    "period_end": period_end.isoformat(),
                 },
                 status="failed",
-                error_message=str(e)
+                error_message=str(e),
             )
             self.db.add(event)
             self.db.commit()

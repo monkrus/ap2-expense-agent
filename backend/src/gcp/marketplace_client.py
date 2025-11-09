@@ -3,14 +3,15 @@ GCP Marketplace API Client
 Handles authentication and API calls to Google Cloud Marketplace
 """
 
-import json
-import hmac
 import hashlib
-from typing import Dict, Optional
+import hmac
+import json
 from datetime import datetime
-from google.oauth2 import service_account
-from google.auth.transport.requests import Request
+from typing import Dict, Optional
+
 import requests
+from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 
 from ..config import settings
 
@@ -36,11 +37,11 @@ class GCPMarketplaceClient:
         self.credentials = None
         if self.service_account_path:
             try:
-                self.credentials = service_account.Credentials.from_service_account_file(
-                    self.service_account_path,
-                    scopes=[
-                        'https://www.googleapis.com/auth/cloud-platform'
-                    ]
+                self.credentials = (
+                    service_account.Credentials.from_service_account_file(
+                        self.service_account_path,
+                        scopes=["https://www.googleapis.com/auth/cloud-platform"],
+                    )
                 )
             except Exception as e:
                 print(f"Warning: Failed to load GCP service account: {e}")
@@ -60,15 +61,15 @@ class GCPMarketplaceClient:
     def _get_headers(self) -> Dict[str, str]:
         """Get HTTP headers with authentication"""
         return {
-            'Authorization': f'Bearer {self._get_access_token()}',
-            'Content-Type': 'application/json'
+            "Authorization": f"Bearer {self._get_access_token()}",
+            "Content-Type": "application/json",
         }
 
     async def report_usage(
         self,
         entitlement_id: str,
         metrics: Dict[str, float],
-        timestamp: Optional[str] = None
+        timestamp: Optional[str] = None,
     ) -> Dict:
         """
         Report usage metrics to GCP Marketplace for billing
@@ -100,13 +101,13 @@ class GCPMarketplaceClient:
             return {"status": "skipped", "reason": "no_credentials"}
 
         if not timestamp:
-            timestamp = datetime.utcnow().isoformat() + 'Z'
+            timestamp = datetime.utcnow().isoformat() + "Z"
 
         # Format usage report according to GCP spec
         usage_report = {
             "operationId": f"usage-{entitlement_id}-{int(datetime.utcnow().timestamp())}",
             "consumerId": f"project:{self.project_id}",
-            "operations": []
+            "operations": [],
         }
 
         # Add each metric as an operation
@@ -123,11 +124,11 @@ class GCPMarketplaceClient:
                             {
                                 "int64Value": str(int(value)),
                                 "startTime": timestamp,
-                                "endTime": timestamp
+                                "endTime": timestamp,
                             }
-                        ]
+                        ],
                     }
-                ]
+                ],
             }
             usage_report["operations"].append(operation)
 
@@ -135,10 +136,7 @@ class GCPMarketplaceClient:
             # Send usage report to GCP
             url = f"{self.usage_api_url}/services/{self.project_id}.appspot.com:reportUsage"
             response = requests.post(
-                url,
-                headers=self._get_headers(),
-                json=usage_report,
-                timeout=30
+                url, headers=self._get_headers(), json=usage_report, timeout=30
             )
 
             if response.status_code == 200:
@@ -146,21 +144,21 @@ class GCPMarketplaceClient:
                     "status": "success",
                     "entitlement_id": entitlement_id,
                     "metrics_reported": len(metrics),
-                    "response": response.json()
+                    "response": response.json(),
                 }
             else:
                 return {
                     "status": "error",
                     "entitlement_id": entitlement_id,
                     "error": response.text,
-                    "status_code": response.status_code
+                    "status_code": response.status_code,
                 }
 
         except Exception as e:
             return {
                 "status": "error",
                 "entitlement_id": entitlement_id,
-                "error": str(e)
+                "error": str(e),
             }
 
     async def get_entitlement(self, entitlement_id: str) -> Dict:
@@ -178,11 +176,7 @@ class GCPMarketplaceClient:
 
         try:
             url = f"{self.api_base_url}/providers/{self.project_id}/entitlements/{entitlement_id}"
-            response = requests.get(
-                url,
-                headers=self._get_headers(),
-                timeout=30
-            )
+            response = requests.get(url, headers=self._get_headers(), timeout=30)
 
             if response.status_code == 200:
                 return response.json()
@@ -210,9 +204,7 @@ class GCPMarketplaceClient:
 
     @staticmethod
     def verify_webhook_signature(
-        request_body: bytes,
-        signature_header: str,
-        webhook_secret: str
+        request_body: bytes, signature_header: str, webhook_secret: str
     ) -> bool:
         """
         Verify webhook signature from Google Cloud Marketplace
@@ -233,9 +225,7 @@ class GCPMarketplaceClient:
         try:
             # Google uses HMAC-SHA256
             expected_signature = hmac.new(
-                webhook_secret.encode(),
-                request_body,
-                hashlib.sha256
+                webhook_secret.encode(), request_body, hashlib.sha256
             ).hexdigest()
 
             return hmac.compare_digest(expected_signature, signature_header)
@@ -257,12 +247,10 @@ class GCPMarketplaceClient:
             raise ValueError("GCP credentials not configured")
 
         try:
-            url = f"{self.api_base_url}/providers/{self.project_id}/accounts/{account_id}"
-            response = requests.get(
-                url,
-                headers=self._get_headers(),
-                timeout=30
+            url = (
+                f"{self.api_base_url}/providers/{self.project_id}/accounts/{account_id}"
             )
+            response = requests.get(url, headers=self._get_headers(), timeout=30)
 
             if response.status_code == 200:
                 return response.json()
@@ -275,6 +263,7 @@ class GCPMarketplaceClient:
 
 # Singleton instance
 _gcp_client = None
+
 
 def get_gcp_marketplace_client() -> GCPMarketplaceClient:
     """Get singleton GCP Marketplace client"""

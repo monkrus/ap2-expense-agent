@@ -3,16 +3,21 @@ Database repository layer for expense management and AP2 mandates.
 Provides abstraction between business logic and database operations.
 """
 
-from sqlalchemy.orm import Session
-from sqlalchemy import desc, and_, or_
-from typing import List, Optional, Dict
-from datetime import datetime, timedelta
 import json
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+
+from sqlalchemy import and_, desc, or_
+from sqlalchemy.orm import Session
 
 from .models import (
-    Expense, ExpenseStatus, ExpenseCategory,
-    IntentMandate, CartMandate, PaymentMandate,
-    User
+    CartMandate,
+    Expense,
+    ExpenseCategory,
+    ExpenseStatus,
+    IntentMandate,
+    PaymentMandate,
+    User,
 )
 
 
@@ -32,14 +37,16 @@ class ExpenseRepository:
     def create(self, expense_data: Dict) -> Expense:
         """Create a new expense"""
         # Validate expense amount
-        if 'amount' in expense_data:
-            amount = expense_data['amount']
-            if amount is not None and (isinstance(amount, (int, float)) and amount <= 0):
+        if "amount" in expense_data:
+            amount = expense_data["amount"]
+            if amount is not None and (
+                isinstance(amount, (int, float)) and amount <= 0
+            ):
                 raise ValueError("Expense amount must be positive")
 
         # Ensure organization_id is set for multi-tenancy
-        if self.organization_id and 'organization_id' not in expense_data:
-            expense_data['organization_id'] = self.organization_id
+        if self.organization_id and "organization_id" not in expense_data:
+            expense_data["organization_id"] = self.organization_id
 
         expense = Expense(**expense_data)
         self.db.add(expense)
@@ -53,7 +60,9 @@ class ExpenseRepository:
         query = self._apply_tenant_filter(query)
         return query.first()
 
-    def get_by_user(self, user_id: str, status: Optional[ExpenseStatus] = None) -> List[Expense]:
+    def get_by_user(
+        self, user_id: str, status: Optional[ExpenseStatus] = None
+    ) -> List[Expense]:
         """Get all expenses for a user, optionally filtered by status (tenant-aware)"""
         query = self.db.query(Expense).filter(Expense.user_id == user_id)
         query = self._apply_tenant_filter(query)
@@ -61,13 +70,17 @@ class ExpenseRepository:
             query = query.filter(Expense.status == status)
         return query.order_by(desc(Expense.created_at)).all()
 
-    def get_all(self, limit: int = 100, offset: int = 0, status: Optional[ExpenseStatus] = None) -> List[Expense]:
+    def get_all(
+        self, limit: int = 100, offset: int = 0, status: Optional[ExpenseStatus] = None
+    ) -> List[Expense]:
         """Get all expenses with pagination (tenant-aware)"""
         query = self.db.query(Expense)
         query = self._apply_tenant_filter(query)
         if status:
             query = query.filter(Expense.status == status)
-        return query.order_by(desc(Expense.created_at)).limit(limit).offset(offset).all()
+        return (
+            query.order_by(desc(Expense.created_at)).limit(limit).offset(offset).all()
+        )
 
     def update(self, expense_id: str, update_data: Dict) -> Optional[Expense]:
         """Update an expense"""
@@ -94,20 +107,28 @@ class ExpenseRepository:
 
     def approve(self, expense_id: str, approver_id: str) -> Optional[Expense]:
         """Approve an expense"""
-        return self.update(expense_id, {
-            'status': ExpenseStatus.APPROVED,
-            'approved_by': approver_id,
-            'approved_at': datetime.utcnow()
-        })
+        return self.update(
+            expense_id,
+            {
+                "status": ExpenseStatus.APPROVED,
+                "approved_by": approver_id,
+                "approved_at": datetime.utcnow(),
+            },
+        )
 
-    def reject(self, expense_id: str, approver_id: str, reason: str) -> Optional[Expense]:
+    def reject(
+        self, expense_id: str, approver_id: str, reason: str
+    ) -> Optional[Expense]:
         """Reject an expense"""
-        return self.update(expense_id, {
-            'status': ExpenseStatus.REJECTED,
-            'approved_by': approver_id,
-            'approved_at': datetime.utcnow(),
-            'rejection_reason': reason
-        })
+        return self.update(
+            expense_id,
+            {
+                "status": ExpenseStatus.REJECTED,
+                "approved_by": approver_id,
+                "approved_at": datetime.utcnow(),
+                "rejection_reason": reason,
+            },
+        )
 
     def get_pending_count(self, user_id: Optional[str] = None) -> int:
         """Get count of pending expenses (tenant-aware)"""
@@ -117,7 +138,9 @@ class ExpenseRepository:
             query = query.filter(Expense.user_id == user_id)
         return query.count()
 
-    def get_total_amount(self, user_id: Optional[str] = None, status: Optional[ExpenseStatus] = None) -> float:
+    def get_total_amount(
+        self, user_id: Optional[str] = None, status: Optional[ExpenseStatus] = None
+    ) -> float:
         """Get total amount of expenses (tenant-aware)"""
         query = self.db.query(Expense)
         query = self._apply_tenant_filter(query)
@@ -138,7 +161,11 @@ class ExpenseRepository:
         expenses = query.all()
         breakdown = {}
         for expense in expenses:
-            category = expense.category.value if isinstance(expense.category, ExpenseCategory) else expense.category
+            category = (
+                expense.category.value
+                if isinstance(expense.category, ExpenseCategory)
+                else expense.category
+            )
             breakdown[category] = breakdown.get(category, 0.0) + float(expense.amount)
 
         return breakdown
@@ -153,8 +180,10 @@ class IntentMandateRepository:
     def create(self, mandate_data: Dict) -> IntentMandate:
         """Create a new intent mandate"""
         # Convert constraints dict to JSON string
-        if 'constraints' in mandate_data and isinstance(mandate_data['constraints'], dict):
-            mandate_data['constraints'] = json.dumps(mandate_data['constraints'])
+        if "constraints" in mandate_data and isinstance(
+            mandate_data["constraints"], dict
+        ):
+            mandate_data["constraints"] = json.dumps(mandate_data["constraints"])
 
         mandate = IntentMandate(**mandate_data)
         self.db.add(mandate)
@@ -164,16 +193,20 @@ class IntentMandateRepository:
 
     def get_by_id(self, mandate_id: str) -> Optional[IntentMandate]:
         """Get intent mandate by ID"""
-        return self.db.query(IntentMandate).filter(IntentMandate.id == mandate_id).first()
+        return (
+            self.db.query(IntentMandate).filter(IntentMandate.id == mandate_id).first()
+        )
 
-    def get_by_user(self, user_id: str, active_only: bool = True) -> List[IntentMandate]:
+    def get_by_user(
+        self, user_id: str, active_only: bool = True
+    ) -> List[IntentMandate]:
         """Get all intent mandates for a user"""
         query = self.db.query(IntentMandate).filter(IntentMandate.user_id == user_id)
         if active_only:
             query = query.filter(
                 and_(
                     IntentMandate.status == "active",
-                    IntentMandate.expiration > datetime.utcnow()
+                    IntentMandate.expiration > datetime.utcnow(),
                 )
             )
         return query.order_by(desc(IntentMandate.created_at)).all()
@@ -191,12 +224,16 @@ class IntentMandateRepository:
 
     def expire_old_mandates(self) -> int:
         """Expire all mandates past their expiration date"""
-        count = self.db.query(IntentMandate).filter(
-            and_(
-                IntentMandate.status == "active",
-                IntentMandate.expiration <= datetime.utcnow()
+        count = (
+            self.db.query(IntentMandate)
+            .filter(
+                and_(
+                    IntentMandate.status == "active",
+                    IntentMandate.expiration <= datetime.utcnow(),
+                )
             )
-        ).update({"status": "expired"})
+            .update({"status": "expired"})
+        )
         self.db.commit()
         return count
 
@@ -210,8 +247,8 @@ class CartMandateRepository:
     def create(self, mandate_data: Dict) -> CartMandate:
         """Create a new cart mandate"""
         # Convert items list to JSON string
-        if 'items' in mandate_data and isinstance(mandate_data['items'], list):
-            mandate_data['items'] = json.dumps(mandate_data['items'])
+        if "items" in mandate_data and isinstance(mandate_data["items"], list):
+            mandate_data["items"] = json.dumps(mandate_data["items"])
 
         mandate = CartMandate(**mandate_data)
         self.db.add(mandate)
@@ -225,9 +262,12 @@ class CartMandateRepository:
 
     def get_by_intent_mandate(self, intent_mandate_id: str) -> List[CartMandate]:
         """Get all cart mandates for an intent mandate"""
-        return self.db.query(CartMandate).filter(
-            CartMandate.intent_mandate_id == intent_mandate_id
-        ).order_by(desc(CartMandate.created_at)).all()
+        return (
+            self.db.query(CartMandate)
+            .filter(CartMandate.intent_mandate_id == intent_mandate_id)
+            .order_by(desc(CartMandate.created_at))
+            .all()
+        )
 
     def update_status(self, mandate_id: str, status: str) -> Optional[CartMandate]:
         """Update mandate status"""
@@ -250,12 +290,18 @@ class PaymentMandateRepository:
     def create(self, mandate_data: Dict) -> PaymentMandate:
         """Create a new payment mandate"""
         # Convert audit_trail dict to JSON string
-        if 'audit_trail' in mandate_data and isinstance(mandate_data['audit_trail'], dict):
-            mandate_data['audit_trail'] = json.dumps(mandate_data['audit_trail'])
+        if "audit_trail" in mandate_data and isinstance(
+            mandate_data["audit_trail"], dict
+        ):
+            mandate_data["audit_trail"] = json.dumps(mandate_data["audit_trail"])
 
         # Convert payment_processor_response dict to JSON string if present
-        if 'payment_processor_response' in mandate_data and isinstance(mandate_data['payment_processor_response'], dict):
-            mandate_data['payment_processor_response'] = json.dumps(mandate_data['payment_processor_response'])
+        if "payment_processor_response" in mandate_data and isinstance(
+            mandate_data["payment_processor_response"], dict
+        ):
+            mandate_data["payment_processor_response"] = json.dumps(
+                mandate_data["payment_processor_response"]
+            )
 
         mandate = PaymentMandate(**mandate_data)
         self.db.add(mandate)
@@ -265,21 +311,33 @@ class PaymentMandateRepository:
 
     def get_by_id(self, mandate_id: str) -> Optional[PaymentMandate]:
         """Get payment mandate by ID"""
-        return self.db.query(PaymentMandate).filter(PaymentMandate.id == mandate_id).first()
+        return (
+            self.db.query(PaymentMandate)
+            .filter(PaymentMandate.id == mandate_id)
+            .first()
+        )
 
     def get_by_cart_mandate(self, cart_mandate_id: str) -> List[PaymentMandate]:
         """Get all payment mandates for a cart mandate"""
-        return self.db.query(PaymentMandate).filter(
-            PaymentMandate.cart_mandate_id == cart_mandate_id
-        ).order_by(desc(PaymentMandate.created_at)).all()
+        return (
+            self.db.query(PaymentMandate)
+            .filter(PaymentMandate.cart_mandate_id == cart_mandate_id)
+            .order_by(desc(PaymentMandate.created_at))
+            .all()
+        )
 
     def get_by_status(self, status: str) -> List[PaymentMandate]:
         """Get all payment mandates by status"""
-        return self.db.query(PaymentMandate).filter(
-            PaymentMandate.status == status
-        ).order_by(desc(PaymentMandate.created_at)).all()
+        return (
+            self.db.query(PaymentMandate)
+            .filter(PaymentMandate.status == status)
+            .order_by(desc(PaymentMandate.created_at))
+            .all()
+        )
 
-    def update_status(self, mandate_id: str, status: str, processor_response: Optional[Dict] = None) -> Optional[PaymentMandate]:
+    def update_status(
+        self, mandate_id: str, status: str, processor_response: Optional[Dict] = None
+    ) -> Optional[PaymentMandate]:
         """Update mandate status"""
         mandate = self.get_by_id(mandate_id)
         if not mandate:
@@ -299,41 +357,65 @@ class PaymentMandateRepository:
         if not payment_mandate:
             return None
 
-        cart_mandate = self.db.query(CartMandate).filter(
-            CartMandate.id == payment_mandate.cart_mandate_id
-        ).first()
+        cart_mandate = (
+            self.db.query(CartMandate)
+            .filter(CartMandate.id == payment_mandate.cart_mandate_id)
+            .first()
+        )
 
         intent_mandate = None
         if cart_mandate:
-            intent_mandate = self.db.query(IntentMandate).filter(
-                IntentMandate.id == cart_mandate.intent_mandate_id
-            ).first()
+            intent_mandate = (
+                self.db.query(IntentMandate)
+                .filter(IntentMandate.id == cart_mandate.intent_mandate_id)
+                .first()
+            )
 
         return {
-            'transaction_id': mandate_id,
-            'payment_mandate': {
-                'id': payment_mandate.id,
-                'status': payment_mandate.status,
-                'payment_method': payment_mandate.payment_method,
-                'timestamp': payment_mandate.timestamp.isoformat(),
-                'audit_trail': json.loads(payment_mandate.audit_trail) if payment_mandate.audit_trail else None,
+            "transaction_id": mandate_id,
+            "payment_mandate": {
+                "id": payment_mandate.id,
+                "status": payment_mandate.status,
+                "payment_method": payment_mandate.payment_method,
+                "timestamp": payment_mandate.timestamp.isoformat(),
+                "audit_trail": (
+                    json.loads(payment_mandate.audit_trail)
+                    if payment_mandate.audit_trail
+                    else None
+                ),
             },
-            'cart_mandate': {
-                'id': cart_mandate.id,
-                'items': json.loads(cart_mandate.items) if cart_mandate.items else [],
-                'total': float(cart_mandate.total),
-                'merchant': cart_mandate.merchant,
-                'timestamp': cart_mandate.timestamp.isoformat(),
-            } if cart_mandate else None,
-            'intent_mandate': {
-                'id': intent_mandate.id,
-                'user_id': intent_mandate.user_id,
-                'constraints': json.loads(intent_mandate.constraints) if intent_mandate.constraints else {},
-                'timestamp': intent_mandate.timestamp.isoformat(),
-                'expiration': intent_mandate.expiration.isoformat(),
-                'signature': intent_mandate.signature,
-            } if intent_mandate else None,
-            'audit_trail_complete': all([payment_mandate, cart_mandate, intent_mandate])
+            "cart_mandate": (
+                {
+                    "id": cart_mandate.id,
+                    "items": (
+                        json.loads(cart_mandate.items) if cart_mandate.items else []
+                    ),
+                    "total": float(cart_mandate.total),
+                    "merchant": cart_mandate.merchant,
+                    "timestamp": cart_mandate.timestamp.isoformat(),
+                }
+                if cart_mandate
+                else None
+            ),
+            "intent_mandate": (
+                {
+                    "id": intent_mandate.id,
+                    "user_id": intent_mandate.user_id,
+                    "constraints": (
+                        json.loads(intent_mandate.constraints)
+                        if intent_mandate.constraints
+                        else {}
+                    ),
+                    "timestamp": intent_mandate.timestamp.isoformat(),
+                    "expiration": intent_mandate.expiration.isoformat(),
+                    "signature": intent_mandate.signature,
+                }
+                if intent_mandate
+                else None
+            ),
+            "audit_trail_complete": all(
+                [payment_mandate, cart_mandate, intent_mandate]
+            ),
         }
 
 

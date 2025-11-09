@@ -1,22 +1,21 @@
 """Receipt upload and management routes"""
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
-from sqlalchemy.orm import Session
-from typing import List
-import uuid
+
+import asyncio
 import os
 import shutil
+import uuid
 from pathlib import Path
-import asyncio
+from typing import List
 
-from ..database import get_db
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from sqlalchemy.orm import Session
+
 from ..auth import get_current_active_user
-from ..models import User, Receipt, Expense
+from ..database import get_db
+from ..models import Expense, Receipt, User
 from ..services.receipt_ai_service import get_receipt_ai_service
 
-router = APIRouter(
-    prefix="/api/v1/receipts",
-    tags=["Receipts"]
-)
+router = APIRouter(prefix="/api/v1/receipts", tags=["Receipts"])
 
 # Configuration
 UPLOAD_DIR = Path("uploads/receipts")
@@ -34,18 +33,22 @@ def validate_file(file: UploadFile) -> None:
     if file_ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"File type not allowed. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+            detail=f"File type not allowed. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}",
         )
 
     # Check content type
     allowed_content_types = {
-        "image/jpeg", "image/jpg", "image/png", "image/gif",
-        "image/bmp", "image/webp", "application/pdf"
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/webp",
+        "application/pdf",
     }
     if file.content_type not in allowed_content_types:
         raise HTTPException(
-            status_code=400,
-            detail=f"Content type not allowed: {file.content_type}"
+            status_code=400, detail=f"Content type not allowed: {file.content_type}"
         )
 
 
@@ -54,7 +57,7 @@ async def upload_receipt(
     expense_id: str,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Upload a receipt for an expense"""
 
@@ -68,8 +71,7 @@ async def upload_receipt(
 
     if expense.user_id != current_user.id:
         raise HTTPException(
-            status_code=403,
-            detail="You can only upload receipts for your own expenses"
+            status_code=403, detail="You can only upload receipts for your own expenses"
         )
 
     # Check file size
@@ -79,7 +81,7 @@ async def upload_receipt(
     if file_size > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=400,
-            detail=f"File too large. Maximum size: {MAX_FILE_SIZE / 1024 / 1024}MB"
+            detail=f"File too large. Maximum size: {MAX_FILE_SIZE / 1024 / 1024}MB",
         )
 
     # Reset file pointer
@@ -105,7 +107,7 @@ async def upload_receipt(
         original_filename=file.filename,
         file_path=str(file_path),
         file_size=file_size,
-        content_type=file.content_type
+        content_type=file.content_type,
     )
 
     db.add(receipt)
@@ -119,8 +121,8 @@ async def upload_receipt(
             "filename": receipt.original_filename,
             "file_size": receipt.file_size,
             "content_type": receipt.content_type,
-            "uploaded_at": receipt.uploaded_at.isoformat()
-        }
+            "uploaded_at": receipt.uploaded_at.isoformat(),
+        },
     }
 
 
@@ -129,15 +131,12 @@ async def batch_upload_receipts(
     files: List[UploadFile] = File(...),
     background_tasks: BackgroundTasks = None,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Upload multiple receipts and extract data using AI"""
 
     if len(files) > 10:
-        raise HTTPException(
-            status_code=400,
-            detail="Maximum 10 files per batch"
-        )
+        raise HTTPException(status_code=400, detail="Maximum 10 files per batch")
 
     results = []
     temp_files = []
@@ -153,11 +152,13 @@ async def batch_upload_receipts(
             file_size = len(file_content)
 
             if file_size > MAX_FILE_SIZE:
-                results.append({
-                    "filename": file.filename,
-                    "success": False,
-                    "error": f"File too large. Maximum size: {MAX_FILE_SIZE / 1024 / 1024}MB"
-                })
+                results.append(
+                    {
+                        "filename": file.filename,
+                        "success": False,
+                        "error": f"File too large. Maximum size: {MAX_FILE_SIZE / 1024 / 1024}MB",
+                    }
+                )
                 continue
 
             # Reset file pointer
@@ -174,21 +175,25 @@ async def batch_upload_receipts(
 
                 temp_files.append(file_path)
 
-                results.append({
-                    "filename": file.filename,
-                    "temp_filename": unique_filename,
-                    "file_path": str(file_path),
-                    "file_size": file_size,
-                    "content_type": file.content_type,
-                    "success": True
-                })
+                results.append(
+                    {
+                        "filename": file.filename,
+                        "temp_filename": unique_filename,
+                        "file_path": str(file_path),
+                        "file_size": file_size,
+                        "content_type": file.content_type,
+                        "success": True,
+                    }
+                )
 
             except Exception as e:
-                results.append({
-                    "filename": file.filename,
-                    "success": False,
-                    "error": f"Failed to save file: {str(e)}"
-                })
+                results.append(
+                    {
+                        "filename": file.filename,
+                        "success": False,
+                        "error": f"Failed to save file: {str(e)}",
+                    }
+                )
 
         # Extract data from all successful uploads using AI
         ai_service = get_receipt_ai_service()
@@ -205,11 +210,7 @@ async def batch_upload_receipts(
                 if idx < len(extractions):
                     result["extracted_data"] = extractions[idx]
 
-        return {
-            "success": True,
-            "total_files": len(files),
-            "results": results
-        }
+        return {"success": True, "total_files": len(files), "results": results}
 
     except Exception as e:
         # Clean up temp files on error
@@ -220,17 +221,14 @@ async def batch_upload_receipts(
             except:
                 pass
 
-        raise HTTPException(
-            status_code=500,
-            detail=f"Batch upload failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Batch upload failed: {str(e)}")
 
 
 @router.post("/create-from-extraction")
 async def create_expense_from_extraction(
     data: dict,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Create an expense from extracted receipt data"""
 
@@ -246,28 +244,31 @@ async def create_expense_from_extraction(
         if not vendor or not amount or not temp_filename:
             raise HTTPException(
                 status_code=400,
-                detail="Missing required fields: vendor, amount, temp_filename"
+                detail="Missing required fields: vendor, amount, temp_filename",
             )
 
         # Verify temp file exists
         file_path = UPLOAD_DIR / temp_filename
         if not file_path.exists():
             raise HTTPException(
-                status_code=404,
-                detail="Temporary file not found. Please re-upload."
+                status_code=404, detail="Temporary file not found. Please re-upload."
             )
 
         # Get user's organization
         from ..models import OrganizationMember
-        member = db.query(OrganizationMember).filter(
-            OrganizationMember.user_id == current_user.id,
-            OrganizationMember.is_active == True
-        ).first()
+
+        member = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.user_id == current_user.id,
+                OrganizationMember.is_active == True,
+            )
+            .first()
+        )
 
         if not member:
             raise HTTPException(
-                status_code=400,
-                detail="User is not a member of any organization"
+                status_code=400, detail="User is not a member of any organization"
             )
 
         # Create expense
@@ -279,7 +280,7 @@ async def create_expense_from_extraction(
             amount=float(amount),
             category=category,
             description=description,
-            status="pending"
+            status="pending",
         )
 
         db.add(expense)
@@ -296,7 +297,7 @@ async def create_expense_from_extraction(
             original_filename=original_filename or temp_filename,
             file_path=str(file_path),
             file_size=file_stat.st_size,
-            content_type=data.get("content_type", "image/jpeg")
+            content_type=data.get("content_type", "image/jpeg"),
         )
 
         db.add(receipt)
@@ -313,13 +314,13 @@ async def create_expense_from_extraction(
                 "category": expense.category,
                 "description": expense.description,
                 "status": expense.status,
-                "created_at": expense.created_at.isoformat()
+                "created_at": expense.created_at.isoformat(),
             },
             "receipt": {
                 "id": receipt.id,
                 "filename": receipt.original_filename,
-                "uploaded_at": receipt.uploaded_at.isoformat()
-            }
+                "uploaded_at": receipt.uploaded_at.isoformat(),
+            },
         }
 
     except HTTPException:
@@ -327,8 +328,7 @@ async def create_expense_from_extraction(
     except Exception as e:
         db.rollback()
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to create expense: {str(e)}"
+            status_code=500, detail=f"Failed to create expense: {str(e)}"
         )
 
 
@@ -336,7 +336,7 @@ async def create_expense_from_extraction(
 async def get_receipts(
     expense_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get all receipts for an expense"""
 
@@ -347,12 +347,13 @@ async def get_receipts(
 
     # Check access - user must own the expense or be admin/manager
     from ..models import UserRole
+
     if expense.user_id != current_user.id and current_user.role not in [
-        UserRole.ADMIN, UserRole.MANAGER
+        UserRole.ADMIN,
+        UserRole.MANAGER,
     ]:
         raise HTTPException(
-            status_code=403,
-            detail="Not authorized to view these receipts"
+            status_code=403, detail="Not authorized to view these receipts"
         )
 
     # Get receipts
@@ -366,10 +367,10 @@ async def get_receipts(
                 "filename": r.original_filename,
                 "file_size": r.file_size,
                 "content_type": r.content_type,
-                "uploaded_at": r.uploaded_at.isoformat()
+                "uploaded_at": r.uploaded_at.isoformat(),
             }
             for r in receipts
-        ]
+        ],
     }
 
 
@@ -377,7 +378,7 @@ async def get_receipts(
 async def delete_receipt(
     receipt_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Delete a receipt"""
 
@@ -394,16 +395,15 @@ async def delete_receipt(
     # Check ownership
     if expense.user_id != current_user.id:
         raise HTTPException(
-            status_code=403,
-            detail="You can only delete receipts for your own expenses"
+            status_code=403, detail="You can only delete receipts for your own expenses"
         )
 
     # Only allow deletion if expense is still pending
     from ..models import ExpenseStatus
+
     if expense.status != ExpenseStatus.PENDING:
         raise HTTPException(
-            status_code=400,
-            detail="Cannot delete receipts from non-pending expenses"
+            status_code=400, detail="Cannot delete receipts from non-pending expenses"
         )
 
     # Delete physical file
@@ -418,17 +418,14 @@ async def delete_receipt(
     db.delete(receipt)
     db.commit()
 
-    return {
-        "success": True,
-        "message": "Receipt deleted successfully"
-    }
+    return {"success": True, "message": "Receipt deleted successfully"}
 
 
 @router.get("/download/{receipt_id}")
 async def download_receipt(
     receipt_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Download a receipt file"""
     from fastapi.responses import FileResponse
@@ -445,12 +442,13 @@ async def download_receipt(
 
     # Check access
     from ..models import UserRole
+
     if expense.user_id != current_user.id and current_user.role not in [
-        UserRole.ADMIN, UserRole.MANAGER
+        UserRole.ADMIN,
+        UserRole.MANAGER,
     ]:
         raise HTTPException(
-            status_code=403,
-            detail="Not authorized to download this receipt"
+            status_code=403, detail="Not authorized to download this receipt"
         )
 
     # Check if file exists
@@ -461,5 +459,5 @@ async def download_receipt(
     return FileResponse(
         path=file_path,
         filename=receipt.original_filename,
-        media_type=receipt.content_type
+        media_type=receipt.content_type,
     )

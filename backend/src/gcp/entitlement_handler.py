@@ -6,18 +6,16 @@ Handles tier changes and cancellations from Google Cloud Marketplace
 import uuid
 from datetime import datetime
 from typing import Dict
+
 from sqlalchemy.orm import Session
 
-from ..models import Organization
-from ..models_billing import OrganizationSubscription, BillingEvent
-from ..email_service import EmailService
 from ..config import settings
+from ..email_service import EmailService
+from ..models import Organization
+from ..models_billing import BillingEvent, OrganizationSubscription
 
 
-async def handle_entitlement_update(
-    webhook_data: Dict,
-    db: Session
-) -> Dict:
+async def handle_entitlement_update(webhook_data: Dict, db: Session) -> Dict:
     """
     Handle tier upgrade/downgrade from GCP Marketplace
 
@@ -54,9 +52,11 @@ async def handle_entitlement_update(
             raise ValueError("Missing required fields: entitlement_id or new_plan")
 
         # === Step 1: Find subscription ===
-        subscription = db.query(OrganizationSubscription).filter_by(
-            gcp_entitlement_id=entitlement_id
-        ).first()
+        subscription = (
+            db.query(OrganizationSubscription)
+            .filter_by(gcp_entitlement_id=entitlement_id)
+            .first()
+        )
 
         if not subscription:
             raise ValueError(f"Subscription not found for entitlement {entitlement_id}")
@@ -73,15 +73,18 @@ async def handle_entitlement_update(
         metadata = subscription.metadata or {}
         if not isinstance(metadata, dict):
             import json
+
             metadata = json.loads(metadata) if isinstance(metadata, str) else {}
 
         metadata["tier_changes"] = metadata.get("tier_changes", [])
-        metadata["tier_changes"].append({
-            "from": old_tier,
-            "to": new_plan,
-            "changed_at": datetime.utcnow().isoformat(),
-            "source": "gcp_marketplace"
-        })
+        metadata["tier_changes"].append(
+            {
+                "from": old_tier,
+                "to": new_plan,
+                "changed_at": datetime.utcnow().isoformat(),
+                "source": "gcp_marketplace",
+            }
+        )
         subscription.metadata = metadata
 
         # === Step 3: Update organization limits ===
@@ -99,10 +102,10 @@ async def handle_entitlement_update(
                 "entitlement_id": entitlement_id,
                 "old_tier": old_tier,
                 "new_tier": new_plan,
-                "effective_at": webhook_data.get("effective_at")
+                "effective_at": webhook_data.get("effective_at"),
             },
             status="success",
-            occurred_at=datetime.utcnow()
+            occurred_at=datetime.utcnow(),
         )
         db.add(billing_event)
 
@@ -117,7 +120,7 @@ async def handle_entitlement_update(
                 organization.name if organization else "Your Organization",
                 old_tier,
                 new_plan,
-                db
+                db,
             )
         except Exception as email_error:
             print(f"Failed to send tier change email: {email_error}")
@@ -127,7 +130,7 @@ async def handle_entitlement_update(
             "organization_id": organization_id,
             "old_tier": old_tier,
             "new_tier": new_plan,
-            "message": f"Subscription upgraded from {old_tier} to {new_plan}"
+            "message": f"Subscription upgraded from {old_tier} to {new_plan}",
         }
 
     except Exception as e:
@@ -142,7 +145,7 @@ async def handle_entitlement_update(
                 event_data=webhook_data,
                 status="failed",
                 error_message=str(e),
-                occurred_at=datetime.utcnow()
+                occurred_at=datetime.utcnow(),
             )
             db.add(error_event)
             db.commit()
@@ -152,10 +155,7 @@ async def handle_entitlement_update(
         raise
 
 
-async def handle_entitlement_cancellation(
-    webhook_data: Dict,
-    db: Session
-) -> Dict:
+async def handle_entitlement_cancellation(webhook_data: Dict, db: Session) -> Dict:
     """
     Handle subscription cancellation from GCP Marketplace
 
@@ -185,15 +185,19 @@ async def handle_entitlement_cancellation(
 
     try:
         entitlement_id = webhook_data.get("entitlement_id")
-        cancellation_reason = webhook_data.get("cancellation_reason", "customer_requested")
+        cancellation_reason = webhook_data.get(
+            "cancellation_reason", "customer_requested"
+        )
 
         if not entitlement_id:
             raise ValueError("Missing required field: entitlement_id")
 
         # === Step 1: Find subscription ===
-        subscription = db.query(OrganizationSubscription).filter_by(
-            gcp_entitlement_id=entitlement_id
-        ).first()
+        subscription = (
+            db.query(OrganizationSubscription)
+            .filter_by(gcp_entitlement_id=entitlement_id)
+            .first()
+        )
 
         if not subscription:
             raise ValueError(f"Subscription not found for entitlement {entitlement_id}")
@@ -208,6 +212,7 @@ async def handle_entitlement_cancellation(
         effective_at = webhook_data.get("effective_at")
         if effective_at:
             from dateutil import parser
+
             try:
                 cancellation_date = parser.parse(effective_at)
             except:
@@ -219,13 +224,14 @@ async def handle_entitlement_cancellation(
         metadata = subscription.metadata or {}
         if not isinstance(metadata, dict):
             import json
+
             metadata = json.loads(metadata) if isinstance(metadata, str) else {}
 
         metadata["cancellation"] = {
             "cancelled_at": datetime.utcnow().isoformat(),
             "effective_at": cancellation_date.isoformat(),
             "reason": cancellation_reason,
-            "source": "gcp_marketplace"
+            "source": "gcp_marketplace",
         }
         subscription.metadata = metadata
 
@@ -244,10 +250,10 @@ async def handle_entitlement_cancellation(
             event_data={
                 "entitlement_id": entitlement_id,
                 "reason": cancellation_reason,
-                "effective_at": cancellation_date.isoformat()
+                "effective_at": cancellation_date.isoformat(),
             },
             status="success",
-            occurred_at=datetime.utcnow()
+            occurred_at=datetime.utcnow(),
         )
         db.add(billing_event)
 
@@ -261,7 +267,7 @@ async def handle_entitlement_cancellation(
                 organization_id,
                 organization.name if organization else "Your Organization",
                 cancellation_date,
-                db
+                db,
             )
         except Exception as email_error:
             print(f"Failed to send cancellation email: {email_error}")
@@ -271,7 +277,7 @@ async def handle_entitlement_cancellation(
             "organization_id": organization_id,
             "effective_at": cancellation_date.isoformat(),
             "grace_period_days": 7,
-            "message": "Subscription cancelled successfully"
+            "message": "Subscription cancelled successfully",
         }
 
     except Exception as e:
@@ -286,7 +292,7 @@ async def handle_entitlement_cancellation(
                 event_data=webhook_data,
                 status="failed",
                 error_message=str(e),
-                occurred_at=datetime.utcnow()
+                occurred_at=datetime.utcnow(),
             )
             db.add(error_event)
             db.commit()
@@ -302,18 +308,23 @@ async def send_tier_change_email(
     organization_name: str,
     old_tier: str,
     new_tier: str,
-    db: Session
+    db: Session,
 ):
     """Send email notification about tier change"""
 
     from ..models import OrganizationMember, User
 
     # Get organization owners
-    owners = db.query(User).join(OrganizationMember).filter(
-        OrganizationMember.organization_id == organization_id,
-        OrganizationMember.role == "owner",
-        OrganizationMember.is_active == True
-    ).all()
+    owners = (
+        db.query(User)
+        .join(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == organization_id,
+            OrganizationMember.role == "owner",
+            OrganizationMember.is_active == True,
+        )
+        .all()
+    )
 
     app_url = settings.frontend_url or "https://your-app.run.app"
 
@@ -348,11 +359,7 @@ async def send_tier_change_email(
         </html>
         """
 
-        await email_service.send_email(
-            to_email=owner.email,
-            subject=subject,
-            body=body
-        )
+        await email_service.send_email(to_email=owner.email, subject=subject, body=body)
 
 
 async def send_cancellation_email(
@@ -360,18 +367,23 @@ async def send_cancellation_email(
     organization_id: str,
     organization_name: str,
     effective_date: datetime,
-    db: Session
+    db: Session,
 ):
     """Send email notification about cancellation"""
 
     from ..models import OrganizationMember, User
 
     # Get organization owners
-    owners = db.query(User).join(OrganizationMember).filter(
-        OrganizationMember.organization_id == organization_id,
-        OrganizationMember.role == "owner",
-        OrganizationMember.is_active == True
-    ).all()
+    owners = (
+        db.query(User)
+        .join(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == organization_id,
+            OrganizationMember.role == "owner",
+            OrganizationMember.is_active == True,
+        )
+        .all()
+    )
 
     app_url = settings.frontend_url or "https://your-app.run.app"
 
@@ -413,21 +425,12 @@ async def send_cancellation_email(
         </html>
         """
 
-        await email_service.send_email(
-            to_email=owner.email,
-            subject=subject,
-            body=body
-        )
+        await email_service.send_email(to_email=owner.email, subject=subject, body=body)
 
 
 def get_tier_max_members(tier: str) -> int:
     """Get max members limit for a tier"""
-    tier_limits = {
-        "free": 5,
-        "starter": 25,
-        "professional": 100,
-        "enterprise": 10000
-    }
+    tier_limits = {"free": 5, "starter": 25, "professional": 100, "enterprise": 10000}
     return tier_limits.get(tier.lower(), 25)
 
 
@@ -437,17 +440,12 @@ def get_tier_max_expenses(tier: str) -> int:
         "free": 50,
         "starter": 500,
         "professional": None,  # Unlimited
-        "enterprise": None  # Unlimited
+        "enterprise": None,  # Unlimited
     }
     return tier_limits.get(tier.lower(), 500)
 
 
 def tier_priority(tier: str) -> int:
     """Get tier priority for comparison"""
-    priorities = {
-        "free": 0,
-        "starter": 1,
-        "professional": 2,
-        "enterprise": 3
-    }
+    priorities = {"free": 0, "starter": 1, "professional": 2, "enterprise": 3}
     return priorities.get(tier.lower(), 0)

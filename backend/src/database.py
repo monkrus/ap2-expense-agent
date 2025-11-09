@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
+
 from .config import settings
 from .models import Base
 
@@ -13,11 +14,12 @@ engine = create_engine(
     pool_pre_ping=True,  # Test connections before using
     pool_recycle=settings.db_pool_recycle,  # Recycle connections after this many seconds
     echo=settings.debug,
-    echo_pool=settings.debug  # Log pool checkouts/checkins
+    echo_pool=settings.debug,  # Log pool checkouts/checkins
 )
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 def get_db():
     """Dependency to get database session"""
@@ -27,9 +29,11 @@ def get_db():
     finally:
         db.close()
 
+
 def init_db():
     """Initialize database tables"""
     Base.metadata.create_all(bind=engine)
+
 
 def drop_db():
     """Drop all database tables"""

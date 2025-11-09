@@ -377,6 +377,7 @@ class AdminDashboardTester:
                 else:
                     self.log("Resume Recurring Expense", "FAIL", f"Status {response.status_code}")
 
+                claude/start-app-run-tests-011CUsFhjmtARBb1wf79NhDT
                 # Test UPDATE recurring expense
                 try:
                     update_data = {
@@ -413,6 +414,8 @@ class AdminDashboardTester:
                 except Exception as e:
                     self.log("Get Single Recurring Expense", "FAIL", str(e))
 
+
+                main
                 # Test delete
                 response = requests.delete(
                     f"{BASE_URL}/api/recurring-expenses/{template_id}",
@@ -472,6 +475,7 @@ class AdminDashboardTester:
                 budget_id = data.get("id")
                 self.log("Create Budget", "PASS", f"Created budget {budget_id}")
 
+             claude/start-app-run-tests-011CUsFhjmtARBb1wf79NhDT
                 # Test UPDATE budget
                 try:
                     update_data = {
@@ -509,6 +513,8 @@ class AdminDashboardTester:
                 except Exception as e:
                     self.log("Get Single Budget", "FAIL", str(e))
 
+
+               main
                 # Test delete
                 response = requests.delete(
                     f"{BASE_URL}/api/budgets/{budget_id}",

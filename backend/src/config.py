@@ -1,5 +1,7 @@
-from pydantic_settings import BaseSettings
 from typing import Optional
+
+from pydantic_settings import BaseSettings
+
 
 class Settings(BaseSettings):
     google_api_key: Optional[str] = None
@@ -40,7 +42,9 @@ class Settings(BaseSettings):
     smtp_username: Optional[str] = None
     smtp_password: Optional[str] = None
     smtp_from_email: Optional[str] = "noreply@ap2expense.com"  # From email address
-    from_email: Optional[str] = "noreply@ap2expense.com"  # Alias for backwards compatibility
+    from_email: Optional[str] = (
+        "noreply@ap2expense.com"  # Alias for backwards compatibility
+    )
     notifications_enabled: bool = False  # Enable/disable email notifications
 
     # Stripe Payment Configuration
@@ -48,8 +52,12 @@ class Settings(BaseSettings):
     stripe_publishable_key: Optional[str] = None
     stripe_webhook_secret: Optional[str] = None
     stripe_price_id_starter: Optional[str] = None  # Stripe Price ID for Starter tier
-    stripe_price_id_professional: Optional[str] = None  # Stripe Price ID for Professional tier
-    stripe_price_id_enterprise: Optional[str] = None  # Stripe Price ID for Enterprise tier
+    stripe_price_id_professional: Optional[str] = (
+        None  # Stripe Price ID for Professional tier
+    )
+    stripe_price_id_enterprise: Optional[str] = (
+        None  # Stripe Price ID for Enterprise tier
+    )
 
     # Subscription & Monetization
     enable_billing: bool = False  # Enable/disable billing features
@@ -79,5 +87,6 @@ class Settings(BaseSettings):
         env_file = ".env"
         case_sensitive = False
         extra = "ignore"  # Ignore extra fields in .env file
+
 
 settings = Settings()

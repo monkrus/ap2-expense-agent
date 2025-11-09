@@ -3,20 +3,21 @@ Payment API routes for Stripe integration
 Handles subscription creation, payment methods, and customer portal access
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Header
-from sqlalchemy.orm import Session
-from typing import Optional
-import stripe
 import logging
-
-from ..database import get_db
-from ..auth import get_current_user
-from ..models import User, Organization, OrganizationMember
-from ..models_billing import OrganizationSubscription, BillingTier, BillingEvent
-from ..integrations.stripe_integration import StripeIntegration
-from ..config import settings
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Optional
+
+import stripe
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from sqlalchemy.orm import Session
+
+from ..auth import get_current_user
+from ..config import settings
+from ..database import get_db
+from ..integrations.stripe_integration import StripeIntegration
+from ..models import Organization, OrganizationMember, User
+from ..models_billing import BillingEvent, BillingTier, OrganizationSubscription
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,7 @@ stripe.api_key = settings.stripe_secret_key
 
 @router.post("/setup-intent")
 async def create_setup_intent(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Create a Setup Intent for collecting payment method
@@ -39,16 +39,20 @@ async def create_setup_intent(
     """
     try:
         # Get user's organization
-        membership = db.query(OrganizationMember).filter(
-            OrganizationMember.user_id == current_user.id
-        ).first()
+        membership = (
+            db.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == current_user.id)
+            .first()
+        )
 
         if not membership:
             raise HTTPException(status_code=400, detail="User not in any organization")
 
-        organization = db.query(Organization).filter(
-            Organization.id == membership.organization_id
-        ).first()
+        organization = (
+            db.query(Organization)
+            .filter(Organization.id == membership.organization_id)
+            .first()
+        )
 
         if not organization:
             raise HTTPException(status_code=404, detail="Organization not found")
@@ -60,8 +64,8 @@ async def create_setup_intent(
                 name=organization.name,
                 metadata={
                     "organization_id": organization.id,
-                    "user_id": current_user.id
-                }
+                    "user_id": current_user.id,
+                },
             )
             organization.stripe_customer_id = customer.id
             db.commit()
@@ -72,15 +76,12 @@ async def create_setup_intent(
         setup_intent = stripe.SetupIntent.create(
             customer=organization.stripe_customer_id,
             payment_method_types=["card"],
-            metadata={
-                "organization_id": organization.id,
-                "user_id": current_user.id
-            }
+            metadata={"organization_id": organization.id, "user_id": current_user.id},
         )
 
         return {
             "client_secret": setup_intent.client_secret,
-            "customer_id": organization.stripe_customer_id
+            "customer_id": organization.stripe_customer_id,
         }
 
     except stripe.error.StripeError as e:
@@ -96,7 +97,7 @@ async def create_subscription(
     tier_name: str,
     payment_method_id: Optional[str] = None,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Create a Stripe subscription for the organization
@@ -107,54 +108,72 @@ async def create_subscription(
     """
     try:
         # Get user's organization
-        membership = db.query(OrganizationMember).filter(
-            OrganizationMember.user_id == current_user.id
-        ).first()
+        membership = (
+            db.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == current_user.id)
+            .first()
+        )
 
         if not membership:
             raise HTTPException(status_code=400, detail="User not in any organization")
 
         # Check permissions (only owner/admin can manage billing)
         if membership.role not in ["owner", "admin"]:
-            raise HTTPException(status_code=403, detail="Only organization owners/admins can manage billing")
+            raise HTTPException(
+                status_code=403,
+                detail="Only organization owners/admins can manage billing",
+            )
 
-        organization = db.query(Organization).filter(
-            Organization.id == membership.organization_id
-        ).first()
+        organization = (
+            db.query(Organization)
+            .filter(Organization.id == membership.organization_id)
+            .first()
+        )
 
         if not organization:
             raise HTTPException(status_code=404, detail="Organization not found")
 
         # Get billing tier
-        tier = db.query(BillingTier).filter(
-            BillingTier.tier_name == tier_name.lower()
-        ).first()
+        tier = (
+            db.query(BillingTier)
+            .filter(BillingTier.tier_name == tier_name.lower())
+            .first()
+        )
 
         if not tier:
-            raise HTTPException(status_code=404, detail=f"Billing tier '{tier_name}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Billing tier '{tier_name}' not found"
+            )
 
         # Check if organization already has GCP entitlement
-        existing_sub = db.query(OrganizationSubscription).filter(
-            OrganizationSubscription.organization_id == organization.id,
-            OrganizationSubscription.gcp_entitlement_id.isnot(None)
-        ).first()
+        existing_sub = (
+            db.query(OrganizationSubscription)
+            .filter(
+                OrganizationSubscription.organization_id == organization.id,
+                OrganizationSubscription.gcp_entitlement_id.isnot(None),
+            )
+            .first()
+        )
 
         if existing_sub:
             raise HTTPException(
                 status_code=400,
-                detail="Organization already subscribed via Google Cloud Marketplace. Please manage your subscription through GCP Console."
+                detail="Organization already subscribed via Google Cloud Marketplace. Please manage your subscription through GCP Console.",
             )
 
         # Get Stripe price ID for tier
         price_id_map = {
             "starter": settings.stripe_price_id_starter,
             "professional": settings.stripe_price_id_professional,
-            "enterprise": settings.stripe_price_id_enterprise
+            "enterprise": settings.stripe_price_id_enterprise,
         }
 
         price_id = price_id_map.get(tier_name.lower())
         if not price_id:
-            raise HTTPException(status_code=400, detail=f"Stripe pricing not configured for tier '{tier_name}'")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Stripe pricing not configured for tier '{tier_name}'",
+            )
 
         # Create or get Stripe customer
         if not organization.stripe_customer_id:
@@ -163,21 +182,20 @@ async def create_subscription(
                 name=organization.name,
                 metadata={
                     "organization_id": organization.id,
-                    "user_id": current_user.id
-                }
+                    "user_id": current_user.id,
+                },
             )
             organization.stripe_customer_id = customer.id
 
         # Attach payment method if provided
         if payment_method_id:
             stripe.PaymentMethod.attach(
-                payment_method_id,
-                customer=organization.stripe_customer_id
+                payment_method_id, customer=organization.stripe_customer_id
             )
             # Set as default payment method
             stripe.Customer.modify(
                 organization.stripe_customer_id,
-                invoice_settings={"default_payment_method": payment_method_id}
+                invoice_settings={"default_payment_method": payment_method_id},
             )
 
         # Create subscription
@@ -185,10 +203,7 @@ async def create_subscription(
             customer_id=organization.stripe_customer_id,
             price_id=price_id,
             trial_days=0,  # No trial for direct subscriptions
-            metadata={
-                "organization_id": organization.id,
-                "tier_name": tier_name
-            }
+            metadata={"organization_id": organization.id, "tier_name": tier_name},
         )
 
         # Update organization
@@ -196,9 +211,11 @@ async def create_subscription(
         organization.stripe_price_id = price_id
 
         # Create or update OrganizationSubscription
-        org_sub = db.query(OrganizationSubscription).filter(
-            OrganizationSubscription.organization_id == organization.id
-        ).first()
+        org_sub = (
+            db.query(OrganizationSubscription)
+            .filter(OrganizationSubscription.organization_id == organization.id)
+            .first()
+        )
 
         if org_sub:
             org_sub.tier_id = tier.id
@@ -211,7 +228,7 @@ async def create_subscription(
                 tier_id=tier.id,
                 status="active",
                 billing_period_start=datetime.utcnow(),
-                is_trial=False
+                is_trial=False,
             )
             db.add(org_sub)
 
@@ -223,9 +240,9 @@ async def create_subscription(
             event_data={
                 "tier_name": tier_name,
                 "stripe_subscription_id": subscription.id,
-                "stripe_customer_id": organization.stripe_customer_id
+                "stripe_customer_id": organization.stripe_customer_id,
             },
-            status="success"
+            status="success",
         )
         db.add(event)
 
@@ -235,7 +252,7 @@ async def create_subscription(
             "success": True,
             "subscription_id": subscription.id,
             "status": subscription.status,
-            "tier": tier_name
+            "tier": tier_name,
         }
 
     except stripe.error.StripeError as e:
@@ -254,7 +271,7 @@ async def create_subscription(
 async def create_checkout_session(
     tier_name: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Create a Stripe Checkout session for subscription signup
@@ -263,30 +280,40 @@ async def create_checkout_session(
     """
     try:
         # Get user's organization
-        membership = db.query(OrganizationMember).filter(
-            OrganizationMember.user_id == current_user.id
-        ).first()
+        membership = (
+            db.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == current_user.id)
+            .first()
+        )
 
         if not membership:
             raise HTTPException(status_code=400, detail="User not in any organization")
 
         if membership.role not in ["owner", "admin"]:
-            raise HTTPException(status_code=403, detail="Only organization owners/admins can manage billing")
+            raise HTTPException(
+                status_code=403,
+                detail="Only organization owners/admins can manage billing",
+            )
 
-        organization = db.query(Organization).filter(
-            Organization.id == membership.organization_id
-        ).first()
+        organization = (
+            db.query(Organization)
+            .filter(Organization.id == membership.organization_id)
+            .first()
+        )
 
         # Get Stripe price ID
         price_id_map = {
             "starter": settings.stripe_price_id_starter,
             "professional": settings.stripe_price_id_professional,
-            "enterprise": settings.stripe_price_id_enterprise
+            "enterprise": settings.stripe_price_id_enterprise,
         }
 
         price_id = price_id_map.get(tier_name.lower())
         if not price_id:
-            raise HTTPException(status_code=400, detail=f"Stripe pricing not configured for tier '{tier_name}'")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Stripe pricing not configured for tier '{tier_name}'",
+            )
 
         # Create or get Stripe customer
         if not organization.stripe_customer_id:
@@ -295,8 +322,8 @@ async def create_checkout_session(
                 name=organization.name,
                 metadata={
                     "organization_id": organization.id,
-                    "user_id": current_user.id
-                }
+                    "user_id": current_user.id,
+                },
             )
             organization.stripe_customer_id = customer.id
             db.commit()
@@ -308,16 +335,10 @@ async def create_checkout_session(
             price_id=price_id,
             success_url=f"{frontend_url}/billing?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{frontend_url}/pricing",
-            metadata={
-                "organization_id": organization.id,
-                "tier_name": tier_name
-            }
+            metadata={"organization_id": organization.id, "tier_name": tier_name},
         )
 
-        return {
-            "session_id": session.id,
-            "url": session.url
-        }
+        return {"session_id": session.id, "url": session.url}
 
     except stripe.error.StripeError as e:
         logger.error(f"Stripe error creating checkout session: {e}")
@@ -329,8 +350,7 @@ async def create_checkout_session(
 
 @router.post("/portal-session")
 async def create_portal_session(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Create a Stripe Customer Portal session
@@ -340,30 +360,34 @@ async def create_portal_session(
     """
     try:
         # Get user's organization
-        membership = db.query(OrganizationMember).filter(
-            OrganizationMember.user_id == current_user.id
-        ).first()
+        membership = (
+            db.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == current_user.id)
+            .first()
+        )
 
         if not membership:
             raise HTTPException(status_code=400, detail="User not in any organization")
 
-        organization = db.query(Organization).filter(
-            Organization.id == membership.organization_id
-        ).first()
+        organization = (
+            db.query(Organization)
+            .filter(Organization.id == membership.organization_id)
+            .first()
+        )
 
         if not organization or not organization.stripe_customer_id:
-            raise HTTPException(status_code=400, detail="No Stripe customer found for organization")
+            raise HTTPException(
+                status_code=400, detail="No Stripe customer found for organization"
+            )
 
         # Create portal session
         frontend_url = settings.frontend_url or "http://localhost:5173"
         session = StripeIntegration.create_portal_session(
             customer_id=organization.stripe_customer_id,
-            return_url=f"{frontend_url}/billing"
+            return_url=f"{frontend_url}/billing",
         )
 
-        return {
-            "url": session.url
-        }
+        return {"url": session.url}
 
     except stripe.error.StripeError as e:
         logger.error(f"Stripe error creating portal session: {e}")
@@ -377,7 +401,7 @@ async def create_portal_session(
 async def stripe_webhook(
     request: Request,
     stripe_signature: str = Header(None, alias="stripe-signature"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Handle Stripe webhook events
@@ -395,17 +419,14 @@ async def stripe_webhook(
 
         # Verify webhook signature
         if not settings.stripe_webhook_secret:
-            logger.warning("Stripe webhook secret not configured - skipping signature verification")
-            event = stripe.Event.construct_from(
-                await request.json(),
-                stripe.api_key
+            logger.warning(
+                "Stripe webhook secret not configured - skipping signature verification"
             )
+            event = stripe.Event.construct_from(await request.json(), stripe.api_key)
         else:
             try:
                 event = stripe.Webhook.construct_event(
-                    payload,
-                    stripe_signature,
-                    settings.stripe_webhook_secret
+                    payload, stripe_signature, settings.stripe_webhook_secret
                 )
             except stripe.error.SignatureVerificationError as e:
                 logger.error(f"Stripe webhook signature verification failed: {e}")
@@ -449,9 +470,11 @@ async def handle_subscription_created(subscription, db: Session):
         customer_id = subscription.customer
 
         # Find organization by Stripe customer ID
-        organization = db.query(Organization).filter(
-            Organization.stripe_customer_id == customer_id
-        ).first()
+        organization = (
+            db.query(Organization)
+            .filter(Organization.stripe_customer_id == customer_id)
+            .first()
+        )
 
         if not organization:
             logger.warning(f"Organization not found for Stripe customer {customer_id}")
@@ -467,9 +490,9 @@ async def handle_subscription_created(subscription, db: Session):
             event_type="stripe_subscription_created",
             event_data={
                 "subscription_id": subscription.id,
-                "status": subscription.status
+                "status": subscription.status,
             },
-            status="success"
+            status="success",
         )
         db.add(event)
         db.commit()
@@ -485,25 +508,29 @@ async def handle_subscription_updated(subscription, db: Session):
     """Handle subscription.updated event"""
     try:
         # Find organization
-        organization = db.query(Organization).filter(
-            Organization.stripe_subscription_id == subscription.id
-        ).first()
+        organization = (
+            db.query(Organization)
+            .filter(Organization.stripe_subscription_id == subscription.id)
+            .first()
+        )
 
         if not organization:
             logger.warning(f"Organization not found for subscription {subscription.id}")
             return
 
         # Update subscription status
-        org_sub = db.query(OrganizationSubscription).filter(
-            OrganizationSubscription.organization_id == organization.id
-        ).first()
+        org_sub = (
+            db.query(OrganizationSubscription)
+            .filter(OrganizationSubscription.organization_id == organization.id)
+            .first()
+        )
 
         if org_sub:
             status_map = {
                 "active": "active",
                 "past_due": "active",  # Keep active but warn user
                 "canceled": "cancelled",
-                "unpaid": "suspended"
+                "unpaid": "suspended",
             }
             org_sub.status = status_map.get(subscription.status, "active")
 
@@ -514,9 +541,9 @@ async def handle_subscription_updated(subscription, db: Session):
             event_type="stripe_subscription_updated",
             event_data={
                 "subscription_id": subscription.id,
-                "status": subscription.status
+                "status": subscription.status,
             },
-            status="success"
+            status="success",
         )
         db.add(event)
         db.commit()
@@ -532,18 +559,22 @@ async def handle_subscription_deleted(subscription, db: Session):
     """Handle subscription.deleted event"""
     try:
         # Find organization
-        organization = db.query(Organization).filter(
-            Organization.stripe_subscription_id == subscription.id
-        ).first()
+        organization = (
+            db.query(Organization)
+            .filter(Organization.stripe_subscription_id == subscription.id)
+            .first()
+        )
 
         if not organization:
             logger.warning(f"Organization not found for subscription {subscription.id}")
             return
 
         # Update subscription status
-        org_sub = db.query(OrganizationSubscription).filter(
-            OrganizationSubscription.organization_id == organization.id
-        ).first()
+        org_sub = (
+            db.query(OrganizationSubscription)
+            .filter(OrganizationSubscription.organization_id == organization.id)
+            .first()
+        )
 
         if org_sub:
             org_sub.status = "cancelled"
@@ -553,10 +584,8 @@ async def handle_subscription_deleted(subscription, db: Session):
             id=f"event_{uuid.uuid4().hex[:12]}",
             organization_id=organization.id,
             event_type="stripe_subscription_deleted",
-            event_data={
-                "subscription_id": subscription.id
-            },
-            status="success"
+            event_data={"subscription_id": subscription.id},
+            status="success",
         )
         db.add(event)
         db.commit()
@@ -574,18 +603,22 @@ async def handle_invoice_paid(invoice, db: Session):
         customer_id = invoice.customer
 
         # Find organization
-        organization = db.query(Organization).filter(
-            Organization.stripe_customer_id == customer_id
-        ).first()
+        organization = (
+            db.query(Organization)
+            .filter(Organization.stripe_customer_id == customer_id)
+            .first()
+        )
 
         if not organization:
             logger.warning(f"Organization not found for customer {customer_id}")
             return
 
         # Update billing period
-        org_sub = db.query(OrganizationSubscription).filter(
-            OrganizationSubscription.organization_id == organization.id
-        ).first()
+        org_sub = (
+            db.query(OrganizationSubscription)
+            .filter(OrganizationSubscription.organization_id == organization.id)
+            .first()
+        )
 
         if org_sub:
             org_sub.billing_period_start = datetime.utcnow()
@@ -596,11 +629,8 @@ async def handle_invoice_paid(invoice, db: Session):
             id=f"event_{uuid.uuid4().hex[:12]}",
             organization_id=organization.id,
             event_type="stripe_invoice_paid",
-            event_data={
-                "invoice_id": invoice.id,
-                "amount": invoice.amount_paid
-            },
-            status="success"
+            event_data={"invoice_id": invoice.id, "amount": invoice.amount_paid},
+            status="success",
         )
         db.add(event)
         db.commit()
@@ -618,9 +648,11 @@ async def handle_invoice_payment_failed(invoice, db: Session):
         customer_id = invoice.customer
 
         # Find organization
-        organization = db.query(Organization).filter(
-            Organization.stripe_customer_id == customer_id
-        ).first()
+        organization = (
+            db.query(Organization)
+            .filter(Organization.stripe_customer_id == customer_id)
+            .first()
+        )
 
         if not organization:
             logger.warning(f"Organization not found for customer {customer_id}")
@@ -631,11 +663,8 @@ async def handle_invoice_payment_failed(invoice, db: Session):
             id=f"event_{uuid.uuid4().hex[:12]}",
             organization_id=organization.id,
             event_type="stripe_invoice_payment_failed",
-            event_data={
-                "invoice_id": invoice.id,
-                "amount": invoice.amount_due
-            },
-            status="failed"
+            event_data={"invoice_id": invoice.id, "amount": invoice.amount_due},
+            status="failed",
         )
         db.add(event)
         db.commit()

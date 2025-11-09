@@ -2,26 +2,27 @@
 API endpoints for budget management and alerts.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy import select, and_, func
-from typing import List, Optional
-from datetime import datetime, timedelta
-from pydantic import BaseModel, Field
-from decimal import Decimal
 import uuid
+from datetime import datetime, timedelta
+from decimal import Decimal
+from typing import List, Optional
 
-from src.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+from sqlalchemy import and_, func, select
+from sqlalchemy.orm import Session
+
 from src.auth import get_current_user
+from src.database import get_db
 from src.models import (
-    User,
     Budget,
     BudgetAlert,
     BudgetPeriod,
-    ExpenseCategory,
     Expense,
+    ExpenseCategory,
     OrganizationMember,
-    UserRole
+    User,
+    UserRole,
 )
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"])
@@ -30,6 +31,7 @@ router = APIRouter(prefix="/api/budgets", tags=["budgets"])
 # ============================================================================
 # Pydantic Models
 # ============================================================================
+
 
 class BudgetCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
@@ -100,24 +102,26 @@ class BudgetAlertResponse(BaseModel):
 # Helper Functions
 # ============================================================================
 
+
 def get_user_organization(db: Session, user_id: str) -> Optional[str]:
     """Get the organization ID for a user"""
-    stmt = select(OrganizationMember).where(
-        and_(
-            OrganizationMember.user_id == user_id,
-            OrganizationMember.is_active == True
+    stmt = (
+        select(OrganizationMember)
+        .where(
+            and_(
+                OrganizationMember.user_id == user_id,
+                OrganizationMember.is_active == True,
+            )
         )
-    ).limit(1)
+        .limit(1)
+    )
     result = db.execute(stmt)
     member = result.scalar_one_or_none()
     return member.organization_id if member else None
 
 
 def calculate_budget_spending(
-    db: Session,
-    budget: Budget,
-    start_date: datetime,
-    end_date: datetime
+    db: Session, budget: Budget, start_date: datetime, end_date: datetime
 ) -> Decimal:
     """Calculate total spending for a budget period"""
     query = select(func.sum(Expense.amount)).where(
@@ -125,7 +129,9 @@ def calculate_budget_spending(
             Expense.organization_id == budget.organization_id,
             Expense.created_at >= start_date,
             Expense.created_at <= end_date,
-            Expense.status.in_(['pending', 'approved'])  # Include pending and approved expenses
+            Expense.status.in_(
+                ["pending", "approved"]
+            ),  # Include pending and approved expenses
         )
     )
 
@@ -195,11 +201,12 @@ def calculate_budget_status(percentage_used: float, warning: int, critical: int)
 # Budget Endpoints
 # ============================================================================
 
+
 @router.post("", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED)
 def create_budget(
     data: BudgetCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Create a new budget"""
 
@@ -208,21 +215,21 @@ def create_budget(
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is not a member of any organization"
+            detail="User is not a member of any organization",
         )
 
     # Only admins and managers can create budgets
     if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins and managers can create budgets"
+            detail="Only admins and managers can create budgets",
         )
 
     # Validate thresholds
     if data.critical_threshold <= data.warning_threshold:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Critical threshold must be greater than warning threshold"
+            detail="Critical threshold must be greater than warning threshold",
         )
 
     # Create budget
@@ -238,7 +245,7 @@ def create_budget(
         warning_threshold=data.warning_threshold,
         critical_threshold=data.critical_threshold,
         start_date=data.start_date,
-        end_date=data.end_date
+        end_date=data.end_date,
     )
 
     db.add(budget)
@@ -248,9 +255,13 @@ def create_budget(
     # Calculate current spending
     start_date, end_date = get_budget_period_dates(budget)
     current_spending = calculate_budget_spending(db, budget, start_date, end_date)
-    percentage_used = float((current_spending / budget.amount) * 100) if budget.amount > 0 else 0
+    percentage_used = (
+        float((current_spending / budget.amount) * 100) if budget.amount > 0 else 0
+    )
     remaining = float(budget.amount - current_spending)
-    status_str = calculate_budget_status(percentage_used, budget.warning_threshold, budget.critical_threshold)
+    status_str = calculate_budget_status(
+        percentage_used, budget.warning_threshold, budget.critical_threshold
+    )
 
     return BudgetResponse(
         id=budget.id,
@@ -270,7 +281,7 @@ def create_budget(
         percentage_used=round(percentage_used, 2),
         remaining=remaining,
         status=status_str,
-        created_at=budget.created_at
+        created_at=budget.created_at,
     )
 
 
@@ -278,7 +289,7 @@ def create_budget(
 def list_budgets(
     active_only: bool = True,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List all budgets for the organization"""
 
@@ -287,7 +298,7 @@ def list_budgets(
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is not a member of any organization"
+            detail="User is not a member of any organization",
         )
 
     query = select(Budget).where(Budget.organization_id == org_id)
@@ -311,30 +322,36 @@ def list_budgets(
     for budget in budgets:
         start_date, end_date = get_budget_period_dates(budget)
         current_spending = calculate_budget_spending(db, budget, start_date, end_date)
-        percentage_used = float((current_spending / budget.amount) * 100) if budget.amount > 0 else 0
+        percentage_used = (
+            float((current_spending / budget.amount) * 100) if budget.amount > 0 else 0
+        )
         remaining = float(budget.amount - current_spending)
-        status_str = calculate_budget_status(percentage_used, budget.warning_threshold, budget.critical_threshold)
+        status_str = calculate_budget_status(
+            percentage_used, budget.warning_threshold, budget.critical_threshold
+        )
 
-        budget_responses.append(BudgetResponse(
-            id=budget.id,
-            organization_id=budget.organization_id,
-            user_id=budget.user_id,
-            name=budget.name,
-            description=budget.description,
-            amount=float(budget.amount),
-            period=budget.period.value,
-            category=budget.category.value if budget.category else None,
-            warning_threshold=budget.warning_threshold,
-            critical_threshold=budget.critical_threshold,
-            is_active=budget.is_active,
-            start_date=budget.start_date,
-            end_date=budget.end_date,
-            current_spending=float(current_spending),
-            percentage_used=round(percentage_used, 2),
-            remaining=remaining,
-            status=status_str,
-            created_at=budget.created_at
-        ))
+        budget_responses.append(
+            BudgetResponse(
+                id=budget.id,
+                organization_id=budget.organization_id,
+                user_id=budget.user_id,
+                name=budget.name,
+                description=budget.description,
+                amount=float(budget.amount),
+                period=budget.period.value,
+                category=budget.category.value if budget.category else None,
+                warning_threshold=budget.warning_threshold,
+                critical_threshold=budget.critical_threshold,
+                is_active=budget.is_active,
+                start_date=budget.start_date,
+                end_date=budget.end_date,
+                current_spending=float(current_spending),
+                percentage_used=round(percentage_used, 2),
+                remaining=remaining,
+                status=status_str,
+                created_at=budget.created_at,
+            )
+        )
 
     return budget_responses
 
@@ -343,7 +360,7 @@ def list_budgets(
 def get_budget(
     budget_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get a specific budget"""
 
@@ -351,22 +368,18 @@ def get_budget(
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is not a member of any organization"
+            detail="User is not a member of any organization",
         )
 
     stmt = select(Budget).where(
-        and_(
-            Budget.id == budget_id,
-            Budget.organization_id == org_id
-        )
+        and_(Budget.id == budget_id, Budget.organization_id == org_id)
     )
     result = db.execute(stmt)
     budget = result.scalar_one_or_none()
 
     if not budget:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Budget not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found"
         )
 
     # Check access
@@ -374,15 +387,19 @@ def get_budget(
         if budget.user_id and budget.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to view this budget"
+                detail="Not authorized to view this budget",
             )
 
     # Calculate current spending
     start_date, end_date = get_budget_period_dates(budget)
     current_spending = calculate_budget_spending(db, budget, start_date, end_date)
-    percentage_used = float((current_spending / budget.amount) * 100) if budget.amount > 0 else 0
+    percentage_used = (
+        float((current_spending / budget.amount) * 100) if budget.amount > 0 else 0
+    )
     remaining = float(budget.amount - current_spending)
-    status_str = calculate_budget_status(percentage_used, budget.warning_threshold, budget.critical_threshold)
+    status_str = calculate_budget_status(
+        percentage_used, budget.warning_threshold, budget.critical_threshold
+    )
 
     return BudgetResponse(
         id=budget.id,
@@ -402,7 +419,7 @@ def get_budget(
         percentage_used=round(percentage_used, 2),
         remaining=remaining,
         status=status_str,
-        created_at=budget.created_at
+        created_at=budget.created_at,
     )
 
 
@@ -411,7 +428,7 @@ def update_budget(
     budget_id: str,
     data: BudgetUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update a budget"""
 
@@ -419,29 +436,25 @@ def update_budget(
     if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins and managers can update budgets"
+            detail="Only admins and managers can update budgets",
         )
 
     org_id = get_user_organization(db, current_user.id)
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is not a member of any organization"
+            detail="User is not a member of any organization",
         )
 
     stmt = select(Budget).where(
-        and_(
-            Budget.id == budget_id,
-            Budget.organization_id == org_id
-        )
+        and_(Budget.id == budget_id, Budget.organization_id == org_id)
     )
     result = db.execute(stmt)
     budget = result.scalar_one_or_none()
 
     if not budget:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Budget not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found"
         )
 
     # Update fields
@@ -470,9 +483,13 @@ def update_budget(
     # Calculate current spending
     start_date, end_date = get_budget_period_dates(budget)
     current_spending = calculate_budget_spending(db, budget, start_date, end_date)
-    percentage_used = float((current_spending / budget.amount) * 100) if budget.amount > 0 else 0
+    percentage_used = (
+        float((current_spending / budget.amount) * 100) if budget.amount > 0 else 0
+    )
     remaining = float(budget.amount - current_spending)
-    status_str = calculate_budget_status(percentage_used, budget.warning_threshold, budget.critical_threshold)
+    status_str = calculate_budget_status(
+        percentage_used, budget.warning_threshold, budget.critical_threshold
+    )
 
     return BudgetResponse(
         id=budget.id,
@@ -492,7 +509,7 @@ def update_budget(
         percentage_used=round(percentage_used, 2),
         remaining=remaining,
         status=status_str,
-        created_at=budget.created_at
+        created_at=budget.created_at,
     )
 
 
@@ -500,7 +517,7 @@ def update_budget(
 def delete_budget(
     budget_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Delete a budget"""
 
@@ -508,29 +525,25 @@ def delete_budget(
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can delete budgets"
+            detail="Only admins can delete budgets",
         )
 
     org_id = get_user_organization(db, current_user.id)
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is not a member of any organization"
+            detail="User is not a member of any organization",
         )
 
     stmt = select(Budget).where(
-        and_(
-            Budget.id == budget_id,
-            Budget.organization_id == org_id
-        )
+        and_(Budget.id == budget_id, Budget.organization_id == org_id)
     )
     result = db.execute(stmt)
     budget = result.scalar_one_or_none()
 
     if not budget:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Budget not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found"
         )
 
     db.delete(budget)
@@ -541,11 +554,12 @@ def delete_budget(
 # Budget Alert Endpoints
 # ============================================================================
 
+
 @router.get("/{budget_id}/alerts", response_model=List[BudgetAlertResponse])
 def get_budget_alerts(
     budget_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get all alerts for a budget"""
 
@@ -553,23 +567,19 @@ def get_budget_alerts(
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is not a member of any organization"
+            detail="User is not a member of any organization",
         )
 
     # Verify budget exists and user has access
     budget_stmt = select(Budget).where(
-        and_(
-            Budget.id == budget_id,
-            Budget.organization_id == org_id
-        )
+        and_(Budget.id == budget_id, Budget.organization_id == org_id)
     )
     budget_result = db.execute(budget_stmt)
     budget = budget_result.scalar_one_or_none()
 
     if not budget:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Budget not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found"
         )
 
     # Check access
@@ -577,12 +587,14 @@ def get_budget_alerts(
         if budget.user_id and budget.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to view this budget's alerts"
+                detail="Not authorized to view this budget's alerts",
             )
 
-    query = select(BudgetAlert).where(
-        BudgetAlert.budget_id == budget_id
-    ).order_by(BudgetAlert.created_at.desc())
+    query = (
+        select(BudgetAlert)
+        .where(BudgetAlert.budget_id == budget_id)
+        .order_by(BudgetAlert.created_at.desc())
+    )
 
     result = db.execute(query)
     alerts = result.scalars().all()
@@ -598,7 +610,7 @@ def get_budget_alerts(
             message=alert.message,
             is_acknowledged=alert.is_acknowledged,
             acknowledged_at=alert.acknowledged_at,
-            created_at=alert.created_at
+            created_at=alert.created_at,
         )
         for alert in alerts
     ]
@@ -609,7 +621,7 @@ def acknowledge_alert(
     budget_id: str,
     alert_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Acknowledge a budget alert"""
 
@@ -617,23 +629,19 @@ def acknowledge_alert(
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is not a member of any organization"
+            detail="User is not a member of any organization",
         )
 
     # Get alert
     alert_stmt = select(BudgetAlert).where(
-        and_(
-            BudgetAlert.id == alert_id,
-            BudgetAlert.budget_id == budget_id
-        )
+        and_(BudgetAlert.id == alert_id, BudgetAlert.budget_id == budget_id)
     )
     alert_result = db.execute(alert_stmt)
     alert = alert_result.scalar_one_or_none()
 
     if not alert:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Alert not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found"
         )
 
     # Verify budget access
@@ -643,8 +651,7 @@ def acknowledge_alert(
 
     if not budget or budget.organization_id != org_id:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Budget not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found"
         )
 
     # Acknowledge alert

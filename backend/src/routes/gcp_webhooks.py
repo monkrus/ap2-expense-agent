@@ -3,17 +3,18 @@ Google Cloud Marketplace Webhook Routes
 Handles procurement, entitlement changes, and cancellations
 """
 
-from fastapi import APIRouter, Request, Depends, HTTPException, status, Header
-from sqlalchemy.orm import Session
-from typing import Optional
 import json
+from typing import Optional
 
-from ..database import get_db
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from sqlalchemy.orm import Session
+
 from ..config import settings
+from ..database import get_db
 from ..gcp import (
-    handle_procurement_webhook,
+    handle_entitlement_cancellation,
     handle_entitlement_update,
-    handle_entitlement_cancellation
+    handle_procurement_webhook,
 )
 from ..gcp.marketplace_client import GCPMarketplaceClient
 from ..gcp.usage_reporter import run_hourly_usage_reporting
@@ -22,10 +23,7 @@ from ..services.trial_service import TrialService
 router = APIRouter(prefix="/api/webhooks/gcp", tags=["gcp-webhooks"])
 
 
-def verify_gcp_signature(
-    request_body: bytes,
-    signature: Optional[str]
-) -> bool:
+def verify_gcp_signature(request_body: bytes, signature: Optional[str]) -> bool:
     """
     Verify that webhook request came from Google
 
@@ -45,9 +43,7 @@ def verify_gcp_signature(
             return False
 
     return GCPMarketplaceClient.verify_webhook_signature(
-        request_body,
-        signature or "",
-        settings.gcp_webhook_secret
+        request_body, signature or "", settings.gcp_webhook_secret
     )
 
 
@@ -55,7 +51,7 @@ def verify_gcp_signature(
 async def gcp_procurement_webhook(
     request: Request,
     db: Session = Depends(get_db),
-    x_goog_signature: Optional[str] = Header(None)
+    x_goog_signature: Optional[str] = Header(None),
 ):
     """
     Handle new customer signup from GCP Marketplace
@@ -88,8 +84,7 @@ async def gcp_procurement_webhook(
     # Verify signature
     if not verify_gcp_signature(body, x_goog_signature):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid webhook signature"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid webhook signature"
         )
 
     # Parse payload
@@ -97,8 +92,7 @@ async def gcp_procurement_webhook(
         webhook_data = json.loads(body)
     except json.JSONDecodeError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid JSON payload"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload"
         )
 
     # Process procurement
@@ -107,15 +101,12 @@ async def gcp_procurement_webhook(
         return result
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process procurement: {str(e)}"
+            detail=f"Failed to process procurement: {str(e)}",
         )
 
 
@@ -123,7 +114,7 @@ async def gcp_procurement_webhook(
 async def gcp_entitlement_update_webhook(
     request: Request,
     db: Session = Depends(get_db),
-    x_goog_signature: Optional[str] = Header(None)
+    x_goog_signature: Optional[str] = Header(None),
 ):
     """
     Handle tier upgrade/downgrade from GCP Marketplace
@@ -154,8 +145,7 @@ async def gcp_entitlement_update_webhook(
     # Verify signature
     if not verify_gcp_signature(body, x_goog_signature):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid webhook signature"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid webhook signature"
         )
 
     # Parse payload
@@ -163,8 +153,7 @@ async def gcp_entitlement_update_webhook(
         webhook_data = json.loads(body)
     except json.JSONDecodeError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid JSON payload"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload"
         )
 
     # Process entitlement update
@@ -173,15 +162,12 @@ async def gcp_entitlement_update_webhook(
         return result
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process entitlement update: {str(e)}"
+            detail=f"Failed to process entitlement update: {str(e)}",
         )
 
 
@@ -189,7 +175,7 @@ async def gcp_entitlement_update_webhook(
 async def gcp_entitlement_cancel_webhook(
     request: Request,
     db: Session = Depends(get_db),
-    x_goog_signature: Optional[str] = Header(None)
+    x_goog_signature: Optional[str] = Header(None),
 ):
     """
     Handle subscription cancellation from GCP Marketplace
@@ -219,8 +205,7 @@ async def gcp_entitlement_cancel_webhook(
     # Verify signature
     if not verify_gcp_signature(body, x_goog_signature):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid webhook signature"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid webhook signature"
         )
 
     # Parse payload
@@ -228,8 +213,7 @@ async def gcp_entitlement_cancel_webhook(
         webhook_data = json.loads(body)
     except json.JSONDecodeError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid JSON payload"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload"
         )
 
     # Process cancellation
@@ -238,15 +222,12 @@ async def gcp_entitlement_cancel_webhook(
         return result
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process cancellation: {str(e)}"
+            detail=f"Failed to process cancellation: {str(e)}",
         )
 
 
@@ -254,7 +235,7 @@ async def gcp_entitlement_cancel_webhook(
 async def gcp_report_usage_cron(
     request: Request,
     db: Session = Depends(get_db),
-    x_cloudscheduler: Optional[str] = Header(None)
+    x_cloudscheduler: Optional[str] = Header(None),
 ):
     """
     Hourly usage reporting to GCP Marketplace
@@ -280,7 +261,7 @@ async def gcp_report_usage_cron(
         if not x_cloudscheduler:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Unauthorized: Not from Cloud Scheduler"
+                detail="Unauthorized: Not from Cloud Scheduler",
             )
 
     try:
@@ -291,7 +272,7 @@ async def gcp_report_usage_cron(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to report usage: {str(e)}"
+            detail=f"Failed to report usage: {str(e)}",
         )
 
 
@@ -305,7 +286,7 @@ async def gcp_webhook_health():
     return {
         "status": "healthy",
         "service": "gcp-marketplace-webhooks",
-        "timestamp": str(datetime.utcnow())
+        "timestamp": str(datetime.utcnow()),
     }
 
 
@@ -313,7 +294,7 @@ async def gcp_webhook_health():
 async def process_trials(
     request: Request,
     db: Session = Depends(get_db),
-    x_cloudscheduler: Optional[str] = Header(None, alias="X-CloudScheduler")
+    x_cloudscheduler: Optional[str] = Header(None, alias="X-CloudScheduler"),
 ):
     """
     Process expiring and expired trials (called by Cloud Scheduler)
@@ -328,7 +309,7 @@ async def process_trials(
     if settings.environment != "development" and not x_cloudscheduler:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Endpoint only accessible by Cloud Scheduler"
+            detail="Endpoint only accessible by Cloud Scheduler",
         )
 
     try:
@@ -344,13 +325,13 @@ async def process_trials(
             "status": "success",
             "timestamp": str(datetime.utcnow()),
             "expiring_trials": expiring_result,
-            "expired_trials": expired_result
+            "expired_trials": expired_result,
         }
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process trials: {str(e)}"
+            detail=f"Failed to process trials: {str(e)}",
         )
 
 

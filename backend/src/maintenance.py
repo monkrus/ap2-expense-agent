@@ -1,13 +1,17 @@
 """
 Database maintenance and data retention tasks
 """
-from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from sqlalchemy import delete
-from .database import SessionLocal
-from .models import AuditLog, Session as UserSession, RefreshToken, PasswordResetToken
-from .config import settings
+
 import logging
+from datetime import datetime, timedelta
+
+from sqlalchemy import delete
+from sqlalchemy.orm import Session
+
+from .config import settings
+from .database import SessionLocal
+from .models import AuditLog, PasswordResetToken, RefreshToken
+from .models import Session as UserSession
 
 logger = logging.getLogger(__name__)
 
@@ -18,28 +22,32 @@ class DataRetentionService:
     @staticmethod
     def cleanup_old_audit_logs(db: Session) -> int:
         """Delete audit logs older than retention period"""
-        cutoff_date = datetime.utcnow() - timedelta(days=settings.audit_log_retention_days)
-
-        result = db.execute(
-            delete(AuditLog).where(AuditLog.created_at < cutoff_date)
+        cutoff_date = datetime.utcnow() - timedelta(
+            days=settings.audit_log_retention_days
         )
+
+        result = db.execute(delete(AuditLog).where(AuditLog.created_at < cutoff_date))
 
         deleted_count = result.rowcount
         db.commit()
 
-        logger.info(f"Deleted {deleted_count} audit logs older than {settings.audit_log_retention_days} days")
+        logger.info(
+            f"Deleted {deleted_count} audit logs older than {settings.audit_log_retention_days} days"
+        )
         return deleted_count
 
     @staticmethod
     def cleanup_old_sessions(db: Session) -> int:
         """Delete expired and old sessions"""
-        cutoff_date = datetime.utcnow() - timedelta(days=settings.session_retention_days)
+        cutoff_date = datetime.utcnow() - timedelta(
+            days=settings.session_retention_days
+        )
 
         # Delete sessions that are either expired or older than retention period
         result = db.execute(
             delete(UserSession).where(
-                (UserSession.expires_at < datetime.utcnow()) |
-                (UserSession.created_at < cutoff_date)
+                (UserSession.expires_at < datetime.utcnow())
+                | (UserSession.created_at < cutoff_date)
             )
         )
 
@@ -52,19 +60,22 @@ class DataRetentionService:
     @staticmethod
     def cleanup_revoked_tokens(db: Session) -> int:
         """Delete revoked refresh tokens older than retention period"""
-        cutoff_date = datetime.utcnow() - timedelta(days=settings.revoked_token_retention_days)
+        cutoff_date = datetime.utcnow() - timedelta(
+            days=settings.revoked_token_retention_days
+        )
 
         result = db.execute(
             delete(RefreshToken).where(
-                (RefreshToken.revoked == True) &
-                (RefreshToken.created_at < cutoff_date)
+                (RefreshToken.revoked == True) & (RefreshToken.created_at < cutoff_date)
             )
         )
 
         deleted_count = result.rowcount
         db.commit()
 
-        logger.info(f"Deleted {deleted_count} revoked tokens older than {settings.revoked_token_retention_days} days")
+        logger.info(
+            f"Deleted {deleted_count} revoked tokens older than {settings.revoked_token_retention_days} days"
+        )
         return deleted_count
 
     @staticmethod
@@ -95,8 +106,8 @@ class DataRetentionService:
 
         result = db.execute(
             delete(PasswordResetToken).where(
-                (PasswordResetToken.used == True) &
-                (PasswordResetToken.created_at < cutoff_date)
+                (PasswordResetToken.used == True)
+                & (PasswordResetToken.created_at < cutoff_date)
             )
         )
 
@@ -110,12 +121,14 @@ class DataRetentionService:
     def run_all_cleanup_tasks(db: Session) -> dict:
         """Run all cleanup tasks and return statistics"""
         stats = {
-            'audit_logs': DataRetentionService.cleanup_old_audit_logs(db),
-            'sessions': DataRetentionService.cleanup_old_sessions(db),
-            'revoked_tokens': DataRetentionService.cleanup_revoked_tokens(db),
-            'expired_tokens': DataRetentionService.cleanup_expired_tokens(db),
-            'used_reset_tokens': DataRetentionService.cleanup_used_password_reset_tokens(db),
-            'timestamp': datetime.utcnow().isoformat()
+            "audit_logs": DataRetentionService.cleanup_old_audit_logs(db),
+            "sessions": DataRetentionService.cleanup_old_sessions(db),
+            "revoked_tokens": DataRetentionService.cleanup_revoked_tokens(db),
+            "expired_tokens": DataRetentionService.cleanup_expired_tokens(db),
+            "used_reset_tokens": DataRetentionService.cleanup_used_password_reset_tokens(
+                db
+            ),
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"Cleanup completed: {stats}")
@@ -142,7 +155,7 @@ if __name__ == "__main__":
     # Configure logging
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
     # Run maintenance

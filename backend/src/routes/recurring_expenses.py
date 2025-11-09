@@ -2,25 +2,26 @@
 API endpoints for managing recurring expenses and notifications.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy import select, and_, func
-from typing import List, Optional
-from datetime import datetime, timedelta
-from pydantic import BaseModel, Field
 import uuid
+from datetime import datetime, timedelta
+from typing import List, Optional
 
-from src.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+from sqlalchemy import and_, func, select
+from sqlalchemy.orm import Session
+
 from src.auth import get_current_user
+from src.database import get_db
 from src.models import (
-    User,
-    RecurringExpenseTemplate,
-    ScheduledExpense,
-    ExpenseNotification,
     ExpenseCategory,
-    RecurringFrequency,
+    ExpenseNotification,
     Organization,
-    OrganizationMember
+    OrganizationMember,
+    RecurringExpenseTemplate,
+    RecurringFrequency,
+    ScheduledExpense,
+    User,
 )
 
 router = APIRouter(prefix="/api/recurring-expenses", tags=["recurring-expenses"])
@@ -30,6 +31,7 @@ notification_router = APIRouter(prefix="/api/notifications", tags=["notification
 # ============================================================================
 # Pydantic Models
 # ============================================================================
+
 
 class RecurringExpenseCreate(BaseModel):
     vendor: str = Field(..., min_length=1, max_length=255)
@@ -97,20 +99,27 @@ class NotificationResponse(BaseModel):
 # Helper Functions
 # ============================================================================
 
+
 def get_user_organization(db: Session, user_id: str) -> Optional[str]:
     """Get the organization ID for a user"""
-    stmt = select(OrganizationMember).where(
-        and_(
-            OrganizationMember.user_id == user_id,
-            OrganizationMember.is_active == True
+    stmt = (
+        select(OrganizationMember)
+        .where(
+            and_(
+                OrganizationMember.user_id == user_id,
+                OrganizationMember.is_active == True,
+            )
         )
-    ).limit(1)
+        .limit(1)
+    )
     result = db.execute(stmt)
     member = result.scalar_one_or_none()
     return member.organization_id if member else None
 
 
-def calculate_next_run_date(start_date: datetime, frequency: RecurringFrequency) -> datetime:
+def calculate_next_run_date(
+    start_date: datetime, frequency: RecurringFrequency
+) -> datetime:
     """Calculate the next run date based on frequency"""
     if frequency == RecurringFrequency.WEEKLY:
         return start_date + timedelta(days=7)
@@ -140,20 +149,23 @@ def calculate_next_run_date(start_date: datetime, frequency: RecurringFrequency)
 # Recurring Expense Endpoints
 # ============================================================================
 
-@router.post("", response_model=RecurringExpenseResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "", response_model=RecurringExpenseResponse, status_code=status.HTTP_201_CREATED
+)
 def create_recurring_expense(
     data: RecurringExpenseCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Create a new recurring expense template"""
 
-    # Get user's organization
+    # Get user's organization (optional for admins)
     org_id = get_user_organization(db, current_user.id)
-    if not org_id:
+    if not org_id and current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is not a member of any organization"
+            detail="User is not a member of any organization",
         )
 
     # Calculate next run date
@@ -173,7 +185,7 @@ def create_recurring_expense(
         end_date=data.end_date,
         next_run_date=next_run,
         intent_mandate_id=data.intent_mandate_id,
-        auto_submit=data.auto_submit
+        auto_submit=data.auto_submit,
     )
 
     db.add(template)
@@ -187,7 +199,7 @@ def create_recurring_expense(
 def list_recurring_expenses(
     active_only: bool = True,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List all recurring expense templates for the current user"""
 
@@ -210,14 +222,14 @@ def list_recurring_expenses(
 def get_recurring_expense(
     template_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get a specific recurring expense template"""
 
     stmt = select(RecurringExpenseTemplate).where(
         and_(
             RecurringExpenseTemplate.id == template_id,
-            RecurringExpenseTemplate.user_id == current_user.id
+            RecurringExpenseTemplate.user_id == current_user.id,
         )
     )
     result = db.execute(stmt)
@@ -226,7 +238,7 @@ def get_recurring_expense(
     if not template:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Recurring expense template not found"
+            detail="Recurring expense template not found",
         )
 
     return template
@@ -237,14 +249,14 @@ def update_recurring_expense(
     template_id: str,
     data: RecurringExpenseUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update a recurring expense template"""
 
     stmt = select(RecurringExpenseTemplate).where(
         and_(
             RecurringExpenseTemplate.id == template_id,
-            RecurringExpenseTemplate.user_id == current_user.id
+            RecurringExpenseTemplate.user_id == current_user.id,
         )
     )
     result = db.execute(stmt)
@@ -253,7 +265,7 @@ def update_recurring_expense(
     if not template:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Recurring expense template not found"
+            detail="Recurring expense template not found",
         )
 
     # Update fields
@@ -288,14 +300,14 @@ def update_recurring_expense(
 def delete_recurring_expense(
     template_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Delete a recurring expense template"""
 
     stmt = select(RecurringExpenseTemplate).where(
         and_(
             RecurringExpenseTemplate.id == template_id,
-            RecurringExpenseTemplate.user_id == current_user.id
+            RecurringExpenseTemplate.user_id == current_user.id,
         )
     )
     result = db.execute(stmt)
@@ -304,7 +316,7 @@ def delete_recurring_expense(
     if not template:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Recurring expense template not found"
+            detail="Recurring expense template not found",
         )
 
     db.delete(template)
@@ -315,14 +327,14 @@ def delete_recurring_expense(
 def pause_recurring_expense(
     template_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Pause a recurring expense template"""
 
     stmt = select(RecurringExpenseTemplate).where(
         and_(
             RecurringExpenseTemplate.id == template_id,
-            RecurringExpenseTemplate.user_id == current_user.id
+            RecurringExpenseTemplate.user_id == current_user.id,
         )
     )
     result = db.execute(stmt)
@@ -331,7 +343,7 @@ def pause_recurring_expense(
     if not template:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Recurring expense template not found"
+            detail="Recurring expense template not found",
         )
 
     template.is_paused = True
@@ -345,14 +357,14 @@ def pause_recurring_expense(
 def resume_recurring_expense(
     template_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Resume a paused recurring expense template"""
 
     stmt = select(RecurringExpenseTemplate).where(
         and_(
             RecurringExpenseTemplate.id == template_id,
-            RecurringExpenseTemplate.user_id == current_user.id
+            RecurringExpenseTemplate.user_id == current_user.id,
         )
     )
     result = db.execute(stmt)
@@ -361,7 +373,7 @@ def resume_recurring_expense(
     if not template:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Recurring expense template not found"
+            detail="Recurring expense template not found",
         )
 
     template.is_paused = False
@@ -375,12 +387,13 @@ def resume_recurring_expense(
 # Notification Endpoints
 # ============================================================================
 
+
 @notification_router.get("", response_model=List[NotificationResponse])
 def get_notifications(
     unread_only: bool = False,
     limit: int = 50,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get notifications for the current user"""
 
@@ -399,18 +412,20 @@ def get_notifications(
     return notifications
 
 
-@notification_router.post("/{notification_id}/read", response_model=NotificationResponse)
+@notification_router.post(
+    "/{notification_id}/read", response_model=NotificationResponse
+)
 def mark_notification_as_read(
     notification_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Mark a notification as read"""
 
     stmt = select(ExpenseNotification).where(
         and_(
             ExpenseNotification.id == notification_id,
-            ExpenseNotification.user_id == current_user.id
+            ExpenseNotification.user_id == current_user.id,
         )
     )
     result = db.execute(stmt)
@@ -418,8 +433,7 @@ def mark_notification_as_read(
 
     if not notification:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notification not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found"
         )
 
     notification.is_read = True
@@ -432,15 +446,14 @@ def mark_notification_as_read(
 
 @notification_router.post("/mark-all-read")
 def mark_all_notifications_as_read(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Mark all notifications as read for the current user"""
 
     stmt = select(ExpenseNotification).where(
         and_(
             ExpenseNotification.user_id == current_user.id,
-            ExpenseNotification.is_read == False
+            ExpenseNotification.is_read == False,
         )
     )
     result = db.execute(stmt)
@@ -459,15 +472,18 @@ def mark_all_notifications_as_read(
 
 @notification_router.get("/unread-count")
 def get_unread_count(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Get the count of unread notifications"""
 
-    stmt = select(func.count()).select_from(ExpenseNotification).where(
-        and_(
-            ExpenseNotification.user_id == current_user.id,
-            ExpenseNotification.is_read == False
+    stmt = (
+        select(func.count())
+        .select_from(ExpenseNotification)
+        .where(
+            and_(
+                ExpenseNotification.user_id == current_user.id,
+                ExpenseNotification.is_read == False,
+            )
         )
     )
     result = db.execute(stmt)

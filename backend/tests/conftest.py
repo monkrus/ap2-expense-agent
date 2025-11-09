@@ -3,6 +3,8 @@ Pytest configuration and fixtures for testing
 """
 import os
 import pytest
+import uuid
+from datetime import datetime, timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -10,22 +12,31 @@ from sqlalchemy.pool import StaticPool
 
 # Set testing environment variable BEFORE importing app
 os.environ["TESTING"] = "true"
+os.environ["ENVIRONMENT"] = "test"
 
 from src.api import app
 from src.database import get_db
-from src.models import Base, User, UserRole, Organization, OrganizationMember, OrganizationRole, Expense
+from src.models import (
+    Base, User, UserRole, Organization, OrganizationMember,
+    OrganizationRole, Expense, ExpenseStatus, ExpenseCategory
+)
 from src.auth import AuthService
 from src.cache import cache
-from datetime import datetime, timedelta
-import uuid
 
+
+# ============================================================================
+# Database Setup
+# ============================================================================
 
 # Test database setup - use DATABASE_URL from environment if set, otherwise SQLite
-SQLALCHEMY_TEST_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///:memory:")
+SQLALCHEMY_TEST_DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "sqlite:///:memory:"
+)
 
 # Configure engine based on database type
 if SQLALCHEMY_TEST_DATABASE_URL.startswith("postgresql"):
-    # PostgreSQL configuration for GitHub Actions CI/CD
+    # PostgreSQL configuration for CI/CD (GitHub Actions)
     engine = create_engine(
         SQLALCHEMY_TEST_DATABASE_URL,
         pool_pre_ping=True,
@@ -41,16 +52,33 @@ else:
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database():
+    """Setup test database schema once for all tests"""
+    skip_init = os.getenv("SKIP_DB_INIT", "false").lower() == "true"
+
+    if not skip_init:
+        Base.metadata.create_all(bind=engine)
+
+    yield
+
+    if not skip_init:
+        Base.metadata.drop_all(bind=engine)
+
+
 @pytest.fixture(scope="function")
 def db_session():
-    """Create a fresh database session for each test"""
-    Base.metadata.create_all(bind=engine)
-    session = TestingSessionLocal()
+    """Create a fresh database session for each test with transaction rollback"""
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = TestingSessionLocal(bind=connection)
+
     try:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=engine)
+        transaction.rollback()
+        connection.close()
 
 
 @pytest.fixture(scope="function")
@@ -68,6 +96,10 @@ def client(db_session):
     app.dependency_overrides.clear()
 
 
+# ============================================================================
+# User Fixtures
+# ============================================================================
+
 @pytest.fixture
 def test_user(db_session):
     """Create a test user"""
@@ -77,7 +109,7 @@ def test_user(db_session):
         username="testuser",
         full_name="Test User",
         hashed_password=AuthService.hash_password("TestPass123!"),
-        role=UserRole.EMPLOYEE,
+        role=UserRole.EMPLOYEE.value,
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,
@@ -99,7 +131,7 @@ def test_admin(db_session):
         username="admin",
         full_name="Admin User",
         hashed_password=AuthService.hash_password("AdminPass123!"),
-        role=UserRole.ADMIN,
+        role=UserRole.ADMIN.value,
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,
@@ -121,7 +153,7 @@ def test_manager(db_session):
         username="manager",
         full_name="Manager User",
         hashed_password=AuthService.hash_password("ManagerPass123!"),
-        role=UserRole.MANAGER,
+        role=UserRole.MANAGER.value,
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,
@@ -139,321 +171,4 @@ def auth_headers(client, test_user):
     """Get authentication headers for test user"""
     response = client.post(
         "/api/v1/auth/login",
-        json={
-            "username": "testuser",
-            "password": "TestPass123!"
-        }
-    )
-    token = response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-
-@pytest.fixture
-def admin_headers(client, test_admin):
-    """Get authentication headers for admin user"""
-    response = client.post(
-        "/api/v1/auth/login",
-        json={
-            "username": "admin",
-            "password": "AdminPass123!"
-        }
-    )
-    token = response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-
-@pytest.fixture
-def manager_headers(client, test_manager):
-    """Get authentication headers for manager user"""
-    response = client.post(
-        "/api/v1/auth/login",
-        json={
-            "username": "manager",
-            "password": "ManagerPass123!"
-        }
-    )
-    token = response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-
-# ============================================================================
-# Organization Fixtures (Multi-Tenancy)
-# ============================================================================
-
-@pytest.fixture
-def test_organization(db_session):
-    """Create a test organization"""
-    org = Organization(
-        id=f"org_{uuid.uuid4().hex[:8]}",
-        name="Test Organization",
-        slug="test-org",
-        description="Test organization for unit testing",
-        currency="USD",
-        timezone="UTC",
-        max_members=25,
-        is_active=True,
-        created_at=datetime.utcnow()
-    )
-    db_session.add(org)
-    db_session.commit()
-    db_session.refresh(org)
-    return org
-
-
-@pytest.fixture
-def second_organization(db_session):
-    """Create a second test organization for multi-tenant testing"""
-    org = Organization(
-        id=f"org_{uuid.uuid4().hex[:8]}",
-        name="Second Organization",
-        slug="second-org",
-        description="Second test organization for multi-tenant testing",
-        currency="USD",
-        timezone="UTC",
-        max_members=25,
-        is_active=True,
-        created_at=datetime.utcnow()
-    )
-    db_session.add(org)
-    db_session.commit()
-    db_session.refresh(org)
-    return org
-
-
-@pytest.fixture
-def user_with_organization(db_session, test_user, test_organization):
-    """Add test user to test organization"""
-    member = OrganizationMember(
-        id=f"member_{uuid.uuid4().hex[:8]}",
-        organization_id=test_organization.id,
-        user_id=test_user.id,
-        role=OrganizationRole.MEMBER,
-        joined_at=datetime.utcnow()
-    )
-    db_session.add(member)
-    db_session.commit()
-    return test_user
-
-
-@pytest.fixture
-def admin_with_organization(db_session, test_admin, test_organization):
-    """Add admin user to test organization"""
-    member = OrganizationMember(
-        id=f"member_{uuid.uuid4().hex[:8]}",
-        organization_id=test_organization.id,
-        user_id=test_admin.id,
-        role=OrganizationRole.ADMIN,
-        joined_at=datetime.utcnow()
-    )
-    db_session.add(member)
-    db_session.commit()
-    return test_admin
-
-
-@pytest.fixture
-def second_org_user(db_session, second_organization):
-    """Create a user in a different organization for tenant isolation testing"""
-    user = User(
-        id=str(uuid.uuid4()),
-        email="otheruser@example.com",
-        username="otheruser",
-        full_name="Other User",
-        hashed_password=AuthService.hash_password("OtherPass123!"),
-        role=UserRole.EMPLOYEE,
-        is_active=True,
-        is_verified=True,
-        failed_login_attempts=0,
-        locked_until=None,
-        last_failed_login=None
-    )
-    db_session.add(user)
-    db_session.flush()
-
-    # Add user to second organization
-    member = OrganizationMember(
-        id=f"member_{uuid.uuid4().hex[:8]}",
-        organization_id=second_organization.id,
-        user_id=user.id,
-        role=OrganizationRole.MEMBER,
-        joined_at=datetime.utcnow()
-    )
-    db_session.add(member)
-    db_session.commit()
-    db_session.refresh(user)
-    return user
-
-
-@pytest.fixture
-def org_headers(test_organization, auth_headers):
-    """Create headers with organization context"""
-    return {
-        **auth_headers,
-        "X-Organization-Id": test_organization.id
-    }
-
-
-@pytest.fixture
-def admin_org_headers(test_organization, admin_headers):
-    """Create admin headers with organization context"""
-    return {
-        **admin_headers,
-        "X-Organization-Id": test_organization.id
-    }
-
-
-@pytest.fixture
-def second_org_headers(client, second_organization, second_org_user):
-    """Create headers for second organization user"""
-    response = client.post(
-        "/api/v1/auth/login",
-        json={
-            "username": "otheruser",
-            "password": "OtherPass123!"
-        }
-    )
-    token = response.json()["access_token"]
-    return {
-        "Authorization": f"Bearer {token}",
-        "X-Organization-Id": second_organization.id
-    }
-
-
-# ============================================================================
-# Expense Fixtures
-# ============================================================================
-
-@pytest.fixture
-def test_expense(db_session, test_organization, test_user):
-    """Create a test expense"""
-    expense = Expense(
-        id=f"exp_{uuid.uuid4().hex[:8]}",
-        organization_id=test_organization.id,
-        user_id=test_user.id,
-        amount=150.00,
-        currency="USD",
-        description="Test expense",
-        category="meals",
-        status="pending",
-        merchant="Test Merchant",
-        expense_date=datetime.utcnow(),
-        created_at=datetime.utcnow()
-    )
-    db_session.add(expense)
-    db_session.commit()
-    db_session.refresh(expense)
-    return expense
-
-
-@pytest.fixture
-def multiple_expenses(db_session, test_organization, test_user):
-    """Create multiple test expenses"""
-    expenses = []
-    for i in range(5):
-        expense = Expense(
-            id=f"exp_{uuid.uuid4().hex[:8]}",
-            organization_id=test_organization.id,
-            user_id=test_user.id,
-            amount=100.00 + (i * 50),
-            currency="USD",
-            description=f"Test expense {i+1}",
-            category="meals" if i % 2 == 0 else "transport",
-            status="pending",
-            merchant=f"Merchant {i+1}",
-            expense_date=datetime.utcnow() - timedelta(days=i),
-            created_at=datetime.utcnow()
-        )
-        db_session.add(expense)
-        expenses.append(expense)
-    db_session.commit()
-    return expenses
-
-
-@pytest.fixture
-def sample_expense_data(test_organization):
-    """Sample expense data for testing"""
-    return {
-        "amount": 150.00,
-        "currency": "USD",
-        "description": "Test business lunch",
-        "category": "meals",
-        "date": datetime.utcnow().isoformat(),
-        "merchant": "Test Restaurant",
-        "receipt_url": "https://example.com/receipt.pdf",
-        "organization_id": test_organization.id
-    }
-
-
-# ============================================================================
-# Cache Fixtures
-# ============================================================================
-
-@pytest.fixture(autouse=True)
-def cleanup_cache():
-    """Clean up cache after each test"""
-    yield
-    if cache.available:
-        try:
-            cache.redis_client.flushdb()
-        except:
-            pass
-
-
-# ============================================================================
-# Additional Fixtures for New Tests
-# ============================================================================
-
-@pytest.fixture
-def employee_headers(auth_headers):
-    """Alias for employee authentication headers"""
-    return auth_headers
-
-
-@pytest.fixture
-def sample_user(db_session):
-    """Factory fixture to create users with specific attributes"""
-    def _create_user(email=None, role=UserRole.EMPLOYEE, **kwargs):
-        email = email or f"user_{uuid.uuid4().hex[:8]}@test.com"
-        user = User(
-            id=str(uuid.uuid4()),
-            email=email,
-            username=email.split('@')[0],
-            full_name=kwargs.get('full_name', 'Test User'),
-            hashed_password=AuthService.hash_password(kwargs.get('password', 'TestPass123!')),
-            role=role,
-            is_active=kwargs.get('is_active', True),
-            is_verified=kwargs.get('is_verified', True),
-            failed_login_attempts=0,
-            locked_until=None,
-            last_failed_login=None
-        )
-        db_session.add(user)
-        db_session.commit()
-        db_session.refresh(user)
-        return user
-    return _create_user
-
-
-@pytest.fixture
-def sample_expense(db_session, test_user, test_organization):
-    """Factory fixture to create expenses with specific attributes"""
-    from src.models import ExpenseStatus, ExpenseCategory
-
-    def _create_expense(user=None, status=ExpenseStatus.PENDING, **kwargs):
-        user = user or test_user
-        expense = Expense(
-            id=f"exp_{uuid.uuid4().hex[:8]}",
-            organization_id=kwargs.get('organization_id', test_organization.id),
-            user_id=user.id,
-            amount=kwargs.get('amount', 100.00),
-            vendor=kwargs.get('vendor', 'Test Vendor'),
-            category=kwargs.get('category', ExpenseCategory.TRAVEL),
-            description=kwargs.get('description', 'Test expense'),
-            status=status,
-            date=kwargs.get('date', datetime.utcnow()),
-            created_at=datetime.utcnow()
-        )
-        db_session.add(expense)
-        db_session.commit()
-        db_session.refresh(expense)
-        return expense
-    return _create_expense
+        json={"user

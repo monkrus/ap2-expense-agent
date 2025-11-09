@@ -1,14 +1,18 @@
 """
 Billing and usage tracking models for Google Cloud Marketplace integration
 """
-from sqlalchemy import Column, String, Integer, Float, DateTime, Boolean, JSON, Index
-from sqlalchemy.sql import func
+
 from datetime import datetime
+
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, Index, Integer, String
+from sqlalchemy.sql import func
+
 from .models import Base
 
 
 class UsageMetric(Base):
     """Track usage metrics for billing purposes"""
+
     __tablename__ = "usage_metrics"
 
     id = Column(String(255), primary_key=True)
@@ -18,7 +22,9 @@ class UsageMetric(Base):
     account_id = Column(String(255), nullable=True)  # GCP account ID from marketplace
 
     # Metric information
-    metric_type = Column(String(100), nullable=False)  # api_calls, storage_gb, active_users, etc.
+    metric_type = Column(
+        String(100), nullable=False
+    )  # api_calls, storage_gb, active_users, etc.
     metric_value = Column(Float, nullable=False)
     unit = Column(String(50), nullable=False)  # calls, gb, users, etc.
 
@@ -37,19 +43,22 @@ class UsageMetric(Base):
 
     # Indexes for efficient querying
     __table_args__ = (
-        Index('idx_usage_org_period', 'organization_id', 'period_start', 'period_end'),
-        Index('idx_usage_reported', 'reported_to_gcp', 'period_end'),
+        Index("idx_usage_org_period", "organization_id", "period_start", "period_end"),
+        Index("idx_usage_reported", "reported_to_gcp", "period_end"),
     )
 
 
 class BillingTier(Base):
     """Billing tier/plan configuration"""
+
     __tablename__ = "billing_tiers"
 
     id = Column(String(255), primary_key=True)
 
     # Tier information
-    tier_name = Column(String(100), nullable=False, unique=True)  # free, starter, professional, enterprise
+    tier_name = Column(
+        String(100), nullable=False, unique=True
+    )  # free, starter, professional, enterprise
     display_name = Column(String(200), nullable=False)
     description = Column(String(500), nullable=True)
 
@@ -58,7 +67,9 @@ class BillingTier(Base):
     currency = Column(String(3), default="USD", nullable=False)
 
     # Usage limits
-    limits = Column(JSON, nullable=False)  # {api_calls: 10000, storage_gb: 5, active_users: 10}
+    limits = Column(
+        JSON, nullable=False
+    )  # {api_calls: 10000, storage_gb: 5, active_users: 10}
     overage_pricing = Column(JSON, nullable=True)  # {api_calls: 0.01, storage_gb: 0.50}
 
     # Features
@@ -70,11 +81,14 @@ class BillingTier(Base):
 
     # Metadata
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
+    )
 
 
 class OrganizationSubscription(Base):
     """Track organization subscription status"""
+
     __tablename__ = "organization_subscriptions"
 
     id = Column(String(255), primary_key=True)
@@ -92,7 +106,9 @@ class OrganizationSubscription(Base):
     marketplace_order_id = Column(String(255), nullable=True)
 
     # Status
-    status = Column(String(50), nullable=False, default="active")  # trial, active, suspended, cancelled
+    status = Column(
+        String(50), nullable=False, default="active"
+    )  # trial, active, suspended, cancelled
 
     # Billing
     billing_period_start = Column(DateTime, nullable=True)
@@ -111,11 +127,14 @@ class OrganizationSubscription(Base):
     # Additional data
     additional_metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
+    )
 
 
 class BillingEvent(Base):
     """Audit log for billing-related events"""
+
     __tablename__ = "billing_events"
 
     id = Column(String(255), primary_key=True)
@@ -124,7 +143,9 @@ class BillingEvent(Base):
     organization_id = Column(String(255), nullable=False, index=True)
 
     # Event details
-    event_type = Column(String(100), nullable=False, index=True)  # subscription_created, usage_reported, tier_changed, etc.
+    event_type = Column(
+        String(100), nullable=False, index=True
+    )  # subscription_created, usage_reported, tier_changed, etc.
     event_data = Column(JSON, nullable=False)
 
     # Status
@@ -132,7 +153,9 @@ class BillingEvent(Base):
     error_message = Column(String(1000), nullable=True)
 
     # Timing
-    occurred_at = Column(DateTime, server_default=func.now(), nullable=False, index=True)
+    occurred_at = Column(
+        DateTime, server_default=func.now(), nullable=False, index=True
+    )
 
     # Additional event data
     event_metadata = Column(JSON, nullable=True)
