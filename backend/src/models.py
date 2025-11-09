@@ -482,7 +482,12 @@ class RecurringExpenseTemplate(Base):
 
     # Recurring schedule
     frequency = Column(
-        Enum(RecurringFrequency, name="recurringfrequency"), nullable=False
+        Enum(
+            RecurringFrequency,
+            name="recurringfrequency",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
     )
     start_date = Column(DateTime, nullable=False)
     end_date = Column(DateTime, nullable=True)  # Optional end date
@@ -623,15 +628,24 @@ class Budget(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     category = Column(
-        Enum(ExpenseCategory, name="expensecategory"), nullable=True
+        Enum(
+            ExpenseCategory,
+            name="expensecategory",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=True,
     )  # Optional: category-specific budget
 
     # Budget amounts
     amount = Column(Numeric(12, 2), nullable=False)  # Total budget amount
     period = Column(
-        Enum(BudgetPeriod, name="budgetperiod"),
+        Enum(
+            BudgetPeriod,
+            name="budgetperiod",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
-        default=BudgetPeriod.MONTHLY,
+        default=BudgetPeriod.MONTHLY.value,
     )
 
     # Alert thresholds (percentages)
@@ -785,9 +799,13 @@ class Subscription(Base):
     id = Column(String(255), primary_key=True)
     user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
     tier = Column(
-        Enum(SubscriptionTier, name="subscriptiontier"),
+        Enum(
+            SubscriptionTier,
+            name="subscriptiontier",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
-        default=SubscriptionTier.STARTER,
+        default=SubscriptionTier.STARTER.value,
     )
     status = Column(
         String(50), nullable=False, default="active", index=True
