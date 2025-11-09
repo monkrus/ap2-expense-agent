@@ -2,12 +2,13 @@
 Pytest configuration and fixtures for testing
 """
 import os
+import uuid
+from datetime import datetime, timedelta
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime, timedelta
-import uuid
 
 # Set testing environment variable BEFORE importing app
 os.environ["TESTING"] = "true"
@@ -15,7 +16,10 @@ os.environ["ENVIRONMENT"] = "test"
 
 from src.api import app
 from src.database import get_db
-from src.models import Base, User, UserRole, Organization, OrganizationMember, OrganizationRole, Expense, ExpenseStatus, ExpenseCategory
+from src.models import (
+    Base, User, UserRole, Organization, OrganizationMember,
+    OrganizationRole, Expense, ExpenseStatus, ExpenseCategory
+)
 from src.auth import AuthService
 from src.cache import cache
 
@@ -34,17 +38,13 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database():
     """Setup test database schema once for all tests"""
-    # Skip creating tables if migrations already ran (CI environment)
-    # The SKIP_DB_INIT env var is set in CI to use alembic migrations
     skip_init = os.getenv("SKIP_DB_INIT", "false").lower() == "true"
 
     if not skip_init:
-        # Create all tables (for local development without migrations)
         Base.metadata.create_all(bind=engine)
 
     yield
 
-    # Clean up after tests (only if we created the tables)
     if not skip_init:
         Base.metadata.drop_all(bind=engine)
 
@@ -92,7 +92,7 @@ def test_user(db_session):
         username="testuser",
         full_name="Test User",
         hashed_password=AuthService.hash_password("TestPass123!"),
-        role=UserRole.EMPLOYEE.value,
+        role=UserRole.EMPLOYEE.name.lower(),
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,
@@ -114,7 +114,7 @@ def test_admin(db_session):
         username="admin",
         full_name="Admin User",
         hashed_password=AuthService.hash_password("AdminPass123!"),
-        role=UserRole.ADMIN.value,
+        role=UserRole.ADMIN.name.lower(),
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,
@@ -136,7 +136,7 @@ def test_manager(db_session):
         username="manager",
         full_name="Manager User",
         hashed_password=AuthService.hash_password("ManagerPass123!"),
-        role=UserRole.MANAGER.value,
+        role=UserRole.MANAGER.name.lower(),
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,
@@ -199,7 +199,7 @@ def manager_headers(client, test_manager):
 def test_organization(db_session):
     """Create a test organization"""
     org = Organization(
-        id=f"org_{uuid.uuid4().hex[:8]}",
+        id=str(uuid.uuid4()),
         name="Test Organization",
         slug="test-org",
         description="Test organization for unit testing",
@@ -219,7 +219,7 @@ def test_organization(db_session):
 def second_organization(db_session):
     """Create a second test organization for multi-tenant testing"""
     org = Organization(
-        id=f"org_{uuid.uuid4().hex[:8]}",
+        id=str(uuid.uuid4()),
         name="Second Organization",
         slug="second-org",
         description="Second test organization for multi-tenant testing",
@@ -239,7 +239,7 @@ def second_organization(db_session):
 def user_with_organization(db_session, test_user, test_organization):
     """Add test user to test organization"""
     member = OrganizationMember(
-        id=f"member_{uuid.uuid4().hex[:8]}",
+        id=str(uuid.uuid4()),
         organization_id=test_organization.id,
         user_id=test_user.id,
         role=OrganizationRole.MEMBER,
@@ -254,7 +254,7 @@ def user_with_organization(db_session, test_user, test_organization):
 def admin_with_organization(db_session, test_admin, test_organization):
     """Add admin user to test organization"""
     member = OrganizationMember(
-        id=f"member_{uuid.uuid4().hex[:8]}",
+        id=str(uuid.uuid4()),
         organization_id=test_organization.id,
         user_id=test_admin.id,
         role=OrganizationRole.ADMIN,
@@ -274,7 +274,7 @@ def second_org_user(db_session, second_organization):
         username="otheruser",
         full_name="Other User",
         hashed_password=AuthService.hash_password("OtherPass123!"),
-        role=UserRole.EMPLOYEE.value,
+        role=UserRole.EMPLOYEE.name.lower(),
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,
@@ -284,9 +284,8 @@ def second_org_user(db_session, second_organization):
     db_session.add(user)
     db_session.flush()
 
-    # Add user to second organization
     member = OrganizationMember(
-        id=f"member_{uuid.uuid4().hex[:8]}",
+        id=str(uuid.uuid4()),
         organization_id=second_organization.id,
         user_id=user.id,
         role=OrganizationRole.MEMBER,
@@ -341,7 +340,7 @@ def second_org_headers(client, second_organization, second_org_user):
 def test_expense(db_session, test_organization, test_user):
     """Create a test expense"""
     expense = Expense(
-        id=f"exp_{uuid.uuid4().hex[:8]}",
+        id=str(uuid.uuid4()),
         organization_id=test_organization.id,
         user_id=test_user.id,
         amount=150.00,
@@ -364,7 +363,7 @@ def multiple_expenses(db_session, test_organization, test_user):
     expenses = []
     for i in range(5):
         expense = Expense(
-            id=f"exp_{uuid.uuid4().hex[:8]}",
+            id=str(uuid.uuid4()),
             organization_id=test_organization.id,
             user_id=test_user.id,
             amount=100.00 + (i * 50),
@@ -403,15 +402,21 @@ def sample_user(db_session):
     """Factory fixture to create users with specific attributes"""
     def _create_user(email=None, role=UserRole.EMPLOYEE, **kwargs):
         email = email or f"user_{uuid.uuid4().hex[:8]}@test.com"
-        # Handle both UserRole enum and string values
-        role_value = role.value if hasattr(role, 'value') else role
+        username = kwargs.get('username') or email.split('@')[0]
+
+        # Handle both enum and string input
+        if isinstance(role, UserRole):
+            role_str = role.name.lower()
+        else:
+            role_str = str(role).lower()
+
         user = User(
             id=str(uuid.uuid4()),
             email=email,
-            username=email.split('@')[0],
+            username=username,
             full_name=kwargs.get('full_name', 'Test User'),
             hashed_password=AuthService.hash_password(kwargs.get('password', 'TestPass123!')),
-            role=role_value,
+            role=role_str,
             is_active=kwargs.get('is_active', True),
             is_verified=kwargs.get('is_verified', True),
             failed_login_attempts=0,
@@ -431,7 +436,7 @@ def sample_expense(db_session, test_user, test_organization):
     def _create_expense(user=None, status=ExpenseStatus.PENDING, **kwargs):
         user = user or test_user
         expense = Expense(
-            id=f"exp_{uuid.uuid4().hex[:8]}",
+            id=str(uuid.uuid4()),
             organization_id=kwargs.get('organization_id', test_organization.id),
             user_id=user.id,
             amount=kwargs.get('amount', 100.00),
@@ -470,5 +475,5 @@ def cleanup_cache():
     if cache.available:
         try:
             cache.redis_client.flushdb()
-        except:
+        except Exception:  # Be specific in prod, but broad here for test reliability
             pass
