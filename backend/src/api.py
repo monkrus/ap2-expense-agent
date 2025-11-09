@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
@@ -120,6 +121,11 @@ app.include_router(budgets_router)
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
+    # Skip database initialization during tests
+    if os.getenv("TESTING") == "true":
+        print("[STARTUP] Skipping database init and seed in test mode")
+        return
+
     init_db()
 
     # Seed default users
@@ -147,6 +153,11 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
+    # Skip shutdown tasks during tests
+    if os.getenv("TESTING") == "true":
+        print("[SHUTDOWN] Skipping scheduler stop in test mode")
+        return
+
     # Stop recurring expense scheduler
     from .scheduler import stop_scheduler
 
