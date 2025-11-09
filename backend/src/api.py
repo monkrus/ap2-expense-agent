@@ -171,7 +171,9 @@ agent = None
 
 
 class ExpenseSubmission(BaseModel):
-    user_id: Optional[str] = None  # Optional - will use authenticated user if not provided
+    user_id: Optional[str] = (
+        None  # Optional - will use authenticated user if not provided
+    )
     amount: float
     vendor: str
     category: str  # Will be validated against ExpenseCategory enum values
@@ -777,35 +779,47 @@ async def delete_expense(
     db: Session = Depends(get_db),
 ):
     """Delete an expense"""
-    from .models import Expense, ExpenseStatus
-    from .tenant_context import TenantContext
+    try:
+        from .models import Expense, ExpenseStatus
+        from .tenant_context import TenantContext
 
-    organization_id = TenantContext.get_organization()
+        organization_id = TenantContext.get_organization()
 
-    # Query expense with tenant isolation
-    query = db.query(Expense).filter(Expense.id == expense_id)
-    if organization_id:
-        query = query.filter(Expense.organization_id == organization_id)
+        # Query expense with tenant isolation
+        query = db.query(Expense).filter(Expense.id == expense_id)
+        if organization_id:
+            query = query.filter(Expense.organization_id == organization_id)
 
-    expense = query.first()
+        expense = query.first()
 
-    if not expense:
-        raise HTTPException(status_code=404, detail="Expense not found")
+        if not expense:
+            raise HTTPException(status_code=404, detail="Expense not found")
 
-    # Only allow deleting own expenses
-    if expense.user_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="Cannot delete other user's expense"
-        )
+        # Only allow deleting own expenses
+        if expense.user_id != current_user.id:
+            raise HTTPException(
+                status_code=403, detail="Cannot delete other user's expense"
+            )
 
-    # Can only delete pending expenses
-    if expense.status != ExpenseStatus.PENDING:
-        raise HTTPException(status_code=400, detail="Cannot delete non-pending expense")
+        # Can only delete pending expenses
+        if expense.status != ExpenseStatus.PENDING:
+            raise HTTPException(
+                status_code=400, detail="Cannot delete non-pending expense"
+            )
 
-    db.delete(expense)
-    db.commit()
+        db.delete(expense)
+        db.commit()
 
-    return None
+        return None
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error deleting expense {expense_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting expense: {str(e)}")
 
 
 @app.post("/api/v1/expenses/approve")
