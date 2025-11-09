@@ -95,7 +95,8 @@
       "Bash($env:SKIP_DB_INIT=\"true\")",
       "Bash($env:DATABASE_URL=\"sqlite:///:memory:\")",
       "Bash(Select-Object -First 100)",
-      "Bash(SKIP_DB_INIT=true DATABASE_URL=\"sqlite:///:memory:\" pytest:*)"
+      "Bash(SKIP_DB_INIT=true DATABASE_URL=\"sqlite:///:memory:\" pytest:*)",
+      "Bash(docker:*)"
     ],
     "deny": [],
     "ask": []
