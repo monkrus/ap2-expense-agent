@@ -377,7 +377,6 @@ class AdminDashboardTester:
                 else:
                     self.log("Resume Recurring Expense", "FAIL", f"Status {response.status_code}")
 
-                claude/start-app-run-tests-011CUsFhjmtARBb1wf79NhDT
                 # Test UPDATE recurring expense
                 try:
                     update_data = {

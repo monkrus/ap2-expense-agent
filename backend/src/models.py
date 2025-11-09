@@ -104,9 +104,13 @@ class OrganizationMember(Base):
         index=True,
     )
     role = Column(
-        Enum(OrganizationRole, name="organizationrole"),
+        Enum(
+            OrganizationRole,
+            name="organizationrole",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
-        default=OrganizationRole.MEMBER,
+        default=OrganizationRole.MEMBER.value,
     )
 
     # Status
@@ -141,9 +145,13 @@ class OrganizationInvitation(Base):
     )
     email = Column(String(255), nullable=False, index=True)
     role = Column(
-        Enum(OrganizationRole, name="organizationrole"),
+        Enum(
+            OrganizationRole,
+            name="organizationrole",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
-        default=OrganizationRole.MEMBER,
+        default=OrganizationRole.MEMBER.value,
     )
 
     # Invitation details
@@ -176,9 +184,13 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String)
     role = Column(
-        Enum(UserRole, name="userrole", values_callable=lambda x: [e.value for e in x]),
+        Enum(
+            UserRole,
+            name="userrole",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         default=UserRole.EMPLOYEE.value,
-        nullable=False
+        nullable=False,
     )  # PostgreSQL ENUM
     department_id = Column(
         String(255), nullable=True, index=True
@@ -307,12 +319,23 @@ class Expense(Base):
     user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
     amount = Column(Numeric(10, 2), nullable=False)
     vendor = Column(String(255), nullable=False)
-    category = Column(Enum(ExpenseCategory, name="expensecategory"), nullable=False)
+    category = Column(
+        Enum(
+            ExpenseCategory,
+            name="expensecategory",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+    )
     description = Column(Text, nullable=False)
     status = Column(
-        Enum(ExpenseStatus, name="expensestatus"),
+        Enum(
+            ExpenseStatus,
+            name="expensestatus",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
-        default=ExpenseStatus.PENDING,
+        default=ExpenseStatus.PENDING.value,
         index=True,
     )
     date = Column(DateTime, nullable=False, default=datetime.utcnow)
@@ -447,7 +470,14 @@ class RecurringExpenseTemplate(Base):
     # Expense template details
     vendor = Column(String(255), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
-    category = Column(Enum(ExpenseCategory, name="expensecategory"), nullable=False)
+    category = Column(
+        Enum(
+            ExpenseCategory,
+            name="expensecategory",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+    )
     description = Column(Text, nullable=False)
 
     # Recurring schedule

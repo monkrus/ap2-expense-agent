@@ -1,6 +1,7 @@
 """
 Authentication tests - streamlined and focused
 """
+
 import pytest
 from datetime import datetime
 
@@ -17,8 +18,8 @@ class TestRegistration:
                 "username": "newuser",
                 "password": "SecurePass123!",
                 "full_name": "New User",
-                "role": "employee"
-            }
+                "role": "employee",
+            },
         )
         assert response.status_code == 201
         data = response.json()
@@ -35,8 +36,8 @@ class TestRegistration:
                 "username": "different",
                 "password": "SecurePass123!",
                 "full_name": "Different User",
-                "role": "employee"
-            }
+                "role": "employee",
+            },
         )
         assert response.status_code == 400
         assert "already exists" in response.json()["detail"].lower()
@@ -50,10 +51,10 @@ class TestRegistration:
                 "username": "weakuser",
                 "password": "weak",
                 "full_name": "Weak User",
-                "role": "employee"
-            }
+                "role": "employee",
+            },
         )
-        assert response.status_code == 400
+        assert response.status_code == 422  # Pydantic validation error
 
 
 class TestLogin:
@@ -63,10 +64,7 @@ class TestLogin:
         """Test successful login"""
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "username": "testuser",
-                "password": "TestPass123!"
-            }
+            json={"username": "testuser", "password": "TestPass123!"},
         )
         assert response.status_code == 200
         data = response.json()
@@ -77,10 +75,7 @@ class TestLogin:
         """Test login with wrong password fails"""
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "username": "testuser",
-                "password": "WrongPassword123!"
-            }
+            json={"username": "testuser", "password": "WrongPassword123!"},
         )
         assert response.status_code == 401
 
@@ -88,10 +83,7 @@ class TestLogin:
         """Test login with nonexistent user fails"""
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "username": "nonexistent",
-                "password": "Password123!"
-            }
+            json={"username": "nonexistent", "password": "Password123!"},
         )
         assert response.status_code == 401
 
@@ -101,10 +93,7 @@ class TestGetCurrentUser:
 
     def test_get_current_user(self, client, auth_headers):
         """Test getting current authenticated user"""
-        response = client.get(
-            "/api/v1/auth/me",
-            headers=auth_headers
-        )
+        response = client.get("/api/v1/auth/me", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert data["email"] == "test@example.com"
@@ -121,17 +110,11 @@ class TestAdminAccess:
 
     def test_admin_can_access_admin_endpoint(self, client, admin_headers):
         """Test admin can access admin endpoints"""
-        response = client.get(
-            "/api/v1/admin/users",
-            headers=admin_headers
-        )
+        response = client.get("/api/v1/admin/users", headers=admin_headers)
         # Should not be 403 (forbidden)
         assert response.status_code in [200, 404]
 
     def test_regular_user_cannot_access_admin_endpoint(self, client, auth_headers):
         """Test regular user cannot access admin endpoints"""
-        response = client.get(
-            "/api/v1/admin/users",
-            headers=auth_headers
-        )
+        response = client.get("/api/v1/admin/users", headers=auth_headers)
         assert response.status_code == 403
