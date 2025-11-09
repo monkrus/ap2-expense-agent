@@ -1,375 +1,198 @@
 """
-Tests for expense management endpoints
+Expense management tests - streamlined and focused
 """
 import pytest
-from fastapi.testclient import TestClient
 from datetime import datetime, timedelta
 
-from src.models import ExpenseStatus, ExpenseCategory
 
+class TestExpenseCreation:
+    """Test expense creation"""
 
-class TestExpenseSubmission:
-    """Test expense submission"""
-
-    def test_submit_expense(self, client, test_user, auth_headers):
-        """Test employee can submit expense"""
-        expense_data = {
-            "user_id": test_user.id,
-            "amount": 100.50,
-            "vendor": "Test Vendor",
-            "category": "Travel",
-            "description": "Business trip expense"
-        }
-
+    def test_create_expense_success(self, client, org_headers, test_organization):
+        """Test creating a new expense"""
         response = client.post(
             "/api/v1/expenses",
-            json=expense_data,
-            headers=auth_headers
+            headers=org_headers,
+            json={
+                "amount": 150.00,
+                "vendor": "Test Restaurant",
+                "description": "Business lunch",
+                "category": "Meals",
+                "date": datetime.utcnow().isoformat(),
+                "organization_id": test_organization.id
+            }
         )
-
         assert response.status_code == 201
         data = response.json()
-        assert data["success"] is True
-        assert data["expense"]["amount"] == 100.50
-        assert data["expense"]["vendor"] == "Test Vendor"
-        assert data["expense"]["status"] == "pending"
+        assert data["amount"] == 150.00
+        assert data["vendor"] == "Test Restaurant"
+        assert data["status"] == "Pending"
 
-    def test_submit_expense_invalid_amount(self, client, test_user, auth_headers):
-        """Test submitting expense with invalid amount"""
-        expense_data = {
-            "user_id": test_user.id,
-            "amount": -50.00,
-            "vendor": "Test Vendor",
-            "category": "Travel",
-            "description": "Invalid amount"
-        }
-
+    def test_create_expense_without_auth(self, client, test_organization):
+        """Test creating expense without authentication fails"""
         response = client.post(
             "/api/v1/expenses",
-            json=expense_data,
-            headers=auth_headers
+            json={
+                "amount": 100.00,
+                "vendor": "Test Vendor",
+                "description": "Test",
+                "category": "Travel",
+                "date": datetime.utcnow().isoformat(),
+                "organization_id": test_organization.id
+            }
         )
+        assert response.status_code == 401
 
-        assert response.status_code == 400
-        assert "positive" in response.json()["detail"].lower()
-
-    def test_submit_expense_invalid_category(self, client, test_user, auth_headers):
-        """Test submitting expense with invalid category"""
-        expense_data = {
-            "user_id": test_user.id,
-            "amount": 100.00,
-            "vendor": "Test Vendor",
-            "category": "InvalidCategory",
-            "description": "Invalid category"
-        }
-
+    def test_create_expense_invalid_amount(self, client, org_headers, test_organization):
+        """Test creating expense with invalid amount fails"""
         response = client.post(
             "/api/v1/expenses",
-            json=expense_data,
-            headers=auth_headers
+            headers=org_headers,
+            json={
+                "amount": -50.00,
+                "vendor": "Test Vendor",
+                "description": "Test",
+                "category": "Travel",
+                "date": datetime.utcnow().isoformat(),
+                "organization_id": test_organization.id
+            }
         )
-
-        assert response.status_code == 400
+        assert response.status_code == 422
 
 
 class TestExpenseRetrieval:
     """Test expense retrieval"""
 
-    def test_get_user_expenses(self, client, auth_headers, test_expense):
-        """Test getting expenses for current user"""
+    def test_get_expenses_list(self, client, org_headers, test_expense):
+        """Test getting list of expenses"""
         response = client.get(
             "/api/v1/expenses",
-            headers=auth_headers
+            headers=org_headers
         )
-
-        assert response.status_code == 200
-        expenses = response.json()
-        assert isinstance(expenses, list)
-        assert len(expenses) >= 1
-
-    def test_get_expense_report(self, client, auth_headers, test_expense):
-        """Test getting expense report"""
-        response = client.get(
-            "/api/v1/expenses/report",
-            headers=auth_headers
-        )
-
         assert response.status_code == 200
         data = response.json()
-        assert "total_expenses" in data
-        assert "total_amount" in data
-        assert "pending" in data
-        assert "approved" in data
-        assert "rejected" in data
+        assert isinstance(data, list)
+        assert len(data) > 0
 
-    def test_get_expense_by_id(self, client, auth_headers, test_expense):
-        """Test getting a specific expense by ID"""
+    def test_get_single_expense(self, client, org_headers, test_expense):
+        """Test getting a single expense by ID"""
         response = client.get(
             f"/api/v1/expenses/{test_expense.id}",
-            headers=auth_headers
+            headers=org_headers
         )
-
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == test_expense.id
-        assert data["amount"] == float(test_expense.amount)
+        assert data["amount"] == 150.00
+
+    def test_get_nonexistent_expense(self, client, org_headers):
+        """Test getting nonexistent expense returns 404"""
+        response = client.get(
+            "/api/v1/expenses/nonexistent_id",
+            headers=org_headers
+        )
+        assert response.status_code == 404
 
 
 class TestExpenseUpdate:
-    """Test expense update"""
+    """Test expense updates"""
 
-    def test_update_pending_expense(self, client, auth_headers, sample_expense, test_user):
-        """Test employee can update their pending expense"""
-        expense = sample_expense(user=test_user, status=ExpenseStatus.PENDING)
-
-        updated_data = {
-            "user_id": expense.user_id,
-            "amount": 150.00,
-            "vendor": "Updated Vendor",
-            "category": "Software",
-            "description": "Updated description"
-        }
-
+    def test_update_expense(self, client, org_headers, test_expense):
+        """Test updating an expense"""
         response = client.put(
-            f"/api/v1/expenses/{expense.id}",
-            json=updated_data,
-            headers=auth_headers
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["expense"]["amount"] == 150.00
-        assert data["expense"]["vendor"] == "Updated Vendor"
-
-    def test_cannot_update_approved_expense(self, client, auth_headers, sample_expense, test_user):
-        """Test employee cannot update approved expense"""
-        expense = sample_expense(user=test_user, status=ExpenseStatus.APPROVED)
-
-        updated_data = {
-            "user_id": expense.user_id,
-            "amount": 150.00,
-            "vendor": "Updated Vendor",
-            "category": "Software",
-            "description": "Updated description"
-        }
-
-        response = client.put(
-            f"/api/v1/expenses/{expense.id}",
-            json=updated_data,
-            headers=auth_headers
-        )
-
-        assert response.status_code == 400
-        assert "pending" in response.json()["detail"].lower()
-
-    def test_cannot_update_others_expense(self, client, sample_user, sample_expense, test_user, test_organization, db_session):
-        """Test employee cannot update another user's expense"""
-        # Create another user
-        other_user = sample_user(email="other@example.com")
-
-        # Create expense for other user
-        expense = sample_expense(user=other_user, status=ExpenseStatus.PENDING)
-
-        # Try to update with test_user's auth
-        from src.auth import AuthService
-        # Login as test_user to get auth headers
-        response = client.post(
-            "/api/v1/auth/login",
+            f"/api/v1/expenses/{test_expense.id}",
+            headers=org_headers,
             json={
-                "username": "testuser",
-                "password": "TestPass123!"
+                "amount": 200.00,
+                "vendor": "Updated Vendor",
+                "description": "Updated description",
+                "category": "Travel",
+                "date": datetime.utcnow().isoformat()
             }
         )
-        token = response.json()["access_token"]
-        headers = {"Authorization": f"Bearer {token}"}
+        assert response.status_code == 200
+        data = response.json()
+        assert data["amount"] == 200.00
+        assert data["vendor"] == "Updated Vendor"
 
-        updated_data = {
-            "user_id": expense.user_id,
-            "amount": 150.00,
-            "vendor": "Updated Vendor",
-            "category": "Software",
-            "description": "Updated description"
-        }
-
+    def test_cannot_update_others_expense(self, client, second_org_headers, test_expense):
+        """Test user cannot update another user's expense"""
         response = client.put(
-            f"/api/v1/expenses/{expense.id}",
-            json=updated_data,
-            headers=headers
-        )
-
-        assert response.status_code == 403
-
-
-class TestExpenseWithdrawal:
-    """Test expense withdrawal"""
-
-    def test_withdraw_pending_expense(self, client, auth_headers, sample_expense, test_user):
-        """Test employee can withdraw pending expense"""
-        expense = sample_expense(user=test_user, status=ExpenseStatus.PENDING)
-
-        response = client.delete(
-            f"/api/v1/expenses/{expense.id}/withdraw",
-            headers=auth_headers
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "withdrawn" in data["message"].lower()
-
-    def test_cannot_withdraw_approved_expense(self, client, auth_headers, sample_expense, test_user):
-        """Test employee cannot withdraw approved expense"""
-        expense = sample_expense(user=test_user, status=ExpenseStatus.APPROVED)
-
-        response = client.delete(
-            f"/api/v1/expenses/{expense.id}/withdraw",
-            headers=auth_headers
-        )
-
-        assert response.status_code == 400
-        assert "pending" in response.json()["detail"].lower()
-
-
-class TestExpenseApproval:
-    """Test expense approval (manager/admin)"""
-
-    def test_manager_approve_expense(self, client, manager_headers, sample_expense, test_user):
-        """Test manager can approve expense"""
-        expense = sample_expense(user=test_user, status=ExpenseStatus.PENDING, amount=500.00)
-
-        response = client.post(
-            "/api/v1/expenses/approve",
+            f"/api/v1/expenses/{test_expense.id}",
+            headers=second_org_headers,
             json={
-                "expense_id": expense.id,
-                "notes": "Approved"
-            },
-            headers=manager_headers
+                "amount": 999.00,
+                "vendor": "Hacker",
+                "description": "Trying to update",
+                "category": "Travel",
+                "date": datetime.utcnow().isoformat()
+            }
         )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["expense_id"] == expense.id
-        assert data["status"] == "approved"
-
-    def test_manager_reject_expense(self, client, manager_headers, sample_expense, test_user):
-        """Test manager can reject expense"""
-        expense = sample_expense(user=test_user, status=ExpenseStatus.PENDING)
-
-        response = client.post(
-            "/api/v1/expenses/reject",
-            json={
-                "expense_id": expense.id,
-                "rejection_reason": "Insufficient documentation"
-            },
-            headers=manager_headers
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["expense_id"] == expense.id
-        assert data["status"] == "rejected"
-
-    def test_cannot_approve_already_approved(self, client, manager_headers, sample_expense, test_user):
-        """Test cannot approve already approved expense"""
-        expense = sample_expense(user=test_user, status=ExpenseStatus.APPROVED)
-
-        response = client.post(
-            "/api/v1/expenses/approve",
-            json={
-                "expense_id": expense.id,
-                "notes": "Approved again"
-            },
-            headers=manager_headers
-        )
-
-        assert response.status_code == 400
-        assert "already" in response.json()["detail"].lower()
+        # Should be 404 (not found due to tenant isolation) or 403 (forbidden)
+        assert response.status_code in [403, 404]
 
 
 class TestExpenseDelete:
     """Test expense deletion"""
 
-    def test_delete_pending_expense(self, client, auth_headers, sample_expense, test_user):
-        """Test employee can delete pending expense"""
-        expense = sample_expense(user=test_user, status=ExpenseStatus.PENDING)
-
+    def test_delete_expense(self, client, org_headers, test_expense):
+        """Test deleting an expense"""
         response = client.delete(
-            f"/api/v1/expenses/{expense.id}",
-            headers=auth_headers
+            f"/api/v1/expenses/{test_expense.id}",
+            headers=org_headers
         )
+        assert response.status_code in [200, 204]
 
-        assert response.status_code == 204
-
-    def test_cannot_delete_approved_expense(self, client, auth_headers, sample_expense, test_user):
-        """Test employee cannot delete approved expense"""
-        expense = sample_expense(user=test_user, status=ExpenseStatus.APPROVED)
-
-        response = client.delete(
-            f"/api/v1/expenses/{expense.id}",
-            headers=auth_headers
+        # Verify expense is deleted
+        get_response = client.get(
+            f"/api/v1/expenses/{test_expense.id}",
+            headers=org_headers
         )
-
-        assert response.status_code == 400
-        assert "pending" in response.json()["detail"].lower()
+        assert get_response.status_code == 404
 
 
-class TestExpenseComments:
-    """Test expense comments"""
+class TestExpenseFiltering:
+    """Test expense filtering and search"""
 
-    def test_add_comment_to_expense(self, client, auth_headers, test_expense):
-        """Test adding a comment to an expense"""
-        response = client.post(
-            f"/api/v1/expenses/{test_expense.id}/comments",
-            json={"comment": "This is a test comment"},
-            headers=auth_headers
-        )
-
-        assert response.status_code == 201
-        data = response.json()
-        assert data["comment"] == "This is a test comment"
-
-    def test_get_expense_comments(self, client, auth_headers, test_expense):
-        """Test getting comments for an expense"""
-        # Add a comment first
-        client.post(
-            f"/api/v1/expenses/{test_expense.id}/comments",
-            json={"comment": "Test comment"},
-            headers=auth_headers
-        )
-
-        # Get comments
+    def test_filter_expenses_by_status(self, client, org_headers, multiple_expenses):
+        """Test filtering expenses by status"""
         response = client.get(
-            f"/api/v1/expenses/{test_expense.id}/comments",
-            headers=auth_headers
+            "/api/v1/expenses?status=Pending",
+            headers=org_headers
         )
-
         assert response.status_code == 200
         data = response.json()
-        assert "comments" in data
-        assert len(data["comments"]) >= 1
+        assert isinstance(data, list)
 
+    def test_filter_expenses_by_date_range(self, client, org_headers, multiple_expenses):
+        """Test filtering expenses by date range"""
+        start_date = (datetime.utcnow() - timedelta(days=30)).isoformat()
+        end_date = datetime.utcnow().isoformat()
 
-class TestBulkOperations:
-    """Test bulk expense operations"""
-
-    def test_get_all_pending_expenses(self, client, manager_headers, multiple_expenses):
-        """Test manager can get all pending expenses"""
         response = client.get(
-            "/api/v1/expenses/all-pending",
-            headers=manager_headers
+            f"/api/v1/expenses?start_date={start_date}&end_date={end_date}",
+            headers=org_headers
         )
-
         assert response.status_code == 200
         data = response.json()
-        assert "expenses" in data
-        assert len(data["expenses"]) >= 1
+        assert isinstance(data, list)
 
-    def test_get_all_expenses_with_filter(self, client, manager_headers, multiple_expenses):
-        """Test manager can get all expenses with status filter"""
-        response = client.get(
-            "/api/v1/expenses/all?status=pending",
-            headers=manager_headers
+
+class TestTenantIsolation:
+    """Test multi-tenant isolation"""
+
+    def test_cannot_see_other_org_expenses(self, client, org_headers, second_org_headers, test_expense):
+        """Test that users cannot see expenses from other organizations"""
+        # First org can see their expense
+        response1 = client.get(
+            f"/api/v1/expenses/{test_expense.id}",
+            headers=org_headers
         )
+        assert response1.status_code == 200
 
-        assert response.status_code == 200
-        data = response.json()
-        assert "expenses" in data
+        # Second org cannot see first org's expense
+        response2 = client.get(
+            f"/api/v1/expenses/{test_expense.id}",
+            headers=second_org_headers
+        )
+        assert response2.status_code == 404

@@ -53,12 +53,14 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio pyotp
 
-      - name: Run migrations
+      - name: Reset database and run migrations
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379/0
         run: |
+          # Drop and recreate database schema via migrations
+          alembic downgrade base || true
           alembic upgrade head
 
       - name: Run tests with coverage
@@ -70,8 +72,18 @@ jobs:
           TESTING: "true"
           JWT_SECRET_KEY: test-secret-key-for-testing-only
           PYTHONWARNINGS: ignore
+          SKIP_DB_INIT: "true"
         run: |
-          pytest tests/test_auth.py tests/test_expenses.py -v --tb=short --cov=src --cov-report=term-missing
+          # Run tests with minimal output - only show failures
+          pytest tests/test_auth.py tests/test_expenses.py \
+            --tb=short \
+            --no-header \
+            -q \
+            --disable-warnings \
+            -p no:cacheprovider \
+            --cov=src \
+            --cov-report=term-missing:skip-covered \
+            --cov-report=xml
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3

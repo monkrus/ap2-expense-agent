@@ -299,7 +299,7 @@ def second_org_user(db_session, second_organization):
 
 
 @pytest.fixture
-def org_headers(user_with_organization, test_organization, auth_headers):
+def org_headers(test_organization, auth_headers):
     """Create headers with organization context"""
     return {
         **auth_headers,
