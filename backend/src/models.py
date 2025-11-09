@@ -176,7 +176,9 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String)
     role = Column(
-        Enum(UserRole, name="userrole"), default=UserRole.EMPLOYEE, nullable=False
+        Enum(UserRole, name="userrole", values_callable=lambda x: [e.value for e in x]),
+        default=UserRole.EMPLOYEE.value,
+        nullable=False
     )  # PostgreSQL ENUM
     department_id = Column(
         String(255), nullable=True, index=True
