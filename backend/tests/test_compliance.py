@@ -32,7 +32,7 @@ def test_db():
         username="testuser",
         hashed_password="hashed_password",
         full_name="Test User",
-        role=UserRole.EMPLOYEE,
+        role=UserRole.EMPLOYEE.value,
         is_active=True,
         is_verified=True
     )
