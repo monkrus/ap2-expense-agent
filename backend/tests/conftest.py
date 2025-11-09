@@ -378,7 +378,7 @@ def sample_expense_data(test_organization):
         "amount": 150.00,
         "vendor": "Test Restaurant",
         "description": "Test business lunch",
-        "category": "Meals",
+        "category": "MEALS",
         "date": datetime.utcnow().isoformat(),
         "organization_id": test_organization.id,
     }

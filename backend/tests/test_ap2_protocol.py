@@ -12,7 +12,12 @@ import json
 import hashlib
 
 from src.models import Base, User, UserRole, Expense, ExpenseStatus, ExpenseCategory
-from src.agent_db import ExpenseManagementAgent, IntentMandateData, CartMandateData, PaymentMandateData
+from src.agent_db import (
+    ExpenseManagementAgent,
+    IntentMandateData,
+    CartMandateData,
+    PaymentMandateData,
+)
 from src.repository import AP2Repository
 
 
@@ -34,7 +39,7 @@ def test_db():
         full_name="AP2 Test User",
         role=UserRole.EMPLOYEE.name.lower(),
         is_active=True,
-        is_verified=True
+        is_verified=True,
     )
     db.add(test_user)
     db.commit()
@@ -59,7 +64,7 @@ def test_organization(test_db):
         timezone="UTC",
         max_members=25,
         is_active=True,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
     )
     test_db.add(org)
     test_db.commit()
@@ -70,7 +75,9 @@ def test_organization(test_db):
 @pytest.fixture
 def agent(test_db, test_organization):
     """Create agent with test database and organization context"""
-    return ExpenseManagementAgent(db=test_db, api_key="", project_id="", organization_id=test_organization.id)
+    return ExpenseManagementAgent(
+        db=test_db, api_key="", project_id="", organization_id=test_organization.id
+    )
 
 
 @pytest.fixture
@@ -82,6 +89,7 @@ def ap2_repo(test_db):
 # ============================================================================
 # AP2 PROTOCOL STRUCTURE TESTS
 # ============================================================================
+
 
 class TestAP2ProtocolStructure:
     """Test AP2 protocol mandate structure compliance"""
@@ -99,17 +107,17 @@ class TestAP2ProtocolStructure:
         mandate = agent.create_intent_mandate(
             user_id="user_ap2_001",
             max_amount=1000.00,
-            category="Software",
-            merchant="Software Co"
+            category="SOFTWARE",
+            merchant="Software Co",
         )
 
         # Required fields
-        assert hasattr(mandate, 'id')
-        assert hasattr(mandate, 'user_id')
-        assert hasattr(mandate, 'constraints')
-        assert hasattr(mandate, 'timestamp')
-        assert hasattr(mandate, 'expiration')
-        assert hasattr(mandate, 'signature')
+        assert hasattr(mandate, "id")
+        assert hasattr(mandate, "user_id")
+        assert hasattr(mandate, "constraints")
+        assert hasattr(mandate, "timestamp")
+        assert hasattr(mandate, "expiration")
+        assert hasattr(mandate, "signature")
 
         # Field types and content
         assert isinstance(mandate.id, str)
@@ -137,28 +145,24 @@ class TestAP2ProtocolStructure:
         - user_signature: user's explicit authorization
         """
         intent = agent.create_intent_mandate(
-            user_id="user_ap2_001",
-            max_amount=500.00,
-            category="Travel"
+            user_id="user_ap2_001", max_amount=500.00, category="TRAVEL"
         )
 
         cart = agent.create_cart_mandate(
             intent_mandate_id=intent.id,
             expense_id="EXP-AP2-001",
-            items=[
-                {'description': 'Flight', 'amount': 400.00, 'vendor': 'Airline'}
-            ],
-            merchant="Airline"
+            items=[{"description": "Flight", "amount": 400.00, "vendor": "Airline"}],
+            merchant="Airline",
         )
 
         # Required fields
-        assert hasattr(cart, 'id')
-        assert hasattr(cart, 'intent_mandate_ref')
-        assert hasattr(cart, 'items')
-        assert hasattr(cart, 'total')
-        assert hasattr(cart, 'merchant')
-        assert hasattr(cart, 'timestamp')
-        assert hasattr(cart, 'user_signature')
+        assert hasattr(cart, "id")
+        assert hasattr(cart, "intent_mandate_ref")
+        assert hasattr(cart, "items")
+        assert hasattr(cart, "total")
+        assert hasattr(cart, "merchant")
+        assert hasattr(cart, "timestamp")
+        assert hasattr(cart, "user_signature")
 
         # Field types
         assert isinstance(cart.id, str)
@@ -185,27 +189,25 @@ class TestAP2ProtocolStructure:
         - timestamp: payment time
         """
         intent = agent.create_intent_mandate(
-            user_id="user_ap2_001",
-            max_amount=300.00,
-            category="Meals"
+            user_id="user_ap2_001", max_amount=300.00, category="MEALS"
         )
 
         cart = agent.create_cart_mandate(
             intent_mandate_id=intent.id,
             expense_id="EXP-AP2-002",
-            items=[{'description': 'Dinner', 'amount': 150.00, 'vendor': 'Restaurant'}],
-            merchant="Restaurant"
+            items=[{"description": "Dinner", "amount": 150.00, "vendor": "Restaurant"}],
+            merchant="Restaurant",
         )
 
         payment = agent.process_payment(cart, payment_method="corporate_card")
 
         # Required fields
-        assert hasattr(payment, 'id')
-        assert hasattr(payment, 'cart_mandate_ref')
-        assert hasattr(payment, 'payment_method')
-        assert hasattr(payment, 'status')
-        assert hasattr(payment, 'audit_trail')
-        assert hasattr(payment, 'timestamp')
+        assert hasattr(payment, "id")
+        assert hasattr(payment, "cart_mandate_ref")
+        assert hasattr(payment, "payment_method")
+        assert hasattr(payment, "status")
+        assert hasattr(payment, "audit_trail")
+        assert hasattr(payment, "timestamp")
 
         # Field types
         assert isinstance(payment.id, str)
@@ -217,12 +219,13 @@ class TestAP2ProtocolStructure:
 
         # Values
         assert payment.cart_mandate_ref == cart.id
-        assert payment.status in ['pending', 'completed', 'failed', 'refunded']
+        assert payment.status in ["pending", "completed", "failed", "refunded"]
 
 
 # ============================================================================
 # AP2 PROTOCOL FLOW TESTS
 # ============================================================================
+
 
 class TestAP2ProtocolFlow:
     """Test AP2 protocol flow compliance"""
@@ -236,9 +239,7 @@ class TestAP2ProtocolFlow:
         """
         # Step 1: Intent Mandate
         intent = agent.create_intent_mandate(
-            user_id="user_ap2_001",
-            max_amount=1000.00,
-            category="Software"
+            user_id="user_ap2_001", max_amount=1000.00, category="Software"
         )
         assert intent is not None
         assert intent.signature is not None
@@ -248,9 +249,13 @@ class TestAP2ProtocolFlow:
             intent_mandate_id=intent.id,
             expense_id="EXP-AP2-003",
             items=[
-                {'description': 'Software License', 'amount': 800.00, 'vendor': 'Software Inc'}
+                {
+                    "description": "Software License",
+                    "amount": 800.00,
+                    "vendor": "Software Inc",
+                }
             ],
-            merchant="Software Inc"
+            merchant="Software Inc",
         )
         assert cart is not None
         assert cart.intent_mandate_ref == intent.id
@@ -262,10 +267,10 @@ class TestAP2ProtocolFlow:
 
         # Verify audit trail links all mandates
         audit = ap2_repo.payment.get_audit_trail(payment.id)
-        assert audit['intent_mandate']['id'] == intent.id
-        assert audit['cart_mandate']['id'] == cart.id
-        assert audit['payment_mandate']['id'] == payment.id
-        assert audit['audit_trail_complete'] == True
+        assert audit["intent_mandate"]["id"] == intent.id
+        assert audit["cart_mandate"]["id"] == cart.id
+        assert audit["payment_mandate"]["id"] == payment.id
+        assert audit["audit_trail_complete"] == True
 
     def test_mandate_chaining_integrity(self, agent):
         """
@@ -274,16 +279,14 @@ class TestAP2ProtocolFlow:
         """
         # Create full chain
         intent = agent.create_intent_mandate(
-            user_id="user_ap2_001",
-            max_amount=500.00,
-            category="Travel"
+            user_id="user_ap2_001", max_amount=500.00, category="TRAVEL"
         )
 
         cart = agent.create_cart_mandate(
             intent_mandate_id=intent.id,
             expense_id="EXP-AP2-004",
-            items=[{'description': 'Hotel', 'amount': 300.00, 'vendor': 'Hotel Co'}],
-            merchant="Hotel Co"
+            items=[{"description": "Hotel", "amount": 300.00, "vendor": "Hotel Co"}],
+            merchant="Hotel Co",
         )
 
         payment = agent.process_payment(cart)
@@ -293,8 +296,8 @@ class TestAP2ProtocolFlow:
         assert payment.cart_mandate_ref == cart.id
 
         # Chain should be traceable
-        assert payment.audit_trail['intent_mandate'] == intent.id
-        assert payment.audit_trail['cart_mandate'] == cart.id
+        assert payment.audit_trail["intent_mandate"] == intent.id
+        assert payment.audit_trail["cart_mandate"] == cart.id
 
     def test_expense_ap2_integration(self, agent, test_db):
         """
@@ -306,27 +309,24 @@ class TestAP2ProtocolFlow:
             amount=250.00,
             vendor="Office Supplies Inc",
             category="Office Supplies",
-            description="Printer and paper"
+            description="Printer and paper",
         )
 
         result = agent.approve_and_process_expense(
-            expense_id=expense['id'],
-            approver_id="approver_001"
+            expense_id=expense["id"], approver_id="approver_001"
         )
 
         # Verify expense has all AP2 mandate references
-        expense_db = test_db.query(Expense).filter(
-            Expense.id == expense['id']
-        ).first()
+        expense_db = test_db.query(Expense).filter(Expense.id == expense["id"]).first()
 
         assert expense_db.intent_mandate_id is not None
         assert expense_db.cart_mandate_id is not None
         assert expense_db.payment_mandate_id is not None
 
         # Verify mandate chain
-        intent_id = result['mandates']['intent']['id']
-        cart_id = result['mandates']['cart']['id']
-        payment_id = result['mandates']['payment']['id']
+        intent_id = result["mandates"]["intent"]["id"]
+        cart_id = result["mandates"]["cart"]["id"]
+        payment_id = result["mandates"]["payment"]["id"]
 
         assert expense_db.intent_mandate_id == intent_id
         assert expense_db.cart_mandate_id == cart_id
@@ -337,6 +337,7 @@ class TestAP2ProtocolFlow:
 # AP2 SECURITY & VERIFICATION TESTS
 # ============================================================================
 
+
 class TestAP2SecurityCompliance:
     """Test AP2 security requirements"""
 
@@ -345,9 +346,7 @@ class TestAP2SecurityCompliance:
         AP2 Spec: Intent Mandates MUST be cryptographically signed
         """
         mandate = agent.create_intent_mandate(
-            user_id="user_ap2_001",
-            max_amount=1000.00,
-            category="Software"
+            user_id="user_ap2_001", max_amount=1000.00, category="Software"
         )
 
         # Must have signature
@@ -358,33 +357,31 @@ class TestAP2SecurityCompliance:
         # (In real implementation, should verify with public key)
         assert isinstance(mandate.signature, str)
         # Hex-encoded signature
-        assert all(c in '0123456789abcdef' for c in mandate.signature.lower())
+        assert all(c in "0123456789abcdef" for c in mandate.signature.lower())
 
     def test_cart_mandate_total_verification(self, agent):
         """
         AP2 Spec: Cart Mandate total MUST match sum of items
         """
         intent = agent.create_intent_mandate(
-            user_id="user_ap2_001",
-            max_amount=500.00,
-            category="Meals"
+            user_id="user_ap2_001", max_amount=500.00, category="MEALS"
         )
 
         items = [
-            {'description': 'Breakfast', 'amount': 25.00, 'vendor': 'Cafe'},
-            {'description': 'Lunch', 'amount': 40.00, 'vendor': 'Restaurant'},
-            {'description': 'Dinner', 'amount': 60.00, 'vendor': 'Bistro'}
+            {"description": "Breakfast", "amount": 25.00, "vendor": "Cafe"},
+            {"description": "Lunch", "amount": 40.00, "vendor": "Restaurant"},
+            {"description": "Dinner", "amount": 60.00, "vendor": "Bistro"},
         ]
 
         cart = agent.create_cart_mandate(
             intent_mandate_id=intent.id,
             expense_id="EXP-AP2-005",
             items=items,
-            merchant="Food Services"
+            merchant="Food Services",
         )
 
         # Verify total matches items
-        expected_total = sum(item['amount'] for item in items)
+        expected_total = sum(item["amount"] for item in items)
         assert cart.total == expected_total
         assert cart.verify_total() == True
 
@@ -393,17 +390,15 @@ class TestAP2SecurityCompliance:
         AP2 Spec: Cart Mandate creation MUST fail if total doesn't match items
         """
         intent = agent.create_intent_mandate(
-            user_id="user_ap2_001",
-            max_amount=200.00,
-            category="Other"
+            user_id="user_ap2_001", max_amount=200.00, category="Other"
         )
 
         # This should work (correct total)
         cart_good = agent.create_cart_mandate(
             intent_mandate_id=intent.id,
             expense_id="EXP-AP2-006",
-            items=[{'description': 'Item', 'amount': 100.00, 'vendor': 'Vendor'}],
-            merchant="Vendor"
+            items=[{"description": "Item", "amount": 100.00, "vendor": "Vendor"}],
+            merchant="Vendor",
         )
         assert cart_good.verify_total() == True
 
@@ -412,16 +407,14 @@ class TestAP2SecurityCompliance:
         AP2 Spec: Cart Mandate MUST include user's explicit signature
         """
         intent = agent.create_intent_mandate(
-            user_id="user_ap2_001",
-            max_amount=300.00,
-            category="Travel"
+            user_id="user_ap2_001", max_amount=300.00, category="TRAVEL"
         )
 
         cart = agent.create_cart_mandate(
             intent_mandate_id=intent.id,
             expense_id="EXP-AP2-007",
-            items=[{'description': 'Taxi', 'amount': 50.00, 'vendor': 'Taxi Co'}],
-            merchant="Taxi Co"
+            items=[{"description": "Taxi", "amount": 50.00, "vendor": "Taxi Co"}],
+            merchant="Taxi Co",
         )
 
         # Must have user signature
@@ -435,38 +428,37 @@ class TestAP2SecurityCompliance:
         AP2 Spec: Payment Mandate MUST include complete audit trail
         """
         intent = agent.create_intent_mandate(
-            user_id="user_ap2_001",
-            max_amount=400.00,
-            category="Software"
+            user_id="user_ap2_001", max_amount=400.00, category="Software"
         )
 
         cart = agent.create_cart_mandate(
             intent_mandate_id=intent.id,
             expense_id="EXP-AP2-008",
-            items=[{'description': 'SaaS', 'amount': 300.00, 'vendor': 'SaaS Inc'}],
-            merchant="SaaS Inc"
+            items=[{"description": "SaaS", "amount": 300.00, "vendor": "SaaS Inc"}],
+            merchant="SaaS Inc",
         )
 
         payment = agent.process_payment(cart)
 
         # Audit trail required fields
         audit_trail = payment.audit_trail
-        assert 'intent_mandate' in audit_trail
-        assert 'cart_mandate' in audit_trail
-        assert 'timestamp' in audit_trail
-        assert 'verification_status' in audit_trail
-        assert 'compliance_check' in audit_trail
+        assert "intent_mandate" in audit_trail
+        assert "cart_mandate" in audit_trail
+        assert "timestamp" in audit_trail
+        assert "verification_status" in audit_trail
+        assert "compliance_check" in audit_trail
 
         # Verify references
-        assert audit_trail['intent_mandate'] == intent.id
-        assert audit_trail['cart_mandate'] == cart.id
-        assert audit_trail['verification_status'] == 'verified'
-        assert audit_trail['compliance_check'] == 'passed'
+        assert audit_trail["intent_mandate"] == intent.id
+        assert audit_trail["cart_mandate"] == cart.id
+        assert audit_trail["verification_status"] == "verified"
+        assert audit_trail["compliance_check"] == "passed"
 
 
 # ============================================================================
 # AP2 CONSTRAINT VALIDATION TESTS
 # ============================================================================
+
 
 class TestAP2ConstraintCompliance:
     """Test AP2 constraint enforcement"""
@@ -478,24 +470,24 @@ class TestAP2ConstraintCompliance:
         mandate = agent.create_intent_mandate(
             user_id="user_ap2_001",
             max_amount=1500.00,
-            category="Travel",
+            category="TRAVEL",
             merchant="Specific Airlines",
-            valid_days=15
+            valid_days=15,
         )
 
         # Verify constraints are stored
-        assert 'max_amount' in mandate.constraints
-        assert 'category' in mandate.constraints
-        assert 'merchant' in mandate.constraints
+        assert "max_amount" in mandate.constraints
+        assert "category" in mandate.constraints
+        assert "merchant" in mandate.constraints
 
-        assert mandate.constraints['max_amount'] == 1500.00
-        assert mandate.constraints['category'] == "Travel"
-        assert mandate.constraints['merchant'] == "Specific Airlines"
+        assert mandate.constraints["max_amount"] == 1500.00
+        assert mandate.constraints["category"] == "TRAVEL"
+        assert mandate.constraints["merchant"] == "Specific Airlines"
 
         # Verify in database
         db_mandate = ap2_repo.intent.get_by_id(mandate.id)
         constraints = json.loads(db_mandate.constraints)
-        assert constraints['max_amount'] == 1500.00
+        assert constraints["max_amount"] == 1500.00
 
     def test_intent_mandate_expiration_enforcement(self, agent, ap2_repo):
         """
@@ -503,10 +495,7 @@ class TestAP2ConstraintCompliance:
         """
         # Create mandate with 1-day expiration
         mandate = agent.create_intent_mandate(
-            user_id="user_ap2_001",
-            max_amount=100.00,
-            category="Other",
-            valid_days=1
+            user_id="user_ap2_001", max_amount=100.00, category="Other", valid_days=1
         )
 
         # Verify expiration is set correctly
@@ -529,6 +518,7 @@ class TestAP2ConstraintCompliance:
 # AP2 STATUS TRACKING TESTS
 # ============================================================================
 
+
 class TestAP2StatusCompliance:
     """Test AP2 status tracking compliance"""
 
@@ -537,19 +527,17 @@ class TestAP2StatusCompliance:
         AP2 Spec: Payment status MUST be one of:
         pending, completed, failed, refunded
         """
-        valid_statuses = ['pending', 'completed', 'failed', 'refunded']
+        valid_statuses = ["pending", "completed", "failed", "refunded"]
 
         intent = agent.create_intent_mandate(
-            user_id="user_ap2_001",
-            max_amount=200.00,
-            category="Meals"
+            user_id="user_ap2_001", max_amount=200.00, category="MEALS"
         )
 
         cart = agent.create_cart_mandate(
             intent_mandate_id=intent.id,
             expense_id="EXP-AP2-009",
-            items=[{'description': 'Lunch', 'amount': 50.00, 'vendor': 'Restaurant'}],
-            merchant="Restaurant"
+            items=[{"description": "Lunch", "amount": 50.00, "vendor": "Restaurant"}],
+            merchant="Restaurant",
         )
 
         payment = agent.process_payment(cart)
@@ -562,16 +550,14 @@ class TestAP2StatusCompliance:
         AP2 Spec: Cart Mandate status should update through lifecycle
         """
         intent = agent.create_intent_mandate(
-            user_id="user_ap2_001",
-            max_amount=300.00,
-            category="Software"
+            user_id="user_ap2_001", max_amount=300.00, category="Software"
         )
 
         cart = agent.create_cart_mandate(
             intent_mandate_id=intent.id,
             expense_id="EXP-AP2-010",
-            items=[{'description': 'License', 'amount': 250.00, 'vendor': 'SW Co'}],
-            merchant="SW Co"
+            items=[{"description": "License", "amount": 250.00, "vendor": "SW Co"}],
+            merchant="SW Co",
         )
 
         # Initially should be pending
