@@ -816,10 +816,16 @@ async def delete_expense(
     except Exception as e:
         db.rollback()
         import logging
+        import traceback
 
         logger = logging.getLogger(__name__)
         logger.error(f"Error deleting expense {expense_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error deleting expense: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        # Include full exception details for debugging
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting expense: {type(e).__name__}: {str(e)}"
+        )
 
 
 @app.post("/api/v1/expenses/approve")
