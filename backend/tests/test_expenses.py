@@ -17,7 +17,7 @@ class TestExpenseCreation:
                 "amount": 150.00,
                 "vendor": "Test Restaurant",
                 "description": "Business lunch",
-                "category": "Meals",
+                "category": "MEALS",
                 "date": datetime.utcnow().isoformat(),
                 "organization_id": test_organization.id
             }
@@ -26,7 +26,7 @@ class TestExpenseCreation:
         data = response.json()
         assert data["amount"] == 150.00
         assert data["vendor"] == "Test Restaurant"
-        assert data["status"] == "Pending"
+        assert data["status"] == "PENDING"
 
     def test_create_expense_without_auth(self, client, test_organization):
         """Test creating expense without authentication fails"""
@@ -36,7 +36,7 @@ class TestExpenseCreation:
                 "amount": 100.00,
                 "vendor": "Test Vendor",
                 "description": "Test",
-                "category": "Travel",
+                "category": "TRAVEL",
                 "date": datetime.utcnow().isoformat(),
                 "organization_id": test_organization.id
             }
@@ -52,7 +52,7 @@ class TestExpenseCreation:
                 "amount": -50.00,
                 "vendor": "Test Vendor",
                 "description": "Test",
-                "category": "Travel",
+                "category": "TRAVEL",
                 "date": datetime.utcnow().isoformat(),
                 "organization_id": test_organization.id
             }
@@ -106,7 +106,7 @@ class TestExpenseUpdate:
                 "amount": 200.00,
                 "vendor": "Updated Vendor",
                 "description": "Updated description",
-                "category": "Travel",
+                "category": "TRAVEL",
                 "date": datetime.utcnow().isoformat()
             }
         )
@@ -124,7 +124,7 @@ class TestExpenseUpdate:
                 "amount": 999.00,
                 "vendor": "Hacker",
                 "description": "Trying to update",
-                "category": "Travel",
+                "category": "TRAVEL",
                 "date": datetime.utcnow().isoformat()
             }
         )
@@ -157,7 +157,7 @@ class TestExpenseFiltering:
     def test_filter_expenses_by_status(self, client, org_headers, multiple_expenses):
         """Test filtering expenses by status"""
         response = client.get(
-            "/api/v1/expenses?status=Pending",
+            "/api/v1/expenses?status=PENDING",
             headers=org_headers
         )
         assert response.status_code == 200

@@ -292,19 +292,19 @@ class AuditLog(Base):
 
 
 class ExpenseStatus(str, enum.Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-    PROCESSING = "processing"
-    WITHDRAWN = "withdrawn"
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    PROCESSING = "PROCESSING"
+    WITHDRAWN = "WITHDRAWN"
 
 
 class ExpenseCategory(str, enum.Enum):
-    TRAVEL = "Travel"
-    MEALS = "Meals"
-    SOFTWARE = "Software"
-    OFFICE_SUPPLIES = "Office Supplies"
-    OTHER = "Other"
+    TRAVEL = "TRAVEL"
+    MEALS = "MEALS"
+    SOFTWARE = "SOFTWARE"
+    OFFICE_SUPPLIES = "OFFICE_SUPPLIES"
+    OTHER = "OTHER"
 
 
 class Expense(Base):
