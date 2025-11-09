@@ -23,10 +23,18 @@ def upgrade() -> None:
         "receipts",
         sa.Column("id", sa.String(length=255), nullable=False),
         sa.Column("expense_id", sa.String(length=255), nullable=False),
-        sa.Column("filename", sa.String(length=500), nullable=False),
-        sa.Column("file_path", sa.String(length=1000), nullable=False),
-        sa.Column("file_type", sa.String(length=100), nullable=False),
+        # File information
+        sa.Column("filename", sa.String(length=255), nullable=False),
+        sa.Column("original_filename", sa.String(length=255), nullable=False),
+        sa.Column("file_path", sa.String(length=500), nullable=False),
         sa.Column("file_size", sa.Integer(), nullable=False),
+        sa.Column("content_type", sa.String(length=100), nullable=False),
+        # Optional OCR/AI extracted data
+        sa.Column("ocr_text", sa.Text(), nullable=True),
+        sa.Column("extracted_amount", sa.Numeric(precision=10, scale=2), nullable=True),
+        sa.Column("extracted_vendor", sa.String(length=255), nullable=True),
+        sa.Column("extracted_date", sa.DateTime(), nullable=True),
+        # Timestamps
         sa.Column(
             "uploaded_at",
             sa.DateTime(),

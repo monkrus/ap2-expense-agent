@@ -824,7 +824,7 @@ async def delete_expense(
         # Include full exception details for debugging
         raise HTTPException(
             status_code=500,
-            detail=f"Error deleting expense: {type(e).__name__}: {str(e)}"
+            detail=f"Error deleting expense: {type(e).__name__}: {str(e)}",
         )
 
 
