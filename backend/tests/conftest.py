@@ -92,7 +92,7 @@ def test_user(db_session):
         username="testuser",
         full_name="Test User",
         hashed_password=AuthService.hash_password("TestPass123!"),
-        role=UserRole.EMPLOYEE,
+        role=UserRole.EMPLOYEE.value,
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,
@@ -114,7 +114,7 @@ def test_admin(db_session):
         username="admin",
         full_name="Admin User",
         hashed_password=AuthService.hash_password("AdminPass123!"),
-        role=UserRole.ADMIN,
+        role=UserRole.ADMIN.value,
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,
@@ -136,7 +136,7 @@ def test_manager(db_session):
         username="manager",
         full_name="Manager User",
         hashed_password=AuthService.hash_password("ManagerPass123!"),
-        role=UserRole.MANAGER,
+        role=UserRole.MANAGER.value,
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,
@@ -274,7 +274,7 @@ def second_org_user(db_session, second_organization):
         username="otheruser",
         full_name="Other User",
         hashed_password=AuthService.hash_password("OtherPass123!"),
-        role=UserRole.EMPLOYEE,
+        role=UserRole.EMPLOYEE.value,
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,
@@ -403,13 +403,15 @@ def sample_user(db_session):
     """Factory fixture to create users with specific attributes"""
     def _create_user(email=None, role=UserRole.EMPLOYEE, **kwargs):
         email = email or f"user_{uuid.uuid4().hex[:8]}@test.com"
+        # Handle both UserRole enum and string values
+        role_value = role.value if hasattr(role, 'value') else role
         user = User(
             id=str(uuid.uuid4()),
             email=email,
             username=email.split('@')[0],
             full_name=kwargs.get('full_name', 'Test User'),
             hashed_password=AuthService.hash_password(kwargs.get('password', 'TestPass123!')),
-            role=role,
+            role=role_value,
             is_active=kwargs.get('is_active', True),
             is_verified=kwargs.get('is_verified', True),
             failed_login_attempts=0,
