@@ -32,7 +32,7 @@ def test_db():
         username="testuser",
         hashed_password="hashed_password",
         full_name="Test User",
-        role=UserRole.EMPLOYEE.value,
+        role=UserRole.EMPLOYEE.name.lower(),
         is_active=True,
         is_verified=True
     )
@@ -42,6 +42,29 @@ def test_db():
     yield db
     db.close()
     Base.metadata.drop_all(engine)
+
+
+@pytest.fixture
+def test_organization(test_db):
+    """Create a test organization in the same SQLite database"""
+    from src.models import Organization
+    from datetime import datetime
+
+    org = Organization(
+        id="org_compliance_001",
+        name="Compliance Test Organization",
+        slug="compliance-test-org",
+        description="Test organization for compliance testing",
+        currency="USD",
+        timezone="UTC",
+        max_members=25,
+        is_active=True,
+        created_at=datetime.utcnow()
+    )
+    test_db.add(org)
+    test_db.commit()
+    test_db.refresh(org)
+    return org
 
 
 @pytest.fixture

@@ -91,7 +91,11 @@
       "Bash(alembic current:*)",
       "Bash(alembic downgrade:*)",
       "Bash(alembic upgrade:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash($env:SKIP_DB_INIT=\"true\")",
+      "Bash($env:DATABASE_URL=\"sqlite:///:memory:\")",
+      "Bash(Select-Object -First 100)",
+      "Bash(SKIP_DB_INIT=true DATABASE_URL=\"sqlite:///:memory:\" pytest:*)"
     ],
     "deny": [],
     "ask": []
