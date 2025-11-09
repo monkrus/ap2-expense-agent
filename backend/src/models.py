@@ -544,7 +544,9 @@ class ScheduledExpense(Base):
     )  # pending, submitted, failed, skipped
 
     # Result tracking
-    expense_id = Column(String(255), ForeignKey("expenses.id"), nullable=True)
+    expense_id = Column(
+        String(255), ForeignKey("expenses.id", ondelete="SET NULL"), nullable=True
+    )
     error_message = Column(Text, nullable=True)
 
     # Timestamps
@@ -574,9 +576,13 @@ class ExpenseNotification(Base):
     message = Column(Text, nullable=False)
 
     # Related entities
-    expense_id = Column(String(255), ForeignKey("expenses.id"), nullable=True)
+    expense_id = Column(
+        String(255), ForeignKey("expenses.id", ondelete="SET NULL"), nullable=True
+    )
     template_id = Column(
-        String(255), ForeignKey("recurring_expense_templates.id"), nullable=True
+        String(255),
+        ForeignKey("recurring_expense_templates.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     # Status
