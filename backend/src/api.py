@@ -171,7 +171,7 @@ agent = None
 
 
 class ExpenseSubmission(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None  # Optional - will use authenticated user if not provided
     amount: float
     vendor: str
     category: str  # Will be validated against ExpenseCategory enum values
@@ -179,6 +179,37 @@ class ExpenseSubmission(BaseModel):
     date: Optional[str] = (
         None  # ISO format date string (YYYY-MM-DD), defaults to today if not provided
     )
+
+    @validator("category")
+    def validate_category(cls, v):
+        from .models import ExpenseCategory
+
+        # Check if the value matches any of the enum values
+        valid_categories = [e.value for e in ExpenseCategory]
+        if v not in valid_categories:
+            raise ValueError(f'Category must be one of: {", ".join(valid_categories)}')
+        return v
+
+    @validator("date")
+    def validate_date(cls, v):
+        if v is None:
+            return None
+        # Validate date format
+        from datetime import datetime
+
+        try:
+            datetime.fromisoformat(v)
+            return v
+        except ValueError:
+            raise ValueError("Date must be in YYYY-MM-DD format")
+
+
+class ExpenseUpdate(BaseModel):
+    amount: float
+    vendor: str
+    category: str  # Will be validated against ExpenseCategory enum values
+    description: str
+    date: Optional[str] = None
 
     @validator("category")
     def validate_category(cls, v):
@@ -1033,7 +1064,7 @@ async def withdraw_expense(
 @app.put("/api/v1/expenses/{expense_id}")
 async def update_expense(
     expense_id: str,
-    data: ExpenseSubmission,
+    data: ExpenseUpdate,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
@@ -1043,7 +1074,7 @@ async def update_expense(
     logger = logging.getLogger(__name__)
     logger.info(f"[UPDATE_EXPENSE] Route called for expense_id: {expense_id}")
     logger.info(
-        f"[UPDATE_EXPENSE] Data received: user_id={data.user_id}, "
+        f"[UPDATE_EXPENSE] Data received: "
         f"amount={data.amount}, vendor={data.vendor}, category={data.category}, "
         f"description={data.description}"
     )
