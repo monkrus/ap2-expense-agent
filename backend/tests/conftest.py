@@ -20,14 +20,23 @@ from datetime import datetime, timedelta
 import uuid
 
 
-# Test database setup (in-memory SQLite)
-SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
+# Test database setup - use DATABASE_URL from environment if set, otherwise SQLite
+SQLALCHEMY_TEST_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///:memory:")
 
-engine = create_engine(
-    SQLALCHEMY_TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+# Configure engine based on database type
+if SQLALCHEMY_TEST_DATABASE_URL.startswith("postgresql"):
+    # PostgreSQL configuration for GitHub Actions CI/CD
+    engine = create_engine(
+        SQLALCHEMY_TEST_DATABASE_URL,
+        pool_pre_ping=True,
+    )
+else:
+    # SQLite configuration for local development
+    engine = create_engine(
+        SQLALCHEMY_TEST_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

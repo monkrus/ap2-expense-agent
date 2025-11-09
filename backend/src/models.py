@@ -64,7 +64,7 @@ class OrganizationMember(Base):
     id = Column(String(255), primary_key=True)
     organization_id = Column(String(255), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(String(255), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    role = Column(Enum(OrganizationRole, native_enum=False), nullable=False, default=OrganizationRole.MEMBER)
+    role = Column(Enum(OrganizationRole), nullable=False, default=OrganizationRole.MEMBER)
 
     # Status
     is_active = Column(Boolean, default=True, nullable=False)
@@ -90,7 +90,7 @@ class OrganizationInvitation(Base):
     id = Column(String(255), primary_key=True)
     organization_id = Column(String(255), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
     email = Column(String(255), nullable=False, index=True)
-    role = Column(Enum(OrganizationRole, native_enum=False), nullable=False, default=OrganizationRole.MEMBER)
+    role = Column(Enum(OrganizationRole), nullable=False, default=OrganizationRole.MEMBER)
 
     # Invitation details
     invited_by = Column(String(255), ForeignKey("users.id"), nullable=False)
@@ -117,7 +117,7 @@ class User(Base):
     username = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
     full_name = Column(String)
-    role = Column(Enum(UserRole, native_enum=False), default=UserRole.EMPLOYEE, nullable=False)  # Use VARCHAR for cross-DB compatibility
+    role = Column(Enum(UserRole), default=UserRole.EMPLOYEE, nullable=False)
     department_id = Column(String(255), nullable=True, index=True)  # Department for filtering (managers see their department)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
@@ -223,9 +223,9 @@ class Expense(Base):
     user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
     amount = Column(Numeric(10, 2), nullable=False)
     vendor = Column(String(255), nullable=False)
-    category = Column(Enum(ExpenseCategory, native_enum=False), nullable=False)
+    category = Column(Enum(ExpenseCategory), nullable=False)
     description = Column(Text, nullable=False)
-    status = Column(Enum(ExpenseStatus, native_enum=False), nullable=False, default=ExpenseStatus.PENDING, index=True)
+    status = Column(Enum(ExpenseStatus), nullable=False, default=ExpenseStatus.PENDING, index=True)
     date = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     # Approval tracking
@@ -334,11 +334,11 @@ class RecurringExpenseTemplate(Base):
     # Expense template details
     vendor = Column(String(255), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
-    category = Column(Enum(ExpenseCategory, native_enum=False), nullable=False)
+    category = Column(Enum(ExpenseCategory), nullable=False)
     description = Column(Text, nullable=False)
 
     # Recurring schedule
-    frequency = Column(Enum(RecurringFrequency, native_enum=False), nullable=False)
+    frequency = Column(Enum(RecurringFrequency), nullable=False)
     start_date = Column(DateTime, nullable=False)
     end_date = Column(DateTime, nullable=True)  # Optional end date
     next_run_date = Column(DateTime, nullable=False, index=True)  # Next scheduled submission
@@ -441,11 +441,11 @@ class Budget(Base):
     # Budget details
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    category = Column(Enum(ExpenseCategory, native_enum=False), nullable=True)  # Optional: category-specific budget
+    category = Column(Enum(ExpenseCategory), nullable=True)  # Optional: category-specific budget
 
     # Budget amounts
     amount = Column(Numeric(12, 2), nullable=False)  # Total budget amount
-    period = Column(Enum(BudgetPeriod, native_enum=False), nullable=False, default=BudgetPeriod.MONTHLY)
+    period = Column(Enum(BudgetPeriod), nullable=False, default=BudgetPeriod.MONTHLY)
 
     # Alert thresholds (percentages)
     warning_threshold = Column(Integer, nullable=False, default=75)  # Alert at 75%
@@ -573,7 +573,7 @@ class Subscription(Base):
 
     id = Column(String(255), primary_key=True)
     user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
-    tier = Column(Enum(SubscriptionTier, native_enum=False), nullable=False, default=SubscriptionTier.STARTER)
+    tier = Column(Enum(SubscriptionTier), nullable=False, default=SubscriptionTier.STARTER)
     status = Column(String(50), nullable=False, default="active", index=True)  # active, canceled, past_due, trialing
 
     # Stripe integration
