@@ -58,7 +58,7 @@ async def register(
         username=user_data.username,
         full_name=user_data.full_name,
         hashed_password=AuthService.hash_password(user_data.password),
-        role=user_data.role,
+        role=user_data.role.value,
         is_active=True,
         is_verified=False,
     )

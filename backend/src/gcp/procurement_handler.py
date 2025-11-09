@@ -124,7 +124,7 @@ async def handle_procurement_webhook(webhook_data: Dict, db: Session) -> Dict:
                 username=admin_email.split("@")[0],
                 hashed_password=AuthService.hash_password(temp_password),
                 full_name=admin_email.split("@")[0].replace(".", " ").title(),
-                role=UserRole.ADMIN,
+                role=UserRole.ADMIN.value,
                 is_active=True,
                 is_verified=True,  # Auto-verify GCP users
                 created_at=datetime.utcnow(),

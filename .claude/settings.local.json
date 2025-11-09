@@ -90,7 +90,8 @@
       "Bash(npx playwright install:*)",
       "Bash(alembic current:*)",
       "Bash(alembic downgrade:*)",
-      "Bash(alembic upgrade:*)"
+      "Bash(alembic upgrade:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
