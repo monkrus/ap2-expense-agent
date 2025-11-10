@@ -24,6 +24,7 @@ from .routes.ap2 import router as ap2_router
 from .routes.billing import router as billing_router
 from .routes.billing_org import router as billing_org_router
 from .routes.budgets import router as budgets_router
+from .routes.gdpr import router as gdpr_router
 from .routes.organizations import router as organizations_router
 
 # Temporarily disabled due to missing google-cloud dependencies
@@ -113,6 +114,7 @@ app.include_router(receipts_router)
 app.include_router(recurring_expenses_router)
 app.include_router(notification_router)
 app.include_router(budgets_router)
+app.include_router(gdpr_router)  # GDPR compliance endpoints
 
 # Include GCP Marketplace webhooks (temporarily disabled)
 # app.include_router(gcp_webhooks_router)

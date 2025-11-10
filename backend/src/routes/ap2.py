@@ -5,7 +5,7 @@ AP2 Protocol Payment API endpoints
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -14,6 +14,7 @@ from ..billing import UsageTracker
 from ..database import get_db
 from ..models import User
 from ..payments import AP2PaymentService
+from ..rate_limit import limiter
 
 router = APIRouter(prefix="/api/ap2", tags=["ap2-payments"])
 
@@ -131,7 +132,9 @@ async def create_cart_mandate(
 
 
 @router.post("/payment-mandate")
+@limiter.limit("20/minute")  # Rate limit: 20 payment mandate creations per minute
 async def create_payment_mandate(
+    http_request: Request,
     request: CreatePaymentMandateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -155,7 +158,9 @@ async def create_payment_mandate(
 
 
 @router.post("/execute-payment")
+@limiter.limit("10/minute")  # Rate limit: 10 payments per minute per user
 async def execute_payment(
+    http_request: Request,
     request: ExecutePaymentRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -222,7 +227,9 @@ async def execute_payment(
 
 
 @router.post("/complete-flow")
+@limiter.limit("5/minute")  # Rate limit: 5 complete flows per minute per user
 async def complete_ap2_flow(
+    http_request: Request,
     request: CompleteAP2FlowRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
