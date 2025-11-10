@@ -112,9 +112,9 @@ class KMSSigningService:
             signature_bytes = base64.b64decode(signature)
 
             # Verify using cryptography library
+            from cryptography.hazmat.backends import default_backend
             from cryptography.hazmat.primitives import hashes, serialization
             from cryptography.hazmat.primitives.asymmetric import padding, rsa
-            from cryptography.hazmat.backends import default_backend
 
             # Load public key
             public_key_pem = public_key.pem.encode("utf-8")
@@ -145,9 +145,9 @@ class KMSSigningService:
         WARNING: This is INSECURE and should NEVER be used in production!
         Keys are stored in memory and not protected by HSM.
         """
+        from cryptography.hazmat.backends import default_backend
         from cryptography.hazmat.primitives import hashes, serialization
         from cryptography.hazmat.primitives.asymmetric import padding, rsa
-        from cryptography.hazmat.backends import default_backend
 
         # Generate ephemeral key (in production, this would be in KMS)
         private_key = rsa.generate_private_key(

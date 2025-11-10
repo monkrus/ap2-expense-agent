@@ -147,8 +147,9 @@ class NonceService:
             True if nonce was stored successfully
             False if nonce already exists
         """
+        from sqlalchemy import Column, DateTime, Index, String
+
         from ..models import Base
-        from sqlalchemy import Column, String, DateTime, Index
 
         # Define nonce table (lazy creation)
         class UsedNonce(Base):
@@ -199,8 +200,9 @@ class NonceService:
 
         # Database cleanup
         try:
-            from ..models import Base
             from sqlalchemy import text
+
+            from ..models import Base
 
             # Delete expired nonces
             self.db.execute(text("DELETE FROM used_nonces WHERE expires_at < NOW()"))

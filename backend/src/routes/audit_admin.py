@@ -117,9 +117,10 @@ async def verify_single_entry(
     Returns:
         Verification result for the specific entry
     """
-    from ..models import AuditLog
     import hashlib
     import json
+
+    from ..models import AuditLog
 
     # Get the entry
     entry = db.query(AuditLog).filter_by(id=entry_id).first()

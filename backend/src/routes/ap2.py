@@ -175,8 +175,9 @@ async def execute_payment(
     - Timestamp must be within ±5 minutes of server time
     - Each nonce can only be used once
     """
-    from ..security.nonce_service import get_nonce_service
     from datetime import datetime
+
+    from ..security.nonce_service import get_nonce_service
 
     # Validate nonce and timestamp (replay attack protection)
     nonce_service = get_nonce_service(db)
@@ -520,8 +521,8 @@ async def revoke_intent_mandate(
                 revoked_payments.append(payment.id)
 
     # Create audit log
-    from ..services.audit_service import AuditService
     from ..models import AuditLog
+    from ..services.audit_service import AuditService
 
     audit_log = AuditLog(
         id=str(__import__("uuid").uuid4()),
