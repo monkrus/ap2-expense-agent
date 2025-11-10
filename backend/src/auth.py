@@ -23,6 +23,7 @@ from .database import get_db
 from .models import AuditLog, RefreshToken
 from .models import Session as UserSession
 from .models import User, UserRole
+from .security.audit_chain import get_audit_chain_service
 
 # Password hashing - configure bcrypt to handle longer passwords
 pwd_context = CryptContext(
@@ -232,20 +233,18 @@ class AuthService:
         details: Optional[Dict[str, Any]] = None,
         request: Optional[Request] = None,
     ):
-        """Log an audit event"""
-        audit_log = AuditLog(
-            id=str(uuid.uuid4()),
+        """Log an audit event using tamper-proof audit chain"""
+        # Use AuditChainService to create tamper-proof audit log
+        audit_service = get_audit_chain_service(db)
+        audit_service.create_audit_entry(
             user_id=user_id,
             action=action,
             resource_type=resource_type,
             resource_id=resource_id,
-            details=json.dumps(details) if details else None,
+            details=details,
             ip_address=request.client.host if request and request.client else None,
             user_agent=request.headers.get("User-Agent") if request else None,
         )
-
-        db.add(audit_log)
-        db.commit()
 
 
 class TOTPService:

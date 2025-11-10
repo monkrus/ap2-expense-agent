@@ -300,9 +300,11 @@ class AuditLog(Base):
     previous_hash = Column(
         String(64), nullable=True, index=True
     )  # SHA-256 of previous entry
-    entry_hash = Column(String(64), nullable=False, index=True)  # SHA-256 of this entry
+    entry_hash = Column(
+        String(64), nullable=True, index=True, default=""
+    )  # SHA-256 of this entry
     sequence_number = Column(
-        Integer, nullable=False, index=True
+        Integer, nullable=True, index=True, default=0
     )  # Monotonically increasing
 
 

@@ -19,13 +19,13 @@ depends_on = None
 def upgrade():
     # Add hash chain fields to audit_logs
     op.add_column('audit_logs', sa.Column('previous_hash', sa.String(64), nullable=True))
-    op.add_column('audit_logs', sa.Column('entry_hash', sa.String(64), nullable=False, server_default=''))
-    op.add_column('audit_logs', sa.Column('sequence_number', sa.Integer(), nullable=False, server_default='0'))
+    op.add_column('audit_logs', sa.Column('entry_hash', sa.String(64), nullable=True, server_default=''))
+    op.add_column('audit_logs', sa.Column('sequence_number', sa.Integer(), nullable=True, server_default='0'))
 
     # Create indexes for efficient chain verification
     op.create_index('idx_audit_logs_previous_hash', 'audit_logs', ['previous_hash'])
     op.create_index('idx_audit_logs_entry_hash', 'audit_logs', ['entry_hash'])
-    op.create_index('idx_audit_logs_sequence_number', 'audit_logs', ['sequence_number'], unique=True)
+    op.create_index('idx_audit_logs_sequence_number', 'audit_logs', ['sequence_number'])
 
 
 def downgrade():
