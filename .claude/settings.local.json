@@ -104,7 +104,9 @@
       "Bash(docker-compose up:*)",
       "Bash(timeout /t 15 /nobreak)",
       "Bash(docker-compose:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(alembic heads:*)",
+      "Bash(alembic history:*)"
     ],
     "deny": [],
     "ask": []
