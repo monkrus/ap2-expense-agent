@@ -100,7 +100,10 @@
       "Bash(Select-Object -First 150)",
       "Bash(git pull:*)",
       "Bash(git stash:*)",
-      "Bash(git remote:*)"
+      "Bash(git remote:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(timeout /t 15 /nobreak)",
+      "Bash(docker-compose:*)"
     ],
     "deny": [],
     "ask": []
