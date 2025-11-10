@@ -33,18 +33,31 @@ def verify_gcp_signature(request_body: bytes, signature: Optional[str]) -> bool:
 
     Returns:
         True if valid, False otherwise
+
+    Security:
+    - NEVER bypasses signature verification in any environment
+    - Use test webhook secret for development/testing
+    - Fails closed if secret not configured
     """
     if not settings.gcp_webhook_secret:
-        # In development, allow unsigned requests
-        if settings.environment == "development":
-            print("Warning: GCP webhook signature verification disabled (dev mode)")
-            return True
-        else:
-            return False
+        # SECURITY: Fail closed - never allow unsigned webhooks
+        print("ERROR: GCP webhook secret not configured. Rejecting webhook.")
+        print("Set GCP_WEBHOOK_SECRET environment variable with test or production secret.")
+        return False
 
-    return GCPMarketplaceClient.verify_webhook_signature(
-        request_body, signature or "", settings.gcp_webhook_secret
+    if not signature:
+        print("ERROR: Missing X-Goog-Signature header. Possible forged webhook.")
+        return False
+
+    # Always verify signature, regardless of environment
+    is_valid = GCPMarketplaceClient.verify_webhook_signature(
+        request_body, signature, settings.gcp_webhook_secret
     )
+
+    if not is_valid:
+        print(f"ERROR: GCP webhook signature verification failed (env: {settings.environment})")
+
+    return is_valid
 
 
 @router.post("/procurement")

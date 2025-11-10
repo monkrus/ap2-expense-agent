@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from ..models import AuditLog, CartMandate, Expense, IntentMandate, PaymentMandate, User
 from ..repository import AP2Repository
+from ..security import get_kms_service
 
 
 class AuditService:
@@ -22,6 +23,7 @@ class AuditService:
     def __init__(self, db: Session):
         self.db = db
         self.ap2_repo = AP2Repository(db)
+        self.kms = get_kms_service()  # Cloud KMS for cryptographic signing
 
     def create_complete_audit_trail(
         self, expense: Expense, approver: User, action: str = "approve"
@@ -400,10 +402,20 @@ class AuditService:
         ]
 
     def _generate_signature(self, message: str) -> str:
-        """Generate cryptographic signature for AP2 protocol"""
+        """
+        Generate cryptographic signature using Cloud KMS
+
+        Uses RSA-2048 asymmetric signing for tamper-proof audit trails.
+
+        Args:
+            message: Data to sign
+
+        Returns:
+            Base64-encoded RSA signature
+        """
         timestamp = int(time.time())
         signed_message = f"{message}:{timestamp}"
-        return hashlib.sha256(signed_message.encode()).hexdigest()
+        return self.kms.sign_mandate(signed_message)
 
     def _verify_timestamps(
         self,

@@ -39,6 +39,8 @@ class CreatePaymentMandateRequest(BaseModel):
 class ExecutePaymentRequest(BaseModel):
     payment_mandate_id: str
     stripe_customer_id: Optional[str] = None
+    nonce: str  # Required for replay attack protection
+    timestamp: str  # ISO format timestamp
 
 
 class CompleteAP2FlowRequest(BaseModel):
@@ -46,6 +48,11 @@ class CompleteAP2FlowRequest(BaseModel):
     merchant: str
     constraints: Optional[Dict] = None
     stripe_customer_id: Optional[str] = None
+
+
+class RevokeMandateRequest(BaseModel):
+    reason: str
+    revoke_dependents: bool = True
 
 
 # AP2 Protocol endpoints
@@ -157,7 +164,47 @@ async def execute_payment(
     Execute payment using Stripe
 
     This is the final step in the AP2 flow.
+
+    Security:
+    - Requires nonce to prevent replay attacks
+    - Timestamp must be within ±5 minutes of server time
+    - Each nonce can only be used once
     """
+    from ..security.nonce_service import get_nonce_service
+    from datetime import datetime
+
+    # Validate nonce and timestamp (replay attack protection)
+    nonce_service = get_nonce_service(db)
+
+    try:
+        request_timestamp = datetime.fromisoformat(request.timestamp.replace('Z', '+00:00'))
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid timestamp format. Use ISO 8601 format."
+        )
+
+    # Validate and store nonce
+    try:
+        nonce_valid = nonce_service.validate_and_store_nonce(
+            nonce=request.nonce,
+            request_timestamp=request_timestamp,
+            endpoint="execute_payment",
+            user_id=current_user.id
+        )
+
+        if not nonce_valid:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Nonce already used. Possible replay attack detected."
+            )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
     ap2_service = AP2PaymentService(db)
 
     # Track AP2 transaction usage
@@ -380,4 +427,282 @@ async def get_ap2_stats(
         "cart_mandates": {stat.status: stat.count for stat in cart_stats},
         "payment_mandates": {stat.status: stat.count for stat in payment_stats},
         "total_amount_processed": float(total_amount),
+    }
+
+
+@router.post("/intent-mandate/{mandate_id}/revoke")
+async def revoke_intent_mandate(
+    mandate_id: str,
+    request: RevokeMandateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Revoke Intent Mandate - GDPR Right to Withdraw Consent
+
+    This endpoint allows users to revoke their payment authorization.
+    When revoked, all dependent cart and payment mandates are also revoked.
+
+    Args:
+        mandate_id: Intent mandate ID to revoke
+        request: Revocation request with reason
+        current_user: Authenticated user (must be mandate owner)
+
+    Returns:
+        Revocation status and affected mandates
+
+    GDPR Compliance:
+    - Article 7(3): Right to withdraw consent at any time
+    - Creates immutable audit log of revocation
+    - Cannot be undone (mandate status changes to 'revoked')
+    """
+    from ..models import CartMandate, IntentMandate, PaymentMandate
+
+    # Get intent mandate
+    intent_mandate = (
+        db.query(IntentMandate)
+        .filter_by(id=mandate_id, user_id=current_user.id)
+        .first()
+    )
+
+    if not intent_mandate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Intent mandate not found or you don't have permission to revoke it"
+        )
+
+    if intent_mandate.status == "revoked":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Intent mandate is already revoked"
+        )
+
+    # Revoke intent mandate
+    intent_mandate.status = "revoked"
+    intent_mandate.revoked_at = datetime.utcnow()
+    intent_mandate.revocation_reason = request.reason
+
+    revoked_carts = []
+    revoked_payments = []
+
+    # Cascade revoke dependent mandates if requested
+    if request.revoke_dependents:
+        # Revoke all associated cart mandates
+        cart_mandates = (
+            db.query(CartMandate)
+            .filter_by(intent_mandate_id=mandate_id)
+            .filter(CartMandate.status.in_(["pending", "approved"]))
+            .all()
+        )
+
+        for cart in cart_mandates:
+            cart.status = "revoked"
+            cart.revoked_at = datetime.utcnow()
+            revoked_carts.append(cart.id)
+
+            # Revoke associated payment mandates
+            payment_mandates = (
+                db.query(PaymentMandate)
+                .filter_by(cart_mandate_id=cart.id)
+                .filter(PaymentMandate.status == "pending")
+                .all()
+            )
+
+            for payment in payment_mandates:
+                payment.status = "revoked"
+                payment.revoked_at = datetime.utcnow()
+                revoked_payments.append(payment.id)
+
+    # Create audit log
+    from ..services.audit_service import AuditService
+    from ..models import AuditLog
+
+    audit_log = AuditLog(
+        id=str(__import__("uuid").uuid4()),
+        user_id=current_user.id,
+        action="mandate_revoked",
+        resource_type="intent_mandate",
+        resource_id=mandate_id,
+        details=__import__("json").dumps({
+            "reason": request.reason,
+            "revoked_carts": revoked_carts,
+            "revoked_payments": revoked_payments,
+            "gdpr_article": "7.3",
+            "revocation_timestamp": datetime.utcnow().isoformat(),
+        })
+    )
+    db.add(audit_log)
+
+    db.commit()
+
+    return {
+        "success": True,
+        "intent_mandate_id": mandate_id,
+        "status": "revoked",
+        "revoked_at": intent_mandate.revoked_at.isoformat(),
+        "dependent_mandates_revoked": request.revoke_dependents,
+        "revoked_cart_mandates": len(revoked_carts),
+        "revoked_payment_mandates": len(revoked_payments),
+        "message": "Mandate successfully revoked. This action cannot be undone.",
+    }
+
+
+@router.post("/cart-mandate/{mandate_id}/revoke")
+async def revoke_cart_mandate(
+    mandate_id: str,
+    request: RevokeMandateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Revoke Cart Mandate
+
+    Revokes a specific shopping cart before payment execution.
+    Does not affect the parent Intent Mandate.
+
+    Args:
+        mandate_id: Cart mandate ID to revoke
+        request: Revocation request with reason
+
+    Returns:
+        Revocation status
+    """
+    from ..models import CartMandate, IntentMandate, PaymentMandate
+
+    # Get cart mandate and verify ownership through intent mandate
+    cart_mandate = db.query(CartMandate).filter_by(id=mandate_id).first()
+
+    if not cart_mandate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cart mandate not found"
+        )
+
+    # Verify user owns the parent intent mandate
+    intent_mandate = (
+        db.query(IntentMandate)
+        .filter_by(id=cart_mandate.intent_mandate_id, user_id=current_user.id)
+        .first()
+    )
+
+    if not intent_mandate:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to revoke this cart mandate"
+        )
+
+    if cart_mandate.status == "revoked":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cart mandate is already revoked"
+        )
+
+    # Revoke cart mandate
+    cart_mandate.status = "revoked"
+    cart_mandate.revoked_at = datetime.utcnow()
+    cart_mandate.revocation_reason = request.reason
+
+    # Revoke dependent payment mandates
+    revoked_payments = []
+    if request.revoke_dependents:
+        payment_mandates = (
+            db.query(PaymentMandate)
+            .filter_by(cart_mandate_id=mandate_id)
+            .filter(PaymentMandate.status == "pending")
+            .all()
+        )
+
+        for payment in payment_mandates:
+            payment.status = "revoked"
+            payment.revoked_at = datetime.utcnow()
+            revoked_payments.append(payment.id)
+
+    db.commit()
+
+    return {
+        "success": True,
+        "cart_mandate_id": mandate_id,
+        "status": "revoked",
+        "revoked_at": cart_mandate.revoked_at.isoformat(),
+        "revoked_payment_mandates": len(revoked_payments),
+    }
+
+
+@router.post("/payment-mandate/{mandate_id}/revoke")
+async def revoke_payment_mandate(
+    mandate_id: str,
+    request: RevokeMandateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Revoke Payment Mandate
+
+    Cancels a pending payment before execution.
+    Can only revoke payments that haven't been processed yet.
+
+    Args:
+        mandate_id: Payment mandate ID to revoke
+        request: Revocation request with reason
+
+    Returns:
+        Revocation status
+    """
+    from ..models import CartMandate, IntentMandate, PaymentMandate
+
+    # Get payment mandate
+    payment_mandate = db.query(PaymentMandate).filter_by(id=mandate_id).first()
+
+    if not payment_mandate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Payment mandate not found"
+        )
+
+    # Verify ownership through cart → intent chain
+    cart_mandate = db.query(CartMandate).filter_by(id=payment_mandate.cart_mandate_id).first()
+    if not cart_mandate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Associated cart mandate not found"
+        )
+
+    intent_mandate = (
+        db.query(IntentMandate)
+        .filter_by(id=cart_mandate.intent_mandate_id, user_id=current_user.id)
+        .first()
+    )
+
+    if not intent_mandate:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to revoke this payment mandate"
+        )
+
+    # Can only revoke pending payments
+    if payment_mandate.status == "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot revoke completed payment. Contact support for refunds."
+        )
+
+    if payment_mandate.status == "revoked":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payment mandate is already revoked"
+        )
+
+    # Revoke payment mandate
+    payment_mandate.status = "revoked"
+    payment_mandate.revoked_at = datetime.utcnow()
+    payment_mandate.revocation_reason = request.reason
+
+    db.commit()
+
+    return {
+        "success": True,
+        "payment_mandate_id": mandate_id,
+        "status": "revoked",
+        "revoked_at": payment_mandate.revoked_at.isoformat(),
+        "message": "Payment cancelled successfully",
     }

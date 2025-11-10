@@ -103,7 +103,8 @@
       "Bash(git remote:*)",
       "Bash(docker-compose up:*)",
       "Bash(timeout /t 15 /nobreak)",
-      "Bash(docker-compose:*)"
+      "Bash(docker-compose:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []

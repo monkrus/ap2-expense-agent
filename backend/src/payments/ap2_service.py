@@ -11,6 +11,7 @@ from typing import Dict, Optional
 from sqlalchemy.orm import Session
 
 from ..models import CartMandate, IntentMandate, PaymentMandate, User
+from ..security import get_kms_service
 from .stripe_processor import StripePaymentProcessor
 
 
@@ -27,6 +28,7 @@ class AP2PaymentService:
     def __init__(self, db: Session):
         self.db = db
         self.stripe = StripePaymentProcessor(db)
+        self.kms = get_kms_service()  # Cloud KMS for cryptographic signing
 
     async def create_intent_mandate(
         self, user_id: str, constraints: Dict, expiration_hours: int = 24
@@ -286,17 +288,47 @@ class AP2PaymentService:
         self, user_id: str, constraints: Dict, timestamp: datetime
     ) -> str:
         """
-        Generate cryptographic signature for intent mandate
+        Generate cryptographic signature for intent mandate using Cloud KMS
 
-        In production, this should use proper cryptographic signing
-        For now, using a simple hash-based approach
+        Uses RSA-2048 asymmetric signing with PSS padding.
+        Keys are managed in Google Cloud KMS HSM and never leave the secure enclave.
+
+        Args:
+            user_id: User ID creating the mandate
+            constraints: Mandate constraints dictionary
+            timestamp: Mandate creation timestamp
+
+        Returns:
+            Base64-encoded RSA signature (verifiable with public key)
         """
-        import hashlib
-
+        # Create deterministic data string for signing
         data = f"{user_id}:{json.dumps(constraints, sort_keys=True)}:{timestamp.isoformat()}"
-        signature = hashlib.sha256(data.encode()).hexdigest()
+
+        # Sign using Cloud KMS (RSA-2048 with SHA-256)
+        signature = self.kms.sign_mandate(data)
 
         return signature
+
+    def verify_mandate_signature(
+        self, user_id: str, constraints: Dict, timestamp: datetime, signature: str
+    ) -> bool:
+        """
+        Verify mandate signature using Cloud KMS public key
+
+        Args:
+            user_id: User ID from mandate
+            constraints: Constraints from mandate
+            timestamp: Timestamp from mandate
+            signature: Signature to verify
+
+        Returns:
+            True if signature is valid, False otherwise
+        """
+        # Reconstruct original data
+        data = f"{user_id}:{json.dumps(constraints, sort_keys=True)}:{timestamp.isoformat()}"
+
+        # Verify using KMS public key
+        return self.kms.verify_signature(data, signature)
 
     async def get_mandate_status(
         self, mandate_id: str, mandate_type: str = "payment"
