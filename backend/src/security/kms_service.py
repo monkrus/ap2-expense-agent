@@ -38,10 +38,7 @@ class KMSSigningService:
             try:
                 self.client = KeyManagementServiceClient()
                 self.key_path = self.client.crypto_key_path(
-                    self.project_id,
-                    self.location,
-                    self.keyring_name,
-                    self.key_name
+                    self.project_id, self.location, self.keyring_name, self.key_name
                 )
             except Exception as e:
                 print(f"Warning: Cloud KMS not available: {e}")
@@ -131,9 +128,9 @@ class KMSSigningService:
                 data.encode("utf-8"),
                 padding.PSS(
                     mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH
+                    salt_length=padding.PSS.MAX_LENGTH,
                 ),
-                hashes.SHA256()
+                hashes.SHA256(),
             )
             return True
 
@@ -154,19 +151,16 @@ class KMSSigningService:
 
         # Generate ephemeral key (in production, this would be in KMS)
         private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-            backend=default_backend()
+            public_exponent=65537, key_size=2048, backend=default_backend()
         )
 
         # Sign the data
         signature = private_key.sign(
             data.encode("utf-8"),
             padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
             ),
-            hashes.SHA256()
+            hashes.SHA256(),
         )
 
         return base64.b64encode(signature).decode("utf-8")

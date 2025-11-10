@@ -39,9 +39,7 @@ class NonceService:
         if settings.redis_url:
             try:
                 self.redis_client = redis.from_url(
-                    settings.redis_url,
-                    decode_responses=True,
-                    socket_connect_timeout=2
+                    settings.redis_url, decode_responses=True, socket_connect_timeout=2
                 )
                 # Test connection
                 self.redis_client.ping()
@@ -63,11 +61,7 @@ class NonceService:
         return uuid.uuid4().hex
 
     def validate_and_store_nonce(
-        self,
-        nonce: str,
-        request_timestamp: datetime,
-        endpoint: str,
-        user_id: str
+        self, nonce: str, request_timestamp: datetime, endpoint: str, user_id: str
     ) -> bool:
         """
         Validate nonce and store it to prevent reuse
@@ -87,9 +81,7 @@ class NonceService:
         """
         # Validate nonce format
         if not nonce or len(nonce) != 32:
-            raise ValueError(
-                "Invalid nonce format. Must be 32-character hex string."
-            )
+            raise ValueError("Invalid nonce format. Must be 32-character hex string.")
 
         # Validate timestamp (must be within ±5 minutes of server time)
         now = datetime.utcnow()
@@ -135,10 +127,7 @@ class NonceService:
             # Atomic SET NX with expiration
             # Returns True only if key didn't exist before
             result = self.redis_client.set(
-                nonce_key,
-                "1",
-                ex=self.nonce_ttl,
-                nx=True  # Only set if not exists
+                nonce_key, "1", ex=self.nonce_ttl, nx=True  # Only set if not exists
             )
 
             return result is not None
@@ -169,13 +158,13 @@ class NonceService:
             created_at = Column(DateTime, nullable=False, server_default="NOW()")
             expires_at = Column(DateTime, nullable=False, index=True)
 
-            __table_args__ = (
-                Index('idx_nonce_expires_at', 'expires_at'),
-            )
+            __table_args__ = (Index("idx_nonce_expires_at", "expires_at"),)
 
         # Create table if not exists
         try:
-            Base.metadata.create_all(bind=self.db.get_bind(), tables=[UsedNonce.__table__])
+            Base.metadata.create_all(
+                bind=self.db.get_bind(), tables=[UsedNonce.__table__]
+            )
         except:
             pass  # Table likely already exists
 
@@ -187,10 +176,7 @@ class NonceService:
         # Store nonce
         try:
             expires_at = datetime.utcnow() + timedelta(seconds=self.nonce_ttl)
-            nonce_record = UsedNonce(
-                nonce_key=nonce_key,
-                expires_at=expires_at
-            )
+            nonce_record = UsedNonce(nonce_key=nonce_key, expires_at=expires_at)
             self.db.add(nonce_record)
             self.db.commit()
             return True
@@ -217,9 +203,7 @@ class NonceService:
             from sqlalchemy import text
 
             # Delete expired nonces
-            self.db.execute(
-                text("DELETE FROM used_nonces WHERE expires_at < NOW()")
-            )
+            self.db.execute(text("DELETE FROM used_nonces WHERE expires_at < NOW()"))
             self.db.commit()
 
         except Exception as e:

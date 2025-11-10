@@ -60,9 +60,7 @@ class AuditChainService:
         """
         # Get the last audit log entry to link to
         previous_entry = (
-            self.db.query(AuditLog)
-            .order_by(desc(AuditLog.sequence_number))
-            .first()
+            self.db.query(AuditLog).order_by(desc(AuditLog.sequence_number)).first()
         )
 
         # Determine sequence number and previous hash
@@ -170,60 +168,68 @@ class AuditChainService:
             )
 
             if calculated_hash != entry.entry_hash:
-                issues.append({
-                    "sequence": entry.sequence_number,
-                    "entry_id": entry.id,
-                    "type": "hash_mismatch",
-                    "description": (
-                        f"Entry hash mismatch at sequence {entry.sequence_number}. "
-                        f"Expected: {calculated_hash}, Got: {entry.entry_hash}"
-                    ),
-                    "severity": "CRITICAL",
-                })
+                issues.append(
+                    {
+                        "sequence": entry.sequence_number,
+                        "entry_id": entry.id,
+                        "type": "hash_mismatch",
+                        "description": (
+                            f"Entry hash mismatch at sequence {entry.sequence_number}. "
+                            f"Expected: {calculated_hash}, Got: {entry.entry_hash}"
+                        ),
+                        "severity": "CRITICAL",
+                    }
+                )
 
             # Check 2: Verify chain linkage
             if previous_entry:
                 if entry.previous_hash != previous_entry.entry_hash:
-                    issues.append({
-                        "sequence": entry.sequence_number,
-                        "entry_id": entry.id,
-                        "type": "chain_break",
-                        "description": (
-                            f"Chain break at sequence {entry.sequence_number}. "
-                            f"Previous hash doesn't match: "
-                            f"Expected: {previous_entry.entry_hash}, Got: {entry.previous_hash}"
-                        ),
-                        "severity": "CRITICAL",
-                    })
+                    issues.append(
+                        {
+                            "sequence": entry.sequence_number,
+                            "entry_id": entry.id,
+                            "type": "chain_break",
+                            "description": (
+                                f"Chain break at sequence {entry.sequence_number}. "
+                                f"Previous hash doesn't match: "
+                                f"Expected: {previous_entry.entry_hash}, Got: {entry.previous_hash}"
+                            ),
+                            "severity": "CRITICAL",
+                        }
+                    )
 
                 # Check 3: Verify sequence continuity
                 if entry.sequence_number != previous_entry.sequence_number + 1:
-                    issues.append({
-                        "sequence": entry.sequence_number,
-                        "entry_id": entry.id,
-                        "type": "sequence_gap",
-                        "description": (
-                            f"Sequence gap detected: "
-                            f"Previous: {previous_entry.sequence_number}, "
-                            f"Current: {entry.sequence_number}"
-                        ),
-                        "severity": "HIGH",
-                    })
+                    issues.append(
+                        {
+                            "sequence": entry.sequence_number,
+                            "entry_id": entry.id,
+                            "type": "sequence_gap",
+                            "description": (
+                                f"Sequence gap detected: "
+                                f"Previous: {previous_entry.sequence_number}, "
+                                f"Current: {entry.sequence_number}"
+                            ),
+                            "severity": "HIGH",
+                        }
+                    )
 
             # Check genesis entry
             elif entry.sequence_number == 1:
                 expected_genesis = "0" * 64
                 if entry.previous_hash != expected_genesis:
-                    issues.append({
-                        "sequence": 1,
-                        "entry_id": entry.id,
-                        "type": "invalid_genesis",
-                        "description": (
-                            f"Invalid genesis hash. "
-                            f"Expected: {expected_genesis}, Got: {entry.previous_hash}"
-                        ),
-                        "severity": "CRITICAL",
-                    })
+                    issues.append(
+                        {
+                            "sequence": 1,
+                            "entry_id": entry.id,
+                            "type": "invalid_genesis",
+                            "description": (
+                                f"Invalid genesis hash. "
+                                f"Expected: {expected_genesis}, Got: {entry.previous_hash}"
+                            ),
+                            "severity": "CRITICAL",
+                        }
+                    )
 
             previous_entry = entry
 
@@ -247,16 +253,10 @@ class AuditChainService:
                 "latest_hash": None,
             }
 
-        first_entry = (
-            self.db.query(AuditLog)
-            .order_by(AuditLog.sequence_number)
-            .first()
-        )
+        first_entry = self.db.query(AuditLog).order_by(AuditLog.sequence_number).first()
 
         latest_entry = (
-            self.db.query(AuditLog)
-            .order_by(desc(AuditLog.sequence_number))
-            .first()
+            self.db.query(AuditLog).order_by(desc(AuditLog.sequence_number)).first()
         )
 
         return {

@@ -40,10 +40,7 @@ class EncryptionService:
             try:
                 self.client = kms.KeyManagementServiceClient()
                 self.key_path = self.client.crypto_key_path(
-                    self.project_id,
-                    self.location,
-                    self.keyring_name,
-                    self.key_name
+                    self.project_id, self.location, self.keyring_name, self.key_name
                 )
             except Exception as e:
                 print(f"Warning: Cloud KMS encryption not available: {e}")
@@ -78,11 +75,7 @@ class EncryptionService:
         iv = os.urandom(12)
 
         # Encrypt using AES-256-GCM
-        cipher = Cipher(
-            algorithms.AES(dek),
-            modes.GCM(iv),
-            backend=default_backend()
-        )
+        cipher = Cipher(algorithms.AES(dek), modes.GCM(iv), backend=default_backend())
         encryptor = cipher.encryptor()
 
         ciphertext = encryptor.update(plaintext.encode("utf-8")) + encryptor.finalize()
@@ -92,9 +85,11 @@ class EncryptionService:
 
         # Combine IV, ciphertext, and tag
         encrypted_data = (
-            base64.b64encode(iv).decode("utf-8") + ":" +
-            base64.b64encode(ciphertext).decode("utf-8") + ":" +
-            base64.b64encode(tag).decode("utf-8")
+            base64.b64encode(iv).decode("utf-8")
+            + ":"
+            + base64.b64encode(ciphertext).decode("utf-8")
+            + ":"
+            + base64.b64encode(tag).decode("utf-8")
         )
 
         return encrypted_data
@@ -136,9 +131,7 @@ class EncryptionService:
 
             # Decrypt using AES-256-GCM
             cipher = Cipher(
-                algorithms.AES(dek),
-                modes.GCM(iv, tag),
-                backend=default_backend()
+                algorithms.AES(dek), modes.GCM(iv, tag), backend=default_backend()
             )
             decryptor = cipher.decryptor()
 

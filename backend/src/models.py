@@ -281,6 +281,7 @@ class AuditLog(Base):
     This creates a blockchain-like chain where any modification to any entry
     will break the chain and be detectable.
     """
+
     __tablename__ = "audit_logs"
 
     id = Column(String, primary_key=True)
@@ -296,9 +297,13 @@ class AuditLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     # Hash chain fields for tamper detection
-    previous_hash = Column(String(64), nullable=True, index=True)  # SHA-256 of previous entry
+    previous_hash = Column(
+        String(64), nullable=True, index=True
+    )  # SHA-256 of previous entry
     entry_hash = Column(String(64), nullable=False, index=True)  # SHA-256 of this entry
-    sequence_number = Column(Integer, nullable=False, index=True)  # Monotonically increasing
+    sequence_number = Column(
+        Integer, nullable=False, index=True
+    )  # Monotonically increasing
 
 
 # ============================================================================

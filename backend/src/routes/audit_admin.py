@@ -17,8 +17,7 @@ def require_admin(current_user: User = Depends(get_current_user)):
     """Dependency that requires admin role"""
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
         )
     return current_user
 
@@ -40,7 +39,7 @@ async def get_chain_statistics(
     return {
         "success": True,
         "chain_stats": stats,
-        "message": f"Chain contains {stats['total_entries']} entries"
+        "message": f"Chain contains {stats['total_entries']} entries",
     }
 
 
@@ -70,8 +69,7 @@ async def verify_chain_integrity(
 
     # Verify chain
     is_valid, issues = audit_service.verify_chain_integrity(
-        start_sequence=start_sequence,
-        end_sequence=end_sequence
+        start_sequence=start_sequence, end_sequence=end_sequence
     )
 
     if is_valid:
@@ -82,8 +80,8 @@ async def verify_chain_integrity(
             "message": "Audit log chain integrity verified. No tampering detected.",
             "verified_range": {
                 "start": start_sequence,
-                "end": end_sequence or "latest"
-            }
+                "end": end_sequence or "latest",
+            },
         }
     else:
         # CRITICAL: Tampering detected
@@ -94,13 +92,13 @@ async def verify_chain_integrity(
             "message": f"⚠️ TAMPERING DETECTED: {len(issues)} integrity violations found",
             "verified_range": {
                 "start": start_sequence,
-                "end": end_sequence or "latest"
+                "end": end_sequence or "latest",
             },
             "severity": "CRITICAL",
             "action_required": (
                 "Investigate immediately. Audit logs may have been modified. "
                 "Check database access logs and notify security team."
-            )
+            ),
         }
 
 
@@ -129,7 +127,7 @@ async def verify_single_entry(
     if not entry:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Audit log entry {entry_id} not found"
+            detail=f"Audit log entry {entry_id} not found",
         )
 
     # Recalculate hash
@@ -156,7 +154,8 @@ async def verify_single_entry(
         "stored_hash": entry.entry_hash,
         "calculated_hash": calculated_hash,
         "message": (
-            "Entry hash is valid" if is_valid
+            "Entry hash is valid"
+            if is_valid
             else "⚠️ Entry hash mismatch - possible tampering"
         ),
         "entry_details": {
@@ -165,7 +164,7 @@ async def verify_single_entry(
             "resource_type": entry.resource_type,
             "resource_id": entry.resource_id,
             "created_at": entry.created_at.isoformat() if entry.created_at else None,
-        }
+        },
     }
 
 
@@ -187,47 +186,42 @@ async def get_chain_health(
     # Get stats
     stats = audit_service.get_chain_stats()
 
-    if stats['total_entries'] == 0:
-        return {
-            "status": "healthy",
-            "message": "No audit logs yet",
-            "total_entries": 0
-        }
+    if stats["total_entries"] == 0:
+        return {"status": "healthy", "message": "No audit logs yet", "total_entries": 0}
 
     # Quick verification of last 100 entries
-    latest_sequence = stats['latest_sequence']
+    latest_sequence = stats["latest_sequence"]
     start_sequence = max(1, latest_sequence - 100)
 
     is_valid, issues = audit_service.verify_chain_integrity(
-        start_sequence=start_sequence,
-        end_sequence=latest_sequence
+        start_sequence=start_sequence, end_sequence=latest_sequence
     )
 
     if is_valid:
         return {
             "status": "healthy",
             "message": "Audit log chain is healthy",
-            "total_entries": stats['total_entries'],
-            "verified_entries": min(100, stats['total_entries']),
-            "latest_entry": stats['latest_entry_date']
+            "total_entries": stats["total_entries"],
+            "verified_entries": min(100, stats["total_entries"]),
+            "latest_entry": stats["latest_entry_date"],
         }
     else:
         # Determine severity
-        critical_issues = [i for i in issues if i.get('severity') == 'CRITICAL']
+        critical_issues = [i for i in issues if i.get("severity") == "CRITICAL"]
 
         if critical_issues:
             return {
                 "status": "critical",
                 "message": f"⚠️ {len(critical_issues)} critical integrity violations detected",
-                "total_entries": stats['total_entries'],
+                "total_entries": stats["total_entries"],
                 "issues": issues,
-                "action_required": "Investigate immediately"
+                "action_required": "Investigate immediately",
             }
         else:
             return {
                 "status": "degraded",
                 "message": f"⚠️ {len(issues)} integrity issues detected",
-                "total_entries": stats['total_entries'],
+                "total_entries": stats["total_entries"],
                 "issues": issues,
-                "action_required": "Review and investigate"
+                "action_required": "Review and investigate",
             }

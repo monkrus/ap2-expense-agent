@@ -84,92 +84,118 @@ async def export_user_data(
     # Export expenses
     expenses = db.query(Expense).filter_by(user_id=current_user.id).all()
     for expense in expenses:
-        export_data["expenses"].append({
-            "id": expense.id,
-            "amount": float(expense.amount),
-            "category": expense.category.value if expense.category else None,
-            "vendor": expense.vendor,
-            "description": expense.description,
-            "date": expense.date.isoformat() if expense.date else None,
-            "status": expense.status.value if expense.status else None,
-            "submitted_at": (
-                expense.created_at.isoformat() if expense.created_at else None
-            ),
-            "approved_at": (
-                expense.approved_at.isoformat() if expense.approved_at else None
-            ),
-            "approved_by": expense.approved_by,
-        })
+        export_data["expenses"].append(
+            {
+                "id": expense.id,
+                "amount": float(expense.amount),
+                "category": expense.category.value if expense.category else None,
+                "vendor": expense.vendor,
+                "description": expense.description,
+                "date": expense.date.isoformat() if expense.date else None,
+                "status": expense.status.value if expense.status else None,
+                "submitted_at": (
+                    expense.created_at.isoformat() if expense.created_at else None
+                ),
+                "approved_at": (
+                    expense.approved_at.isoformat() if expense.approved_at else None
+                ),
+                "approved_by": expense.approved_by,
+            }
+        )
 
     # Export AP2 Intent Mandates
     intent_mandates = db.query(IntentMandate).filter_by(user_id=current_user.id).all()
     for mandate in intent_mandates:
-        export_data["ap2_mandates"]["intent_mandates"].append({
-            "id": mandate.id,
-            "constraints": json.loads(mandate.constraints) if mandate.constraints else {},
-            "timestamp": mandate.timestamp.isoformat() if mandate.timestamp else None,
-            "expiration": mandate.expiration.isoformat() if mandate.expiration else None,
-            "status": mandate.status,
-            "signature": mandate.signature,
-            "revoked_at": (
-                mandate.revoked_at.isoformat()
-                if hasattr(mandate, "revoked_at") and mandate.revoked_at
-                else None
-            ),
-        })
+        export_data["ap2_mandates"]["intent_mandates"].append(
+            {
+                "id": mandate.id,
+                "constraints": (
+                    json.loads(mandate.constraints) if mandate.constraints else {}
+                ),
+                "timestamp": (
+                    mandate.timestamp.isoformat() if mandate.timestamp else None
+                ),
+                "expiration": (
+                    mandate.expiration.isoformat() if mandate.expiration else None
+                ),
+                "status": mandate.status,
+                "signature": mandate.signature,
+                "revoked_at": (
+                    mandate.revoked_at.isoformat()
+                    if hasattr(mandate, "revoked_at") and mandate.revoked_at
+                    else None
+                ),
+            }
+        )
 
     # Export AP2 Cart Mandates (through intent mandates)
     for intent in intent_mandates:
-        cart_mandates = db.query(CartMandate).filter_by(intent_mandate_id=intent.id).all()
+        cart_mandates = (
+            db.query(CartMandate).filter_by(intent_mandate_id=intent.id).all()
+        )
         for cart in cart_mandates:
-            export_data["ap2_mandates"]["cart_mandates"].append({
-                "id": cart.id,
-                "intent_mandate_id": cart.intent_mandate_id,
-                "items": json.loads(cart.items) if cart.items else [],
-                "total": float(cart.total),
-                "merchant": cart.merchant,
-                "timestamp": cart.timestamp.isoformat() if cart.timestamp else None,
-                "status": cart.status,
-            })
+            export_data["ap2_mandates"]["cart_mandates"].append(
+                {
+                    "id": cart.id,
+                    "intent_mandate_id": cart.intent_mandate_id,
+                    "items": json.loads(cart.items) if cart.items else [],
+                    "total": float(cart.total),
+                    "merchant": cart.merchant,
+                    "timestamp": cart.timestamp.isoformat() if cart.timestamp else None,
+                    "status": cart.status,
+                }
+            )
 
             # Export Payment Mandates linked to this cart
             payment_mandates = (
                 db.query(PaymentMandate).filter_by(cart_mandate_id=cart.id).all()
             )
             for payment in payment_mandates:
-                export_data["ap2_mandates"]["payment_mandates"].append({
-                    "id": payment.id,
-                    "cart_mandate_id": payment.cart_mandate_id,
-                    "payment_method": payment.payment_method,
-                    "status": payment.status,
-                    "timestamp": payment.timestamp.isoformat() if payment.timestamp else None,
-                    "audit_trail": (
-                        json.loads(payment.audit_trail) if payment.audit_trail else {}
-                    ),
-                })
+                export_data["ap2_mandates"]["payment_mandates"].append(
+                    {
+                        "id": payment.id,
+                        "cart_mandate_id": payment.cart_mandate_id,
+                        "payment_method": payment.payment_method,
+                        "status": payment.status,
+                        "timestamp": (
+                            payment.timestamp.isoformat() if payment.timestamp else None
+                        ),
+                        "audit_trail": (
+                            json.loads(payment.audit_trail)
+                            if payment.audit_trail
+                            else {}
+                        ),
+                    }
+                )
 
     # Export audit logs
     audit_logs = db.query(AuditLog).filter_by(user_id=current_user.id).all()
     for log in audit_logs:
-        export_data["audit_logs"].append({
-            "id": log.id,
-            "action": log.action,
-            "resource_type": log.resource_type,
-            "resource_id": log.resource_id,
-            "timestamp": log.created_at.isoformat() if log.created_at else None,
-            "details": json.loads(log.details) if log.details else {},
-            "ip_address": log.ip_address,
-        })
+        export_data["audit_logs"].append(
+            {
+                "id": log.id,
+                "action": log.action,
+                "resource_type": log.resource_type,
+                "resource_id": log.resource_id,
+                "timestamp": log.created_at.isoformat() if log.created_at else None,
+                "details": json.loads(log.details) if log.details else {},
+                "ip_address": log.ip_address,
+            }
+        )
 
     # Export organization memberships
     if current_user.organization:
-        export_data["organizations"].append({
-            "id": current_user.organization.id,
-            "name": current_user.organization.name,
-            "joined_at": (
-                current_user.created_at.isoformat() if current_user.created_at else None
-            ),
-        })
+        export_data["organizations"].append(
+            {
+                "id": current_user.organization.id,
+                "name": current_user.organization.name,
+                "joined_at": (
+                    current_user.created_at.isoformat()
+                    if current_user.created_at
+                    else None
+                ),
+            }
+        )
 
     # Return as downloadable JSON file
     filename = f"gdpr_export_{current_user.id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
@@ -232,11 +258,13 @@ async def request_account_deletion(
         action="account_deletion_requested",
         resource_type="user",
         resource_id=current_user.id,
-        details=json.dumps({
-            "gdpr_article": "17",
-            "grace_period_days": 7,
-            "scheduled_deletion": current_user.deletion_scheduled_at.isoformat(),
-        }),
+        details=json.dumps(
+            {
+                "gdpr_article": "17",
+                "grace_period_days": 7,
+                "scheduled_deletion": current_user.deletion_scheduled_at.isoformat(),
+            }
+        ),
     )
     db.add(audit_log)
     db.commit()

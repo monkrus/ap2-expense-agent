@@ -182,11 +182,13 @@ async def execute_payment(
     nonce_service = get_nonce_service(db)
 
     try:
-        request_timestamp = datetime.fromisoformat(request.timestamp.replace('Z', '+00:00'))
+        request_timestamp = datetime.fromisoformat(
+            request.timestamp.replace("Z", "+00:00")
+        )
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid timestamp format. Use ISO 8601 format."
+            detail="Invalid timestamp format. Use ISO 8601 format.",
         )
 
     # Validate and store nonce
@@ -195,20 +197,17 @@ async def execute_payment(
             nonce=request.nonce,
             request_timestamp=request_timestamp,
             endpoint="execute_payment",
-            user_id=current_user.id
+            user_id=current_user.id,
         )
 
         if not nonce_valid:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Nonce already used. Possible replay attack detected."
+                detail="Nonce already used. Possible replay attack detected.",
             )
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     ap2_service = AP2PaymentService(db)
 
@@ -475,13 +474,13 @@ async def revoke_intent_mandate(
     if not intent_mandate:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Intent mandate not found or you don't have permission to revoke it"
+            detail="Intent mandate not found or you don't have permission to revoke it",
         )
 
     if intent_mandate.status == "revoked":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Intent mandate is already revoked"
+            detail="Intent mandate is already revoked",
         )
 
     # Revoke intent mandate
@@ -530,13 +529,15 @@ async def revoke_intent_mandate(
         action="mandate_revoked",
         resource_type="intent_mandate",
         resource_id=mandate_id,
-        details=__import__("json").dumps({
-            "reason": request.reason,
-            "revoked_carts": revoked_carts,
-            "revoked_payments": revoked_payments,
-            "gdpr_article": "7.3",
-            "revocation_timestamp": datetime.utcnow().isoformat(),
-        })
+        details=__import__("json").dumps(
+            {
+                "reason": request.reason,
+                "revoked_carts": revoked_carts,
+                "revoked_payments": revoked_payments,
+                "gdpr_article": "7.3",
+                "revocation_timestamp": datetime.utcnow().isoformat(),
+            }
+        ),
     )
     db.add(audit_log)
 
@@ -581,8 +582,7 @@ async def revoke_cart_mandate(
 
     if not cart_mandate:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cart mandate not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Cart mandate not found"
         )
 
     # Verify user owns the parent intent mandate
@@ -595,13 +595,13 @@ async def revoke_cart_mandate(
     if not intent_mandate:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to revoke this cart mandate"
+            detail="You don't have permission to revoke this cart mandate",
         )
 
     if cart_mandate.status == "revoked":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cart mandate is already revoked"
+            detail="Cart mandate is already revoked",
         )
 
     # Revoke cart mandate
@@ -662,16 +662,17 @@ async def revoke_payment_mandate(
 
     if not payment_mandate:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Payment mandate not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Payment mandate not found"
         )
 
     # Verify ownership through cart → intent chain
-    cart_mandate = db.query(CartMandate).filter_by(id=payment_mandate.cart_mandate_id).first()
+    cart_mandate = (
+        db.query(CartMandate).filter_by(id=payment_mandate.cart_mandate_id).first()
+    )
     if not cart_mandate:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Associated cart mandate not found"
+            detail="Associated cart mandate not found",
         )
 
     intent_mandate = (
@@ -683,20 +684,20 @@ async def revoke_payment_mandate(
     if not intent_mandate:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to revoke this payment mandate"
+            detail="You don't have permission to revoke this payment mandate",
         )
 
     # Can only revoke pending payments
     if payment_mandate.status == "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot revoke completed payment. Contact support for refunds."
+            detail="Cannot revoke completed payment. Contact support for refunds.",
         )
 
     if payment_mandate.status == "revoked":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Payment mandate is already revoked"
+            detail="Payment mandate is already revoked",
         )
 
     # Revoke payment mandate
