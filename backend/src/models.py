@@ -271,6 +271,16 @@ class Session(Base):
 
 
 class AuditLog(Base):
+    """
+    Tamper-proof audit log with hash chain linking
+
+    Each log entry contains:
+    - previous_hash: SHA-256 hash of the previous log entry
+    - entry_hash: SHA-256 hash of current entry (id + action + details + previous_hash)
+
+    This creates a blockchain-like chain where any modification to any entry
+    will break the chain and be detectable.
+    """
     __tablename__ = "audit_logs"
 
     id = Column(String, primary_key=True)
@@ -284,6 +294,11 @@ class AuditLog(Base):
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Hash chain fields for tamper detection
+    previous_hash = Column(String(64), nullable=True, index=True)  # SHA-256 of previous entry
+    entry_hash = Column(String(64), nullable=False, index=True)  # SHA-256 of this entry
+    sequence_number = Column(Integer, nullable=False, index=True)  # Monotonically increasing
 
 
 # ============================================================================

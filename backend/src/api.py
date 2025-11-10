@@ -21,6 +21,7 @@ from .permissions import (
 from .rate_limit import limiter, rate_limit_handler
 from .routes import admin_router, auth_router, oauth_router, users_router
 from .routes.ap2 import router as ap2_router
+from .routes.audit_admin import router as audit_admin_router
 from .routes.billing import router as billing_router
 from .routes.billing_org import router as billing_org_router
 from .routes.budgets import router as budgets_router
@@ -115,6 +116,7 @@ app.include_router(recurring_expenses_router)
 app.include_router(notification_router)
 app.include_router(budgets_router)
 app.include_router(gdpr_router)  # GDPR compliance endpoints
+app.include_router(audit_admin_router)  # Audit chain verification (admin only)
 
 # Include GCP Marketplace webhooks (temporarily disabled)
 # app.include_router(gcp_webhooks_router)
