@@ -312,13 +312,9 @@ class AuditChainService:
         return hash_obj.hexdigest()
 
 
-# Singleton instance
-_audit_chain_service: Optional[AuditChainService] = None
-
-
 def get_audit_chain_service(db: Session) -> AuditChainService:
     """
-    Get or create audit chain service instance
+    Get audit chain service instance
 
     Args:
         db: Database session
@@ -326,7 +322,4 @@ def get_audit_chain_service(db: Session) -> AuditChainService:
     Returns:
         AuditChainService instance
     """
-    global _audit_chain_service
-    if _audit_chain_service is None:
-        _audit_chain_service = AuditChainService(db)
-    return _audit_chain_service
+    return AuditChainService(db)

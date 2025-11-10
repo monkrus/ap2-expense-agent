@@ -32,10 +32,14 @@ from src.auth import AuthService
 from src.cache import cache
 
 
-# Use PostgreSQL for tests (matches CI environment)
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://test_user:test_password@localhost:5432/test_db"
-)
+# Use PostgreSQL for tests in CI, SQLite for local development
+import platform
+if platform.system() == "Windows" and "DATABASE_URL" not in os.environ:
+    DATABASE_URL = "sqlite:///./test.db"
+else:
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL", "postgresql://test_user:test_password@localhost:5432/test_db"
+    )
 
 # Create test engine
 engine = create_engine(DATABASE_URL)
