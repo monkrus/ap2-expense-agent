@@ -5,11 +5,13 @@ Uses AES-256-GCM with Cloud KMS for key management
 
 import base64
 import os
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from google.cloud import kms
+
+if TYPE_CHECKING:
+    from google.cloud import kms
 
 from ..config import settings
 
@@ -30,7 +32,7 @@ class EncryptionService:
         self.key_name = os.getenv("GCP_KMS_ENCRYPTION_KEY", "ap2-data-encryption-key")
 
         # Initialize KMS client
-        self.client: Optional[kms.KeyManagementServiceClient] = None
+        self.client: Optional["kms.KeyManagementServiceClient"] = None
         self.key_path: Optional[str] = None
 
         # DEK (Data Encryption Key) cache - encrypted with KEK in KMS
@@ -38,6 +40,9 @@ class EncryptionService:
 
         if self.project_id and os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
             try:
+                # Lazy import to avoid import errors in test environments
+                from google.cloud import kms
+
                 self.client = kms.KeyManagementServiceClient()
                 self.key_path = self.client.crypto_key_path(
                     self.project_id, self.location, self.keyring_name, self.key_name

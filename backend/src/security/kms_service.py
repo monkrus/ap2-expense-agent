@@ -6,10 +6,11 @@ Provides secure key management and signing for AP2 mandates
 import base64
 import hashlib
 import os
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from google.cloud import kms
-from google.cloud.kms_v1 import KeyManagementServiceClient
+if TYPE_CHECKING:
+    from google.cloud import kms
+    from google.cloud.kms_v1 import KeyManagementServiceClient
 
 from ..config import settings
 
@@ -30,12 +31,15 @@ class KMSSigningService:
         self.key_name = os.getenv("GCP_KMS_SIGNING_KEY", "ap2-mandate-signing-key")
 
         # Initialize KMS client
-        self.client: Optional[KeyManagementServiceClient] = None
+        self.client: Optional["KeyManagementServiceClient"] = None
         self.key_path: Optional[str] = None
 
         # Only initialize if GCP credentials are available
         if self.project_id and os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
             try:
+                # Lazy import to avoid import errors in test environments
+                from google.cloud.kms_v1 import KeyManagementServiceClient
+
                 self.client = KeyManagementServiceClient()
                 self.key_path = self.client.crypto_key_path(
                     self.project_id, self.location, self.keyring_name, self.key_name
