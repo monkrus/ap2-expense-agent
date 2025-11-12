@@ -178,7 +178,6 @@ def test_organization(db_session):
         id=f"org_{uuid.uuid4().hex[:8]}",
         name="Test Organization",
         slug="test-org",
-        domain="testorg.com",
         is_active=True,
         created_at=datetime.utcnow()
     )
@@ -195,7 +194,6 @@ def second_organization(db_session):
         id=f"org_{uuid.uuid4().hex[:8]}",
         name="Second Organization",
         slug="second-org",
-        domain="secondorg.com",
         is_active=True,
         created_at=datetime.utcnow()
     )

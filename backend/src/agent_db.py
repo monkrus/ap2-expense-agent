@@ -302,7 +302,8 @@ class ExpenseManagementAgent:
         amount: float,
         vendor: str,
         category: str,
-        description: str
+        description: str,
+        organization_id: str = None
     ) -> Dict:
         """
         Submit a new expense with AP2 mandate creation
@@ -313,9 +314,15 @@ class ExpenseManagementAgent:
         # Generate unique ID
         expense_id = f"EXP-{int(time.time() * 1000):03d}"
 
+        # Use provided organization_id or create a test one
+        if organization_id is None:
+            import uuid
+            organization_id = f"test_org_{uuid.uuid4().hex[:8]}"
+
         # Create expense in database
         expense = self.expense_repo.create({
             'id': expense_id,
+            'organization_id': organization_id,
             'user_id': user_id,
             'amount': amount,
             'vendor': vendor,
