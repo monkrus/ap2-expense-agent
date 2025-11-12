@@ -171,6 +171,30 @@ async def health_check():
     return {"status": "healthy", "service": "AP2 Expense Management Agent"}
 
 
+def get_organization_context(current_user: User, db: Session) -> str:
+    """Get organization from context or user's default organization"""
+    from .tenant_context import TenantContext, get_user_organizations
+
+    # Try to get organization from context (X-Organization-Id header)
+    org_id = TenantContext.get_organization()
+    if org_id:
+        return org_id
+
+    # Fallback: Get user's first organization
+    user_orgs = get_user_organizations(current_user.id, db)
+    if user_orgs:
+        org_id = user_orgs[0]["id"]
+        TenantContext.set_organization(org_id)  # Set context for this request
+        return org_id
+
+    # No organization found - this should rarely happen
+    # Could auto-create a default org here if needed
+    raise HTTPException(
+        status_code=400,
+        detail="No organization context available. Please join an organization first."
+    )
+
+
 @app.post("/api/v1/expenses", status_code=201)
 async def submit_expense(
     data: ExpenseSubmission,
@@ -186,7 +210,7 @@ async def submit_expense(
         from .models import Expense, ExpenseStatus
         from .tenant_context import TenantContext
 
-        organization_id = TenantContext.require_organization()  # Raises 400 if missing
+        organization_id = get_organization_context(current_user, db)
 
         # Parse expense date or use current date
         if data.date:
@@ -274,10 +298,9 @@ async def list_expenses(
 ):
     """List all expenses for user's organization"""
     from .models import Expense
-    from .tenant_context import TenantContext
 
     # Get organization context for multi-tenancy
-    organization_id = TenantContext.require_organization()
+    organization_id = get_organization_context(current_user, db)
 
     # Query expenses with organization filter for tenant isolation
     expenses = db.query(Expense).filter(
@@ -307,10 +330,9 @@ async def get_expense(
 ):
     """Get a single expense by ID with tenant isolation"""
     from .models import Expense
-    from .tenant_context import TenantContext
 
     # Get organization context for multi-tenancy
-    organization_id = TenantContext.require_organization()
+    organization_id = get_organization_context(current_user, db)
 
     # Query expense with organization filter for tenant isolation
     expense = db.query(Expense).filter(
@@ -342,10 +364,9 @@ async def update_expense(
 ):
     """Update an expense with tenant isolation"""
     from .models import Expense
-    from .tenant_context import TenantContext
 
     # Get organization context for multi-tenancy
-    organization_id = TenantContext.require_organization()
+    organization_id = get_organization_context(current_user, db)
 
     # Query expense with organization filter for tenant isolation
     expense = db.query(Expense).filter(
@@ -392,10 +413,9 @@ async def delete_expense(
 ):
     """Delete an expense with tenant isolation"""
     from .models import Expense
-    from .tenant_context import TenantContext
 
     # Get organization context for multi-tenancy
-    organization_id = TenantContext.require_organization()
+    organization_id = get_organization_context(current_user, db)
 
     # Query expense with organization filter for tenant isolation
     expense = db.query(Expense).filter(

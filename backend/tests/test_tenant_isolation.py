@@ -237,13 +237,13 @@ class TestTenantIsolation:
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_missing_organization_header_returns_error(
+    def test_missing_organization_header_uses_default(
         self, client, user_with_organization, auth_headers
     ):
-        """Test that requests without X-Organization-Id header are rejected"""
+        """Test that requests without X-Organization-Id header use user's default organization"""
         expense_data = {
             "amount": 100.00,
-            
+
             "description": "Test expense",
             "category": "Meals",
             "vendor": "Test Merchant"
@@ -256,5 +256,7 @@ class TestTenantIsolation:
             headers=auth_headers  # No X-Organization-Id
         )
 
-        # Should fail (organization context required)
-        assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_403_FORBIDDEN]
+        # Should succeed by using user's default organization
+        assert response.status_code == status.HTTP_201_CREATED
+        assert "id" in response.json()
+        assert response.json()["description"] == "Test expense"

@@ -61,7 +61,9 @@ def client(db_session):
 
 @pytest.fixture
 def test_user(db_session):
-    """Create a test user"""
+    """Create a test user with default organization"""
+    from src.models import Organization, OrganizationMember, OrganizationRole
+
     user = User(
         id=str(uuid.uuid4()),
         email="test@example.com",
@@ -76,6 +78,29 @@ def test_user(db_session):
         last_failed_login=None
     )
     db_session.add(user)
+    db_session.flush()
+
+    # Create default organization for user
+    org = Organization(
+        id=f"org_{uuid.uuid4().hex[:8]}",
+        name="Test Organization",
+        slug=f"test-org-{uuid.uuid4().hex[:6]}",
+        is_active=True,
+        created_at=datetime.utcnow()
+    )
+    db_session.add(org)
+    db_session.flush()
+
+    # Add user as member
+    membership = OrganizationMember(
+        id=str(uuid.uuid4()),
+        organization_id=org.id,
+        user_id=user.id,
+        role=OrganizationRole.MEMBER,
+        is_active=True,
+        joined_at=datetime.utcnow()
+    )
+    db_session.add(membership)
     db_session.commit()
     db_session.refresh(user)
     return user
@@ -83,7 +108,9 @@ def test_user(db_session):
 
 @pytest.fixture
 def test_admin(db_session):
-    """Create a test admin user"""
+    """Create a test admin user with default organization"""
+    from src.models import Organization, OrganizationMember, OrganizationRole
+
     admin = User(
         id=str(uuid.uuid4()),
         email="admin@example.com",
@@ -98,6 +125,29 @@ def test_admin(db_session):
         last_failed_login=None
     )
     db_session.add(admin)
+    db_session.flush()
+
+    # Create default organization for admin
+    org = Organization(
+        id=f"org_{uuid.uuid4().hex[:8]}",
+        name="Admin Organization",
+        slug=f"admin-org-{uuid.uuid4().hex[:6]}",
+        is_active=True,
+        created_at=datetime.utcnow()
+    )
+    db_session.add(org)
+    db_session.flush()
+
+    # Add admin as owner
+    membership = OrganizationMember(
+        id=str(uuid.uuid4()),
+        organization_id=org.id,
+        user_id=admin.id,
+        role=OrganizationRole.OWNER,
+        is_active=True,
+        joined_at=datetime.utcnow()
+    )
+    db_session.add(membership)
     db_session.commit()
     db_session.refresh(admin)
     return admin
@@ -105,7 +155,9 @@ def test_admin(db_session):
 
 @pytest.fixture
 def test_manager(db_session):
-    """Create a test manager user"""
+    """Create a test manager user with default organization"""
+    from src.models import Organization, OrganizationMember, OrganizationRole
+
     manager = User(
         id=str(uuid.uuid4()),
         email="manager@example.com",
@@ -120,6 +172,29 @@ def test_manager(db_session):
         last_failed_login=None
     )
     db_session.add(manager)
+    db_session.flush()
+
+    # Create default organization for manager
+    org = Organization(
+        id=f"org_{uuid.uuid4().hex[:8]}",
+        name="Manager Organization",
+        slug=f"manager-org-{uuid.uuid4().hex[:6]}",
+        is_active=True,
+        created_at=datetime.utcnow()
+    )
+    db_session.add(org)
+    db_session.flush()
+
+    # Add manager as admin
+    membership = OrganizationMember(
+        id=str(uuid.uuid4()),
+        organization_id=org.id,
+        user_id=manager.id,
+        role=OrganizationRole.ADMIN,
+        is_active=True,
+        joined_at=datetime.utcnow()
+    )
+    db_session.add(membership)
     db_session.commit()
     db_session.refresh(manager)
     return manager
