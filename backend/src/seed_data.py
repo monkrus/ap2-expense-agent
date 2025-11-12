@@ -84,20 +84,13 @@ def seed_default_users(db: Session, force_password_reset: bool = False) -> dict:
                 else:
                     stats["skipped"] += 1
             else:
-                # Create new user - extract string value from enum for database compatibility
-                role_enum = user_data["role"]
-                # If it's an enum, get its lowercase value; otherwise use it directly
-                if hasattr(role_enum, 'value'):
-                    role_str = role_enum.value.lower()  # Ensure lowercase
-                else:
-                    role_str = str(role_enum).lower()  # Ensure lowercase
-
+                # Create new user - StringEnum type decorator handles enum conversion automatically
                 new_user = User(
                     id=str(uuid.uuid4()),
                     username=user_data["username"],
                     email=user_data["email"],
                     full_name=user_data["full_name"],
-                    role=role_str,  # Use string value
+                    role=user_data["role"],  # Can pass enum or string, StringEnum handles it
                     hashed_password=AuthService.hash_password(user_data["password"]),
                     is_active=True,
                     is_verified=True,
