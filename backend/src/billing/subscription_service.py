@@ -1,10 +1,13 @@
 """
 Subscription management service
 """
+
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional
+
 from sqlalchemy.orm import Session
+
 from ..models import Subscription, SubscriptionTier, User
 from .tier_limits import get_tier_limits
 
@@ -21,7 +24,7 @@ class SubscriptionService:
         tier: SubscriptionTier = SubscriptionTier.STARTER,
         trial_days: int = 14,
         stripe_customer_id: Optional[str] = None,
-        stripe_subscription_id: Optional[str] = None
+        stripe_subscription_id: Optional[str] = None,
     ) -> Subscription:
         """
         Create a new subscription
@@ -54,7 +57,7 @@ class SubscriptionService:
             max_users=limits.max_users,
             max_expenses_per_month=limits.max_expenses_per_month,
             max_ai_categorizations=limits.max_ai_categorizations,
-            max_ap2_transactions=limits.max_ap2_transactions
+            max_ap2_transactions=limits.max_ap2_transactions,
         )
 
         self.db.add(subscription)
@@ -65,16 +68,20 @@ class SubscriptionService:
 
     def get_active_subscription(self, user_id: str) -> Optional[Subscription]:
         """Get user's active subscription"""
-        return self.db.query(Subscription).filter(
-            Subscription.user_id == user_id,
-            Subscription.status.in_(["active", "trialing"])
-        ).first()
+        return (
+            self.db.query(Subscription)
+            .filter(
+                Subscription.user_id == user_id,
+                Subscription.status.in_(["active", "trialing"]),
+            )
+            .first()
+        )
 
     def upgrade_subscription(
         self,
         subscription_id: str,
         new_tier: SubscriptionTier,
-        stripe_price_id: Optional[str] = None
+        stripe_price_id: Optional[str] = None,
     ) -> Subscription:
         """
         Upgrade subscription to a new tier
@@ -108,9 +115,7 @@ class SubscriptionService:
         return subscription
 
     def cancel_subscription(
-        self,
-        subscription_id: str,
-        immediate: bool = False
+        self, subscription_id: str, immediate: bool = False
     ) -> Subscription:
         """
         Cancel a subscription
@@ -156,10 +161,7 @@ class SubscriptionService:
         return subscription
 
     def update_billing_period(
-        self,
-        subscription_id: str,
-        period_start: datetime,
-        period_end: datetime
+        self, subscription_id: str, period_start: datetime, period_end: datetime
     ) -> Subscription:
         """Update subscription billing period (typically from Stripe webhook)"""
         subscription = self.db.query(Subscription).filter_by(id=subscription_id).first()
@@ -193,7 +195,14 @@ class SubscriptionService:
             return {
                 "has_subscription": False,
                 "tier": None,
-                "status": "none"
+                "tier_name": None,
+                "status": "none",
+                "current_period_start": None,
+                "current_period_end": None,
+                "trial_end": None,
+                "limits": None,
+                "stripe_customer_id": None,
+                "stripe_subscription_id": None,
             }
 
         limits = get_tier_limits(subscription.tier)
@@ -215,8 +224,8 @@ class SubscriptionService:
                 "data_retention_days": limits.data_retention_days,
                 "priority_support": limits.priority_support,
                 "custom_integrations": limits.custom_integrations,
-                "sso_enabled": limits.sso_enabled
+                "sso_enabled": limits.sso_enabled,
             },
             "stripe_customer_id": subscription.stripe_customer_id,
-            "stripe_subscription_id": subscription.stripe_subscription_id
+            "stripe_subscription_id": subscription.stripe_subscription_id,
         }

@@ -3,14 +3,15 @@ Redis Cache Implementation
 Provides caching for sessions, query results, and expensive operations
 """
 
-import redis
-import json
 import hashlib
-from typing import Optional, Any, Callable
-from functools import wraps
-from datetime import timedelta
-import os
+import json
 import logging
+import os
+from datetime import timedelta
+from functools import wraps
+from typing import Any, Callable, Optional
+
+import redis
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ class CacheService:
                 decode_responses=True,
                 socket_connect_timeout=5,
                 socket_timeout=5,
-                retry_on_timeout=True
+                retry_on_timeout=True,
             )
             # Test connection
             self.redis_client.ping()
@@ -155,6 +156,7 @@ def cached(ttl: int = 300, key_prefix: str = ""):
             # expensive database query
             return results
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -176,7 +178,9 @@ def cached(ttl: int = 300, key_prefix: str = ""):
                 cache.set(cache_key_str, result, ttl=ttl)
 
             return result
+
         return wrapper
+
     return decorator
 
 
@@ -212,7 +216,9 @@ class QueryCache:
     """Query result caching"""
 
     @staticmethod
-    def cache_expense_report(user_id: str, organization_id: str, report_data: dict, ttl: int = 300):
+    def cache_expense_report(
+        user_id: str, organization_id: str, report_data: dict, ttl: int = 300
+    ):
         """Cache expense report"""
         key = f"expense_report:{organization_id}:{user_id}"
         return cache.set(key, report_data, ttl=ttl)
@@ -230,7 +236,9 @@ class QueryCache:
         return cache.delete_pattern(pattern)
 
     @staticmethod
-    def cache_organization_members(organization_id: str, members_data: list, ttl: int = 600):
+    def cache_organization_members(
+        organization_id: str, members_data: list, ttl: int = 600
+    ):
         """Cache organization members"""
         key = f"org_members:{organization_id}"
         return cache.set(key, members_data, ttl=ttl)
@@ -252,7 +260,9 @@ class RateLimitCache:
     """Rate limiting with Redis"""
 
     @staticmethod
-    def check_rate_limit(key: str, max_requests: int, window_seconds: int) -> tuple[bool, int]:
+    def check_rate_limit(
+        key: str, max_requests: int, window_seconds: int
+    ) -> tuple[bool, int]:
         """
         Check if rate limit exceeded
 
@@ -280,6 +290,7 @@ class RateLimitCache:
 
 
 # Helper functions for common caching patterns
+
 
 def cache_user_organizations(user_id: str, organizations: list, ttl: int = 600):
     """Cache user's organizations"""

@@ -1,16 +1,35 @@
 steps:
+  # Run backend tests
+  - name: 'python:3.11-slim'
+    id: 'backend-tests'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cd backend
+        pip install --no-cache-dir -r requirements.txt
+        pip install pytest pytest-cov pytest-asyncio httpx
+        export TESTING=true
+        export DATABASE_URL=sqlite:///./test.db
+        export JWT_SECRET=test-secret-key-for-ci
+        export ENVIRONMENT=test
+        pytest tests/ -v --cov=src --cov-report=term-missing
+    waitFor: ['-']  # Run immediately
+
   # Build backend image
   - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-backend'
     args:
       - 'build'
       - '-t'
       - 'gcr.io/$PROJECT_ID/ap2-expense-backend:$COMMIT_SHA'
-      
+
       - '-t'
       - 'gcr.io/$PROJECT_ID/ap2-expense-backend:latest'
       - '-f'
       - 'Dockerfile.backend'
       - '.'
+    waitFor: ['backend-tests']  # Wait for tests to pass
 
   # Build frontend image
   - name: 'gcr.io/cloud-builders/docker'
@@ -54,8 +73,25 @@ steps:
       - '2Gi'
       - '--cpu'
       - '2'
+      - '--service-account'
+      - 'ap2-expense-sa@$PROJECT_ID.iam.gserviceaccount.com'
+      - '--add-cloudsql-instances'
+      - '$PROJECT_ID:us-central1:ap2-expense-db'
       - '--set-env-vars'
-      - 'ENVIRONMENT=production'
+      - |
+        ENVIRONMENT=production,
+        LOG_LEVEL=info,
+        GCP_PROJECT_ID=$PROJECT_ID,
+        GOOGLE_CLOUD_PROJECT=$PROJECT_ID,
+        GCP_KMS_LOCATION=us-central1,
+        GCP_KMS_KEYRING=ap2-expense-keyring,
+        GCP_KMS_SIGNING_KEY=ap2-mandate-signing-key
+      - '--set-secrets'
+      - |
+        DATABASE_URL=database-connection-string:latest,
+        JWT_SECRET_KEY=jwt-secret-key:latest,
+        JWT_REFRESH_SECRET_KEY=jwt-refresh-secret-key:latest,
+        STRIPE_SECRET_KEY=stripe-secret-key:latest
 
   # Deploy frontend to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'

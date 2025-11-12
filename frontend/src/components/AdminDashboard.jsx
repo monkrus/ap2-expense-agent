@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check, AlertCircle, Plus, Search, Edit2, Trash2, Upload, History, Receipt, Activity, Database, BarChart3, CreditCard, Building2 } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Clock, Users, DollarSign, TrendingUp, Key, FileText, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserCog, LogOut, Copy, Check, AlertCircle, Plus, Search, Edit2, Trash2, Upload, History, Receipt, Activity, Database, BarChart3, CreditCard, Building2, Bot, Repeat } from 'lucide-react';
 import { expenseAPI, APIError } from '../services/api';
 import adminAPI from '../services/adminAPI';
 import billingAPI from '../services/billingAPI';
@@ -11,6 +11,11 @@ import RoleBadge from './RoleBadge';
 import ReceiptUpload from './ReceiptUpload';
 import ReceiptList from './ReceiptList';
 import { getRoleTheme } from '../utils/roleThemes';
+import AIAssistant from '../pages/AIAssistant';
+import RecurringExpenses from '../pages/RecurringExpenses';
+import BudgetManagement from '../pages/BudgetManagement';
+import NotificationCenter from './NotificationCenter';
+import BatchReceiptUpload from './BatchReceiptUpload';
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
@@ -24,7 +29,7 @@ const AdminDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'archived', 'users', or 'billing'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'archived', 'users', 'billing', 'ai-assistant', 'recurring-expenses', or 'budgets'
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [archivedExpenses, setArchivedExpenses] = useState([]);
@@ -38,6 +43,7 @@ const AdminDashboard = () => {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showReceiptUpload, setShowReceiptUpload] = useState(false);
   const [showReceiptList, setShowReceiptList] = useState(false);
+  const [showBatchUpload, setShowBatchUpload] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [rejectingExpense, setRejectingExpense] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -725,7 +731,7 @@ const AdminDashboard = () => {
                 <button
                   onClick={() => window.location.href = '/organizations'}
                   title="Manage Organizations"
-                  className="flex items-center gap-2 px-4 py-3 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium"
+                  className="flex items-center gap-2 px-4 py-3 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium ml-4"
                 >
                   <Building2 className="w-5 h-5" />
                   Organizations
@@ -747,6 +753,13 @@ const AdminDashboard = () => {
                 Change Password
               </button>
               <button
+                onClick={() => setShowBatchUpload(true)}
+                className="flex items-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+              >
+                <Upload className="w-5 h-5" />
+                Batch Upload
+              </button>
+              <button
                 onClick={() => {
                   if (activeTab === 'pending') fetchPendingExpenses();
                   else if (activeTab === 'archived') fetchArchivedExpenses();
@@ -757,6 +770,7 @@ const AdminDashboard = () => {
               >
                 {loading ? 'Refreshing...' : 'Refresh'}
               </button>
+              <NotificationCenter />
               <button
                 onClick={async () => {
                   await logout();
@@ -854,6 +868,42 @@ const AdminDashboard = () => {
                 Billing & Usage
               </button>
             )}
+            {/* AI Assistant Tab */}
+            <button
+              onClick={() => setActiveTab('ai-assistant')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'ai-assistant'
+                  ? getTabActiveClasses()
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <Bot className="w-5 h-5" />
+              AI Assistant
+            </button>
+            {/* Recurring Expenses Tab */}
+            <button
+              onClick={() => setActiveTab('recurring-expenses')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'recurring-expenses'
+                  ? getTabActiveClasses()
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <Repeat className="w-5 h-5" />
+              Recurring
+            </button>
+            {/* Budget Management Tab */}
+            <button
+              onClick={() => setActiveTab('budgets')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'budgets'
+                  ? getTabActiveClasses()
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <TrendingUp className="w-5 h-5" />
+              Budgets
+            </button>
           </div>
         </div>
 
@@ -1138,6 +1188,21 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* AI Assistant Tab */}
+        {activeTab === 'ai-assistant' && (
+          <AIAssistant />
+        )}
+
+        {/* Recurring Expenses Tab */}
+        {activeTab === 'recurring-expenses' && (
+          <RecurringExpenses />
+        )}
+
+        {/* Budget Management Tab */}
+        {activeTab === 'budgets' && (
+          <BudgetManagement />
         )}
 
         {/* Expenses List - Show for pending, all, and archived tabs */}
@@ -1712,6 +1777,20 @@ const AdminDashboard = () => {
               setShowReceiptList(false);
               setSelectedExpense(null);
             }}
+          />
+        )}
+
+        {/* Batch Receipt Upload Modal */}
+        {showBatchUpload && (
+          <BatchReceiptUpload
+            onSuccess={() => {
+              setShowBatchUpload(false);
+              // Refresh expenses after successful batch upload
+              fetchPendingExpenses();
+              fetchAllExpenses();
+              fetchDashboardStats();
+            }}
+            onCancel={() => setShowBatchUpload(false)}
           />
         )}
       </div>

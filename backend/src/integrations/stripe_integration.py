@@ -3,11 +3,12 @@ Stripe Payment Integration
 Production-ready Stripe integration for payment processing
 """
 
-import stripe
-import os
-from typing import Optional, Dict
-from datetime import datetime
 import logging
+import os
+from datetime import datetime
+from typing import Dict, Optional
+
+import stripe
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +21,7 @@ class StripeIntegration:
 
     @staticmethod
     def create_customer(
-        email: str,
-        name: str,
-        metadata: Optional[Dict] = None
+        email: str, name: str, metadata: Optional[Dict] = None
     ) -> stripe.Customer:
         """
         Create a new Stripe customer
@@ -37,9 +36,7 @@ class StripeIntegration:
         """
         try:
             customer = stripe.Customer.create(
-                email=email,
-                name=name,
-                metadata=metadata or {}
+                email=email, name=name, metadata=metadata or {}
             )
             logger.info(f"Created Stripe customer: {customer.id} for {email}")
             return customer
@@ -52,7 +49,7 @@ class StripeIntegration:
         customer_id: str,
         price_id: str,
         trial_days: int = 0,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
     ) -> stripe.Subscription:
         """
         Create a subscription for a customer
@@ -71,14 +68,16 @@ class StripeIntegration:
                 "customer": customer_id,
                 "items": [{"price": price_id}],
                 "expand": ["latest_invoice.payment_intent"],
-                "metadata": metadata or {}
+                "metadata": metadata or {},
             }
 
             if trial_days > 0:
                 params["trial_period_days"] = trial_days
 
             subscription = stripe.Subscription.create(**params)
-            logger.info(f"Created subscription: {subscription.id} for customer: {customer_id}")
+            logger.info(
+                f"Created subscription: {subscription.id} for customer: {customer_id}"
+            )
             return subscription
         except stripe.error.StripeError as e:
             logger.error(f"Failed to create subscription: {str(e)}")
@@ -90,7 +89,7 @@ class StripeIntegration:
         price_id: str,
         success_url: str,
         cancel_url: str,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
     ) -> stripe.checkout.Session:
         """
         Create a Stripe Checkout session for subscription
@@ -112,7 +111,7 @@ class StripeIntegration:
                 mode="subscription",
                 success_url=success_url,
                 cancel_url=cancel_url,
-                metadata=metadata or {}
+                metadata=metadata or {},
             )
             logger.info(f"Created checkout session: {session.id}")
             return session
@@ -122,8 +121,7 @@ class StripeIntegration:
 
     @staticmethod
     def create_portal_session(
-        customer_id: str,
-        return_url: str
+        customer_id: str, return_url: str
     ) -> stripe.billing_portal.Session:
         """
         Create a customer portal session for subscription management
@@ -137,8 +135,7 @@ class StripeIntegration:
         """
         try:
             session = stripe.billing_portal.Session.create(
-                customer=customer_id,
-                return_url=return_url
+                customer=customer_id, return_url=return_url
             )
             logger.info(f"Created portal session for customer: {customer_id}")
             return session
@@ -169,7 +166,7 @@ class StripeIntegration:
     def update_subscription(
         subscription_id: str,
         price_id: Optional[str] = None,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
     ) -> stripe.Subscription:
         """
         Update an existing subscription
@@ -187,10 +184,9 @@ class StripeIntegration:
 
             if price_id:
                 subscription = stripe.Subscription.retrieve(subscription_id)
-                params["items"] = [{
-                    "id": subscription["items"]["data"][0].id,
-                    "price": price_id
-                }]
+                params["items"] = [
+                    {"id": subscription["items"]["data"][0].id, "price": price_id}
+                ]
 
             if metadata:
                 params["metadata"] = metadata
@@ -256,9 +252,7 @@ class StripeIntegration:
             raise ValueError("STRIPE_WEBHOOK_SECRET not configured")
 
         try:
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, webhook_secret
-            )
+            event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
             logger.info(f"Verified webhook event: {event['type']}")
             return event
         except ValueError as e:
@@ -290,7 +284,7 @@ class StripeIntegration:
         amount: int,
         currency: str,
         customer_id: Optional[str] = None,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
     ) -> stripe.PaymentIntent:
         """
         Create a payment intent for one-time payments
@@ -308,7 +302,7 @@ class StripeIntegration:
             params = {
                 "amount": amount,
                 "currency": currency,
-                "metadata": metadata or {}
+                "metadata": metadata or {},
             }
 
             if customer_id:

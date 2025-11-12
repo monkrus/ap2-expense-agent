@@ -1,16 +1,18 @@
 """
 Billing and usage API endpoints
 """
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from typing import Optional
-from pydantic import BaseModel
-from datetime import datetime
 
-from ..database import get_db
+from datetime import datetime
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from ..auth import get_current_user
-from ..models import User, SubscriptionTier
-from ..billing import UsageTracker, SubscriptionService, get_tier_limits
+from ..billing import SubscriptionService, UsageTracker, get_tier_limits
+from ..database import get_db
+from ..models import SubscriptionTier, User
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 
@@ -53,10 +55,10 @@ class UpgradeSubscriptionRequest(BaseModel):
 
 # Usage tracking endpoints
 @router.post("/usage/track")
-async def track_usage(
+def track_usage(
     request: UsageTrackRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Track a usage event for billing
@@ -73,22 +75,22 @@ async def track_usage(
         user_id=current_user.id,
         usage_type=request.usage_type,
         quantity=request.quantity,
-        metadata=request.metadata
+        metadata=request.metadata,
     )
 
     return {
         "success": True,
         "usage_record_id": usage_record.id,
         "billable": usage_record.billable,
-        "fee": float(usage_record.fee) if usage_record.fee else 0
+        "fee": float(usage_record.fee) if usage_record.fee else 0,
     }
 
 
 @router.get("/usage/monthly", response_model=UsageStatsResponse)
-async def get_monthly_usage(
+def get_monthly_usage(
     usage_type: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get current month's usage statistics
@@ -101,8 +103,7 @@ async def get_monthly_usage(
 
     if not subscription:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No active subscription found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="No active subscription found"
         )
 
     tracker = UsageTracker(db)
@@ -112,10 +113,10 @@ async def get_monthly_usage(
 
 
 @router.get("/usage/check-limit/{usage_type}")
-async def check_usage_limit(
+def check_usage_limit(
     usage_type: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Check if user has exceeded their tier limit for a specific usage type
@@ -127,8 +128,7 @@ async def check_usage_limit(
     """
     tracker = UsageTracker(db)
     exceeded, current_usage, limit = tracker.check_limit_exceeded(
-        current_user.id,
-        usage_type
+        current_user.id, usage_type
     )
 
     return {
@@ -136,15 +136,14 @@ async def check_usage_limit(
         "exceeded": exceeded,
         "current_usage": current_usage,
         "limit": limit,
-        "unlimited": limit is None
+        "unlimited": limit is None,
     }
 
 
 # Subscription management endpoints
 @router.get("/subscription", response_model=SubscriptionResponse)
-async def get_subscription_status(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+def get_subscription_status(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """Get current user's subscription status and limits"""
     subscription_service = SubscriptionService(db)
@@ -154,10 +153,10 @@ async def get_subscription_status(
 
 
 @router.post("/subscription")
-async def create_subscription(
+def create_subscription(
     request: CreateSubscriptionRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Create a new subscription for the user
@@ -172,13 +171,11 @@ async def create_subscription(
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User already has an active subscription"
+            detail="User already has an active subscription",
         )
 
     subscription = subscription_service.create_subscription(
-        user_id=current_user.id,
-        tier=request.tier,
-        trial_days=request.trial_days
+        user_id=current_user.id, tier=request.tier, trial_days=request.trial_days
     )
 
     return {
@@ -186,16 +183,16 @@ async def create_subscription(
         "subscription_id": subscription.id,
         "tier": subscription.tier.value,
         "status": subscription.status,
-        "trial_end": subscription.trial_end
+        "trial_end": subscription.trial_end,
     }
 
 
 @router.put("/subscription/{subscription_id}/upgrade")
-async def upgrade_subscription(
+def upgrade_subscription(
     subscription_id: str,
     request: UpgradeSubscriptionRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Upgrade subscription to a new tier
@@ -209,29 +206,27 @@ async def upgrade_subscription(
     subscription = subscription_service.get_active_subscription(current_user.id)
     if not subscription or subscription.id != subscription_id:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Subscription not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found"
         )
 
     updated_subscription = subscription_service.upgrade_subscription(
-        subscription_id=subscription_id,
-        new_tier=request.new_tier
+        subscription_id=subscription_id, new_tier=request.new_tier
     )
 
     return {
         "success": True,
         "subscription_id": updated_subscription.id,
         "new_tier": updated_subscription.tier.value,
-        "status": updated_subscription.status
+        "status": updated_subscription.status,
     }
 
 
 @router.delete("/subscription/{subscription_id}")
-async def cancel_subscription(
+def cancel_subscription(
     subscription_id: str,
     immediate: bool = False,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Cancel a subscription
@@ -245,13 +240,11 @@ async def cancel_subscription(
     subscription = subscription_service.get_active_subscription(current_user.id)
     if not subscription or subscription.id != subscription_id:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Subscription not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found"
         )
 
     canceled_subscription = subscription_service.cancel_subscription(
-        subscription_id=subscription_id,
-        immediate=immediate
+        subscription_id=subscription_id, immediate=immediate
     )
 
     return {
@@ -259,15 +252,19 @@ async def cancel_subscription(
         "subscription_id": canceled_subscription.id,
         "status": canceled_subscription.status,
         "canceled_at": canceled_subscription.canceled_at,
-        "ends_at": canceled_subscription.current_period_end if not immediate else canceled_subscription.canceled_at
+        "ends_at": (
+            canceled_subscription.current_period_end
+            if not immediate
+            else canceled_subscription.canceled_at
+        ),
     }
 
 
 @router.post("/subscription/{subscription_id}/reactivate")
-async def reactivate_subscription(
+def reactivate_subscription(
     subscription_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Reactivate a canceled subscription"""
     subscription_service = SubscriptionService(db)
@@ -279,38 +276,40 @@ async def reactivate_subscription(
     return {
         "success": True,
         "subscription_id": reactivated_subscription.id,
-        "status": reactivated_subscription.status
+        "status": reactivated_subscription.status,
     }
 
 
 # Tier information endpoints
 @router.get("/tiers")
-async def get_all_tiers():
+def get_all_tiers():
     """Get information about all subscription tiers"""
     from ..billing.tier_limits import TIER_CONFIGS
 
     tiers = []
     for tier, limits in TIER_CONFIGS.items():
-        tiers.append({
-            "tier": tier.value,
-            "name": limits.name,
-            "price_monthly": limits.price_monthly,
-            "max_users": limits.max_users,
-            "max_expenses_per_month": limits.max_expenses_per_month,
-            "max_ai_categorizations": limits.max_ai_categorizations,
-            "max_ap2_transactions": limits.max_ap2_transactions,
-            "ocr_scans_included": limits.ocr_scans_included,
-            "data_retention_days": limits.data_retention_days,
-            "priority_support": limits.priority_support,
-            "custom_integrations": limits.custom_integrations,
-            "sso_enabled": limits.sso_enabled
-        })
+        tiers.append(
+            {
+                "tier": tier.value,
+                "name": limits.name,
+                "price_monthly": limits.price_monthly,
+                "max_users": limits.max_users,
+                "max_expenses_per_month": limits.max_expenses_per_month,
+                "max_ai_categorizations": limits.max_ai_categorizations,
+                "max_ap2_transactions": limits.max_ap2_transactions,
+                "ocr_scans_included": limits.ocr_scans_included,
+                "data_retention_days": limits.data_retention_days,
+                "priority_support": limits.priority_support,
+                "custom_integrations": limits.custom_integrations,
+                "sso_enabled": limits.sso_enabled,
+            }
+        )
 
     return {"tiers": tiers}
 
 
 @router.get("/tiers/{tier}")
-async def get_tier_info(tier: SubscriptionTier):
+def get_tier_info(tier: SubscriptionTier):
     """Get information about a specific tier"""
     limits = get_tier_limits(tier)
 
@@ -326,5 +325,5 @@ async def get_tier_info(tier: SubscriptionTier):
         "data_retention_days": limits.data_retention_days,
         "priority_support": limits.priority_support,
         "custom_integrations": limits.custom_integrations,
-        "sso_enabled": limits.sso_enabled
+        "sso_enabled": limits.sso_enabled,
     }

@@ -2,12 +2,12 @@
 Email Service for sending verification and password reset emails
 """
 
+import logging
 import os
 import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import Optional
-import logging
 
 from .config import settings
 
@@ -19,10 +19,7 @@ class EmailService:
 
     @staticmethod
     def send_email(
-        to_email: str,
-        subject: str,
-        html_body: str,
-        text_body: Optional[str] = None
+        to_email: str, subject: str, html_body: str, text_body: Optional[str] = None
     ) -> bool:
         """
         Send an email using SMTP
@@ -30,24 +27,26 @@ class EmailService:
         """
         # Check if email is configured
         if not settings.smtp_server or not settings.smtp_username:
-            logger.warning("Email not configured. Email would have been sent to: %s", to_email)
+            logger.warning(
+                "Email not configured. Email would have been sent to: %s", to_email
+            )
             logger.warning("Subject: %s", subject)
             logger.warning("Body: %s", text_body or html_body[:100])
             return False
 
         try:
             # Create message
-            msg = MIMEMultipart('alternative')
-            msg['From'] = settings.smtp_from_email
-            msg['To'] = to_email
-            msg['Subject'] = subject
+            msg = MIMEMultipart("alternative")
+            msg["From"] = settings.smtp_from_email
+            msg["To"] = to_email
+            msg["Subject"] = subject
 
             # Add text and HTML parts
             if text_body:
-                part1 = MIMEText(text_body, 'plain')
+                part1 = MIMEText(text_body, "plain")
                 msg.attach(part1)
 
-            part2 = MIMEText(html_body, 'html')
+            part2 = MIMEText(html_body, "html")
             msg.attach(part2)
 
             # Send email
@@ -65,10 +64,7 @@ class EmailService:
 
     @staticmethod
     def send_verification_email(
-        to_email: str,
-        username: str,
-        verification_token: str,
-        base_url: str = None
+        to_email: str, username: str, verification_token: str, base_url: str = None
     ) -> bool:
         """Send email verification link"""
         if not base_url:
@@ -173,10 +169,7 @@ class EmailService:
 
     @staticmethod
     def send_password_reset_email(
-        to_email: str,
-        username: str,
-        reset_token: str,
-        base_url: str = None
+        to_email: str, username: str, reset_token: str, base_url: str = None
     ) -> bool:
         """Send password reset link"""
         if not base_url:
@@ -290,11 +283,7 @@ class EmailService:
         return EmailService.send_email(to_email, subject, html_body, text_body)
 
     @staticmethod
-    def send_welcome_email(
-        to_email: str,
-        username: str,
-        full_name: str
-    ) -> bool:
+    def send_welcome_email(to_email: str, username: str, full_name: str) -> bool:
         """Send welcome email after email verification"""
         subject = "Welcome to AP2 Expense Manager!"
 
@@ -409,7 +398,7 @@ class EmailService:
         organization_name: str,
         inviter_name: str,
         invitation_token: str,
-        base_url: str = None
+        base_url: str = None,
     ) -> bool:
         """Send organization invitation email"""
         if not base_url:

@@ -3,16 +3,19 @@ Customer Onboarding Service
 Handles multi-step onboarding flow for new users and organizations
 """
 
-from datetime import datetime, timedelta
-from typing import Optional, List, Dict
-from sqlalchemy.orm import Session
-from ..models import User, Organization, OrganizationMember, OrganizationRole
-from ..email_service import EmailService
 import uuid
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+
+from sqlalchemy.orm import Session
+
+from ..email_service import EmailService
+from ..models import Organization, OrganizationMember, OrganizationRole, User
 
 
 class OnboardingStep:
     """Onboarding step tracker"""
+
     ACCOUNT_CREATED = "account_created"
     EMAIL_VERIFIED = "email_verified"
     ORGANIZATION_CREATED = "organization_created"
@@ -40,9 +43,7 @@ class OnboardingService:
 
         # Send welcome email
         self.email_service.send_welcome_email(
-            to_email=user.email,
-            username=user.username,
-            full_name=user.full_name
+            to_email=user.email, username=user.username, full_name=user.full_name
         )
 
         return {
@@ -51,7 +52,7 @@ class OnboardingService:
             "completed_steps": progress["completed_steps"],
             "remaining_steps": progress["remaining_steps"],
             "progress_percentage": progress["percentage"],
-            "next_action": self._get_next_action(progress["current_step"])
+            "next_action": self._get_next_action(progress["current_step"]),
         }
 
     def complete_step(self, user: User, step: str) -> Dict:
@@ -62,7 +63,7 @@ class OnboardingService:
 
         user.onboarding_data[step] = {
             "completed": True,
-            "completed_at": datetime.utcnow().isoformat()
+            "completed_at": datetime.utcnow().isoformat(),
         }
 
         # Check if all steps completed
@@ -74,10 +75,7 @@ class OnboardingService:
         return self._get_onboarding_progress(user)
 
     def create_organization_step(
-        self,
-        user: User,
-        org_name: str,
-        org_slug: str
+        self, user: User, org_name: str, org_slug: str
     ) -> Organization:
         """
         Onboarding step: Create organization
@@ -88,7 +86,7 @@ class OnboardingService:
             name=org_name,
             slug=org_slug,
             created_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         )
         self.db.add(org)
 
@@ -98,7 +96,7 @@ class OnboardingService:
             organization_id=org.id,
             user_id=user.id,
             role=OrganizationRole.OWNER,
-            joined_at=datetime.utcnow()
+            joined_at=datetime.utcnow(),
         )
         self.db.add(member)
         self.db.commit()
@@ -109,10 +107,7 @@ class OnboardingService:
         return org
 
     def invite_team_step(
-        self,
-        user: User,
-        organization_id: str,
-        email_addresses: List[str]
+        self, user: User, organization_id: str, email_addresses: List[str]
     ) -> List[str]:
         """
         Onboarding step: Invite team members
@@ -121,9 +116,7 @@ class OnboardingService:
 
         for email in email_addresses:
             # Send invitation
-            invitation_id = self._send_team_invitation(
-                user, organization_id, email
-            )
+            invitation_id = self._send_team_invitation(user, organization_id, email)
             invitation_ids.append(invitation_id)
 
         # Mark step complete
@@ -132,9 +125,7 @@ class OnboardingService:
         return invitation_ids
 
     def add_payment_method_step(
-        self,
-        user: User,
-        stripe_payment_method_id: str
+        self, user: User, stripe_payment_method_id: str
     ) -> Dict:
         """
         Onboarding step: Add payment method
@@ -155,13 +146,14 @@ class OnboardingService:
             OnboardingStep.ORGANIZATION_CREATED,
             OnboardingStep.TEAM_INVITED,
             OnboardingStep.FIRST_EXPENSE,
-            OnboardingStep.PAYMENT_METHOD
+            OnboardingStep.PAYMENT_METHOD,
         ]
 
         completed = []
         if user.onboarding_data:
             completed = [
-                step for step in all_steps
+                step
+                for step in all_steps
                 if user.onboarding_data.get(step, {}).get("completed")
             ]
 
@@ -181,7 +173,7 @@ class OnboardingService:
             "remaining_steps": remaining,
             "current_step": current_step,
             "total_steps": len(all_steps),
-            "percentage": int((len(completed) / len(all_steps)) * 100)
+            "percentage": int((len(completed) / len(all_steps)) * 100),
         }
 
     def _get_next_action(self, current_step: str) -> Dict:
@@ -190,35 +182,38 @@ class OnboardingService:
             OnboardingStep.EMAIL_VERIFIED: {
                 "title": "Verify your email",
                 "description": "Check your inbox for verification link",
-                "cta": "Resend verification email"
+                "cta": "Resend verification email",
             },
             OnboardingStep.ORGANIZATION_CREATED: {
                 "title": "Create your organization",
                 "description": "Set up your company workspace",
-                "cta": "Create organization"
+                "cta": "Create organization",
             },
             OnboardingStep.TEAM_INVITED: {
                 "title": "Invite your team",
                 "description": "Add team members to collaborate",
-                "cta": "Invite team members"
+                "cta": "Invite team members",
             },
             OnboardingStep.FIRST_EXPENSE: {
                 "title": "Submit your first expense",
                 "description": "Try creating an expense report",
-                "cta": "Create expense"
+                "cta": "Create expense",
             },
             OnboardingStep.PAYMENT_METHOD: {
                 "title": "Add payment method",
                 "description": "Add a card to start your subscription",
-                "cta": "Add payment method"
-            }
+                "cta": "Add payment method",
+            },
         }
 
-        return actions.get(current_step, {
-            "title": "You're all set!",
-            "description": "Onboarding complete",
-            "cta": "Go to dashboard"
-        })
+        return actions.get(
+            current_step,
+            {
+                "title": "You're all set!",
+                "description": "Onboarding complete",
+                "cta": "Go to dashboard",
+            },
+        )
 
     def _is_onboarding_complete(self, user: User) -> bool:
         """Check if all onboarding steps are complete"""
@@ -226,17 +221,18 @@ class OnboardingService:
         return progress["percentage"] == 100
 
     def _send_team_invitation(
-        self,
-        inviter: User,
-        organization_id: str,
-        email: str
+        self, inviter: User, organization_id: str, email: str
     ) -> str:
         """Send team invitation email"""
         # Create invitation token
         invitation_id = f"inv_{uuid.uuid4().hex[:16]}"
 
         # Get organization
-        org = self.db.query(Organization).filter(Organization.id == organization_id).first()
+        org = (
+            self.db.query(Organization)
+            .filter(Organization.id == organization_id)
+            .first()
+        )
 
         # Send email
         if org:
@@ -244,7 +240,7 @@ class OnboardingService:
                 to_email=email,
                 organization_name=org.name,
                 inviter_name=inviter.full_name or inviter.username,
-                invitation_token=invitation_id
+                invitation_token=invitation_id,
             )
 
         return invitation_id

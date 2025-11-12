@@ -2,6 +2,10 @@ __pycache__/
 *.pyc
 venv/
 .env
+.env.*
+.env.production
+.env.local
+.env.development
 node_modules/
 dist/
 .DS_Store
@@ -53,3 +57,10 @@ backend/nul
 # Frontend temporary files
 frontend/*.log
 frontend/nul
+test_login.json
+backend/.venv/
+dump.rdb
+
+# Upload directories (dynamically generated)
+backend/uploads/
+uploads/

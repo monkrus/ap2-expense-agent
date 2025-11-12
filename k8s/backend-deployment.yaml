@@ -36,6 +36,29 @@ spec:
         fsGroup: 1000
 
       containers:
+      # Cloud SQL Proxy sidecar for secure database connections
+      - name: cloudsql-proxy
+        image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.0
+        args:
+          - "--structured-logs"
+          - "--port=5432"
+          - "YOUR_PROJECT_ID:us-central1:ap2-expense-db"
+
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+
       - name: backend
         image: gcr.io/YOUR_PROJECT_ID/ap2-expense-backend:latest
         imagePullPolicy: Always
@@ -58,11 +81,19 @@ spec:
             configMapKeyRef:
               name: ap2-expense-config
               key: LOG_LEVEL
+        # Database connection via Cloud SQL Proxy on localhost:5432
         - name: DATABASE_URL
+          value: "postgresql://$(DB_USER):$(DB_PASSWORD)@127.0.0.1:5432/ap2_expense?sslmode=disable"
+        - name: DB_USER
           valueFrom:
             secretKeyRef:
               name: ap2-expense-secrets
-              key: DATABASE_URL
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ap2-expense-secrets
+              key: DB_PASSWORD
         - name: JWT_SECRET_KEY
           valueFrom:
             secretKeyRef:
@@ -85,6 +116,17 @@ spec:
               name: ap2-expense-secrets
               key: STRIPE_SECRET_KEY
               optional: true
+        # GCP Configuration for KMS, Secret Manager, etc.
+        - name: GCP_PROJECT_ID
+          value: "YOUR_PROJECT_ID"
+        - name: GCP_KMS_LOCATION
+          value: "us-central1"
+        - name: GCP_KMS_KEYRING
+          value: "ap2-expense-keyring"
+        - name: GCP_KMS_SIGNING_KEY
+          value: "ap2-mandate-signing-key"
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "YOUR_PROJECT_ID"
 
         resources:
           requests:

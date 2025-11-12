@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/useToast';
 import billingAPI from '../services/billingAPI';
 import organizationAPI from '../services/organizationAPI';
+import paymentAPI from '../services/paymentAPI';
 
 /**
  * Billing Dashboard
@@ -84,6 +85,19 @@ const BillingDashboard = () => {
     } else {
       // Direct customer - navigate to pricing page
       window.location.href = '/pricing';
+    }
+  };
+
+  const handleManagePayment = async () => {
+    try {
+      setLoading(true);
+      const { url } = await paymentAPI.createPortalSession();
+      window.location.href = url;
+    } catch (err) {
+      showError('Failed to open payment portal');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -227,12 +241,20 @@ const BillingDashboard = () => {
             </div>
 
             {!subscription?.gcp_entitlement_id && (
-              <button
-                onClick={() => window.location.href = '/pricing'}
-                className="px-6 py-3 bg-white text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition-colors"
-              >
-                Upgrade Plan
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleManagePayment}
+                  className="px-6 py-3 bg-white/10 text-white border border-white/20 rounded-lg font-semibold hover:bg-white/20 transition-colors"
+                >
+                  Manage Payment
+                </button>
+                <button
+                  onClick={() => window.location.href = '/pricing'}
+                  className="px-6 py-3 bg-white text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition-colors"
+                >
+                  Upgrade Plan
+                </button>
+              </div>
             )}
 
             {subscription?.gcp_entitlement_id && (

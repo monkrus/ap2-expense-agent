@@ -1,11 +1,13 @@
 """
 Security middleware for HTTP headers and request processing
 """
+
+import uuid
+from typing import Callable
+
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
-from typing import Callable
-import uuid
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -71,9 +73,6 @@ class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         if self.enabled and request.url.scheme != "https":
             url = request.url.replace(scheme="https")
-            return Response(
-                status_code=307,
-                headers={"Location": str(url)}
-            )
+            return Response(status_code=307, headers={"Location": str(url)})
 
         return await call_next(request)

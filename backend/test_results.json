@@ -1,0 +1,57 @@
+[
+  {
+    "test": "Login",
+    "status": "PASS",
+    "message": "Token obtained for user 35d04997-b1f4-4cdb-acc0-b90587fd509a",
+    "timestamp": "2025-11-08T03:25:46.907280"
+  },
+  {
+    "test": "Get Pending Expenses",
+    "status": "PASS",
+    "message": "Found 19 pending expenses",
+    "timestamp": "2025-11-08T03:25:46.944801"
+  },
+  {
+    "test": "Get All Expenses (filter: all)",
+    "status": "PASS",
+    "message": "Found 19 expenses",
+    "timestamp": "2025-11-08T03:25:46.984994"
+  },
+  {
+    "test": "Get All Expenses (filter: pending)",
+    "status": "PASS",
+    "message": "Found 19 expenses",
+    "timestamp": "2025-11-08T03:25:47.021427"
+  },
+  {
+    "test": "Get All Expenses (filter: approved)",
+    "status": "PASS",
+    "message": "Found 0 expenses",
+    "timestamp": "2025-11-08T03:25:47.030694"
+  },
+  {
+    "test": "Get All Expenses (filter: rejected)",
+    "status": "PASS",
+    "message": "Found 0 expenses",
+    "timestamp": "2025-11-08T03:25:47.039350"
+  },
+  {
+    "test": "Archive All Expenses",
+    "status": "PASS",
+    "message": "Archived 10 expenses",
+    "timestamp": "2025-11-08T03:25:47.083402"
+  },
+  {
+    "test": "Get Archived Expenses",
+    "status": "PASS",
+    "message": "Found 10 archived expenses",
+    "timestamp": "2025-11-08T03:25:47.122053"
+  },
+  {
+    "test": "Unarchive All Expenses",
+    "status": "PASS",
+    "message": "Restored 10 expenses",
+    "timestamp": "2025-11-08T03:25:47.157692"
+  },
+  {
+    "test": "Get All Users

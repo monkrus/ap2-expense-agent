@@ -1,14 +1,17 @@
 """
 Subscription tier limits and pricing
 """
+
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import List, Optional
+
 from ..models import SubscriptionTier
 
 
 @dataclass
 class TierLimits:
     """Limits and pricing for a subscription tier"""
+
     tier: SubscriptionTier
     name: str
     price_monthly: float
@@ -50,7 +53,7 @@ TIER_CONFIGS = {
         advanced_analytics=False,
         dedicated_account_manager=False,
         sla_guarantee=None,
-        support_channels=["email"]
+        support_channels=["email"],
     ),
     SubscriptionTier.PROFESSIONAL: TierLimits(
         tier=SubscriptionTier.PROFESSIONAL,
@@ -70,7 +73,7 @@ TIER_CONFIGS = {
         advanced_analytics=False,
         dedicated_account_manager=False,
         sla_guarantee=None,
-        support_channels=["email", "chat"]
+        support_channels=["email", "chat"],
     ),
     SubscriptionTier.ENTERPRISE: TierLimits(
         tier=SubscriptionTier.ENTERPRISE,
@@ -90,7 +93,7 @@ TIER_CONFIGS = {
         advanced_analytics=True,
         dedicated_account_manager=False,
         sla_guarantee="99.9%",
-        support_channels=["email", "chat", "phone", "slack"]
+        support_channels=["email", "chat", "phone", "slack"],
     ),
     SubscriptionTier.ENTERPRISE_PLUS: TierLimits(
         tier=SubscriptionTier.ENTERPRISE_PLUS,
@@ -110,8 +113,8 @@ TIER_CONFIGS = {
         advanced_analytics=True,
         dedicated_account_manager=True,
         sla_guarantee="99.99%",
-        support_channels=["email", "chat", "phone", "slack", "dedicated"]
-    )
+        support_channels=["email", "chat", "phone", "slack", "dedicated"],
+    ),
 }
 
 
@@ -124,5 +127,5 @@ def get_tier_limits(tier: SubscriptionTier) -> TierLimits:
 USAGE_FEES = {
     "ap2_transaction": 0.10,  # $0.10 per AP2 transaction
     "ai_categorization": 0.05,  # $0.05 per AI categorization
-    "ocr_scan": 0.02  # $0.02 per OCR scan
+    "ocr_scan": 0.02,  # $0.02 per OCR scan
 }

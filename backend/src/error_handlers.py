@@ -3,18 +3,19 @@ Global Error Handlers and Custom Exceptions
 Provides consistent error handling across the application
 """
 
-from fastapi import Request, status
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from pydantic import ValidationError
 import logging
+import sys
 import traceback
 from typing import Union
-import sys
 
-from .logging_config import get_logger, RequestLogger
+from fastapi import Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from .logging_config import RequestLogger, get_logger
 
 logger = get_logger(__name__)
 
@@ -23,14 +24,16 @@ logger = get_logger(__name__)
 # Custom Exceptions
 # ============================================================================
 
+
 class APIException(Exception):
     """Base exception for all API errors"""
+
     def __init__(
         self,
         message: str,
         status_code: int = 500,
         error_code: str = "INTERNAL_ERROR",
-        details: dict = None
+        details: dict = None,
     ):
         self.message = message
         self.status_code = status_code
@@ -41,28 +44,31 @@ class APIException(Exception):
 
 class AuthenticationError(APIException):
     """Authentication failed"""
+
     def __init__(self, message: str = "Authentication failed", details: dict = None):
         super().__init__(
             message=message,
             status_code=status.HTTP_401_UNAUTHORIZED,
             error_code="AUTH_FAILED",
-            details=details
+            details=details,
         )
 
 
 class AuthorizationError(APIException):
     """User not authorized for this action"""
+
     def __init__(self, message: str = "Not authorized", details: dict = None):
         super().__init__(
             message=message,
             status_code=status.HTTP_403_FORBIDDEN,
             error_code="FORBIDDEN",
-            details=details
+            details=details,
         )
 
 
 class ResourceNotFoundError(APIException):
     """Resource not found"""
+
     def __init__(self, resource: str, resource_id: str = None):
         message = f"{resource} not found"
         if resource_id:
@@ -72,62 +78,69 @@ class ResourceNotFoundError(APIException):
             message=message,
             status_code=status.HTTP_404_NOT_FOUND,
             error_code="NOT_FOUND",
-            details={"resource": resource, "resource_id": resource_id}
+            details={"resource": resource, "resource_id": resource_id},
         )
 
 
 class ValidationError(APIException):
     """Data validation error"""
+
     def __init__(self, message: str, field: str = None, details: dict = None):
         super().__init__(
             message=message,
             status_code=status.HTTP_400_BAD_REQUEST,
             error_code="VALIDATION_ERROR",
-            details={"field": field, **(details or {})}
+            details={"field": field, **(details or {})},
         )
 
 
 class ConflictError(APIException):
     """Resource conflict (e.g., duplicate)"""
+
     def __init__(self, message: str, details: dict = None):
         super().__init__(
             message=message,
             status_code=status.HTTP_409_CONFLICT,
             error_code="CONFLICT",
-            details=details
+            details=details,
         )
 
 
 class RateLimitError(APIException):
     """Rate limit exceeded"""
+
     def __init__(self, retry_after: int = 60):
         super().__init__(
             message="Too many requests. Please try again later.",
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             error_code="RATE_LIMIT_EXCEEDED",
-            details={"retry_after": retry_after}
+            details={"retry_after": retry_after},
         )
 
 
 class ServiceUnavailableError(APIException):
     """External service unavailable"""
+
     def __init__(self, service: str, details: dict = None):
         super().__init__(
             message=f"Service temporarily unavailable: {service}",
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             error_code="SERVICE_UNAVAILABLE",
-            details={"service": service, **(details or {})}
+            details={"service": service, **(details or {})},
         )
 
 
 class DatabaseError(APIException):
     """Database operation error"""
-    def __init__(self, message: str = "Database operation failed", details: dict = None):
+
+    def __init__(
+        self, message: str = "Database operation failed", details: dict = None
+    ):
         super().__init__(
             message=message,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             error_code="DATABASE_ERROR",
-            details=details
+            details=details,
         )
 
 
@@ -135,19 +148,20 @@ class DatabaseError(APIException):
 # Error Response Builder
 # ============================================================================
 
+
 def build_error_response(
     status_code: int,
     message: str,
     error_code: str = None,
     details: dict = None,
-    request_id: str = None
+    request_id: str = None,
 ) -> JSONResponse:
     """Build consistent error response"""
     error_response = {
         "error": {
             "message": message,
             "code": error_code or "UNKNOWN_ERROR",
-            "status": status_code
+            "status": status_code,
         }
     }
 
@@ -157,15 +171,13 @@ def build_error_response(
     if request_id:
         error_response["request_id"] = request_id
 
-    return JSONResponse(
-        status_code=status_code,
-        content=error_response
-    )
+    return JSONResponse(status_code=status_code, content=error_response)
 
 
 # ============================================================================
 # Exception Handlers
 # ============================================================================
+
 
 async def api_exception_handler(request: Request, exc: APIException) -> JSONResponse:
     """Handle custom API exceptions"""
@@ -178,8 +190,8 @@ async def api_exception_handler(request: Request, exc: APIException) -> JSONResp
             "status_code": exc.status_code,
             "endpoint": str(request.url),
             "method": request.method,
-            "request_id": request_id
-        }
+            "request_id": request_id,
+        },
     )
 
     return build_error_response(
@@ -187,11 +199,13 @@ async def api_exception_handler(request: Request, exc: APIException) -> JSONResp
         message=exc.message,
         error_code=exc.error_code,
         details=exc.details,
-        request_id=request_id
+        request_id=request_id,
     )
 
 
-async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+async def http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+) -> JSONResponse:
     """Handle HTTP exceptions"""
     request_id = request.headers.get("X-Request-ID")
 
@@ -201,30 +215,32 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
             "status_code": exc.status_code,
             "endpoint": str(request.url),
             "method": request.method,
-            "request_id": request_id
-        }
+            "request_id": request_id,
+        },
     )
 
-    return build_error_response(
-        status_code=exc.status_code,
-        message=str(exc.detail),
-        error_code="HTTP_ERROR",
-        request_id=request_id
+    # Return standard FastAPI format with "detail" for compatibility
+    return JSONResponse(
+        status_code=exc.status_code, content={"detail": str(exc.detail)}
     )
 
 
-async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
     """Handle request validation errors"""
     request_id = request.headers.get("X-Request-ID")
 
     # Extract validation errors
     errors = []
     for error in exc.errors():
-        errors.append({
-            "field": ".".join(str(x) for x in error["loc"]),
-            "message": error["msg"],
-            "type": error["type"]
-        })
+        errors.append(
+            {
+                "field": ".".join(str(x) for x in error["loc"]),
+                "message": error["msg"],
+                "type": error["type"],
+            }
+        )
 
     logger.warning(
         f"Validation Error: {len(errors)} field(s) failed validation",
@@ -232,8 +248,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "errors": errors,
             "endpoint": str(request.url),
             "method": request.method,
-            "request_id": request_id
-        }
+            "request_id": request_id,
+        },
     )
 
     return build_error_response(
@@ -241,11 +257,13 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         message="Request validation failed",
         error_code="VALIDATION_ERROR",
         details={"errors": errors},
-        request_id=request_id
+        request_id=request_id,
     )
 
 
-async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
+async def sqlalchemy_exception_handler(
+    request: Request, exc: SQLAlchemyError
+) -> JSONResponse:
     """Handle SQLAlchemy database errors"""
     request_id = request.headers.get("X-Request-ID")
 
@@ -256,8 +274,8 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -
         extra={
             "endpoint": str(request.url),
             "method": request.method,
-            "request_id": request_id
-        }
+            "request_id": request_id,
+        },
     )
 
     # Check for specific error types
@@ -272,7 +290,7 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         message=message,
         error_code=error_code,
-        request_id=request_id
+        request_id=request_id,
     )
 
 
@@ -289,19 +307,21 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
             "endpoint": str(request.url),
             "method": request.method,
             "request_id": request_id,
-            "traceback": traceback.format_exc()
-        }
+            "traceback": traceback.format_exc(),
+        },
     )
 
     # Send to error tracking service (e.g., Sentry)
     try:
         import sentry_sdk
+
         sentry_sdk.capture_exception(exc)
     except:
         pass
 
     # Don't expose internal errors in production
     import os
+
     if os.getenv("ENVIRONMENT") == "production":
         message = "An internal error occurred. Please try again later."
     else:
@@ -311,13 +331,14 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         message=message,
         error_code="INTERNAL_ERROR",
-        request_id=request_id
+        request_id=request_id,
     )
 
 
 # ============================================================================
 # Register Exception Handlers
 # ============================================================================
+
 
 def register_exception_handlers(app):
     """Register all exception handlers with FastAPI app"""
@@ -344,6 +365,7 @@ def register_exception_handlers(app):
 # Error Tracking Integration (Sentry)
 # ============================================================================
 
+
 def init_error_tracking():
     """Initialize error tracking service (Sentry)"""
     import os
@@ -365,7 +387,7 @@ def init_error_tracking():
                     SqlalchemyIntegration(),
                 ],
                 send_default_pii=False,  # Don't send personally identifiable information
-                before_send=before_send_sentry
+                before_send=before_send_sentry,
             )
 
             logger.info("Sentry error tracking initialized")

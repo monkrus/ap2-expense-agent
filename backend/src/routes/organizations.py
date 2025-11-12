@@ -3,36 +3,40 @@ Organization Management API Routes
 Handles multi-tenancy, organization creation, member management, and invitations
 """
 
+import secrets
+import uuid
+from datetime import datetime, timedelta
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import datetime, timedelta
-import uuid
-import secrets
 
-from ..database import get_db
-from ..models import (
-    Organization, OrganizationMember, OrganizationInvitation,
-    User, OrganizationRole
-)
 from ..auth import get_current_active_user
-from ..tenant_context import (
-    get_user_organizations,
-    get_user_organization_role,
-    verify_organization_access,
-    get_organization_or_404,
-    TenantAwareQuery,
-    TenantContext
+from ..database import get_db
+from ..email_service import EmailService
+from ..models import (
+    Organization,
+    OrganizationInvitation,
+    OrganizationMember,
+    OrganizationRole,
+    User,
 )
 from ..schemas import (
     OrganizationCreate,
-    OrganizationUpdate,
-    OrganizationResponse,
-    OrganizationMemberResponse,
     OrganizationInvitationCreate,
-    OrganizationInvitationResponse
+    OrganizationInvitationResponse,
+    OrganizationMemberResponse,
+    OrganizationResponse,
+    OrganizationUpdate,
 )
-from ..email_service import EmailService
+from ..tenant_context import (
+    TenantAwareQuery,
+    TenantContext,
+    get_organization_or_404,
+    get_user_organization_role,
+    get_user_organizations,
+    verify_organization_access,
+)
 
 router = APIRouter(prefix="/api/v1/organizations", tags=["Organizations"])
 
@@ -41,11 +45,14 @@ router = APIRouter(prefix="/api/v1/organizations", tags=["Organizations"])
 # Organization CRUD
 # ============================================================================
 
-@router.post("", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_organization(
     org_data: OrganizationCreate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Create a new organization"""
 
@@ -54,7 +61,7 @@ async def create_organization(
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Organization slug already taken"
+            detail="Organization slug already taken",
         )
 
     # Create organization
@@ -66,7 +73,7 @@ async def create_organization(
         currency=org_data.currency or "USD",
         timezone=org_data.timezone or "UTC",
         max_members=org_data.max_members or 25,
-        is_active=True
+        is_active=True,
     )
     db.add(organization)
     db.flush()
@@ -77,7 +84,7 @@ async def create_organization(
         organization_id=organization.id,
         user_id=current_user.id,
         role=OrganizationRole.OWNER,
-        is_active=True
+        is_active=True,
     )
     db.add(membership)
     db.commit()
@@ -88,8 +95,7 @@ async def create_organization(
 
 @router.get("", response_model=List[OrganizationResponse])
 async def list_organizations(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """List all organizations user belongs to"""
     organizations = get_user_organizations(current_user.id, db)
@@ -100,7 +106,7 @@ async def list_organizations(
 async def get_organization(
     organization_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get organization details"""
 
@@ -116,7 +122,7 @@ async def update_organization(
     organization_id: str,
     org_data: OrganizationUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update organization details (requires admin role)"""
 
@@ -125,7 +131,7 @@ async def update_organization(
     if role not in [OrganizationRole.OWNER.value, OrganizationRole.ADMIN.value]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only organization owners and admins can update settings"
+            detail="Only organization owners and admins can update settings",
         )
 
     organization = get_organization_or_404(organization_id, db)
@@ -150,7 +156,7 @@ async def update_organization(
 async def delete_organization(
     organization_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Delete organization (requires owner role)"""
 
@@ -159,7 +165,7 @@ async def delete_organization(
     if role != OrganizationRole.OWNER.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only organization owner can delete the organization"
+            detail="Only organization owner can delete the organization",
         )
 
     organization = get_organization_or_404(organization_id, db)
@@ -173,35 +179,44 @@ async def delete_organization(
 # Organization Members
 # ============================================================================
 
-@router.get("/{organization_id}/members", response_model=List[OrganizationMemberResponse])
+
+@router.get(
+    "/{organization_id}/members", response_model=List[OrganizationMemberResponse]
+)
 async def list_organization_members(
     organization_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List all members of an organization"""
 
     # Verify access
     TenantAwareQuery.ensure_organization_access(organization_id, current_user.id, db)
 
-    members = db.query(OrganizationMember).filter(
-        OrganizationMember.organization_id == organization_id,
-        OrganizationMember.is_active == True
-    ).all()
+    members = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == organization_id,
+            OrganizationMember.is_active == True,
+        )
+        .all()
+    )
 
     # Fetch user details
     result = []
     for member in members:
         user = db.query(User).filter(User.id == member.user_id).first()
         if user:
-            result.append({
-                "id": member.id,
-                "user_id": user.id,
-                "email": user.email,
-                "full_name": user.full_name,
-                "role": member.role.value,
-                "joined_at": member.joined_at
-            })
+            result.append(
+                {
+                    "id": member.id,
+                    "user_id": user.id,
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "role": member.role.value,
+                    "joined_at": member.joined_at,
+                }
+            )
 
     return result
 
@@ -212,7 +227,7 @@ async def update_member_role(
     member_id: str,
     role: OrganizationRole,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update member role (requires admin role)"""
 
@@ -221,25 +236,27 @@ async def update_member_role(
     if user_role not in [OrganizationRole.OWNER.value, OrganizationRole.ADMIN.value]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only organization owners and admins can update member roles"
+            detail="Only organization owners and admins can update member roles",
         )
 
-    member = db.query(OrganizationMember).filter(
-        OrganizationMember.id == member_id,
-        OrganizationMember.organization_id == organization_id
-    ).first()
+    member = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.id == member_id,
+            OrganizationMember.organization_id == organization_id,
+        )
+        .first()
+    )
 
     if not member:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Member not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
         )
 
     # Cannot change owner role
     if member.role == OrganizationRole.OWNER:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot change owner role"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot change owner role"
         )
 
     member.role = role
@@ -248,12 +265,14 @@ async def update_member_role(
     return {"message": "Member role updated successfully"}
 
 
-@router.delete("/{organization_id}/members/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{organization_id}/members/{member_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def remove_organization_member(
     organization_id: str,
     member_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Remove member from organization (requires admin role)"""
 
@@ -262,25 +281,28 @@ async def remove_organization_member(
     if user_role not in [OrganizationRole.OWNER.value, OrganizationRole.ADMIN.value]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only organization owners and admins can remove members"
+            detail="Only organization owners and admins can remove members",
         )
 
-    member = db.query(OrganizationMember).filter(
-        OrganizationMember.id == member_id,
-        OrganizationMember.organization_id == organization_id
-    ).first()
+    member = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.id == member_id,
+            OrganizationMember.organization_id == organization_id,
+        )
+        .first()
+    )
 
     if not member:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Member not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
         )
 
     # Cannot remove owner
     if member.role == OrganizationRole.OWNER:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot remove organization owner"
+            detail="Cannot remove organization owner",
         )
 
     # Soft delete (deactivate)
@@ -292,12 +314,17 @@ async def remove_organization_member(
 # Organization Invitations
 # ============================================================================
 
-@router.post("/{organization_id}/invitations", response_model=OrganizationInvitationResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/{organization_id}/invitations",
+    response_model=OrganizationInvitationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_invitation(
     organization_id: str,
     invitation_data: OrganizationInvitationCreate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Invite a user to join the organization"""
 
@@ -306,7 +333,7 @@ async def create_invitation(
     if user_role not in [OrganizationRole.OWNER.value, OrganizationRole.ADMIN.value]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only organization owners and admins can invite members"
+            detail="Only organization owners and admins can invite members",
         )
 
     organization = get_organization_or_404(organization_id, db)
@@ -314,29 +341,37 @@ async def create_invitation(
     # Check if user already a member
     existing_user = db.query(User).filter(User.email == invitation_data.email).first()
     if existing_user:
-        existing_membership = db.query(OrganizationMember).filter(
-            OrganizationMember.organization_id == organization_id,
-            OrganizationMember.user_id == existing_user.id,
-            OrganizationMember.is_active == True
-        ).first()
+        existing_membership = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.organization_id == organization_id,
+                OrganizationMember.user_id == existing_user.id,
+                OrganizationMember.is_active == True,
+            )
+            .first()
+        )
 
         if existing_membership:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User is already a member of this organization"
+                detail="User is already a member of this organization",
             )
 
     # Check if pending invitation exists
-    pending = db.query(OrganizationInvitation).filter(
-        OrganizationInvitation.organization_id == organization_id,
-        OrganizationInvitation.email == invitation_data.email,
-        OrganizationInvitation.status == "pending"
-    ).first()
+    pending = (
+        db.query(OrganizationInvitation)
+        .filter(
+            OrganizationInvitation.organization_id == organization_id,
+            OrganizationInvitation.email == invitation_data.email,
+            OrganizationInvitation.status == "pending",
+        )
+        .first()
+    )
 
     if pending:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invitation already sent to this email"
+            detail="Invitation already sent to this email",
         )
 
     # Create invitation
@@ -348,7 +383,7 @@ async def create_invitation(
         invited_by=current_user.id,
         token=secrets.token_urlsafe(32),
         status="pending",
-        expires_at=datetime.utcnow() + timedelta(days=7)
+        expires_at=datetime.utcnow() + timedelta(days=7),
     )
     db.add(invitation)
     db.commit()
@@ -359,27 +394,34 @@ async def create_invitation(
         to_email=invitation.email,
         organization_name=organization.name,
         inviter_name=current_user.full_name or current_user.username,
-        invitation_token=invitation.token
+        invitation_token=invitation.token,
     )
 
     return invitation
 
 
-@router.get("/{organization_id}/invitations", response_model=List[OrganizationInvitationResponse])
+@router.get(
+    "/{organization_id}/invitations",
+    response_model=List[OrganizationInvitationResponse],
+)
 async def list_invitations(
     organization_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List pending invitations for organization"""
 
     # Verify access
     TenantAwareQuery.ensure_organization_access(organization_id, current_user.id, db)
 
-    invitations = db.query(OrganizationInvitation).filter(
-        OrganizationInvitation.organization_id == organization_id,
-        OrganizationInvitation.status == "pending"
-    ).all()
+    invitations = (
+        db.query(OrganizationInvitation)
+        .filter(
+            OrganizationInvitation.organization_id == organization_id,
+            OrganizationInvitation.status == "pending",
+        )
+        .all()
+    )
 
     return invitations
 
@@ -388,19 +430,23 @@ async def list_invitations(
 async def accept_invitation(
     token: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Accept an organization invitation"""
 
-    invitation = db.query(OrganizationInvitation).filter(
-        OrganizationInvitation.token == token,
-        OrganizationInvitation.status == "pending"
-    ).first()
+    invitation = (
+        db.query(OrganizationInvitation)
+        .filter(
+            OrganizationInvitation.token == token,
+            OrganizationInvitation.status == "pending",
+        )
+        .first()
+    )
 
     if not invitation:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invitation not found or already used"
+            detail="Invitation not found or already used",
         )
 
     # Check expiration
@@ -408,28 +454,31 @@ async def accept_invitation(
         invitation.status = "expired"
         db.commit()
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invitation has expired"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invitation has expired"
         )
 
     # Check email matches
     if invitation.email != current_user.email:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="This invitation was sent to a different email address"
+            detail="This invitation was sent to a different email address",
         )
 
     # Check if already a member
-    existing = db.query(OrganizationMember).filter(
-        OrganizationMember.organization_id == invitation.organization_id,
-        OrganizationMember.user_id == current_user.id,
-        OrganizationMember.is_active == True
-    ).first()
+    existing = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == invitation.organization_id,
+            OrganizationMember.user_id == current_user.id,
+            OrganizationMember.is_active == True,
+        )
+        .first()
+    )
 
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You are already a member of this organization"
+            detail="You are already a member of this organization",
         )
 
     # Create membership
@@ -438,7 +487,7 @@ async def accept_invitation(
         organization_id=invitation.organization_id,
         user_id=current_user.id,
         role=invitation.role,
-        is_active=True
+        is_active=True,
     )
     db.add(membership)
 
@@ -451,12 +500,15 @@ async def accept_invitation(
     return {"message": "Invitation accepted successfully"}
 
 
-@router.delete("/{organization_id}/invitations/{invitation_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{organization_id}/invitations/{invitation_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 async def revoke_invitation(
     organization_id: str,
     invitation_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Revoke a pending invitation"""
 
@@ -465,18 +517,21 @@ async def revoke_invitation(
     if user_role not in [OrganizationRole.OWNER.value, OrganizationRole.ADMIN.value]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only organization owners and admins can revoke invitations"
+            detail="Only organization owners and admins can revoke invitations",
         )
 
-    invitation = db.query(OrganizationInvitation).filter(
-        OrganizationInvitation.id == invitation_id,
-        OrganizationInvitation.organization_id == organization_id
-    ).first()
+    invitation = (
+        db.query(OrganizationInvitation)
+        .filter(
+            OrganizationInvitation.id == invitation_id,
+            OrganizationInvitation.organization_id == organization_id,
+        )
+        .first()
+    )
 
     if not invitation:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invitation not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invitation not found"
         )
 
     invitation.status = "revoked"

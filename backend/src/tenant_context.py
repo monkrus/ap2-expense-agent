@@ -5,12 +5,16 @@ Provides organization isolation and tenant-aware database queries
 
 from contextvars import ContextVar
 from typing import Optional
-from fastapi import Request, HTTPException, status
+
+from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import Session
+
 from .models import Organization, OrganizationMember
 
 # Thread-safe context variable for current organization
-current_organization: ContextVar[Optional[str]] = ContextVar('current_organization', default=None)
+current_organization: ContextVar[Optional[str]] = ContextVar(
+    "current_organization", default=None
+)
 
 
 class TenantContext:
@@ -38,62 +42,85 @@ class TenantContext:
         if not org_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Organization context required. Please select an organization."
+                detail="Organization context required. Please select an organization.",
             )
         return org_id
 
 
 def get_user_organizations(user_id: str, db: Session) -> list:
     """Get all organizations a user belongs to"""
-    memberships = db.query(OrganizationMember).filter(
-        OrganizationMember.user_id == user_id,
-        OrganizationMember.is_active == True
-    ).all()
+    memberships = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.user_id == user_id, OrganizationMember.is_active == True
+        )
+        .all()
+    )
 
     org_ids = [m.organization_id for m in memberships]
-    organizations = db.query(Organization).filter(
-        Organization.id.in_(org_ids),
-        Organization.is_active == True
-    ).all()
+    organizations = (
+        db.query(Organization)
+        .filter(Organization.id.in_(org_ids), Organization.is_active == True)
+        .all()
+    )
 
     return [
         {
             "id": org.id,
             "name": org.name,
             "slug": org.slug,
-            "role": next((m.role.value for m in memberships if m.organization_id == org.id), None)
+            "description": org.description,
+            "currency": org.currency,
+            "timezone": org.timezone,
+            "max_members": org.max_members,
+            "is_active": org.is_active,
+            "created_at": org.created_at,
+            "role": next(
+                (m.role.value for m in memberships if m.organization_id == org.id), None
+            ),
         }
         for org in organizations
     ]
 
 
-def get_user_organization_role(user_id: str, organization_id: str, db: Session) -> Optional[str]:
+def get_user_organization_role(
+    user_id: str, organization_id: str, db: Session
+) -> Optional[str]:
     """Get user's role in a specific organization"""
-    membership = db.query(OrganizationMember).filter(
-        OrganizationMember.user_id == user_id,
-        OrganizationMember.organization_id == organization_id,
-        OrganizationMember.is_active == True
-    ).first()
+    membership = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.user_id == user_id,
+            OrganizationMember.organization_id == organization_id,
+            OrganizationMember.is_active == True,
+        )
+        .first()
+    )
 
     return membership.role.value if membership else None
 
 
 def verify_organization_access(user_id: str, organization_id: str, db: Session) -> bool:
     """Verify user has access to organization"""
-    membership = db.query(OrganizationMember).filter(
-        OrganizationMember.user_id == user_id,
-        OrganizationMember.organization_id == organization_id,
-        OrganizationMember.is_active == True
-    ).first()
+    membership = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.user_id == user_id,
+            OrganizationMember.organization_id == organization_id,
+            OrganizationMember.is_active == True,
+        )
+        .first()
+    )
 
     if not membership:
         return False
 
     # Check organization is active
-    organization = db.query(Organization).filter(
-        Organization.id == organization_id,
-        Organization.is_active == True
-    ).first()
+    organization = (
+        db.query(Organization)
+        .filter(Organization.id == organization_id, Organization.is_active == True)
+        .first()
+    )
 
     return organization is not None
 
@@ -107,7 +134,7 @@ async def tenant_middleware(request: Request, call_next):
     TenantContext.clear()
 
     # Get organization from header
-    org_id = request.headers.get('X-Organization-Id')
+    org_id = request.headers.get("X-Organization-Id")
 
     if org_id:
         # Set organization context
@@ -132,7 +159,7 @@ class TenantAwareQuery:
         Usage: query = TenantAwareQuery.filter_by_organization(query, Expense)
         """
         org_id = TenantContext.get_organization()
-        if org_id and hasattr(model, 'organization_id'):
+        if org_id and hasattr(model, "organization_id"):
             query = query.filter(model.organization_id == org_id)
         return query
 
@@ -142,30 +169,33 @@ class TenantAwareQuery:
         if not verify_organization_access(user_id, organization_id, db):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have access to this organization"
+                detail="You do not have access to this organization",
             )
 
 
 def get_organization_or_404(organization_id: str, db: Session) -> Organization:
     """Get organization or raise 404"""
-    organization = db.query(Organization).filter(
-        Organization.id == organization_id,
-        Organization.is_active == True
-    ).first()
+    organization = (
+        db.query(Organization)
+        .filter(Organization.id == organization_id, Organization.is_active == True)
+        .first()
+    )
 
     if not organization:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organization not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
         )
 
     return organization
 
 
-def create_default_organization_for_user(user_id: str, email: str, db: Session) -> Organization:
+def create_default_organization_for_user(
+    user_id: str, email: str, db: Session
+) -> Organization:
     """Create a default personal organization for a new user"""
-    import uuid
     import secrets
+    import uuid
+
     from .models import OrganizationRole
 
     # Generate unique slug
@@ -178,7 +208,7 @@ def create_default_organization_for_user(user_id: str, email: str, db: Session) 
         slug=slug,
         description="Your personal expense workspace",
         max_members=1,
-        is_active=True
+        is_active=True,
     )
     db.add(organization)
     db.flush()  # Get organization ID
@@ -189,7 +219,7 @@ def create_default_organization_for_user(user_id: str, email: str, db: Session) 
         organization_id=organization.id,
         user_id=user_id,
         role=OrganizationRole.OWNER,
-        is_active=True
+        is_active=True,
     )
     db.add(membership)
     db.commit()

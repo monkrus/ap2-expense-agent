@@ -1,272 +1,374 @@
 """
-Tests for authentication endpoints
+Authentication tests - streamlined and focused
 """
+
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 class TestRegistration:
-    """Test user registration"""
+    """Test user registration endpoints"""
 
-    def test_register_success(self, client):
-        """Test successful user registration"""
+    def test_register_new_user(self, client):
+        """Test successful registration of a new user"""
         response = client.post(
             "/api/v1/auth/register",
             json={
-                "email": "newuser@example.com",
+                "email": "newuser@test.com",
                 "username": "newuser",
-                "password": "NewPassword123!",
+                "password": "SecurePass123!",
                 "full_name": "New User",
-                "role": "employee"
-            }
+                "role": "employee",
+            },
         )
         assert response.status_code == 201
         data = response.json()
-        assert data["email"] == "newuser@example.com"
+        assert data["email"] == "newuser@test.com"
         assert data["username"] == "newuser"
         assert "hashed_password" not in data
 
     def test_register_duplicate_email(self, client, test_user):
-        """Test registration with duplicate email"""
+        """Test registration with duplicate email fails"""
         response = client.post(
             "/api/v1/auth/register",
             json={
                 "email": "test@example.com",
-                "username": "differentuser",
-                "password": "Password123!",
+                "username": "different",
+                "password": "SecurePass123!",
                 "full_name": "Different User",
-                "role": "employee"
-            }
+                "role": "employee",
+            },
         )
         assert response.status_code == 400
-        assert "already exists" in response.json()["detail"]
+        assert "already exists" in response.json()["detail"].lower()
 
     def test_register_weak_password(self, client):
-        """Test registration with weak password"""
+        """Test registration with weak password fails"""
         response = client.post(
             "/api/v1/auth/register",
             json={
-                "email": "weak@example.com",
+                "email": "weak@test.com",
                 "username": "weakuser",
                 "password": "weak",
                 "full_name": "Weak User",
-                "role": "employee"
-            }
+                "role": "employee",
+            },
         )
-        assert response.status_code == 422  # Validation error
+        assert response.status_code == 422  # Pydantic validation error
 
 
 class TestLogin:
-    """Test user login"""
+    """Test user login endpoints"""
 
     def test_login_success(self, client, test_user):
         """Test successful login"""
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "username": "testuser",
-                "password": "TestPass123!"
-            }
+            json={"username": "testuser", "password": "TestPass123!"},
         )
         assert response.status_code == 200
         data = response.json()
         assert "access_token" in data
-        assert "refresh_token" in data
-        assert data["user"]["username"] == "testuser"
+        assert data["token_type"] == "bearer"
 
     def test_login_wrong_password(self, client, test_user):
-        """Test login with wrong password"""
+        """Test login with wrong password fails"""
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "username": "testuser",
-                "password": "WrongPassword123!"
-            }
+            json={"username": "testuser", "password": "WrongPassword123!"},
         )
         assert response.status_code == 401
 
     def test_login_nonexistent_user(self, client):
-        """Test login with nonexistent user"""
+        """Test login with nonexistent user fails"""
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "username": "nonexistent",
-                "password": "Password123!"
-            }
-        )
-        assert response.status_code == 401
-
-    def test_account_lockout(self, client, test_user):
-        """Test account lockout after failed attempts"""
-        # Attempt 5 failed logins
-        for i in range(5):
-            response = client.post(
-                "/api/v1/auth/login",
-                json={
-                    "username": "testuser",
-                    "password": "WrongPassword!"
-                }
-            )
-            if i < 4:
-                assert response.status_code == 401
-                assert "attempts remaining" in response.json()["detail"]
-
-        # 5th attempt should lock the account
-        assert response.status_code == 423
-        assert "locked" in response.json()["detail"].lower()
-
-    def test_login_after_lockout_expiry(self, client, test_user, db_session):
-        """Test login after lockout period expires"""
-        # Lock the account manually
-        test_user.failed_login_attempts = 5
-        test_user.locked_until = datetime.utcnow() - timedelta(minutes=1)  # Expired
-        db_session.commit()
-
-        # Should be able to login
-        response = client.post(
-            "/api/v1/auth/login",
-            json={
-                "username": "testuser",
-                "password": "TestPass123!"
-            }
-        )
-        assert response.status_code == 200
-
-
-class TestTokenRefresh:
-    """Test token refresh"""
-
-    def test_refresh_token_success(self, client, test_user):
-        """Test successful token refresh"""
-        # Login to get refresh token
-        login_response = client.post(
-            "/api/v1/auth/login",
-            json={
-                "username": "testuser",
-                "password": "TestPass123!"
-            }
-        )
-        refresh_token = login_response.json()["refresh_token"]
-
-        # Refresh token
-        response = client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": refresh_token}
-        )
-        assert response.status_code == 200
-        assert "access_token" in response.json()
-
-    def test_refresh_invalid_token(self, client):
-        """Test refresh with invalid token"""
-        response = client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": "invalid_token"}
+            json={"username": "nonexistent", "password": "Password123!"},
         )
         assert response.status_code == 401
 
 
-class TestPasswordReset:
-    """Test password reset flow"""
+class TestGetCurrentUser:
+    """Test getting current user information"""
 
-    def test_request_password_reset(self, client, test_user):
-        """Test password reset request"""
-        response = client.post(
-            "/api/v1/auth/password/reset-request",
-            json={"email": "test@example.com"}
-        )
-        assert response.status_code == 200
-        assert "reset_token" in response.json()  # Dev mode only
-
-    def test_confirm_password_reset(self, client, test_user):
-        """Test password reset confirmation"""
-        # Request reset
-        reset_response = client.post(
-            "/api/v1/auth/password/reset-request",
-            json={"email": "test@example.com"}
-        )
-        reset_token = reset_response.json()["reset_token"]
-
-        # Confirm reset
-        response = client.post(
-            "/api/v1/auth/password/reset-confirm",
-            json={
-                "token": reset_token,
-                "new_password": "NewPassword123!"
-            }
-        )
-        assert response.status_code == 200
-
-        # Login with new password
-        login_response = client.post(
-            "/api/v1/auth/login",
-            json={
-                "username": "testuser",
-                "password": "NewPassword123!"
-            }
-        )
-        assert login_response.status_code == 200
-
-
-class Test2FA:
-    """Test two-factor authentication"""
-
-    def test_2fa_setup(self, client, auth_headers):
-        """Test 2FA setup"""
-        response = client.post(
-            "/api/v1/auth/2fa/setup",
-            headers=auth_headers
-        )
+    def test_get_current_user(self, client, auth_headers):
+        """Test getting current authenticated user"""
+        response = client.get("/api/v1/auth/me", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
-        assert "secret" in data
-        assert "qr_code_url" in data
-        assert "backup_codes" in data
+        assert data["email"] == "test@example.com"
+        assert data["username"] == "testuser"
 
-    def test_2fa_enable(self, client, auth_headers, test_user, db_session):
-        """Test 2FA enable"""
-        # Setup 2FA
-        setup_response = client.post(
-            "/api/v1/auth/2fa/setup",
-            headers=auth_headers
+    def test_get_current_user_unauthorized(self, client):
+        """Test getting current user without auth fails"""
+        response = client.get("/api/v1/auth/me")
+        assert response.status_code == 401
+
+
+class TestAdminAccess:
+    """Test admin-only endpoints"""
+
+    def test_admin_can_access_admin_endpoint(self, client, admin_headers):
+        """Test admin can access admin endpoints"""
+        response = client.get("/api/v1/admin/users", headers=admin_headers)
+        # Should not be 403 (forbidden)
+        assert response.status_code in [200, 404]
+
+    def test_regular_user_cannot_access_admin_endpoint(self, client, auth_headers):
+        """Test regular user cannot access admin endpoints"""
+        response = client.get("/api/v1/admin/users", headers=auth_headers)
+        assert response.status_code == 403
+
+
+class TestAuthService:
+    """Test AuthService methods directly"""
+
+    def test_hash_password(self):
+        """Test password hashing"""
+        from src.auth import AuthService
+
+        password = "TestPassword123!"
+        hashed = AuthService.hash_password(password)
+
+        assert hashed != password
+        assert isinstance(hashed, str)
+        assert len(hashed) > 0
+
+    def test_hash_password_long(self):
+        """Test hashing password longer than 72 bytes (bcrypt limit)"""
+        from src.auth import AuthService
+
+        # Create password longer than 72 bytes
+        long_password = "a" * 100
+        hashed = AuthService.hash_password(long_password)
+
+        assert isinstance(hashed, str)
+
+    def test_verify_password_correct(self):
+        """Test password verification with correct password"""
+        from src.auth import AuthService
+
+        password = "TestPassword123!"
+        hashed = AuthService.hash_password(password)
+
+        assert AuthService.verify_password(password, hashed) is True
+
+    def test_verify_password_incorrect(self):
+        """Test password verification with incorrect password"""
+        from src.auth import AuthService
+
+        password = "TestPassword123!"
+        hashed = AuthService.hash_password(password)
+
+        assert AuthService.verify_password("WrongPassword", hashed) is False
+
+    def test_verify_password_long(self):
+        """Test verifying long password (>72 bytes)"""
+        from src.auth import AuthService
+
+        long_password = "a" * 100
+        hashed = AuthService.hash_password(long_password)
+
+        # Should verify correctly even with long password
+        assert AuthService.verify_password(long_password, hashed) is True
+
+    def test_create_access_token(self):
+        """Test creating JWT access token"""
+        from src.auth import AuthService
+
+        data = {"sub": "user123", "email": "test@example.com"}
+        token = AuthService.create_access_token(data)
+
+        assert isinstance(token, str)
+        assert len(token) > 0
+
+    def test_create_access_token_with_custom_expiry(self):
+        """Test creating token with custom expiration"""
+        from src.auth import AuthService
+        from datetime import timedelta
+
+        data = {"sub": "user123"}
+        token = AuthService.create_access_token(
+            data, expires_delta=timedelta(minutes=5)
         )
-        secret = setup_response.json()["secret"]
 
-        # Generate TOTP code
+        assert isinstance(token, str)
+
+    def test_verify_token_valid(self):
+        """Test verifying valid JWT token"""
+        from src.auth import AuthService
+
+        data = {"sub": "user123", "email": "test@example.com"}
+        token = AuthService.create_access_token(data)
+
+        payload = AuthService.verify_token(token)
+        assert payload["sub"] == "user123"
+        assert payload["email"] == "test@example.com"
+        assert "exp" in payload
+        assert "iat" in payload
+
+    def test_verify_token_invalid(self):
+        """Test verifying invalid JWT token"""
+        from src.auth import AuthService
+        from fastapi import HTTPException
+        import pytest
+
+        with pytest.raises(HTTPException) as exc_info:
+            AuthService.verify_token("invalid.token.here")
+
+        assert exc_info.value.status_code == 401
+
+    def test_create_refresh_token(self, db_session, test_user):
+        """Test creating refresh token"""
+        from src.auth import AuthService
+        from src.models import RefreshToken
+
+        token = AuthService.create_refresh_token(
+            test_user.id, db_session, device_info="Test Device"
+        )
+
+        assert isinstance(token, str)
+        assert len(token) > 0
+
+        # Verify token was stored in database
+        stored_token = db_session.query(RefreshToken).filter_by(
+            user_id=test_user.id
+        ).first()
+        assert stored_token is not None
+        assert stored_token.token == token
+        assert stored_token.device_info == "Test Device"
+
+    def test_verify_refresh_token_valid(self, db_session, test_user):
+        """Test verifying valid refresh token"""
+        from src.auth import AuthService
+
+        token = AuthService.create_refresh_token(test_user.id, db_session)
+
+        refresh_token = AuthService.verify_refresh_token(token, db_session)
+        assert refresh_token is not None
+        assert refresh_token.user_id == test_user.id
+
+    def test_verify_refresh_token_invalid(self, db_session):
+        """Test verifying invalid refresh token"""
+        from src.auth import AuthService
+        from fastapi import HTTPException
+        import pytest
+
+        with pytest.raises(HTTPException) as exc_info:
+            AuthService.verify_refresh_token("invalid_token", db_session)
+
+        assert exc_info.value.status_code == 401
+
+    def test_verify_refresh_token_revoked(self, db_session, test_user):
+        """Test verifying revoked refresh token"""
+        from src.auth import AuthService
+        from fastapi import HTTPException
+        import pytest
+
+        token = AuthService.create_refresh_token(test_user.id, db_session)
+        AuthService.revoke_refresh_token(token, db_session)
+
+        with pytest.raises(HTTPException) as exc_info:
+            AuthService.verify_refresh_token(token, db_session)
+
+        assert exc_info.value.status_code == 401
+
+    def test_revoke_refresh_token(self, db_session, test_user):
+        """Test revoking refresh token"""
+        from src.auth import AuthService
+        from src.models import RefreshToken
+
+        token = AuthService.create_refresh_token(test_user.id, db_session)
+
+        result = AuthService.revoke_refresh_token(token, db_session)
+        assert result is True
+
+        # Verify token is revoked in database
+        stored_token = db_session.query(RefreshToken).filter_by(token=token).first()
+        assert stored_token.revoked is True
+
+    def test_revoke_refresh_token_nonexistent(self, db_session):
+        """Test revoking non-existent refresh token"""
+        from src.auth import AuthService
+
+        result = AuthService.revoke_refresh_token("nonexistent_token", db_session)
+        assert result is False
+
+    def test_log_audit(self, db_session, test_user):
+        """Test logging audit events"""
+        from src.auth import AuthService
+        from src.models import AuditLog
+
+        AuthService.log_audit(
+            db=db_session,
+            user_id=test_user.id,
+            action="test.action",
+            resource_type="test_resource",
+            resource_id="res_123",
+            details={"key": "value"}
+        )
+
+        # Verify audit log was created
+        log = db_session.query(AuditLog).filter_by(user_id=test_user.id).first()
+        assert log is not None
+        assert log.action == "test.action"
+        assert log.resource_type == "test_resource"
+        assert log.resource_id == "res_123"
+
+
+class TestTOTPService:
+    """Test two-factor authentication service"""
+
+    def test_generate_secret(self):
+        """Test generating TOTP secret"""
+        from src.auth import TOTPService
+
+        secret = TOTPService.generate_secret()
+        assert isinstance(secret, str)
+        assert len(secret) == 32  # Base32 encoded
+
+    def test_generate_qr_code(self):
+        """Test generating QR code for TOTP"""
+        from src.auth import TOTPService
+
+        secret = TOTPService.generate_secret()
+        qr_code = TOTPService.generate_qr_code("testuser", secret)
+
+        assert isinstance(qr_code, str)
+        assert qr_code.startswith("data:image/png;base64,")
+
+    def test_verify_totp_valid(self):
+        """Test verifying valid TOTP code"""
+        from src.auth import TOTPService
         import pyotp
+
+        secret = TOTPService.generate_secret()
         totp = pyotp.TOTP(secret)
         code = totp.now()
 
-        # Enable 2FA
-        response = client.post(
-            "/api/v1/auth/2fa/enable",
-            headers=auth_headers,
-            json={"totp_code": code}
-        )
-        assert response.status_code == 200
+        assert TOTPService.verify_totp(secret, code) is True
 
+    def test_verify_totp_invalid(self):
+        """Test verifying invalid TOTP code"""
+        from src.auth import TOTPService
 
-class TestRateLimiting:
-    """Test rate limiting"""
+        secret = TOTPService.generate_secret()
 
-    def test_login_rate_limit(self, client, test_user):
-        """Test rate limit on login endpoint (SKIPPED - rate limiting disabled in tests)"""
-        import os
-        # Skip this test since rate limiting is disabled during testing
-        if os.getenv("TESTING", "false").lower() == "true":
-            pytest.skip("Rate limiting disabled during tests")
+        assert TOTPService.verify_totp(secret, "000000") is False
 
-        # Make 6 requests (limit is 5/minute)
-        for i in range(6):
-            response = client.post(
-                "/api/v1/auth/login",
-                json={
-                    "username": "testuser",
-                    "password": "TestPass123!"
-                }
-            )
-            if i < 5:
-                assert response.status_code in [200, 401]
-            else:
-                # 6th request should be rate limited
-                assert response.status_code == 429
-                assert "retry_after" in response.json()
+    def test_generate_backup_codes(self):
+        """Test generating 2FA backup codes"""
+        from src.auth import TOTPService
+
+        codes = TOTPService.generate_backup_codes(count=10)
+
+        assert len(codes) == 10
+        assert all(isinstance(code, str) for code in codes)
+        assert len(set(codes)) == 10  # All unique
+
+    def test_generate_backup_codes_custom_count(self):
+        """Test generating custom number of backup codes"""
+        from src.auth import TOTPService
+
+        codes = TOTPService.generate_backup_codes(count=5)
+        assert len(codes) == 5

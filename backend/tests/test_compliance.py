@@ -32,9 +32,9 @@ def test_db():
         username="testuser",
         hashed_password="hashed_password",
         full_name="Test User",
-        role=UserRole.EMPLOYEE,
+        role=UserRole.EMPLOYEE.name.lower(),
         is_active=True,
-        is_verified=True
+        is_verified=True,
     )
     db.add(test_user)
     db.commit()
@@ -45,15 +45,40 @@ def test_db():
 
 
 @pytest.fixture
-def agent(test_db):
-    """Create agent with test database"""
-    return ExpenseManagementAgent(db=test_db, api_key="", project_id="")
+def test_organization(test_db):
+    """Create a test organization in the same SQLite database"""
+    from src.models import Organization
+    from datetime import datetime
+
+    org = Organization(
+        id="org_compliance_001",
+        name="Compliance Test Organization",
+        slug="compliance-test-org",
+        description="Test organization for compliance testing",
+        currency="USD",
+        timezone="UTC",
+        max_members=25,
+        is_active=True,
+        created_at=datetime.utcnow(),
+    )
+    test_db.add(org)
+    test_db.commit()
+    test_db.refresh(org)
+    return org
 
 
 @pytest.fixture
-def expense_repo(test_db):
-    """Create expense repository"""
-    return ExpenseRepository(test_db)
+def agent(test_db, test_organization):
+    """Create agent with test database and organization context"""
+    return ExpenseManagementAgent(
+        db=test_db, api_key="", project_id="", organization_id=test_organization.id
+    )
+
+
+@pytest.fixture
+def expense_repo(test_db, test_organization):
+    """Create expense repository with organization context"""
+    return ExpenseRepository(test_db, organization_id=test_organization.id)
 
 
 @pytest.fixture
@@ -66,6 +91,7 @@ def ap2_repo(test_db):
 # EXPENSE VALIDATION TESTS
 # ============================================================================
 
+
 class TestExpenseCompliance:
     """Test expense submission and validation compliance"""
 
@@ -75,40 +101,42 @@ class TestExpenseCompliance:
             user_id="test_user_001",
             amount=100.50,
             vendor="Acme Corp",
-            category="Travel",
-            description="Business trip to conference"
+            category="TRAVEL",
+            description="Business trip to conference",
         )
 
-        assert expense['amount'] == 100.50
-        assert expense['vendor'] == "Acme Corp"
-        assert expense['category'] == "Travel"
-        assert expense['status'] == "pending"
+        assert expense["amount"] == 100.50
+        assert expense["vendor"] == "Acme Corp"
+        assert expense["category"] == "TRAVEL"
+        assert expense["status"] == "PENDING"
 
     def test_expense_creation_requires_positive_amount(self, expense_repo):
         """Test that expenses must have positive amounts"""
         with pytest.raises(Exception):
-            expense_repo.create({
-                'id': 'EXP-001',
-                'user_id': 'test_user_001',
-                'amount': -50.00,  # Invalid: negative amount
-                'vendor': 'Vendor',
-                'category': ExpenseCategory.TRAVEL,
-                'description': 'Test',
-                'status': ExpenseStatus.PENDING,
-                'date': datetime.utcnow()
-            })
+            expense_repo.create(
+                {
+                    "id": "EXP-001",
+                    "user_id": "test_user_001",
+                    "amount": -50.00,  # Invalid: negative amount
+                    "vendor": "Vendor",
+                    "category": ExpenseCategory.TRAVEL,
+                    "description": "Test",
+                    "status": ExpenseStatus.PENDING,
+                    "date": datetime.utcnow(),
+                }
+            )
 
     def test_expense_requires_all_mandatory_fields(self, expense_repo):
         """Test that all required fields must be provided"""
         required_fields = {
-            'id': 'EXP-002',
-            'user_id': 'test_user_001',
-            'amount': 100.00,
-            'vendor': 'Test Vendor',
-            'category': ExpenseCategory.MEALS,
-            'description': 'Test expense',
-            'status': ExpenseStatus.PENDING,
-            'date': datetime.utcnow()
+            "id": "EXP-002",
+            "user_id": "test_user_001",
+            "amount": 100.00,
+            "vendor": "Test Vendor",
+            "category": ExpenseCategory.MEALS,
+            "description": "Test expense",
+            "status": ExpenseStatus.PENDING,
+            "date": datetime.utcnow(),
         }
 
         # Should succeed with all fields
@@ -116,9 +144,9 @@ class TestExpenseCompliance:
         assert expense is not None
 
         # Test each required field
-        for field in ['user_id', 'amount', 'vendor', 'category', 'description']:
+        for field in ["user_id", "amount", "vendor", "category", "description"]:
             test_data = required_fields.copy()
-            test_data['id'] = f'EXP-{field}'
+            test_data["id"] = f"EXP-{field}"
             del test_data[field]
 
             with pytest.raises(Exception):
@@ -127,47 +155,49 @@ class TestExpenseCompliance:
     def test_expense_status_workflow(self, expense_repo):
         """Test that expense status transitions follow proper workflow"""
         # Create pending expense
-        expense = expense_repo.create({
-            'id': 'EXP-003',
-            'user_id': 'test_user_001',
-            'amount': 75.00,
-            'vendor': 'Office Depot',
-            'category': ExpenseCategory.OFFICE_SUPPLIES,
-            'description': 'Office supplies',
-            'status': ExpenseStatus.PENDING,
-            'date': datetime.utcnow()
-        })
+        expense = expense_repo.create(
+            {
+                "id": "EXP-003",
+                "user_id": "test_user_001",
+                "amount": 75.00,
+                "vendor": "Office Depot",
+                "category": ExpenseCategory.OFFICE_SUPPLIES,
+                "description": "Office supplies",
+                "status": ExpenseStatus.PENDING,
+                "date": datetime.utcnow(),
+            }
+        )
 
         assert expense.status == ExpenseStatus.PENDING
 
         # Approve expense
-        approved = expense_repo.approve('EXP-003', 'approver_001')
+        approved = expense_repo.approve("EXP-003", "approver_001")
         assert approved.status == ExpenseStatus.APPROVED
-        assert approved.approved_by == 'approver_001'
+        assert approved.approved_by == "approver_001"
         assert approved.approved_at is not None
 
     def test_expense_rejection_requires_reason(self, expense_repo):
         """Test that rejected expenses must have a rejection reason"""
-        expense = expense_repo.create({
-            'id': 'EXP-004',
-            'user_id': 'test_user_001',
-            'amount': 500.00,
-            'vendor': 'Luxury Hotel',
-            'category': ExpenseCategory.TRAVEL,
-            'description': 'Hotel stay',
-            'status': ExpenseStatus.PENDING,
-            'date': datetime.utcnow()
-        })
+        expense = expense_repo.create(
+            {
+                "id": "EXP-004",
+                "user_id": "test_user_001",
+                "amount": 500.00,
+                "vendor": "Luxury Hotel",
+                "category": ExpenseCategory.TRAVEL,
+                "description": "Hotel stay",
+                "status": ExpenseStatus.PENDING,
+                "date": datetime.utcnow(),
+            }
+        )
 
         rejected = expense_repo.reject(
-            'EXP-004',
-            'approver_001',
-            'Exceeds travel budget limits'
+            "EXP-004", "approver_001", "Exceeds travel budget limits"
         )
 
         assert rejected.status == ExpenseStatus.REJECTED
-        assert rejected.rejection_reason == 'Exceeds travel budget limits'
-        assert rejected.approved_by == 'approver_001'
+        assert rejected.rejection_reason == "Exceeds travel budget limits"
+        assert rejected.approved_by == "approver_001"
 
     def test_expense_category_validation(self, agent):
         """Test that expense categories are validated"""
@@ -179,14 +209,15 @@ class TestExpenseCompliance:
                 amount=50.00,
                 vendor="Test Vendor",
                 category=category,
-                description=f"Test {category} expense"
+                description=f"Test {category} expense",
             )
-            assert expense['category'] == category
+            assert expense["category"] == category
 
 
 # ============================================================================
 # AP2 MANDATE COMPLIANCE TESTS
 # ============================================================================
+
 
 class TestAP2Compliance:
     """Test AP2 protocol mandate compliance"""
@@ -196,15 +227,15 @@ class TestAP2Compliance:
         mandate = agent.create_intent_mandate(
             user_id="test_user_001",
             max_amount=500.00,
-            category="Travel",
+            category="TRAVEL",
             merchant="Airlines Co",
-            valid_days=30
+            valid_days=30,
         )
 
         assert mandate.id.startswith("intent_")
         assert mandate.user_id == "test_user_001"
-        assert mandate.constraints['max_amount'] == 500.00
-        assert mandate.constraints['category'] == "Travel"
+        assert mandate.constraints["max_amount"] == 500.00
+        assert mandate.constraints["category"] == "TRAVEL"
         assert mandate.signature is not None  # Must be signed
 
         # Verify it's in database
@@ -217,8 +248,8 @@ class TestAP2Compliance:
         mandate = agent.create_intent_mandate(
             user_id="test_user_001",
             max_amount=1000.00,
-            category="Software",
-            valid_days=7
+            category="SOFTWARE",
+            valid_days=7,
         )
 
         expiration = datetime.fromisoformat(mandate.expiration)
@@ -233,9 +264,7 @@ class TestAP2Compliance:
         """Test that cart mandates verify item totals"""
         # First create intent mandate
         intent = agent.create_intent_mandate(
-            user_id="test_user_001",
-            max_amount=200.00,
-            category="Meals"
+            user_id="test_user_001", max_amount=200.00, category="MEALS"
         )
 
         # Create cart mandate with matching total
@@ -243,10 +272,10 @@ class TestAP2Compliance:
             intent_mandate_id=intent.id,
             expense_id="EXP-005",
             items=[
-                {'description': 'Lunch', 'amount': 50.00, 'vendor': 'Restaurant A'},
-                {'description': 'Dinner', 'amount': 75.00, 'vendor': 'Restaurant B'}
+                {"description": "Lunch", "amount": 50.00, "vendor": "Restaurant A"},
+                {"description": "Dinner", "amount": 75.00, "vendor": "Restaurant B"},
             ],
-            merchant="Restaurant Group"
+            merchant="Restaurant Group",
         )
 
         assert cart.verify_total() == True
@@ -255,16 +284,14 @@ class TestAP2Compliance:
     def test_cart_mandate_requires_user_signature(self, agent):
         """Test that cart mandates must have user signatures"""
         intent = agent.create_intent_mandate(
-            user_id="test_user_001",
-            max_amount=100.00,
-            category="Other"
+            user_id="test_user_001", max_amount=100.00, category="Other"
         )
 
         cart = agent.create_cart_mandate(
             intent_mandate_id=intent.id,
             expense_id="EXP-006",
-            items=[{'description': 'Item', 'amount': 50.00, 'vendor': 'Vendor'}],
-            merchant="Vendor"
+            items=[{"description": "Item", "amount": 50.00, "vendor": "Vendor"}],
+            merchant="Vendor",
         )
 
         assert cart.user_signature is not None
@@ -274,16 +301,14 @@ class TestAP2Compliance:
         """Test that payment mandates include complete audit trail"""
         # Create full AP2 flow
         intent = agent.create_intent_mandate(
-            user_id="test_user_001",
-            max_amount=300.00,
-            category="Travel"
+            user_id="test_user_001", max_amount=300.00, category="TRAVEL"
         )
 
         cart = agent.create_cart_mandate(
             intent_mandate_id=intent.id,
             expense_id="EXP-007",
-            items=[{'description': 'Flight', 'amount': 250.00, 'vendor': 'Airline'}],
-            merchant="Airline"
+            items=[{"description": "Flight", "amount": 250.00, "vendor": "Airline"}],
+            merchant="Airline",
         )
 
         payment = agent.process_payment(cart, payment_method="corporate_card")
@@ -292,17 +317,17 @@ class TestAP2Compliance:
         assert payment.id.startswith("payment_")
         assert payment.cart_mandate_ref == cart.id
         assert payment.status == "completed"
-        assert 'intent_mandate' in payment.audit_trail
-        assert 'cart_mandate' in payment.audit_trail
-        assert 'verification_status' in payment.audit_trail
-        assert payment.audit_trail['verification_status'] == 'verified'
+        assert "intent_mandate" in payment.audit_trail
+        assert "cart_mandate" in payment.audit_trail
+        assert "verification_status" in payment.audit_trail
+        assert payment.audit_trail["verification_status"] == "verified"
 
         # Verify full audit trail retrieval
         audit = ap2_repo.payment.get_audit_trail(payment.id)
-        assert audit['audit_trail_complete'] == True
-        assert audit['intent_mandate'] is not None
-        assert audit['cart_mandate'] is not None
-        assert audit['payment_mandate'] is not None
+        assert audit["audit_trail_complete"] == True
+        assert audit["intent_mandate"] is not None
+        assert audit["cart_mandate"] is not None
+        assert audit["payment_mandate"] is not None
 
     def test_mandate_relationships(self, agent, test_db):
         """Test that AP2 mandates maintain proper relationships"""
@@ -311,19 +336,16 @@ class TestAP2Compliance:
             user_id="test_user_001",
             amount=150.00,
             vendor="Test Vendor",
-            category="Software",
-            description="Software license"
+            category="SOFTWARE",
+            description="Software license",
         )
 
         result = agent.approve_and_process_expense(
-            expense_id=expense['id'],
-            approver_id="approver_001"
+            expense_id=expense["id"], approver_id="approver_001"
         )
 
         # Verify all relationships are established
-        expense_db = test_db.query(Expense).filter(
-            Expense.id == expense['id']
-        ).first()
+        expense_db = test_db.query(Expense).filter(Expense.id == expense["id"]).first()
 
         assert expense_db.intent_mandate_id is not None
         assert expense_db.cart_mandate_id is not None
@@ -340,132 +362,150 @@ class TestAP2Compliance:
 # DATA INTEGRITY TESTS
 # ============================================================================
 
+
 class TestDataIntegrity:
     """Test data integrity and consistency"""
 
     def test_expense_amount_precision(self, expense_repo):
         """Test that amounts maintain proper decimal precision"""
-        expense = expense_repo.create({
-            'id': 'EXP-008',
-            'user_id': 'test_user_001',
-            'amount': Decimal('123.456'),  # 3 decimal places
-            'vendor': 'Vendor',
-            'category': ExpenseCategory.OTHER,
-            'description': 'Test',
-            'status': ExpenseStatus.PENDING,
-            'date': datetime.utcnow()
-        })
+        expense = expense_repo.create(
+            {
+                "id": "EXP-008",
+                "user_id": "test_user_001",
+                "amount": Decimal("123.456"),  # 3 decimal places
+                "vendor": "Vendor",
+                "category": ExpenseCategory.OTHER,
+                "description": "Test",
+                "status": ExpenseStatus.PENDING,
+                "date": datetime.utcnow(),
+            }
+        )
 
         # Should be rounded/stored with 2 decimal precision
         assert float(expense.amount) == 123.46  # Rounded
 
     def test_expense_timestamps_auto_populate(self, expense_repo):
         """Test that timestamps are automatically populated"""
-        before = datetime.utcnow()
+        before = datetime.utcnow().replace(
+            microsecond=0
+        )  # Strip microseconds for comparison
 
-        expense = expense_repo.create({
-            'id': 'EXP-009',
-            'user_id': 'test_user_001',
-            'amount': 50.00,
-            'vendor': 'Vendor',
-            'category': ExpenseCategory.MEALS,
-            'description': 'Test',
-            'status': ExpenseStatus.PENDING,
-            'date': datetime.utcnow()
-        })
+        expense = expense_repo.create(
+            {
+                "id": "EXP-009",
+                "user_id": "test_user_001",
+                "amount": 50.00,
+                "vendor": "Vendor",
+                "category": ExpenseCategory.MEALS,
+                "description": "Test",
+                "status": ExpenseStatus.PENDING,
+                "date": datetime.utcnow(),
+            }
+        )
 
-        after = datetime.utcnow()
+        after = datetime.utcnow().replace(microsecond=0) + timedelta(
+            seconds=1
+        )  # Add buffer
 
         assert expense.created_at is not None
-        assert before <= expense.created_at <= after
+        # Compare with microseconds stripped since SQLite doesn't store them
+        created_at_no_micro = (
+            expense.created_at.replace(microsecond=0)
+            if expense.created_at.microsecond
+            else expense.created_at
+        )
+        assert before <= created_at_no_micro <= after
 
     def test_json_fields_serialize_correctly(self, ap2_repo):
         """Test that JSON fields are properly serialized/deserialized"""
         # Create intent mandate with constraints
         mandate_data = {
-            'id': 'intent_test_001',
-            'user_id': 'test_user_001',
-            'constraints': {
-                'max_amount': 500.00,
-                'category': 'Travel',
-                'merchant': 'Airlines',
-                'frequency': 'monthly'
+            "id": "intent_test_001",
+            "user_id": "test_user_001",
+            "constraints": {
+                "max_amount": 500.00,
+                "category": "TRAVEL",
+                "merchant": "Airlines",
+                "frequency": "monthly",
             },
-            'timestamp': datetime.utcnow(),
-            'expiration': datetime.utcnow() + timedelta(days=30),
-            'signature': 'test_signature',
-            'status': 'active'
+            "timestamp": datetime.utcnow(),
+            "expiration": datetime.utcnow() + timedelta(days=30),
+            "signature": "test_signature",
+            "status": "active",
         }
 
         mandate = ap2_repo.intent.create(mandate_data)
 
         # Retrieve and verify
-        retrieved = ap2_repo.intent.get_by_id('intent_test_001')
+        retrieved = ap2_repo.intent.get_by_id("intent_test_001")
         constraints = json.loads(retrieved.constraints)
 
-        assert constraints['max_amount'] == 500.00
-        assert constraints['category'] == 'Travel'
-        assert constraints['merchant'] == 'Airlines'
-        assert constraints['frequency'] == 'monthly'
+        assert constraints["max_amount"] == 500.00
+        assert constraints["category"] == "TRAVEL"
+        assert constraints["merchant"] == "Airlines"
+        assert constraints["frequency"] == "monthly"
 
     def test_expense_user_relationship_integrity(self, test_db, expense_repo):
         """Test that expense-user relationships maintain referential integrity"""
         # Create expense
-        expense = expense_repo.create({
-            'id': 'EXP-010',
-            'user_id': 'test_user_001',
-            'amount': 100.00,
-            'vendor': 'Vendor',
-            'category': ExpenseCategory.OTHER,
-            'description': 'Test',
-            'status': ExpenseStatus.PENDING,
-            'date': datetime.utcnow()
-        })
+        expense = expense_repo.create(
+            {
+                "id": "EXP-010",
+                "user_id": "test_user_001",
+                "amount": 100.00,
+                "vendor": "Vendor",
+                "category": ExpenseCategory.OTHER,
+                "description": "Test",
+                "status": ExpenseStatus.PENDING,
+                "date": datetime.utcnow(),
+            }
+        )
 
         # Verify user relationship exists
         assert expense.user is not None
-        assert expense.user.id == 'test_user_001'
-        assert expense.user.username == 'testuser'
+        assert expense.user.id == "test_user_001"
+        assert expense.user.username == "testuser"
 
 
 # ============================================================================
 # AUTHORIZATION & SECURITY TESTS
 # ============================================================================
 
+
 class TestAuthorizationCompliance:
     """Test authorization and security compliance"""
 
     def test_expense_ownership_validation(self, expense_repo):
         """Test that expenses are owned by specific users"""
-        expense = expense_repo.create({
-            'id': 'EXP-011',
-            'user_id': 'test_user_001',
-            'amount': 100.00,
-            'vendor': 'Vendor',
-            'category': ExpenseCategory.TRAVEL,
-            'description': 'Test',
-            'status': ExpenseStatus.PENDING,
-            'date': datetime.utcnow()
-        })
+        expense = expense_repo.create(
+            {
+                "id": "EXP-011",
+                "user_id": "test_user_001",
+                "amount": 100.00,
+                "vendor": "Vendor",
+                "category": ExpenseCategory.TRAVEL,
+                "description": "Test",
+                "status": ExpenseStatus.PENDING,
+                "date": datetime.utcnow(),
+            }
+        )
 
         # Verify ownership
-        user_expenses = expense_repo.get_by_user('test_user_001')
+        user_expenses = expense_repo.get_by_user("test_user_001")
         assert len(user_expenses) > 0
-        assert all(e.user_id == 'test_user_001' for e in user_expenses)
+        assert all(e.user_id == "test_user_001" for e in user_expenses)
 
     def test_mandate_signature_requirement(self, agent):
         """Test that mandates are cryptographically signed"""
         intent = agent.create_intent_mandate(
-            user_id="test_user_001",
-            max_amount=200.00,
-            category="Meals"
+            user_id="test_user_001", max_amount=200.00, category="MEALS"
         )
 
         # Intent mandate must have signature
         assert intent.signature is not None
         assert len(intent.signature) > 0
         # Signature should be hex-encoded
-        assert all(c in '0123456789abcdef' for c in intent.signature.lower())
+        assert all(c in "0123456789abcdef" for c in intent.signature.lower())
 
 
 # Run tests with pytest

@@ -14,16 +14,21 @@ branch_labels = None
 depends_on = None
 
 def upgrade() -> None:
-    # Create enum type for subscription tiers
-    subscriptiontier_enum = sa.Enum('starter', 'professional', 'enterprise', 'enterprise_plus', name='subscriptiontier')
-    subscriptiontier_enum.create(op.get_bind())
+    # Create enum type for subscription tiers if it doesn't exist
+    conn = op.get_bind()
+    result = conn.execute(sa.text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'subscriptiontier')"))
+    type_exists = result.scalar()
+
+    if not type_exists:
+        subscriptiontier_enum = postgresql.ENUM('starter', 'professional', 'enterprise', 'enterprise_plus', name='subscriptiontier', create_type=False)
+        subscriptiontier_enum.create(conn, checkfirst=False)
 
     # Subscriptions table
     op.create_table(
         'subscriptions',
         sa.Column('id', sa.String(255), primary_key=True),
         sa.Column('user_id', sa.String(255), sa.ForeignKey('users.id'), nullable=False),
-        sa.Column('tier', subscriptiontier_enum, nullable=False, server_default='starter'),
+        sa.Column('tier', postgresql.ENUM('starter', 'professional', 'enterprise', 'enterprise_plus', name='subscriptiontier', create_type=False), nullable=False, server_default='starter'),
         sa.Column('status', sa.String(50), nullable=False, server_default='active'),
 
         # Stripe integration
