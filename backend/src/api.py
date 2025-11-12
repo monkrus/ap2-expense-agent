@@ -171,7 +171,7 @@ async def health_check():
     return {"status": "healthy", "service": "AP2 Expense Management Agent"}
 
 
-@app.post("/api/v1/expenses")
+@app.post("/api/v1/expenses", status_code=201)
 async def submit_expense(
     data: ExpenseSubmission,
     current_user: User = Depends(get_current_active_user),
@@ -186,7 +186,7 @@ async def submit_expense(
         from .models import Expense, ExpenseStatus
         from .tenant_context import TenantContext
 
-        organization_id = TenantContext.get_organization()  # noqa: F841
+        organization_id = TenantContext.require_organization()  # Raises 400 if missing
 
         # Parse expense date or use current date
         if data.date:
@@ -253,21 +253,163 @@ async def submit_expense(
             logger.error(f"Failed to send email notification: {str(e)}")
 
         return {
-            "success": True,
-            "expense": {
-                "id": expense.id,
-                "amount": float(expense.amount),
-                "vendor": expense.vendor,
-                "category": expense.category,
-                "description": expense.description,
-                "status": expense.status.value,
-                "date": expense.date.isoformat(),
-                "user_id": expense.user_id,
-            },
+            "id": expense.id,
+            "amount": float(expense.amount),
+            "vendor": expense.vendor,
+            "category": expense.category,
+            "description": expense.description,
+            "status": expense.status.value,
+            "date": expense.date.isoformat(),
+            "user_id": expense.user_id,
         }
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/v1/expenses")
+async def list_expenses(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """List all expenses for user's organization"""
+    from .models import Expense
+    from .tenant_context import TenantContext
+
+    # Get organization context for multi-tenancy
+    organization_id = TenantContext.require_organization()
+
+    # Query expenses with organization filter for tenant isolation
+    expenses = db.query(Expense).filter(
+        Expense.organization_id == organization_id
+    ).all()
+
+    return [
+        {
+            "id": expense.id,
+            "amount": float(expense.amount),
+            "vendor": expense.vendor,
+            "category": expense.category,
+            "description": expense.description,
+            "status": expense.status.value,
+            "date": expense.date.isoformat(),
+            "user_id": expense.user_id,
+        }
+        for expense in expenses
+    ]
+
+
+@app.get("/api/v1/expenses/{expense_id}")
+async def get_expense(
+    expense_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get a single expense by ID with tenant isolation"""
+    from .models import Expense
+    from .tenant_context import TenantContext
+
+    # Get organization context for multi-tenancy
+    organization_id = TenantContext.require_organization()
+
+    # Query expense with organization filter for tenant isolation
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.organization_id == organization_id
+    ).first()
+
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    return {
+        "id": expense.id,
+        "amount": float(expense.amount),
+        "vendor": expense.vendor,
+        "category": expense.category,
+        "description": expense.description,
+        "status": expense.status.value,
+        "date": expense.date.isoformat(),
+        "user_id": expense.user_id,
+    }
+
+
+@app.patch("/api/v1/expenses/{expense_id}")
+async def update_expense(
+    expense_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Update an expense with tenant isolation"""
+    from .models import Expense
+    from .tenant_context import TenantContext
+
+    # Get organization context for multi-tenancy
+    organization_id = TenantContext.require_organization()
+
+    # Query expense with organization filter for tenant isolation
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.organization_id == organization_id
+    ).first()
+
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    # Update fields if provided
+    if "amount" in data:
+        expense.amount = data["amount"]
+    if "vendor" in data:
+        expense.vendor = data["vendor"]
+    if "category" in data:
+        expense.category = data["category"]
+    if "description" in data:
+        expense.description = data["description"]
+    if "date" in data:
+        from datetime import datetime
+        expense.date = datetime.fromisoformat(data["date"]) if isinstance(data["date"], str) else data["date"]
+
+    db.commit()
+    db.refresh(expense)
+
+    return {
+        "id": expense.id,
+        "amount": float(expense.amount),
+        "vendor": expense.vendor,
+        "category": expense.category,
+        "description": expense.description,
+        "status": expense.status.value,
+        "date": expense.date.isoformat(),
+        "user_id": expense.user_id,
+    }
+
+
+@app.delete("/api/v1/expenses/{expense_id}")
+async def delete_expense(
+    expense_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Delete an expense with tenant isolation"""
+    from .models import Expense
+    from .tenant_context import TenantContext
+
+    # Get organization context for multi-tenancy
+    organization_id = TenantContext.require_organization()
+
+    # Query expense with organization filter for tenant isolation
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.organization_id == organization_id
+    ).first()
+
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    db.delete(expense)
+    db.commit()
+
+    return {"success": True, "message": "Expense deleted"}
 
 
 @app.post("/api/v1/expenses/approve")
