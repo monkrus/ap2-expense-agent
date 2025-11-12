@@ -84,13 +84,13 @@ def seed_default_users(db: Session, force_password_reset: bool = False) -> dict:
                 else:
                     stats["skipped"] += 1
             else:
-                # Create new user
+                # Create new user - StringEnum type decorator handles enum conversion automatically
                 new_user = User(
                     id=str(uuid.uuid4()),
                     username=user_data["username"],
                     email=user_data["email"],
                     full_name=user_data["full_name"],
-                    role=user_data["role"].value,  # Use .value to get the string value
+                    role=user_data["role"],  # Can pass enum or string, StringEnum handles it
                     hashed_password=AuthService.hash_password(user_data["password"]),
                     is_active=True,
                     is_verified=True,

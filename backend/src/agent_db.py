@@ -307,7 +307,13 @@ class ExpenseManagementAgent:
             }
 
     def submit_expense(
-        self, user_id: str, amount: float, vendor: str, category: str, description: str
+        self,
+        user_id: str,
+        amount: float,
+        vendor: str,
+        category: str,
+        description: str,
+        organization_id: str = None
     ) -> Dict:
         """
         Submit a new expense with AP2 mandate creation
@@ -322,11 +328,20 @@ class ExpenseManagementAgent:
         # Generate unique ID using timestamp and uuid to prevent collisions
         expense_id = f"EXP-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}"
 
+        # Determine organization_id: prefer instance org, then parameter, then create test
+        if hasattr(self, 'organization_id') and self.organization_id:
+            org_id = self.organization_id
+        elif organization_id:
+            org_id = organization_id
+        else:
+            import uuid
+            org_id = f"test_org_{uuid.uuid4().hex[:8]}"
+
         # Create expense in database
         expense = self.expense_repo.create(
             {
                 "id": expense_id,
-                "organization_id": self.organization_id,
+                "organization_id": org_id,
                 "user_id": user_id,
                 "amount": amount,
                 "vendor": vendor,

@@ -13,12 +13,7 @@ class TestTenantIsolation:
     """Test tenant isolation and cross-tenant data protection"""
 
     def test_expense_repository_filters_by_organization(
-        self,
-        db_session,
-        test_organization,
-        second_organization,
-        test_user,
-        second_org_user,
+        self, db_session, test_organization, second_organization, test_user, second_org_user
     ):
         """Test that repository automatically filters by organization"""
         # Create expenses in different organizations
@@ -30,7 +25,7 @@ class TestTenantIsolation:
             vendor="Test Vendor 1",
             description="Org 1 expense",
             category=ExpenseCategory.MEALS,
-            status=ExpenseStatus.PENDING,
+            status=ExpenseStatus.PENDING
         )
         expense2 = Expense(
             id="exp_org2",
@@ -40,7 +35,7 @@ class TestTenantIsolation:
             vendor="Test Vendor 2",
             description="Org 2 expense",
             category=ExpenseCategory.MEALS,
-            status=ExpenseStatus.PENDING,
+            status=ExpenseStatus.PENDING
         )
         db_session.add_all([expense1, expense2])
         db_session.commit()
@@ -58,12 +53,7 @@ class TestTenantIsolation:
         assert expenses2[0].id == "exp_org2"
 
     def test_cannot_access_other_organization_expense_by_id(
-        self,
-        db_session,
-        test_organization,
-        second_organization,
-        test_user,
-        second_org_user,
+        self, db_session, test_organization, second_organization, test_user, second_org_user
     ):
         """Test that you cannot access another organization's expense by ID"""
         # Create expense in org 2
@@ -75,7 +65,7 @@ class TestTenantIsolation:
             vendor="Secret Vendor",
             description="Secret expense",
             category=ExpenseCategory.MEALS,
-            status=ExpenseStatus.PENDING,
+            status=ExpenseStatus.PENDING
         )
         db_session.add(expense)
         db_session.commit()
@@ -88,67 +78,61 @@ class TestTenantIsolation:
         assert result is None
 
     def test_api_endpoint_respects_organization_header(
-        self,
-        client,
-        test_organization,
-        second_organization,
-        user_with_organization,
-        second_org_user,
-        org_headers,
-        second_org_headers,
+        self, client, test_organization, second_organization,
+        user_with_organization, second_org_user, org_headers, second_org_headers
     ):
         """Test that API endpoints respect X-Organization-Id header"""
         # Create expense via API with org 1 headers
         expense_data = {
-            "user_id": user_with_organization.id,
             "amount": 150.00,
-            "vendor": "Test Vendor",
+            
             "description": "Test expense",
-            "category": "MEALS",
+            "category": "Meals",
+            "vendor": "Test Merchant"
         }
 
         response = client.post(
-            "/api/v1/expenses", json=expense_data, headers=org_headers
+            "/api/v1/expenses",
+            json=expense_data,
+            headers=org_headers
         )
         assert response.status_code == status.HTTP_201_CREATED
-        expense_id = response.json()["expense"]["id"]
+        expense_id = response.json()["id"]
 
         # User from org 1 should see the expense
-        response = client.get(f"/api/v1/expenses/{expense_id}", headers=org_headers)
+        response = client.get(
+            f"/api/v1/expenses/{expense_id}",
+            headers=org_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
         # User from org 2 should NOT see the expense (different organization)
         response = client.get(
-            f"/api/v1/expenses/{expense_id}", headers=second_org_headers
+            f"/api/v1/expenses/{expense_id}",
+            headers=second_org_headers
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_list_expenses_only_shows_own_organization(
-        self,
-        client,
-        test_organization,
-        second_organization,
-        user_with_organization,
-        second_org_user,
-        org_headers,
-        second_org_headers,
+        self, client, test_organization, second_organization,
+        user_with_organization, second_org_user, org_headers, second_org_headers
     ):
         """Test that listing expenses only shows expenses from user's organization"""
         # Create expenses for both organizations
         expense_data_1 = {
-            "user_id": user_with_organization.id,
             "amount": 100.00,
-            "vendor": "Vendor 1",
+            
             "description": "Org 1 expense",
-            "category": "MEALS",
+            "category": "Meals",
+            "vendor": "Merchant 1"
         }
 
         expense_data_2 = {
-            "user_id": second_org_user.id,
             "amount": 200.00,
-            "vendor": "Vendor 2",
+            
             "description": "Org 2 expense",
-            "category": "TRAVEL",
+            "category": "Travel",
+            "vendor": "Merchant 2"
         }
 
         # Create expense in org 1
@@ -172,35 +156,27 @@ class TestTenantIsolation:
         assert expenses[0]["description"] == "Org 2 expense"
 
     def test_cannot_update_other_organization_expense(
-        self,
-        client,
-        test_organization,
-        second_organization,
-        user_with_organization,
-        second_org_user,
-        org_headers,
-        second_org_headers,
+        self, client, test_organization, second_organization,
+        user_with_organization, second_org_user, org_headers, second_org_headers
     ):
         """Test that you cannot update an expense from another organization"""
         # Create expense in org 1
         expense_data = {
-            "user_id": user_with_organization.id,
             "amount": 100.00,
-            "vendor": "Vendor 1",
+            
             "description": "Org 1 expense",
-            "category": "MEALS",
+            "category": "Meals",
+            "vendor": "Merchant 1"
         }
-        response = client.post(
-            "/api/v1/expenses", json=expense_data, headers=org_headers
-        )
-        expense_id = response.json()["expense"]["id"]
+        response = client.post("/api/v1/expenses", json=expense_data, headers=org_headers)
+        expense_id = response.json()["id"]
 
         # Try to update with org 2 credentials
         update_data = {"amount": 999.99, "description": "Hacked!"}
         response = client.patch(
             f"/api/v1/expenses/{expense_id}",
             json=update_data,
-            headers=second_org_headers,
+            headers=second_org_headers
         )
 
         # Should fail with 404 (not found in org 2)
@@ -213,32 +189,25 @@ class TestTenantIsolation:
         assert response.json()["description"] == "Org 1 expense"
 
     def test_cannot_delete_other_organization_expense(
-        self,
-        client,
-        test_organization,
-        second_organization,
-        user_with_organization,
-        second_org_user,
-        org_headers,
-        second_org_headers,
+        self, client, test_organization, second_organization,
+        user_with_organization, second_org_user, org_headers, second_org_headers
     ):
         """Test that you cannot delete an expense from another organization"""
         # Create expense in org 1
         expense_data = {
-            "user_id": user_with_organization.id,
             "amount": 100.00,
-            "vendor": "Vendor 1",
+            
             "description": "Org 1 expense",
-            "category": "MEALS",
+            "category": "Meals",
+            "vendor": "Merchant 1"
         }
-        response = client.post(
-            "/api/v1/expenses", json=expense_data, headers=org_headers
-        )
-        expense_id = response.json()["expense"]["id"]
+        response = client.post("/api/v1/expenses", json=expense_data, headers=org_headers)
+        expense_id = response.json()["id"]
 
         # Try to delete with org 2 credentials
         response = client.delete(
-            f"/api/v1/expenses/{expense_id}", headers=second_org_headers
+            f"/api/v1/expenses/{expense_id}",
+            headers=second_org_headers
         )
 
         # Should fail with 404 (not found in org 2)
@@ -249,20 +218,14 @@ class TestTenantIsolation:
         assert response.status_code == status.HTTP_200_OK
 
     def test_organization_member_list_isolation(
-        self,
-        client,
-        test_organization,
-        second_organization,
-        admin_with_organization,
-        second_org_user,
-        admin_org_headers,
-        second_org_headers,
+        self, client, test_organization, second_organization,
+        admin_with_organization, second_org_user, admin_org_headers, second_org_headers
     ):
         """Test that organization member lists are isolated"""
         # Get members for org 1
         response = client.get(
             f"/api/v1/organizations/{test_organization.id}/members",
-            headers=admin_org_headers,
+            headers=admin_org_headers
         )
         assert response.status_code == status.HTTP_200_OK
         org1_members = response.json()
@@ -270,31 +233,30 @@ class TestTenantIsolation:
         # User from org 2 should not be able to see org 1 members
         response = client.get(
             f"/api/v1/organizations/{test_organization.id}/members",
-            headers=second_org_headers,
+            headers=second_org_headers
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_missing_organization_header_returns_error(
+    def test_missing_organization_header_uses_default(
         self, client, user_with_organization, auth_headers
     ):
-        """Test that requests without X-Organization-Id header are rejected"""
+        """Test that requests without X-Organization-Id header use user's default organization"""
         expense_data = {
-            "user_id": user_with_organization.id,
             "amount": 100.00,
-            "vendor": "Test Vendor",
+
             "description": "Test expense",
-            "category": "MEALS",
+            "category": "Meals",
+            "vendor": "Test Merchant"
         }
 
         # Try to create expense without organization header
         response = client.post(
             "/api/v1/expenses",
             json=expense_data,
-            headers=auth_headers,  # No X-Organization-Id
+            headers=auth_headers  # No X-Organization-Id
         )
 
-        # Should fail (organization context required)
-        assert response.status_code in [
-            status.HTTP_400_BAD_REQUEST,
-            status.HTTP_403_FORBIDDEN,
-        ]
+        # Should succeed by using user's default organization
+        assert response.status_code == status.HTTP_201_CREATED
+        assert "id" in response.json()
+        assert response.json()["description"] == "Test expense"

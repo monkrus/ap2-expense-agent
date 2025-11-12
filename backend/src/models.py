@@ -16,8 +16,54 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.types import TypeDecorator, String as SQLString
 
 Base = declarative_base()
+
+
+# Custom enum type that stores string values instead of names
+class StringEnum(TypeDecorator):
+    """
+    Custom SQLAlchemy type for enums that stores the enum VALUE (not name)
+    Works with both PostgreSQL native enums and SQLite CHECK constraints
+    """
+    impl = SQLString
+    cache_ok = True
+
+    def __init__(self, enum_class, *args, **kwargs):
+        self.enum_class = enum_class
+        # Get length from the longest enum value
+        max_length = max(len(e.value) for e in enum_class)
+        kwargs.setdefault('length', max_length + 10)
+        super().__init__(*args, **kwargs)
+
+    def process_bind_param(self, value, dialect):
+        """Convert enum to string value for storage"""
+        if value is None:
+            return None
+        if isinstance(value, self.enum_class):
+            return value.value
+        # If already a string, validate it's a valid enum value
+        if isinstance(value, str):
+            try:
+                # Try to get the enum member by value
+                return self.enum_class(value).value
+            except ValueError:
+                # Maybe it's an enum name, try that
+                try:
+                    return self.enum_class[value.upper()].value
+                except (KeyError, AttributeError):
+                    return value  # Return as-is if can't convert
+        return value
+
+    def process_result_value(self, value, dialect):
+        """Convert string value back to enum"""
+        if value is None:
+            return None
+        try:
+            return self.enum_class(value)
+        except ValueError:
+            return value  # Return as-is if can't convert
 
 
 class UserRole(str, enum.Enum):
@@ -104,11 +150,7 @@ class OrganizationMember(Base):
         index=True,
     )
     role = Column(
-        Enum(
-            OrganizationRole,
-            name="organizationrole",
-            values_callable=lambda x: [e.value for e in x],
-        ),
+        StringEnum(OrganizationRole),
         nullable=False,
         default=OrganizationRole.MEMBER.value,
     )
@@ -145,11 +187,7 @@ class OrganizationInvitation(Base):
     )
     email = Column(String(255), nullable=False, index=True)
     role = Column(
-        Enum(
-            OrganizationRole,
-            name="organizationrole",
-            values_callable=lambda x: [e.value for e in x],
-        ),
+        StringEnum(OrganizationRole),
         nullable=False,
         default=OrganizationRole.MEMBER.value,
     )
@@ -184,14 +222,10 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String)
     role = Column(
-        Enum(
-            UserRole,
-            name="userrole",
-            values_callable=lambda x: [e.value for e in x],
-        ),
+        StringEnum(UserRole),
         default=UserRole.EMPLOYEE.value,
         nullable=False,
-    )  # PostgreSQL ENUM
+    )  # Works with both PostgreSQL and SQLite
     department_id = Column(
         String(255), nullable=True, index=True
     )  # Department for filtering (managers see their department)
@@ -342,20 +376,12 @@ class Expense(Base):
     amount = Column(Numeric(10, 2), nullable=False)
     vendor = Column(String(255), nullable=False)
     category = Column(
-        Enum(
-            ExpenseCategory,
-            name="expensecategory",
-            values_callable=lambda x: [e.value for e in x],
-        ),
+        StringEnum(ExpenseCategory),
         nullable=False,
     )
     description = Column(Text, nullable=False)
     status = Column(
-        Enum(
-            ExpenseStatus,
-            name="expensestatus",
-            values_callable=lambda x: [e.value for e in x],
-        ),
+        StringEnum(ExpenseStatus),
         nullable=False,
         default=ExpenseStatus.PENDING.value,
         index=True,
@@ -493,22 +519,14 @@ class RecurringExpenseTemplate(Base):
     vendor = Column(String(255), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
     category = Column(
-        Enum(
-            ExpenseCategory,
-            name="expensecategory",
-            values_callable=lambda x: [e.value for e in x],
-        ),
+        StringEnum(ExpenseCategory),
         nullable=False,
     )
     description = Column(Text, nullable=False)
 
     # Recurring schedule
     frequency = Column(
-        Enum(
-            RecurringFrequency,
-            name="recurringfrequency",
-            values_callable=lambda x: [e.value for e in x],
-        ),
+        StringEnum(RecurringFrequency),
         nullable=False,
     )
     start_date = Column(DateTime, nullable=False)
@@ -656,22 +674,14 @@ class Budget(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     category = Column(
-        Enum(
-            ExpenseCategory,
-            name="expensecategory",
-            values_callable=lambda x: [e.value for e in x],
-        ),
+        StringEnum(ExpenseCategory),
         nullable=True,
     )  # Optional: category-specific budget
 
     # Budget amounts
     amount = Column(Numeric(12, 2), nullable=False)  # Total budget amount
     period = Column(
-        Enum(
-            BudgetPeriod,
-            name="budgetperiod",
-            values_callable=lambda x: [e.value for e in x],
-        ),
+        StringEnum(BudgetPeriod),
         nullable=False,
         default=BudgetPeriod.MONTHLY.value,
     )
@@ -827,11 +837,7 @@ class Subscription(Base):
     id = Column(String(255), primary_key=True)
     user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
     tier = Column(
-        Enum(
-            SubscriptionTier,
-            name="subscriptiontier",
-            values_callable=lambda x: [e.value for e in x],
-        ),
+        StringEnum(SubscriptionTier),
         nullable=False,
         default=SubscriptionTier.STARTER.value,
     )
