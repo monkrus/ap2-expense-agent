@@ -129,12 +129,12 @@ agent = None
 
 
 class ExpenseSubmission(BaseModel):
-    user_id: str
     amount: float
     vendor: str
     category: str  # Will be validated against ExpenseCategory enum values
     description: str
     date: Optional[str] = None  # ISO format date string (YYYY-MM-DD), defaults to today if not provided
+    # Note: user_id is derived from the authenticated user (current_user), not from the request
 
     @validator("category")
     def validate_category(cls, v):

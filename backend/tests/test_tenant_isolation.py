@@ -6,7 +6,7 @@ Ensures cross-tenant data leakage is prevented
 import pytest
 from fastapi import status
 from src.repository import ExpenseRepository
-from src.models import Expense
+from src.models import Expense, ExpenseCategory, ExpenseStatus
 
 
 class TestTenantIsolation:
@@ -22,20 +22,20 @@ class TestTenantIsolation:
             organization_id=test_organization.id,
             user_id=test_user.id,
             amount=100.00,
-            currency="USD",
+            vendor="Test Vendor 1",
             description="Org 1 expense",
-            category="meals",
-            status="pending"
+            category=ExpenseCategory.MEALS,
+            status=ExpenseStatus.PENDING
         )
         expense2 = Expense(
             id="exp_org2",
             organization_id=second_organization.id,
             user_id=second_org_user.id,
             amount=200.00,
-            currency="USD",
+            vendor="Test Vendor 2",
             description="Org 2 expense",
-            category="meals",
-            status="pending"
+            category=ExpenseCategory.MEALS,
+            status=ExpenseStatus.PENDING
         )
         db_session.add_all([expense1, expense2])
         db_session.commit()
@@ -62,10 +62,10 @@ class TestTenantIsolation:
             organization_id=second_organization.id,
             user_id=second_org_user.id,
             amount=100.00,
-            currency="USD",
+            vendor="Secret Vendor",
             description="Secret expense",
-            category="meals",
-            status="pending"
+            category=ExpenseCategory.MEALS,
+            status=ExpenseStatus.PENDING
         )
         db_session.add(expense)
         db_session.commit()
@@ -85,10 +85,10 @@ class TestTenantIsolation:
         # Create expense via API with org 1 headers
         expense_data = {
             "amount": 150.00,
-            "currency": "USD",
+            
             "description": "Test expense",
-            "category": "meals",
-            "merchant": "Test Merchant"
+            "category": "Meals",
+            "vendor": "Test Merchant"
         }
 
         response = client.post(
@@ -121,18 +121,18 @@ class TestTenantIsolation:
         # Create expenses for both organizations
         expense_data_1 = {
             "amount": 100.00,
-            "currency": "USD",
+            
             "description": "Org 1 expense",
-            "category": "meals",
-            "merchant": "Merchant 1"
+            "category": "Meals",
+            "vendor": "Merchant 1"
         }
 
         expense_data_2 = {
             "amount": 200.00,
-            "currency": "USD",
+            
             "description": "Org 2 expense",
-            "category": "transport",
-            "merchant": "Merchant 2"
+            "category": "Travel",
+            "vendor": "Merchant 2"
         }
 
         # Create expense in org 1
@@ -163,10 +163,10 @@ class TestTenantIsolation:
         # Create expense in org 1
         expense_data = {
             "amount": 100.00,
-            "currency": "USD",
+            
             "description": "Org 1 expense",
-            "category": "meals",
-            "merchant": "Merchant 1"
+            "category": "Meals",
+            "vendor": "Merchant 1"
         }
         response = client.post("/api/v1/expenses", json=expense_data, headers=org_headers)
         expense_id = response.json()["id"]
@@ -196,10 +196,10 @@ class TestTenantIsolation:
         # Create expense in org 1
         expense_data = {
             "amount": 100.00,
-            "currency": "USD",
+            
             "description": "Org 1 expense",
-            "category": "meals",
-            "merchant": "Merchant 1"
+            "category": "Meals",
+            "vendor": "Merchant 1"
         }
         response = client.post("/api/v1/expenses", json=expense_data, headers=org_headers)
         expense_id = response.json()["id"]
@@ -243,10 +243,10 @@ class TestTenantIsolation:
         """Test that requests without X-Organization-Id header are rejected"""
         expense_data = {
             "amount": 100.00,
-            "currency": "USD",
+            
             "description": "Test expense",
-            "category": "meals",
-            "merchant": "Test Merchant"
+            "category": "Meals",
+            "vendor": "Test Merchant"
         }
 
         # Try to create expense without organization header
