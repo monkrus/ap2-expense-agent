@@ -18,6 +18,7 @@ ecdsa==0.19.1
 email-validator==2.1.0
 fastapi==0.121.1
 filelock==3.20.0
+freezegun==1.5.1
 google-ai-generativelanguage==0.4.0
 google-api-core==2.28.1
 google-auth==2.43.0
