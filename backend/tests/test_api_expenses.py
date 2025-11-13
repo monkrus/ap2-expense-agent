@@ -113,7 +113,7 @@ class TestExpenseAPIRoutes:
 
     def test_update_expense(self, client, auth_headers, test_expense):
         """Test updating an expense"""
-        response = client.put(
+        response = client.patch(
             f"/api/v1/expenses/{test_expense.id}",
             headers=auth_headers,
             json={
@@ -136,7 +136,7 @@ class TestExpenseAPIRoutes:
         db_session.commit()
 
         # Try to change amount (shouldn't be allowed for approved expense)
-        response = client.put(
+        response = client.patch(
             f"/api/v1/expenses/{test_expense.id}",
             headers=auth_headers,
             json={"amount": 999.99}
