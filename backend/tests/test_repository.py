@@ -69,7 +69,7 @@ class TestExpenseRepository:
 
     def test_get_expenses_by_user(self, expense_repo, test_user, sample_expense):
         """Test getting expenses by user"""
-        expenses = expense_repo.get_by_user_id(test_user.id)
+        expenses = expense_repo.get_by_user(test_user.id)
 
         assert len(expenses) > 0
         assert all(e.user_id == test_user.id for e in expenses)
