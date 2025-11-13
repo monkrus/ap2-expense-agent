@@ -20,16 +20,18 @@ class TestExpenseAPIRoutes:
                 "description": "Office supplies",
                 "category": "OFFICE_SUPPLIES",
                 "date": datetime.utcnow().isoformat(),
-                "merchant": "Staples",
+                "vendor": "Staples",
                 "organization_id": test_organization.id
             }
         )
 
         assert response.status_code == 201
         data = response.json()
-        assert data["amount"] == 100.50
-        assert data["description"] == "Office supplies"
-        assert data["status"] == "PENDING"
+        assert data["success"] == True
+        expense = data["expense"]
+        assert expense["amount"] == 100.50
+        assert expense["description"] == "Office supplies"
+        assert expense["status"] == "PENDING"
 
     def test_create_expense_missing_required_fields(self, client, auth_headers):
         """Test creating expense without required fields"""
