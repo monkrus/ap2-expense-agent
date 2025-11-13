@@ -388,12 +388,11 @@ def test_expense(db_session, test_organization, test_user):
         organization_id=test_organization.id,
         user_id=test_user.id,
         amount=150.00,
-        currency="USD",
         description="Test expense",
         category="meals",
         status="pending",
-        merchant="Test Merchant",
-        expense_date=datetime.utcnow(),
+        vendor="Test Merchant",
+        date=datetime.utcnow(),
         created_at=datetime.utcnow()
     )
     db_session.add(expense)
@@ -412,12 +411,11 @@ def multiple_expenses(db_session, test_organization, test_user):
             organization_id=test_organization.id,
             user_id=test_user.id,
             amount=100.00 + (i * 50),
-            currency="USD",
             description=f"Test expense {i+1}",
             category="meals" if i % 2 == 0 else "transport",
             status="pending",
-            merchant=f"Merchant {i+1}",
-            expense_date=datetime.utcnow() - timedelta(days=i),
+            vendor=f"Merchant {i+1}",
+            date=datetime.utcnow() - timedelta(days=i),
             created_at=datetime.utcnow()
         )
         db_session.add(expense)
@@ -431,11 +429,10 @@ def sample_expense_data(test_organization):
     """Sample expense data for testing"""
     return {
         "amount": 150.00,
-        "currency": "USD",
         "description": "Test business lunch",
         "category": "meals",
         "date": datetime.utcnow().isoformat(),
-        "merchant": "Test Restaurant",
+        "vendor": "Test Restaurant",
         "receipt_url": "https://example.com/receipt.pdf",
         "organization_id": test_organization.id
     }
