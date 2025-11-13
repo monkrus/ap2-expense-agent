@@ -193,6 +193,16 @@ class IntentMandateRepository:
 
     def create(self, mandate_data: Dict) -> IntentMandate:
         """Create a new intent mandate"""
+        import uuid
+
+        # Generate ID if not provided
+        if "id" not in mandate_data:
+            mandate_data["id"] = f"intent_{uuid.uuid4().hex[:16]}"
+
+        # Set default timestamp if not provided
+        if "timestamp" not in mandate_data:
+            mandate_data["timestamp"] = datetime.utcnow()
+
         # Convert constraints dict to JSON string
         if "constraints" in mandate_data and isinstance(
             mandate_data["constraints"], dict
@@ -260,6 +270,16 @@ class CartMandateRepository:
 
     def create(self, mandate_data: Dict) -> CartMandate:
         """Create a new cart mandate"""
+        import uuid
+
+        # Generate ID if not provided
+        if "id" not in mandate_data:
+            mandate_data["id"] = f"cart_{uuid.uuid4().hex[:16]}"
+
+        # Set default timestamp if not provided
+        if "timestamp" not in mandate_data:
+            mandate_data["timestamp"] = datetime.utcnow()
+
         # Convert items list to JSON string
         if "items" in mandate_data and isinstance(mandate_data["items"], list):
             mandate_data["items"] = json.dumps(mandate_data["items"])
@@ -303,6 +323,16 @@ class PaymentMandateRepository:
 
     def create(self, mandate_data: Dict) -> PaymentMandate:
         """Create a new payment mandate"""
+        import uuid
+
+        # Generate ID if not provided
+        if "id" not in mandate_data:
+            mandate_data["id"] = f"payment_{uuid.uuid4().hex[:16]}"
+
+        # Set default timestamp if not provided
+        if "timestamp" not in mandate_data:
+            mandate_data["timestamp"] = datetime.utcnow()
+
         # Convert audit_trail dict to JSON string
         if "audit_trail" in mandate_data and isinstance(
             mandate_data["audit_trail"], dict

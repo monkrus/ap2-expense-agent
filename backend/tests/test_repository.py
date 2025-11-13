@@ -167,6 +167,7 @@ class TestIntentMandateRepository:
             constraints="{}",
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
+            timestamp=datetime.utcnow(),
             status="active"
         )
         db_session.add(intent)
@@ -186,12 +187,13 @@ class TestIntentMandateRepository:
             constraints="{}",
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
+            timestamp=datetime.utcnow(),
             status="active"
         )
         db_session.add(intent)
         db_session.commit()
 
-        actives = intent_repo.get_active_by_user(test_user.id)
+        actives = intent_repo.get_by_user(test_user.id)
 
         assert len(actives) > 0
         assert all(i.status == "active" for i in actives)
@@ -205,12 +207,13 @@ class TestIntentMandateRepository:
             constraints="{}",
             expiration=datetime.utcnow() - timedelta(hours=1),
             signature="sig",
+            timestamp=datetime.utcnow(),
             status="active"
         )
         db_session.add(intent)
         db_session.commit()
 
-        count = intent_repo.expire_old_intents()
+        count = intent_repo.expire_old_mandates()
 
         assert count >= 1
 
@@ -235,6 +238,7 @@ class TestCartMandateRepository:
             constraints="{}",
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
+            timestamp=datetime.utcnow(),
             status="active"
         )
         db_session.add(intent)
@@ -265,6 +269,7 @@ class TestCartMandateRepository:
             constraints="{}",
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
+            timestamp=datetime.utcnow(),
             status="active"
         )
         db_session.add(intent)
@@ -295,6 +300,7 @@ class TestCartMandateRepository:
             constraints="{}",
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
+            timestamp=datetime.utcnow(),
             status="active"
         )
         db_session.add(intent)
@@ -312,7 +318,7 @@ class TestCartMandateRepository:
         db_session.add(cart)
         db_session.commit()
 
-        carts = cart_repo.get_by_intent_id("intent_multi")
+        carts = cart_repo.get_by_intent_mandate("intent_multi")
 
         assert len(carts) > 0
 
@@ -334,6 +340,7 @@ class TestPaymentMandateRepository:
             constraints="{}",
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
+            timestamp=datetime.utcnow(),
             status="active"
         )
         db_session.add(intent)
@@ -374,6 +381,7 @@ class TestPaymentMandateRepository:
             constraints="{}",
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
+            timestamp=datetime.utcnow(),
             status="active"
         )
         db_session.add(intent)
@@ -415,6 +423,7 @@ class TestPaymentMandateRepository:
             constraints="{}",
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
+            timestamp=datetime.utcnow(),
             status="active"
         )
         db_session.add(intent)
@@ -442,9 +451,9 @@ class TestPaymentMandateRepository:
         db_session.add(payment)
         db_session.commit()
 
-        updated = payment_repo.update(
+        updated = payment_repo.update_status(
             "payment_update",
-            {"status": "completed"}
+            "completed"
         )
 
         assert updated.status == "completed"
@@ -457,6 +466,7 @@ class TestPaymentMandateRepository:
             constraints="{}",
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
+            timestamp=datetime.utcnow(),
             status="active"
         )
         db_session.add(intent)
@@ -484,7 +494,7 @@ class TestPaymentMandateRepository:
         db_session.add(payment)
         db_session.commit()
 
-        payments = payment_repo.get_by_cart_id("cart_list")
+        payments = payment_repo.get_by_cart_mandate("cart_list")
 
         assert len(payments) > 0
         assert payments[0].cart_mandate_id == "cart_list"
