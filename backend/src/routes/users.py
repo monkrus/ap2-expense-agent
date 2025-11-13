@@ -212,6 +212,13 @@ async def delete_user(
         request=request,
     )
 
+    # Delete related records first to avoid constraint violations
+    from ..models import OrganizationMember
+
+    db.query(OrganizationMember).filter(
+        OrganizationMember.user_id == user_id
+    ).delete(synchronize_session=False)
+
     db.delete(user)
     db.commit()
 
