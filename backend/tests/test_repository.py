@@ -54,12 +54,12 @@ class TestExpenseRepository:
         with pytest.raises(ValueError, match="must be positive"):
             expense_repo.create(expense_data)
 
-    def test_get_expense_by_id(self, expense_repo, sample_expense):
+    def test_get_expense_by_id(self, expense_repo, test_expense):
         """Test getting expense by ID"""
-        expense = expense_repo.get_by_id(sample_expense.id)
+        expense = expense_repo.get_by_id(test_expense.id)
 
         assert expense is not None
-        assert expense.id == sample_expense.id
+        assert expense.id == test_expense.id
 
     def test_get_nonexistent_expense(self, expense_repo):
         """Test getting non-existent expense"""
@@ -67,7 +67,7 @@ class TestExpenseRepository:
 
         assert expense is None
 
-    def test_get_expenses_by_user(self, expense_repo, test_user, sample_expense):
+    def test_get_expenses_by_user(self, expense_repo, test_user, test_expense):
         """Test getting expenses by user"""
         expenses = expense_repo.get_by_user(test_user.id)
 
@@ -75,51 +75,49 @@ class TestExpenseRepository:
         assert all(e.user_id == test_user.id for e in expenses)
 
     def test_get_expenses_by_organization(
-        self, expense_repo, test_organization, sample_expense
+        self, expense_repo, test_organization, test_expense
     ):
         """Test getting expenses by organization"""
         expenses = expense_repo.get_all()
 
         assert len(expenses) > 0
 
-    def test_get_expenses_by_status(self, expense_repo, sample_expense):
+    def test_get_expenses_by_status(self, expense_repo, test_expense):
         """Test getting expenses by status"""
-        expenses = expense_repo.get_by_status("PENDING")
+        from src.models import ExpenseStatus
+
+        expenses = expense_repo.get_all(status=ExpenseStatus.PENDING)
 
         assert len(expenses) > 0
-        assert all(e.status == "PENDING" for e in expenses)
+        assert all(e.status == ExpenseStatus.PENDING for e in expenses)
 
-    def test_update_expense(self, expense_repo, sample_expense):
+    def test_update_expense(self, expense_repo, test_expense):
         """Test updating expense"""
         updated = expense_repo.update(
-            sample_expense.id,
+            test_expense.id,
             {"description": "Updated description", "amount": 150.00}
         )
 
         assert updated.description == "Updated description"
         assert updated.amount == 150.00
 
-    def test_delete_expense(self, expense_repo, sample_expense):
+    def test_delete_expense(self, expense_repo, test_expense):
         """Test deleting expense"""
-        result = expense_repo.delete(sample_expense.id)
+        result = expense_repo.delete(test_expense.id)
 
         assert result is True
 
         # Verify deleted
-        expense = expense_repo.get_by_id(sample_expense.id)
+        expense = expense_repo.get_by_id(test_expense.id)
         assert expense is None
 
     def test_get_expenses_with_pagination(self, expense_repo, test_user):
         """Test getting expenses with pagination"""
-        expenses = expense_repo.get_by_user_id(
-            test_user.id,
-            skip=0,
-            limit=10
-        )
+        expenses = expense_repo.get_all(limit=10, offset=0)
 
         assert len(expenses) <= 10
 
-    def test_tenant_isolation(self, db_session, test_user, test_organization, sample_expense):
+    def test_tenant_isolation(self, db_session, test_user, test_organization, test_expense):
         """Test that tenant isolation works"""
         # Create repository with different organization
         other_repo = ExpenseRepository(db_session, organization_id="other_org")
@@ -127,8 +125,8 @@ class TestExpenseRepository:
         # Should not see expenses from other org
         expenses = other_repo.get_all()
 
-        # Should be empty or not contain sample_expense
-        assert sample_expense.id not in [e.id for e in expenses]
+        # Should be empty or not contain test_expense
+        assert test_expense.id not in [e.id for e in expenses]
 
 
 class TestIntentMandateRepository:
