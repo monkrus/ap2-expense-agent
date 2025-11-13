@@ -342,11 +342,18 @@ def second_org_user(db_session, second_organization):
 
 
 @pytest.fixture
-def org_headers(test_organization, auth_headers):
-    """Create headers with organization context"""
+def org_headers(test_user, auth_headers, db_session):
+    """Create headers with organization context (test_user's organization)"""
+    from src.models import OrganizationMember
+
+    # Get test_user's organization
+    membership = db_session.query(OrganizationMember).filter(
+        OrganizationMember.user_id == test_user.id
+    ).first()
+
     return {
         **auth_headers,
-        "X-Organization-Id": test_organization.id
+        "X-Organization-Id": membership.organization_id
     }
 
 
@@ -381,11 +388,18 @@ def second_org_headers(client, second_organization, second_org_user):
 # ============================================================================
 
 @pytest.fixture
-def test_expense(db_session, test_organization, test_user):
+def test_expense(db_session, test_user):
     """Create a test expense"""
+    from src.models import OrganizationMember
+
+    # Get user's organization
+    membership = db_session.query(OrganizationMember).filter(
+        OrganizationMember.user_id == test_user.id
+    ).first()
+
     expense = Expense(
         id=f"exp_{uuid.uuid4().hex[:8]}",
-        organization_id=test_organization.id,
+        organization_id=membership.organization_id,
         user_id=test_user.id,
         amount=150.00,
         description="Test expense",
@@ -402,13 +416,20 @@ def test_expense(db_session, test_organization, test_user):
 
 
 @pytest.fixture
-def multiple_expenses(db_session, test_organization, test_user):
+def multiple_expenses(db_session, test_user):
     """Create multiple test expenses"""
+    from src.models import OrganizationMember
+
+    # Get user's organization
+    membership = db_session.query(OrganizationMember).filter(
+        OrganizationMember.user_id == test_user.id
+    ).first()
+
     expenses = []
     for i in range(5):
         expense = Expense(
             id=f"exp_{uuid.uuid4().hex[:8]}",
-            organization_id=test_organization.id,
+            organization_id=membership.organization_id,
             user_id=test_user.id,
             amount=100.00 + (i * 50),
             description=f"Test expense {i+1}",
@@ -425,7 +446,7 @@ def multiple_expenses(db_session, test_organization, test_user):
 
 
 @pytest.fixture
-def sample_expense_data(test_organization):
+def sample_expense_data():
     """Sample expense data for testing"""
     return {
         "amount": 150.00,
@@ -434,7 +455,7 @@ def sample_expense_data(test_organization):
         "date": datetime.utcnow().isoformat(),
         "vendor": "Test Restaurant",
         "receipt_url": "https://example.com/receipt.pdf",
-        "organization_id": test_organization.id
+        # organization_id comes from user context, not request data
     }
 
 

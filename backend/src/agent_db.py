@@ -334,7 +334,6 @@ class ExpenseManagementAgent:
         elif organization_id:
             org_id = organization_id
         else:
-            import uuid
             org_id = f"test_org_{uuid.uuid4().hex[:8]}"
 
         # Create expense in database

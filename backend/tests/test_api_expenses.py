@@ -91,16 +91,16 @@ class TestExpenseAPIRoutes:
 
         assert response.status_code == 200
 
-    def test_get_single_expense(self, client, auth_headers, sample_expense):
+    def test_get_single_expense(self, client, auth_headers, test_expense):
         """Test getting a single expense by ID"""
         response = client.get(
-            f"/api/v1/expenses/{sample_expense.id}",
+            f"/api/v1/expenses/{test_expense.id}",
             headers=auth_headers
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert data["id"] == sample_expense.id
+        assert data["id"] == test_expense.id
 
     def test_get_nonexistent_expense(self, client, auth_headers):
         """Test getting non-existent expense"""
@@ -111,10 +111,10 @@ class TestExpenseAPIRoutes:
 
         assert response.status_code == 404
 
-    def test_update_expense(self, client, auth_headers, sample_expense):
+    def test_update_expense(self, client, auth_headers, test_expense):
         """Test updating an expense"""
-        response = client.put(
-            f"/api/v1/expenses/{sample_expense.id}",
+        response = client.patch(
+            f"/api/v1/expenses/{test_expense.id}",
             headers=auth_headers,
             json={
                 "description": "Updated description",
@@ -128,16 +128,16 @@ class TestExpenseAPIRoutes:
         assert data["amount"] == 150.00
 
     def test_update_expense_invalid_status_transition(
-        self, client, auth_headers, sample_expense, db_session
+        self, client, auth_headers, test_expense, db_session
     ):
         """Test invalid status transition"""
         # Set expense to approved
-        sample_expense.status = "APPROVED"
+        test_expense.status = "APPROVED"
         db_session.commit()
 
         # Try to change amount (shouldn't be allowed for approved expense)
-        response = client.put(
-            f"/api/v1/expenses/{sample_expense.id}",
+        response = client.patch(
+            f"/api/v1/expenses/{test_expense.id}",
             headers=auth_headers,
             json={"amount": 999.99}
         )
@@ -145,10 +145,10 @@ class TestExpenseAPIRoutes:
         # Should either reject or keep same amount
         assert response.status_code in [400, 403, 200]
 
-    def test_delete_expense(self, client, auth_headers, sample_expense):
+    def test_delete_expense(self, client, auth_headers, test_expense):
         """Test deleting an expense"""
         response = client.delete(
-            f"/api/v1/expenses/{sample_expense.id}",
+            f"/api/v1/expenses/{test_expense.id}",
             headers=auth_headers
         )
 
@@ -164,11 +164,11 @@ class TestExpenseAPIRoutes:
         assert response.status_code == 404
 
     def test_approve_expense_as_manager(
-        self, client, manager_headers, sample_expense
+        self, client, manager_headers, test_expense
     ):
         """Test approving expense as manager"""
         response = client.post(
-            f"/api/v1/expenses/{sample_expense.id}/approve",
+            f"/api/v1/expenses/{test_expense.id}/approve",
             headers=manager_headers,
             json={"comment": "Approved"}
         )
@@ -176,20 +176,20 @@ class TestExpenseAPIRoutes:
         assert response.status_code in [200, 201]
 
     def test_approve_expense_as_employee_forbidden(
-        self, client, auth_headers, sample_expense
+        self, client, auth_headers, test_expense
     ):
         """Test that employee cannot approve expenses"""
         response = client.post(
-            f"/api/v1/expenses/{sample_expense.id}/approve",
+            f"/api/v1/expenses/{test_expense.id}/approve",
             headers=auth_headers
         )
 
         assert response.status_code == 403
 
-    def test_reject_expense(self, client, manager_headers, sample_expense):
+    def test_reject_expense(self, client, manager_headers, test_expense):
         """Test rejecting an expense"""
         response = client.post(
-            f"/api/v1/expenses/{sample_expense.id}/reject",
+            f"/api/v1/expenses/{test_expense.id}/reject",
             headers=manager_headers,
             json={"reason": "Insufficient documentation"}
         )
@@ -249,20 +249,20 @@ class TestExpenseAPIRoutes:
 class TestExpenseCommentsAPI:
     """Test expense comment endpoints"""
 
-    def test_add_comment_to_expense(self, client, auth_headers, sample_expense):
+    def test_add_comment_to_expense(self, client, auth_headers, test_expense):
         """Test adding comment to expense"""
         response = client.post(
-            f"/api/v1/expenses/{sample_expense.id}/comments",
+            f"/api/v1/expenses/{test_expense.id}/comments",
             headers=auth_headers,
             json={"comment": "This is a test comment"}
         )
 
         assert response.status_code in [200, 201]
 
-    def test_get_expense_comments(self, client, auth_headers, sample_expense):
+    def test_get_expense_comments(self, client, auth_headers, test_expense):
         """Test getting comments for an expense"""
         response = client.get(
-            f"/api/v1/expenses/{sample_expense.id}/comments",
+            f"/api/v1/expenses/{test_expense.id}/comments",
             headers=auth_headers
         )
 
@@ -274,7 +274,7 @@ class TestExpenseCommentsAPI:
 class TestReceiptAPI:
     """Test receipt upload endpoints"""
 
-    def test_upload_receipt(self, client, auth_headers, sample_expense):
+    def test_upload_receipt(self, client, auth_headers, test_expense):
         """Test uploading receipt"""
         # Create fake file
         files = {
@@ -282,7 +282,7 @@ class TestReceiptAPI:
         }
 
         response = client.post(
-            f"/api/v1/expenses/{sample_expense.id}/receipts",
+            f"/api/v1/expenses/{test_expense.id}/receipts",
             headers=auth_headers,
             files=files
         )
@@ -290,7 +290,7 @@ class TestReceiptAPI:
         assert response.status_code in [200, 201]
 
     def test_upload_receipt_invalid_file_type(
-        self, client, auth_headers, sample_expense
+        self, client, auth_headers, test_expense
     ):
         """Test uploading invalid file type"""
         files = {
@@ -298,7 +298,7 @@ class TestReceiptAPI:
         }
 
         response = client.post(
-            f"/api/v1/expenses/{sample_expense.id}/receipts",
+            f"/api/v1/expenses/{test_expense.id}/receipts",
             headers=auth_headers,
             files=files
         )
@@ -306,10 +306,10 @@ class TestReceiptAPI:
         # Should reject executable files
         assert response.status_code in [400, 415]
 
-    def test_get_expense_receipts(self, client, auth_headers, sample_expense):
+    def test_get_expense_receipts(self, client, auth_headers, test_expense):
         """Test getting receipts for expense"""
         response = client.get(
-            f"/api/v1/expenses/{sample_expense.id}/receipts",
+            f"/api/v1/expenses/{test_expense.id}/receipts",
             headers=auth_headers
         )
 

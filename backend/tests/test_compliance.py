@@ -201,17 +201,23 @@ class TestExpenseCompliance:
 
     def test_expense_category_validation(self, agent):
         """Test that expense categories are validated"""
-        valid_categories = ["Travel", "Meals", "Software", "Office Supplies", "Other"]
+        valid_categories = [
+            ("Travel", "TRAVEL"),
+            ("Meals", "MEALS"),
+            ("Software", "SOFTWARE"),
+            ("Office Supplies", "OFFICE_SUPPLIES"),
+            ("Other", "OTHER")
+        ]
 
-        for category in valid_categories:
+        for input_category, expected_category in valid_categories:
             expense = agent.submit_expense(
                 user_id="test_user_001",
                 amount=50.00,
                 vendor="Test Vendor",
-                category=category,
-                description=f"Test {category} expense",
+                category=input_category,
+                description=f"Test {input_category} expense",
             )
-            assert expense["category"] == category
+            assert expense["category"] == expected_category
 
 
 # ============================================================================

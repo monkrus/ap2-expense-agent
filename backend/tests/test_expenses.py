@@ -62,7 +62,7 @@ class TestExpenseCreation:
                 "organization_id": test_organization.id,
             },
         )
-        assert response.status_code == 400  # API returns 400 for invalid amount
+        assert response.status_code == 422  # API returns 422 for validation errors
 
 
 class TestExpenseRetrieval:
