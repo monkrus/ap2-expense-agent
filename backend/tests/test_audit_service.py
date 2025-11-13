@@ -269,10 +269,12 @@ class TestAuditServiceVerification:
         sig2 = audit_service._generate_signature(message)
 
         # Signatures should be different due to timestamp
-        # But both should be valid hex strings
-        assert len(sig1) == 64  # SHA256 hex length
-        assert len(sig2) == 64
-        assert all(c in '0123456789abcdef' for c in sig1)
+        # RSA-2048 signatures are 256 bytes, base64 encoded = ~344 characters
+        assert len(sig1) > 300  # RSA signature length
+        assert len(sig2) > 300
+        # Verify base64 format (alphanumeric + / + = for padding)
+        import re
+        assert re.match(r'^[A-Za-z0-9+/]+=*$', sig1)
 
 
 class TestAuditServiceRejection:
