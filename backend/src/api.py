@@ -136,6 +136,12 @@ class ExpenseSubmission(BaseModel):
     date: Optional[str] = None  # ISO format date string (YYYY-MM-DD), defaults to today if not provided
     # Note: user_id is derived from the authenticated user (current_user), not from the request
 
+    @validator("amount")
+    def validate_amount(cls, v):
+        if v <= 0:
+            raise ValueError('Amount must be positive')
+        return v
+
     @validator("category")
     def validate_category(cls, v):
         from .models import ExpenseCategory
