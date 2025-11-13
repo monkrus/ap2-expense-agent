@@ -268,7 +268,9 @@ class TestExpenseCommentsAPI:
 
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
+        assert isinstance(data, dict)
+        assert "comments" in data
+        assert isinstance(data["comments"], list)
 
 
 class TestReceiptAPI:
