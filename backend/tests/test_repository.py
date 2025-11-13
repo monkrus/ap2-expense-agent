@@ -20,15 +20,22 @@ class TestExpenseRepository:
     """Test expense repository"""
 
     @pytest.fixture
-    def expense_repo(self, db_session, test_organization):
-        """Create expense repository"""
-        return ExpenseRepository(db_session, organization_id=test_organization.id)
+    def expense_repo(self, db_session, test_user):
+        """Create expense repository with test_user's organization"""
+        from src.models import OrganizationMember
 
-    def test_create_expense(self, expense_repo, test_user, test_organization):
+        # Get test_user's organization
+        membership = db_session.query(OrganizationMember).filter(
+            OrganizationMember.user_id == test_user.id
+        ).first()
+
+        return ExpenseRepository(db_session, organization_id=membership.organization_id)
+
+    def test_create_expense(self, expense_repo, test_user):
         """Test creating expense through repository"""
         expense_data = {
             "user_id": test_user.id,
-            "organization_id": test_organization.id,
+            # organization_id will be set by ExpenseRepository from self.organization_id
             "amount": 100.50,
             "description": "Test expense",
             "category": "OFFICE_SUPPLIES",
@@ -40,11 +47,11 @@ class TestExpenseRepository:
         assert expense.amount == 100.50
         assert expense.user_id == test_user.id
 
-    def test_create_expense_negative_amount_fails(self, expense_repo, test_user, test_organization):
+    def test_create_expense_negative_amount_fails(self, expense_repo, test_user):
         """Test creating expense with negative amount fails"""
         expense_data = {
             "user_id": test_user.id,
-            "organization_id": test_organization.id,
+            # organization_id will be set by ExpenseRepository from self.organization_id
             "amount": -50.00,
             "description": "Invalid expense",
             "category": "OTHER",
