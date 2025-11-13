@@ -277,14 +277,18 @@ async def submit_expense(
             logger.error(f"Failed to send email notification: {str(e)}")
 
         return {
-            "id": expense.id,
-            "amount": float(expense.amount),
-            "vendor": expense.vendor,
-            "category": expense.category,
-            "description": expense.description,
-            "status": expense.status.value,
-            "date": expense.date.isoformat(),
-            "user_id": expense.user_id,
+            "success": True,
+            "expense": {
+                "id": expense.id,
+                "amount": float(expense.amount),
+                "vendor": expense.vendor,
+                "category": expense.category,
+                "description": expense.description,
+                "status": expense.status.value,
+                "date": expense.date.isoformat(),
+                "user_id": expense.user_id,
+            },
+            "message": "Expense submitted successfully"
         }
     except Exception as e:
         db.rollback()

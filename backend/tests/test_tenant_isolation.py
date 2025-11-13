@@ -87,7 +87,7 @@ class TestTenantIsolation:
             "amount": 150.00,
             
             "description": "Test expense",
-            "category": "Meals",
+            "category": "MEALS",
             "vendor": "Test Merchant"
         }
 
@@ -97,7 +97,7 @@ class TestTenantIsolation:
             headers=org_headers
         )
         assert response.status_code == status.HTTP_201_CREATED
-        expense_id = response.json()["id"]
+        expense_id = response.json()["expense"]["id"]
 
         # User from org 1 should see the expense
         response = client.get(
@@ -123,7 +123,7 @@ class TestTenantIsolation:
             "amount": 100.00,
             
             "description": "Org 1 expense",
-            "category": "Meals",
+            "category": "MEALS",
             "vendor": "Merchant 1"
         }
 
@@ -131,7 +131,7 @@ class TestTenantIsolation:
             "amount": 200.00,
             
             "description": "Org 2 expense",
-            "category": "Travel",
+            "category": "TRAVEL",
             "vendor": "Merchant 2"
         }
 
@@ -165,11 +165,11 @@ class TestTenantIsolation:
             "amount": 100.00,
             
             "description": "Org 1 expense",
-            "category": "Meals",
+            "category": "MEALS",
             "vendor": "Merchant 1"
         }
         response = client.post("/api/v1/expenses", json=expense_data, headers=org_headers)
-        expense_id = response.json()["id"]
+        expense_id = response.json()["expense"]["id"]
 
         # Try to update with org 2 credentials
         update_data = {"amount": 999.99, "description": "Hacked!"}
@@ -198,11 +198,11 @@ class TestTenantIsolation:
             "amount": 100.00,
             
             "description": "Org 1 expense",
-            "category": "Meals",
+            "category": "MEALS",
             "vendor": "Merchant 1"
         }
         response = client.post("/api/v1/expenses", json=expense_data, headers=org_headers)
-        expense_id = response.json()["id"]
+        expense_id = response.json()["expense"]["id"]
 
         # Try to delete with org 2 credentials
         response = client.delete(
@@ -245,7 +245,7 @@ class TestTenantIsolation:
             "amount": 100.00,
 
             "description": "Test expense",
-            "category": "Meals",
+            "category": "MEALS",
             "vendor": "Test Merchant"
         }
 
