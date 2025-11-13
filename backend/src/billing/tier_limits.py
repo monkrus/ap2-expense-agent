@@ -125,6 +125,7 @@ def get_tier_limits(tier: SubscriptionTier) -> TierLimits:
 
 # Usage overage fees (per MONETIZATION_STRATEGY.md)
 USAGE_FEES = {
+    "expense": 0.01,  # $0.01 per expense overage
     "ap2_transaction": 0.10,  # $0.10 per AP2 transaction
     "ai_categorization": 0.05,  # $0.05 per AI categorization
     "ocr_scan": 0.02,  # $0.02 per OCR scan

@@ -857,10 +857,10 @@ class Subscription(Base):
     canceled_at = Column(DateTime, nullable=True)
 
     # Limits
-    max_users = Column(Integer, nullable=False, default=25)
+    max_users = Column(Integer, nullable=True)  # NULL = unlimited
     max_expenses_per_month = Column(Integer, nullable=True)  # NULL = unlimited
-    max_ai_categorizations = Column(Integer, nullable=True)
-    max_ap2_transactions = Column(Integer, nullable=True)
+    max_ai_categorizations = Column(Integer, nullable=True)  # NULL = unlimited
+    max_ap2_transactions = Column(Integer, nullable=True)  # NULL = unlimited
 
     # Timestamps
     created_at = Column(DateTime, server_default=func.now())

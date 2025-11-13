@@ -42,7 +42,7 @@ class TestSubscriptionService:
         assert subscription.status == "trialing"
         assert subscription.trial_end is not None
         assert subscription.max_users == 5  # Starter tier limit
-        assert subscription.max_expenses_per_month == 100
+        assert subscription.max_expenses_per_month == 50  # Starter tier limit per MONETIZATION_STRATEGY
 
     def test_create_subscription_without_trial(
         self, subscription_service, test_subscription_user
@@ -63,7 +63,7 @@ class TestSubscriptionService:
         """Test creating subscription with Stripe integration"""
         subscription = subscription_service.create_subscription(
             user_id=test_subscription_user.id,
-            tier=SubscriptionTier.BUSINESS,
+            tier=SubscriptionTier.PROFESSIONAL,
             stripe_customer_id="cus_test_123",
             stripe_subscription_id="sub_test_456"
         )
@@ -116,8 +116,8 @@ class TestSubscriptionService:
 
         assert upgraded is not None
         assert upgraded.tier == SubscriptionTier.PROFESSIONAL
-        assert upgraded.max_users == 15  # Professional tier limit
-        assert upgraded.max_expenses_per_month == 500
+        assert upgraded.max_users == 25  # Professional tier limit
+        assert upgraded.max_expenses_per_month is None  # Unlimited
 
     def test_upgrade_subscription_not_found(
         self, subscription_service
@@ -228,20 +228,21 @@ class TestSubscriptionService:
     def test_tier_limits_applied_correctly(
         self, subscription_service, test_subscription_user, db_session, sample_user
     ):
-        """Test that tier limits are correctly applied"""
-        # Test each tier
+        """Test that tier limits are correctly applied per MONETIZATION_STRATEGY"""
+        # Test each tier with correct limits from tier_limits.py
         tiers_and_limits = [
-            (SubscriptionTier.STARTER, 5, 100, 50, 25),
-            (SubscriptionTier.PROFESSIONAL, 15, 500, 200, 100),
-            (SubscriptionTier.BUSINESS, 50, 2000, 1000, 500),
-            (SubscriptionTier.ENTERPRISE, 999999, 999999, 999999, 999999),
+            (SubscriptionTier.STARTER, 5, 50, 100, 10),
+            (SubscriptionTier.PROFESSIONAL, 25, None, 2000, 50),  # None = unlimited
+            (SubscriptionTier.ENTERPRISE, 100, None, None, None),
+            (SubscriptionTier.ENTERPRISE_PLUS, None, None, None, None),
         ]
 
         for tier, max_users, max_expenses, max_ai, max_ap2 in tiers_and_limits:
             user = sample_user(email=f"test_{tier.value}@example.com")
             subscription = subscription_service.create_subscription(
                 user_id=user.id,
-                tier=tier
+                tier=tier,
+                trial_days=0  # No trial for this test
             )
 
             assert subscription.max_users == max_users
@@ -293,11 +294,11 @@ class TestSubscriptionService:
         )
 
         assert status["has_subscription"] is True
-        assert status["tier"] == "STARTER"
+        assert status["tier"] == "starter"
         assert status["tier_name"] == "Starter"
         assert status["status"] == "trialing"
         assert status["limits"]["max_users"] == 5
-        assert status["limits"]["max_expenses_per_month"] == 100
+        assert status["limits"]["max_expenses_per_month"] == 50
         assert status["trial_end"] is not None
 
     def test_check_subscription_status_not_exists(

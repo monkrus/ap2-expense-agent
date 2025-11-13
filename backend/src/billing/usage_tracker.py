@@ -185,13 +185,17 @@ class UsageTracker:
         if limit is None:
             return False, None
 
-        # If under limit, not billable
-        if current_usage < limit:
+        # Check if current + new usage exceeds limit
+        new_total = current_usage + quantity
+
+        # If new total is under or at limit, not billable
+        if new_total <= limit:
             return False, None
 
-        # Over limit - calculate fee
+        # Over limit - calculate fee for the overage portion
+        overage_quantity = new_total - limit
         fee_per_unit = USAGE_FEES.get(usage_type, 0)
-        total_fee = fee_per_unit * quantity
+        total_fee = fee_per_unit * overage_quantity
 
         return True, total_fee
 

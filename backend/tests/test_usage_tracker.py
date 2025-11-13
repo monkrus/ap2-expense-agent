@@ -21,16 +21,16 @@ class TestUsageTracker:
 
     @pytest.fixture
     def test_subscription(self, db_session, test_user):
-        """Create test subscription"""
+        """Create test subscription with correct STARTER tier limits"""
         subscription = Subscription(
             id="sub_test_123",
             user_id=test_user.id,
             tier=SubscriptionTier.STARTER,
             status="active",
             max_users=5,
-            max_expenses_per_month=100,
-            max_ai_categorizations=50,
-            max_ap2_transactions=25,
+            max_expenses_per_month=50,  # STARTER tier limit
+            max_ai_categorizations=100,  # STARTER tier limit
+            max_ap2_transactions=10,  # STARTER tier limit
             current_period_start=datetime.utcnow(),
             current_period_end=datetime.utcnow() + timedelta(days=30)
         )
@@ -103,8 +103,8 @@ class TestUsageTracker:
         self, usage_tracker, test_user, test_subscription, db_session
     ):
         """Test that usage over tier limit becomes billable"""
-        # Track usage up to the limit (100 for expenses on Starter tier)
-        for i in range(100):
+        # Track usage up to the limit (50 for expenses on Starter tier)
+        for i in range(50):
             usage_tracker.track_usage(
                 user_id=test_user.id,
                 usage_type="expense",
@@ -230,7 +230,7 @@ class TestUsageTracker:
     ):
         """Test monthly usage includes overage fees"""
         # Track usage over limit to generate fees
-        for i in range(105):  # Over 100 limit
+        for i in range(55):  # Over 50 limit
             usage_tracker.track_usage(
                 user_id=test_user.id,
                 usage_type="expense",
@@ -253,7 +253,7 @@ class TestUsageTracker:
         usage_tracker.track_usage(
             user_id=test_user.id,
             usage_type="expense",
-            quantity=50
+            quantity=25
         )
 
         exceeded, current, limit = usage_tracker.check_limit_exceeded(
@@ -262,8 +262,8 @@ class TestUsageTracker:
         )
 
         assert exceeded is False
-        assert current == 50
-        assert limit == 100
+        assert current == 25
+        assert limit == 50
 
     def test_check_limit_exceeded_at_limit(
         self, usage_tracker, test_user, test_subscription
@@ -273,7 +273,7 @@ class TestUsageTracker:
         usage_tracker.track_usage(
             user_id=test_user.id,
             usage_type="expense",
-            quantity=100
+            quantity=50
         )
 
         exceeded, current, limit = usage_tracker.check_limit_exceeded(
@@ -282,15 +282,15 @@ class TestUsageTracker:
         )
 
         assert exceeded is True  # At limit = exceeded
-        assert current == 100
-        assert limit == 100
+        assert current == 50
+        assert limit == 50
 
     def test_check_limit_exceeded_over_limit(
         self, usage_tracker, test_user, test_subscription
     ):
         """Test checking limit when over limit"""
         # Track usage over limit
-        for i in range(110):
+        for i in range(60):
             usage_tracker.track_usage(
                 user_id=test_user.id,
                 usage_type="expense",
@@ -303,8 +303,8 @@ class TestUsageTracker:
         )
 
         assert exceeded is True
-        assert current == 110
-        assert limit == 100
+        assert current == 60
+        assert limit == 50
 
     def test_check_limit_exceeded_no_subscription(
         self, usage_tracker, test_user, db_session
@@ -401,8 +401,8 @@ class TestUsageTracker:
         self, usage_tracker, test_user, test_subscription
     ):
         """Test billable calculation for AI categorization"""
-        # Starter tier has 50 AI categorizations
-        for i in range(50):
+        # Starter tier has 100 AI categorizations
+        for i in range(100):
             usage_tracker.track_usage(
                 user_id=test_user.id,
                 usage_type="ai_categorization",
@@ -422,8 +422,8 @@ class TestUsageTracker:
         self, usage_tracker, test_user, test_subscription
     ):
         """Test billable calculation for AP2 transactions"""
-        # Starter tier has 25 AP2 transactions
-        for i in range(25):
+        # Starter tier has 10 AP2 transactions
+        for i in range(10):
             usage_tracker.track_usage(
                 user_id=test_user.id,
                 usage_type="ap2_transaction",
@@ -496,12 +496,12 @@ class TestUsageTracker:
 
         assert usage_data["usage"]["expense"]["quantity"] == 50
 
-        # Check if we're under limit (should be, since it's a new month)
+        # Check if we're at limit (50 expenses = limit for STARTER tier)
         exceeded, current, limit = usage_tracker.check_limit_exceeded(
             user_id=test_user.id,
             usage_type="expense"
         )
 
-        assert exceeded is False
+        assert exceeded is True  # At limit = exceeded
         assert current == 50
-        assert limit == 100
+        assert limit == 50

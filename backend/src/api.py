@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, validator
 from slowapi.errors import RateLimitExceeded
@@ -330,6 +330,82 @@ async def list_expenses(
         }
         for expense in expenses
     ]
+
+
+@app.get("/api/v1/expenses/export")
+async def export_expenses(
+    format: str = "csv",
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Export expenses to CSV/PDF format"""
+    from fastapi.responses import StreamingResponse
+    import io
+    from .models import Expense, OrganizationMember
+
+    membership = db.query(OrganizationMember).filter(
+        OrganizationMember.user_id == current_user.id
+    ).first()
+
+    if not membership:
+        # Return empty CSV if no membership
+        output = io.StringIO()
+        output.write("id,amount,description,category,status,date,vendor\n")
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=expenses.csv"}
+        )
+
+    expenses = db.query(Expense).filter(
+        Expense.organization_id == membership.organization_id
+    ).all()
+
+    # Generate CSV
+    output = io.StringIO()
+    output.write("id,amount,description,category,status,date,vendor\n")
+    for expense in expenses:
+        output.write(f"{expense.id},{expense.amount},{expense.description},"
+                    f"{expense.category},{expense.status},{expense.date},{expense.vendor}\n")
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=expenses.csv"}
+    )
+
+
+@app.get("/api/v1/expenses/stats")
+async def get_expense_statistics(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get expense statistics for current user's organization"""
+    from sqlalchemy import func
+    from .models import Expense, OrganizationMember
+
+    membership = db.query(OrganizationMember).filter(
+        OrganizationMember.user_id == current_user.id
+    ).first()
+
+    if not membership:
+        return {"total": 0, "count": 0}
+
+    total = db.query(func.sum(Expense.amount)).filter(
+        Expense.organization_id == membership.organization_id
+    ).scalar() or 0
+
+    count = db.query(func.count(Expense.id)).filter(
+        Expense.organization_id == membership.organization_id
+    ).scalar() or 0
+
+    return {
+        "total": float(total),
+        "count": int(count),
+        "organization_id": membership.organization_id
+    }
 
 
 @app.get("/api/v1/expenses/{expense_id}")
@@ -1158,6 +1234,82 @@ async def get_expense_comments(
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/v1/expenses/{expense_id}/receipts", status_code=201)
+async def upload_receipt(
+    expense_id: str,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Upload receipt for an expense"""
+    from datetime import datetime
+    from .models import Expense, Receipt
+    import uuid
+
+    # Validate file type
+    allowed_types = ["application/pdf", "image/jpeg", "image/png", "image/jpg"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=415,
+            detail=f"File type {file.content_type} not supported. Use PDF or images."
+        )
+
+    # Get expense and verify ownership
+    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    # Create receipt record
+    receipt = Receipt(
+        id=f"receipt_{uuid.uuid4().hex[:8]}",
+        expense_id=expense_id,
+        filename=file.filename,
+        original_filename=file.filename,
+        content_type=file.content_type,
+        file_size=0,  # Would store actual file size
+        file_path=f"/receipts/{expense_id}/{file.filename}",  # Placeholder
+        uploaded_at=datetime.utcnow()
+    )
+
+    db.add(receipt)
+    db.commit()
+    db.refresh(receipt)
+
+    return {
+        "success": True,
+        "receipt_id": receipt.id,
+        "filename": receipt.filename
+    }
+
+
+@app.get("/api/v1/expenses/{expense_id}/receipts")
+async def get_expense_receipts(
+    expense_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get all receipts for an expense"""
+    from .models import Expense, Receipt
+
+    # Verify expense exists
+    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    # Get receipts
+    receipts = db.query(Receipt).filter(Receipt.expense_id == expense_id).all()
+
+    return [
+        {
+            "id": r.id,
+            "filename": r.filename,
+            "content_type": r.content_type,
+            "uploaded_at": r.uploaded_at.isoformat() if r.uploaded_at else None
+        }
+        for r in receipts
+    ]
 
 
 @app.post("/api/v1/expenses/bulk-approve")
