@@ -911,7 +911,7 @@ async def update_expense(
     logger = logging.getLogger(__name__)
     logger.info(f"[UPDATE_EXPENSE] Route called for expense_id: {expense_id}")
     logger.info(
-        f"[UPDATE_EXPENSE] Data received: user_id={data.user_id}, "
+        f"[UPDATE_EXPENSE] Data received: user={current_user.username}, "
         f"amount={data.amount}, vendor={data.vendor}, category={data.category}, "
         f"description={data.description}"
     )
