@@ -1,7 +1,7 @@
 """make subscription limits nullable for unlimited tiers
 
 Revision ID: 006_subscription_limits
-Revises: 005_add_subscription_billing_tables
+Revises: 005_add_subscription_billing
 Create Date: 2025-11-13 19:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '006_subscription_limits'
-down_revision = '005_add_subscription_billing_tables'
+down_revision = '005_add_subscription_billing'
 branch_labels = None
 depends_on = None
 
