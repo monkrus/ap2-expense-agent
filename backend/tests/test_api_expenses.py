@@ -164,34 +164,46 @@ class TestExpenseAPIRoutes:
         assert response.status_code == 404
 
     def test_approve_expense_as_manager(
-        self, client, manager_headers, test_expense
+        self, client, manager_headers, manager_expense
     ):
         """Test approving expense as manager"""
         response = client.post(
-            f"/api/v1/expenses/{test_expense.id}/approve",
+            "/api/v1/expenses/approve",
             headers=manager_headers,
-            json={"comment": "Approved"}
+            json={
+                "expense_id": manager_expense.id,
+                "approver_id": manager_expense.user_id,
+                "comment": "Approved"
+            }
         )
 
         assert response.status_code in [200, 201]
 
     def test_approve_expense_as_employee_forbidden(
-        self, client, auth_headers, test_expense
+        self, client, auth_headers, test_expense, test_user
     ):
         """Test that employee cannot approve expenses"""
         response = client.post(
-            f"/api/v1/expenses/{test_expense.id}/approve",
-            headers=auth_headers
+            "/api/v1/expenses/approve",
+            headers=auth_headers,
+            json={
+                "expense_id": test_expense.id,
+                "approver_id": test_user.id
+            }
         )
 
         assert response.status_code == 403
 
-    def test_reject_expense(self, client, manager_headers, test_expense):
+    def test_reject_expense(self, client, manager_headers, manager_expense):
         """Test rejecting an expense"""
         response = client.post(
-            f"/api/v1/expenses/{test_expense.id}/reject",
+            "/api/v1/expenses/reject",
             headers=manager_headers,
-            json={"reason": "Insufficient documentation"}
+            json={
+                "expense_id": manager_expense.id,
+                "approver_id": manager_expense.user_id,
+                "rejection_reason": "Insufficient documentation"
+            }
         )
 
         assert response.status_code in [200, 201]

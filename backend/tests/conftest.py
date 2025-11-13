@@ -416,6 +416,76 @@ def test_expense(db_session, test_user):
 
 
 @pytest.fixture
+def manager_org_employee(db_session, test_manager):
+    """Create an employee in the manager's organization"""
+    from src.models import OrganizationMember, OrganizationRole
+
+    # Get manager's organization
+    manager_membership = db_session.query(OrganizationMember).filter(
+        OrganizationMember.user_id == test_manager.id
+    ).first()
+
+    # Create employee in same organization
+    employee = User(
+        id=str(uuid.uuid4()),
+        email="manager_org_emp@example.com",
+        username="manager_org_emp",
+        full_name="Manager Org Employee",
+        hashed_password=AuthService.hash_password("EmpPass123!"),
+        role=UserRole.EMPLOYEE,
+        is_active=True,
+        is_verified=True,
+        failed_login_attempts=0,
+        locked_until=None,
+        last_failed_login=None
+    )
+    db_session.add(employee)
+    db_session.flush()
+
+    # Add to manager's organization
+    membership = OrganizationMember(
+        id=str(uuid.uuid4()),
+        organization_id=manager_membership.organization_id,
+        user_id=employee.id,
+        role=OrganizationRole.MEMBER,
+        is_active=True,
+        joined_at=datetime.utcnow()
+    )
+    db_session.add(membership)
+    db_session.commit()
+    db_session.refresh(employee)
+    return employee
+
+
+@pytest.fixture
+def manager_expense(db_session, test_manager, manager_org_employee):
+    """Create a test expense from employee in manager's organization"""
+    from src.models import OrganizationMember
+
+    # Get manager's organization
+    membership = db_session.query(OrganizationMember).filter(
+        OrganizationMember.user_id == manager_org_employee.id
+    ).first()
+
+    expense = Expense(
+        id=f"exp_{uuid.uuid4().hex[:8]}",
+        organization_id=membership.organization_id,
+        user_id=manager_org_employee.id,  # Employee's expense, not manager's
+        amount=200.00,
+        description="Employee expense for approval",
+        category="meals",
+        status="pending",
+        vendor="Test Merchant",
+        date=datetime.utcnow(),
+        created_at=datetime.utcnow()
+    )
+    db_session.add(expense)
+    db_session.commit()
+    db_session.refresh(expense)
+    return expense
+
+
+@pytest.fixture
 def multiple_expenses(db_session, test_user):
     """Create multiple test expenses"""
     from src.models import OrganizationMember
