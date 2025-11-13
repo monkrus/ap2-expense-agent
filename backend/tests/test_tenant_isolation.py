@@ -258,5 +258,6 @@ class TestTenantIsolation:
 
         # Should succeed by using user's default organization
         assert response.status_code == status.HTTP_201_CREATED
-        assert "id" in response.json()
-        assert response.json()["description"] == "Test expense"
+        assert "expense" in response.json()
+        assert "id" in response.json()["expense"]
+        assert response.json()["expense"]["description"] == "Test expense"
