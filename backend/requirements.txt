@@ -14,7 +14,7 @@ cryptography==46.0.3
 Deprecated==1.3.1
 dnspython==2.8.0
 dparse==0.6.4
-ecdsa==0.19.1
+ecdsa==0.19.1  # Note: Known timing attack vulnerability, no fix available from maintainers
 email-validator==2.1.0
 fastapi==0.121.1
 filelock==3.20.0
@@ -55,7 +55,11 @@ nltk==3.9.2
 numpy==2.3.4
 packaging==25.0
 passlib==1.7.4
+claude/review-expense-agent-011CV4QAcyaPRV3UcZdW6mPL
+Pillow==11.0.0
+=======
 Pillow==10.3.0
+main
 pluggy==1.6.0
 proto-plus==1.26.1
 protobuf==4.25.8
