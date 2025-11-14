@@ -27,6 +27,7 @@ class StringEnum(TypeDecorator):
     Custom SQLAlchemy type for enums that stores the enum VALUE (not name)
     Works with both PostgreSQL native enums and SQLite CHECK constraints
     """
+
     impl = SQLString
     cache_ok = True
 
@@ -34,7 +35,7 @@ class StringEnum(TypeDecorator):
         self.enum_class = enum_class
         # Get length from the longest enum value
         max_length = max(len(e.value) for e in enum_class)
-        kwargs.setdefault('length', max_length + 10)
+        kwargs.setdefault("length", max_length + 10)
         super().__init__(*args, **kwargs)
 
     def process_bind_param(self, value, dialect):

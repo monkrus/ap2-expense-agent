@@ -11,7 +11,12 @@ from .config import settings
 from .database import get_db, init_db
 from .error_handlers import register_exception_handlers
 from .models import User
-from .permissions import Permission, check_permission, can_approve_expense, has_any_permission
+from .permissions import (
+    Permission,
+    check_permission,
+    can_approve_expense,
+    has_any_permission,
+)
 from .rate_limit import limiter, rate_limit_handler
 from .routes import admin_router, auth_router, oauth_router, users_router
 from .routes.ap2 import router as ap2_router
@@ -109,6 +114,7 @@ async def startup_event():
 
     # Seed default users
     from .seed_data import ensure_default_users_exist
+
     db = next(get_db())
     try:
         ensure_default_users_exist(db)
@@ -133,13 +139,15 @@ class ExpenseSubmission(BaseModel):
     vendor: str
     category: str  # Will be validated against ExpenseCategory enum values
     description: str
-    date: Optional[str] = None  # ISO format date string (YYYY-MM-DD), defaults to today if not provided
+    date: Optional[str] = (
+        None  # ISO format date string (YYYY-MM-DD), defaults to today if not provided
+    )
     # Note: user_id is derived from the authenticated user (current_user), not from the request
 
     @validator("amount")
     def validate_amount(cls, v):
         if v <= 0:
-            raise ValueError('Amount must be positive')
+            raise ValueError("Amount must be positive")
         return v
 
     @validator("category")
@@ -158,12 +166,12 @@ class ExpenseSubmission(BaseModel):
             return None
         # Validate date format
         from datetime import datetime
+
         try:
             datetime.fromisoformat(v)
             return v
         except ValueError:
-            raise ValueError('Date must be in YYYY-MM-DD format')
-
+            raise ValueError("Date must be in YYYY-MM-DD format")
 
 
 class ExpenseApproval(BaseModel):
@@ -197,7 +205,7 @@ def get_organization_context(current_user: User, db: Session) -> str:
     # Could auto-create a default org here if needed
     raise HTTPException(
         status_code=400,
-        detail="No organization context available. Please join an organization first."
+        detail="No organization context available. Please join an organization first.",
     )
 
 
@@ -261,9 +269,11 @@ async def submit_expense(
             )
 
             # Notify managers/admins of new expense awaiting approval
-            managers = db.query(UserModel).filter(
-                UserModel.role.in_([UserRole.ADMIN, UserRole.MANAGER])
-            ).all()
+            managers = (
+                db.query(UserModel)
+                .filter(UserModel.role.in_([UserRole.ADMIN, UserRole.MANAGER]))
+                .all()
+            )
 
             for manager in managers:
                 if manager.id != current_user.id:  # Don't notify the submitter
@@ -279,6 +289,7 @@ async def submit_expense(
         except Exception as e:
             # Log notification error but don't fail the request
             import logging
+
             logger = logging.getLogger(__name__)
             logger.error(f"Failed to send email notification: {str(e)}")
 
@@ -294,7 +305,7 @@ async def submit_expense(
                 "date": expense.date.isoformat(),
                 "user_id": expense.user_id,
             },
-            "message": "Expense submitted successfully"
+            "message": "Expense submitted successfully",
         }
     except Exception as e:
         db.rollback()
@@ -313,9 +324,9 @@ async def list_expenses(
     organization_id = get_organization_context(current_user, db)
 
     # Query expenses with organization filter for tenant isolation
-    expenses = db.query(Expense).filter(
-        Expense.organization_id == organization_id
-    ).all()
+    expenses = (
+        db.query(Expense).filter(Expense.organization_id == organization_id).all()
+    )
 
     return [
         {
@@ -343,9 +354,11 @@ async def export_expenses(
     import io
     from .models import Expense, OrganizationMember
 
-    membership = db.query(OrganizationMember).filter(
-        OrganizationMember.user_id == current_user.id
-    ).first()
+    membership = (
+        db.query(OrganizationMember)
+        .filter(OrganizationMember.user_id == current_user.id)
+        .first()
+    )
 
     if not membership:
         # Return empty CSV if no membership
@@ -355,25 +368,29 @@ async def export_expenses(
         return StreamingResponse(
             iter([output.getvalue()]),
             media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=expenses.csv"}
+            headers={"Content-Disposition": "attachment; filename=expenses.csv"},
         )
 
-    expenses = db.query(Expense).filter(
-        Expense.organization_id == membership.organization_id
-    ).all()
+    expenses = (
+        db.query(Expense)
+        .filter(Expense.organization_id == membership.organization_id)
+        .all()
+    )
 
     # Generate CSV
     output = io.StringIO()
     output.write("id,amount,description,category,status,date,vendor\n")
     for expense in expenses:
-        output.write(f"{expense.id},{expense.amount},{expense.description},"
-                    f"{expense.category},{expense.status},{expense.date},{expense.vendor}\n")
+        output.write(
+            f"{expense.id},{expense.amount},{expense.description},"
+            f"{expense.category},{expense.status},{expense.date},{expense.vendor}\n"
+        )
 
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=expenses.csv"}
+        headers={"Content-Disposition": "attachment; filename=expenses.csv"},
     )
 
 
@@ -386,25 +403,33 @@ async def get_expense_statistics(
     from sqlalchemy import func
     from .models import Expense, OrganizationMember
 
-    membership = db.query(OrganizationMember).filter(
-        OrganizationMember.user_id == current_user.id
-    ).first()
+    membership = (
+        db.query(OrganizationMember)
+        .filter(OrganizationMember.user_id == current_user.id)
+        .first()
+    )
 
     if not membership:
         return {"total": 0, "count": 0}
 
-    total = db.query(func.sum(Expense.amount)).filter(
-        Expense.organization_id == membership.organization_id
-    ).scalar() or 0
+    total = (
+        db.query(func.sum(Expense.amount))
+        .filter(Expense.organization_id == membership.organization_id)
+        .scalar()
+        or 0
+    )
 
-    count = db.query(func.count(Expense.id)).filter(
-        Expense.organization_id == membership.organization_id
-    ).scalar() or 0
+    count = (
+        db.query(func.count(Expense.id))
+        .filter(Expense.organization_id == membership.organization_id)
+        .scalar()
+        or 0
+    )
 
     return {
         "total": float(total),
         "count": int(count),
-        "organization_id": membership.organization_id
+        "organization_id": membership.organization_id,
     }
 
 
@@ -421,10 +446,11 @@ async def get_expense(
     organization_id = get_organization_context(current_user, db)
 
     # Query expense with organization filter for tenant isolation
-    expense = db.query(Expense).filter(
-        Expense.id == expense_id,
-        Expense.organization_id == organization_id
-    ).first()
+    expense = (
+        db.query(Expense)
+        .filter(Expense.id == expense_id, Expense.organization_id == organization_id)
+        .first()
+    )
 
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -455,10 +481,11 @@ async def update_expense(
     organization_id = get_organization_context(current_user, db)
 
     # Query expense with organization filter for tenant isolation
-    expense = db.query(Expense).filter(
-        Expense.id == expense_id,
-        Expense.organization_id == organization_id
-    ).first()
+    expense = (
+        db.query(Expense)
+        .filter(Expense.id == expense_id, Expense.organization_id == organization_id)
+        .first()
+    )
 
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -474,7 +501,12 @@ async def update_expense(
         expense.description = data["description"]
     if "date" in data:
         from datetime import datetime
-        expense.date = datetime.fromisoformat(data["date"]) if isinstance(data["date"], str) else data["date"]
+
+        expense.date = (
+            datetime.fromisoformat(data["date"])
+            if isinstance(data["date"], str)
+            else data["date"]
+        )
 
     db.commit()
     db.refresh(expense)
@@ -504,10 +536,11 @@ async def delete_expense(
     organization_id = get_organization_context(current_user, db)
 
     # Query expense with organization filter for tenant isolation
-    expense = db.query(Expense).filter(
-        Expense.id == expense_id,
-        Expense.organization_id == organization_id
-    ).first()
+    expense = (
+        db.query(Expense)
+        .filter(Expense.id == expense_id, Expense.organization_id == organization_id)
+        .first()
+    )
 
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -549,11 +582,10 @@ async def approve_expense(
             user_role=current_user.role,
             expense_amount=float(expense.amount),
             expense_user_id=expense.user_id,
-            user_id=current_user.id
+            user_id=current_user.id,
         ):
             raise HTTPException(
-                status_code=403,
-                detail="Not authorized to approve this expense"
+                status_code=403, detail="Not authorized to approve this expense"
             )
 
         # Update expense status
@@ -573,7 +605,9 @@ async def approve_expense(
             from .models import User as UserModel
 
             # Get employee details
-            employee = db.query(UserModel).filter(UserModel.id == expense.user_id).first()
+            employee = (
+                db.query(UserModel).filter(UserModel.id == expense.user_id).first()
+            )
             if employee:
                 notification_service.notify_expense_approved(
                     expense_id=expense.id,
@@ -586,6 +620,7 @@ async def approve_expense(
         except Exception as e:
             # Log notification error but don't fail the request
             import logging
+
             logger = logging.getLogger(__name__)
             logger.error(f"Failed to send approval email notification: {str(e)}")
 
@@ -641,11 +676,10 @@ async def reject_expense(
             user_role=current_user.role,
             expense_amount=float(expense.amount),
             expense_user_id=expense.user_id,
-            user_id=current_user.id
+            user_id=current_user.id,
         ):
             raise HTTPException(
-                status_code=403,
-                detail="Not authorized to reject this expense"
+                status_code=403, detail="Not authorized to reject this expense"
             )
 
         # Update expense status to rejected
@@ -682,7 +716,9 @@ async def reject_expense(
             from .models import User as UserModel
 
             # Get employee details
-            employee = db.query(UserModel).filter(UserModel.id == expense.user_id).first()
+            employee = (
+                db.query(UserModel).filter(UserModel.id == expense.user_id).first()
+            )
             if employee:
                 notification_service.notify_expense_rejected(
                     expense_id=expense.id,
@@ -695,6 +731,7 @@ async def reject_expense(
         except Exception as e:
             # Log notification error but don't fail the request
             import logging
+
             logger = logging.getLogger(__name__)
             logger.error(f"Failed to send rejection email notification: {str(e)}")
 
@@ -778,9 +815,7 @@ async def get_all_pending_expenses(
 
     # Check permission to view all expenses
     check_permission(
-        current_user.role,
-        Permission.EXPENSE_VIEW_ALL,
-        raise_exception=True
+        current_user.role, Permission.EXPENSE_VIEW_ALL, raise_exception=True
     )
 
     # Get all pending expenses with user information
@@ -832,9 +867,7 @@ async def get_all_expenses(
 
     # Check permission to view all expenses
     check_permission(
-        current_user.role,
-        Permission.EXPENSE_VIEW_ALL,
-        raise_exception=True
+        current_user.role, Permission.EXPENSE_VIEW_ALL, raise_exception=True
     )
 
     # Build query - exclude withdrawn by default
@@ -913,7 +946,7 @@ async def get_report(
         # Check if user has permission to view other users' reports
         if not has_any_permission(
             current_user.role,
-            [Permission.REPORT_VIEW_DEPARTMENT, Permission.REPORT_VIEW_ALL]
+            [Permission.REPORT_VIEW_DEPARTMENT, Permission.REPORT_VIEW_ALL],
         ):
             raise HTTPException(
                 status_code=403, detail="Not authorized to view other users' reports"
@@ -954,20 +987,22 @@ async def get_report(
             for r in receipts
         ]
 
-        expense_list.append({
-            "id": e.id,
-            "amount": float(e.amount),
-            "vendor": e.vendor,
-            "category": e.category,
-            "description": e.description,
-            "status": e.status.value,
-            "date": e.date.isoformat() if e.date else None,
-            "created_at": e.created_at.isoformat() if e.created_at else None,
-            "transaction_id": e.transaction_id,
-            "rejection_reason": e.rejection_reason,
-            "receipt_count": len(receipt_list),
-            "receipts": receipt_list,
-        })
+        expense_list.append(
+            {
+                "id": e.id,
+                "amount": float(e.amount),
+                "vendor": e.vendor,
+                "category": e.category,
+                "description": e.description,
+                "status": e.status.value,
+                "date": e.date.isoformat() if e.date else None,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+                "transaction_id": e.transaction_id,
+                "rejection_reason": e.rejection_reason,
+                "receipt_count": len(receipt_list),
+                "receipts": receipt_list,
+            }
+        )
 
     return {
         "user_id": target_user_id,
@@ -1137,7 +1172,9 @@ async def add_expense_comment(
             from .services.notification_service import notification_service
 
             # Get expense owner
-            expense_owner = db.query(UserModel).filter(UserModel.id == expense.user_id).first()
+            expense_owner = (
+                db.query(UserModel).filter(UserModel.id == expense.user_id).first()
+            )
 
             # Notify expense owner if commenter is not the owner
             if expense_owner and current_user.id != expense.user_id:
@@ -1152,7 +1189,11 @@ async def add_expense_comment(
 
             # If commenter is the owner, notify approver (if expense has been approved/rejected)
             if current_user.id == expense.user_id and expense.approved_by:
-                approver = db.query(UserModel).filter(UserModel.id == expense.approved_by).first()
+                approver = (
+                    db.query(UserModel)
+                    .filter(UserModel.id == expense.approved_by)
+                    .first()
+                )
                 if approver:
                     notification_service.notify_comment_added(
                         expense_id=expense_id,
@@ -1165,6 +1206,7 @@ async def add_expense_comment(
         except Exception as e:
             # Log notification error but don't fail the request
             import logging
+
             logger = logging.getLogger(__name__)
             logger.error(f"Failed to send comment notification: {str(e)}")
 
@@ -1175,7 +1217,9 @@ async def add_expense_comment(
                 "expense_id": comment.expense_id,
                 "user_id": comment.user_id,
                 "comment": comment.comment,
-                "created_at": comment.created_at.isoformat() if comment.created_at else None,
+                "created_at": (
+                    comment.created_at.isoformat() if comment.created_at else None
+                ),
                 "user_name": current_user.full_name or current_user.username,
                 "user_email": current_user.email,
             },
@@ -1214,16 +1258,22 @@ async def get_expense_comments(
         result = []
         for comment in comments:
             user = db.query(UserModel).filter(UserModel.id == comment.user_id).first()
-            result.append({
-                "id": comment.id,
-                "expense_id": comment.expense_id,
-                "user_id": comment.user_id,
-                "comment": comment.comment,
-                "created_at": comment.created_at.isoformat() if comment.created_at else None,
-                "updated_at": comment.updated_at.isoformat() if comment.updated_at else None,
-                "user_name": user.full_name if user else "Unknown",
-                "user_email": user.email if user else "Unknown",
-            })
+            result.append(
+                {
+                    "id": comment.id,
+                    "expense_id": comment.expense_id,
+                    "user_id": comment.user_id,
+                    "comment": comment.comment,
+                    "created_at": (
+                        comment.created_at.isoformat() if comment.created_at else None
+                    ),
+                    "updated_at": (
+                        comment.updated_at.isoformat() if comment.updated_at else None
+                    ),
+                    "user_name": user.full_name if user else "Unknown",
+                    "user_email": user.email if user else "Unknown",
+                }
+            )
 
         return {
             "expense_id": expense_id,
@@ -1253,7 +1303,7 @@ async def upload_receipt(
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=415,
-            detail=f"File type {file.content_type} not supported. Use PDF or images."
+            detail=f"File type {file.content_type} not supported. Use PDF or images.",
         )
 
     # Get expense and verify ownership
@@ -1270,18 +1320,14 @@ async def upload_receipt(
         content_type=file.content_type,
         file_size=0,  # Would store actual file size
         file_path=f"/receipts/{expense_id}/{file.filename}",  # Placeholder
-        uploaded_at=datetime.utcnow()
+        uploaded_at=datetime.utcnow(),
     )
 
     db.add(receipt)
     db.commit()
     db.refresh(receipt)
 
-    return {
-        "success": True,
-        "receipt_id": receipt.id,
-        "filename": receipt.filename
-    }
+    return {"success": True, "receipt_id": receipt.id, "filename": receipt.filename}
 
 
 @app.get("/api/v1/expenses/{expense_id}/receipts")
@@ -1306,7 +1352,7 @@ async def get_expense_receipts(
             "id": r.id,
             "filename": r.filename,
             "content_type": r.content_type,
-            "uploaded_at": r.uploaded_at.isoformat() if r.uploaded_at else None
+            "uploaded_at": r.uploaded_at.isoformat() if r.uploaded_at else None,
         }
         for r in receipts
     ]
@@ -1326,9 +1372,7 @@ async def bulk_approve_expenses(
 
         # Check permission for bulk approve
         check_permission(
-            current_user.role,
-            Permission.EXPENSE_BULK_APPROVE,
-            raise_exception=True
+            current_user.role, Permission.EXPENSE_BULK_APPROVE, raise_exception=True
         )
 
         results = []
@@ -1339,19 +1383,23 @@ async def bulk_approve_expenses(
                 # Get the expense from database
                 expense = db.query(Expense).filter(Expense.id == expense_id).first()
                 if not expense:
-                    results.append({
-                        "expense_id": expense_id,
-                        "success": False,
-                        "error": "Expense not found"
-                    })
+                    results.append(
+                        {
+                            "expense_id": expense_id,
+                            "success": False,
+                            "error": "Expense not found",
+                        }
+                    )
                     continue
 
                 if expense.status != ExpenseStatus.PENDING:
-                    results.append({
-                        "expense_id": expense_id,
-                        "success": False,
-                        "error": f"Expense is already {expense.status.value}"
-                    })
+                    results.append(
+                        {
+                            "expense_id": expense_id,
+                            "success": False,
+                            "error": f"Expense is already {expense.status.value}",
+                        }
+                    )
                     continue
 
                 # Check if user can approve this specific expense (amount limit, self-approval)
@@ -1360,20 +1408,20 @@ async def bulk_approve_expenses(
                         user_role=current_user.role,
                         expense_amount=float(expense.amount),
                         expense_user_id=expense.user_id,
-                        user_id=current_user.id
+                        user_id=current_user.id,
                     ):
-                        results.append({
-                            "expense_id": expense_id,
-                            "success": False,
-                            "error": "Not authorized to approve this expense"
-                        })
+                        results.append(
+                            {
+                                "expense_id": expense_id,
+                                "success": False,
+                                "error": "Not authorized to approve this expense",
+                            }
+                        )
                         continue
                 except HTTPException as e:
-                    results.append({
-                        "expense_id": expense_id,
-                        "success": False,
-                        "error": e.detail
-                    })
+                    results.append(
+                        {"expense_id": expense_id, "success": False, "error": e.detail}
+                    )
                     continue
 
                 # Update expense status
@@ -1389,7 +1437,12 @@ async def bulk_approve_expenses(
                 # Send approval notification
                 try:
                     from .services.notification_service import notification_service
-                    employee = db.query(UserModel).filter(UserModel.id == expense.user_id).first()
+
+                    employee = (
+                        db.query(UserModel)
+                        .filter(UserModel.id == expense.user_id)
+                        .first()
+                    )
                     if employee:
                         notification_service.notify_expense_approved(
                             expense_id=expense.id,
@@ -1401,22 +1454,23 @@ async def bulk_approve_expenses(
                         )
                 except Exception as e:
                     import logging
+
                     logger = logging.getLogger(__name__)
                     logger.error(f"Failed to send approval notification: {str(e)}")
 
-                results.append({
-                    "expense_id": expense_id,
-                    "success": True,
-                    "transaction_id": audit_trail["transaction_id"],
-                    "status": expense.status.value
-                })
+                results.append(
+                    {
+                        "expense_id": expense_id,
+                        "success": True,
+                        "transaction_id": audit_trail["transaction_id"],
+                        "status": expense.status.value,
+                    }
+                )
 
             except Exception as e:
-                results.append({
-                    "expense_id": expense_id,
-                    "success": False,
-                    "error": str(e)
-                })
+                results.append(
+                    {"expense_id": expense_id, "success": False, "error": str(e)}
+                )
 
         db.commit()
 
@@ -1426,7 +1480,7 @@ async def bulk_approve_expenses(
             "total": len(data.expense_ids),
             "approved": success_count,
             "failed": len(data.expense_ids) - success_count,
-            "results": results
+            "results": results,
         }
 
     except HTTPException:
@@ -1447,13 +1501,17 @@ async def bulk_reject_expenses(
         import json
         import uuid
         from datetime import datetime
-        from .models import AuditLog, Expense, ExpenseStatus, UserRole, User as UserModel
+        from .models import (
+            AuditLog,
+            Expense,
+            ExpenseStatus,
+            UserRole,
+            User as UserModel,
+        )
 
         # Check permission for bulk reject
         check_permission(
-            current_user.role,
-            Permission.EXPENSE_BULK_REJECT,
-            raise_exception=True
+            current_user.role, Permission.EXPENSE_BULK_REJECT, raise_exception=True
         )
 
         results = []
@@ -1463,19 +1521,23 @@ async def bulk_reject_expenses(
                 # Get the expense from database
                 expense = db.query(Expense).filter(Expense.id == expense_id).first()
                 if not expense:
-                    results.append({
-                        "expense_id": expense_id,
-                        "success": False,
-                        "error": "Expense not found"
-                    })
+                    results.append(
+                        {
+                            "expense_id": expense_id,
+                            "success": False,
+                            "error": "Expense not found",
+                        }
+                    )
                     continue
 
                 if expense.status != ExpenseStatus.PENDING:
-                    results.append({
-                        "expense_id": expense_id,
-                        "success": False,
-                        "error": f"Expense is already {expense.status.value}"
-                    })
+                    results.append(
+                        {
+                            "expense_id": expense_id,
+                            "success": False,
+                            "error": f"Expense is already {expense.status.value}",
+                        }
+                    )
                     continue
 
                 # Check if user can reject this specific expense (amount limit, self-approval)
@@ -1484,20 +1546,20 @@ async def bulk_reject_expenses(
                         user_role=current_user.role,
                         expense_amount=float(expense.amount),
                         expense_user_id=expense.user_id,
-                        user_id=current_user.id
+                        user_id=current_user.id,
                     ):
-                        results.append({
-                            "expense_id": expense_id,
-                            "success": False,
-                            "error": "Not authorized to reject this expense"
-                        })
+                        results.append(
+                            {
+                                "expense_id": expense_id,
+                                "success": False,
+                                "error": "Not authorized to reject this expense",
+                            }
+                        )
                         continue
                 except HTTPException as e:
-                    results.append({
-                        "expense_id": expense_id,
-                        "success": False,
-                        "error": e.detail
-                    })
+                    results.append(
+                        {"expense_id": expense_id, "success": False, "error": e.detail}
+                    )
                     continue
 
                 # Update expense status to rejected
@@ -1513,20 +1575,27 @@ async def bulk_reject_expenses(
                     action="expense_bulk_reject",
                     resource_type="expense",
                     resource_id=expense.id,
-                    details=json.dumps({
-                        "amount": float(expense.amount),
-                        "vendor": expense.vendor,
-                        "category": expense.category.value,
-                        "rejection_reason": data.rejection_reason,
-                        "status_change": "PENDING -> REJECTED",
-                    }),
+                    details=json.dumps(
+                        {
+                            "amount": float(expense.amount),
+                            "vendor": expense.vendor,
+                            "category": expense.category.value,
+                            "rejection_reason": data.rejection_reason,
+                            "status_change": "PENDING -> REJECTED",
+                        }
+                    ),
                 )
                 db.add(audit_log)
 
                 # Send rejection notification
                 try:
                     from .services.notification_service import notification_service
-                    employee = db.query(UserModel).filter(UserModel.id == expense.user_id).first()
+
+                    employee = (
+                        db.query(UserModel)
+                        .filter(UserModel.id == expense.user_id)
+                        .first()
+                    )
                     if employee:
                         notification_service.notify_expense_rejected(
                             expense_id=expense.id,
@@ -1538,22 +1607,23 @@ async def bulk_reject_expenses(
                         )
                 except Exception as e:
                     import logging
+
                     logger = logging.getLogger(__name__)
                     logger.error(f"Failed to send rejection notification: {str(e)}")
 
-                results.append({
-                    "expense_id": expense_id,
-                    "success": True,
-                    "status": expense.status.value,
-                    "rejection_reason": expense.rejection_reason
-                })
+                results.append(
+                    {
+                        "expense_id": expense_id,
+                        "success": True,
+                        "status": expense.status.value,
+                        "rejection_reason": expense.rejection_reason,
+                    }
+                )
 
             except Exception as e:
-                results.append({
-                    "expense_id": expense_id,
-                    "success": False,
-                    "error": str(e)
-                })
+                results.append(
+                    {"expense_id": expense_id, "success": False, "error": str(e)}
+                )
 
         db.commit()
 
@@ -1563,7 +1633,7 @@ async def bulk_reject_expenses(
             "total": len(data.expense_ids),
             "rejected": success_count,
             "failed": len(data.expense_ids) - success_count,
-            "results": results
+            "results": results,
         }
 
     except HTTPException:

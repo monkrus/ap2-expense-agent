@@ -90,7 +90,9 @@ def seed_default_users(db: Session, force_password_reset: bool = False) -> dict:
                     username=user_data["username"],
                     email=user_data["email"],
                     full_name=user_data["full_name"],
-                    role=user_data["role"],  # Can pass enum or string, StringEnum handles it
+                    role=user_data[
+                        "role"
+                    ],  # Can pass enum or string, StringEnum handles it
                     hashed_password=AuthService.hash_password(user_data["password"]),
                     is_active=True,
                     is_verified=True,

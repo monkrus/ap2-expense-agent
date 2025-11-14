@@ -87,11 +87,17 @@ class ApprovalPolicyService:
         # Amount checks
         if policy.max_amount_per_expense:
             if expense.amount > policy.max_amount_per_expense:
-                return False, f"Amount ${expense.amount} exceeds max ${policy.max_amount_per_expense}"
+                return (
+                    False,
+                    f"Amount ${expense.amount} exceeds max ${policy.max_amount_per_expense}",
+                )
 
         if "min_amount" in conditions:
             if expense.amount < Decimal(str(conditions["min_amount"])):
-                return False, f"Amount ${expense.amount} below minimum ${conditions['min_amount']}"
+                return (
+                    False,
+                    f"Amount ${expense.amount} below minimum ${conditions['min_amount']}",
+                )
 
         # Category check
         if "categories" in conditions and conditions["categories"]:
@@ -141,9 +147,15 @@ class ApprovalPolicyService:
                 return False, f"Expense submitted outside allowed hours"
 
         # Budget compliance check
-        if "require_budget_compliance" in conditions and conditions["require_budget_compliance"]:
+        if (
+            "require_budget_compliance" in conditions
+            and conditions["require_budget_compliance"]
+        ):
             # Check if expense would exceed budget
-            from ..routes.budgets import calculate_budget_spending, get_budget_period_dates
+            from ..routes.budgets import (
+                calculate_budget_spending,
+                get_budget_period_dates,
+            )
             from ..models import Budget
 
             budgets = (
@@ -164,7 +176,9 @@ class ApprovalPolicyService:
 
                 # Calculate current spending
                 start_date, end_date = get_budget_period_dates(budget)
-                current_spending = calculate_budget_spending(self.db, budget, start_date, end_date)
+                current_spending = calculate_budget_spending(
+                    self.db, budget, start_date, end_date
+                )
 
                 # Check if adding this expense would exceed budget
                 if (current_spending + expense.amount) > budget.amount:
@@ -189,20 +203,19 @@ class ApprovalPolicyService:
             today_start = datetime.combine(now.date(), time.min)
             today_end = datetime.combine(now.date(), time.max)
 
-            daily_total = (
-                self.db.query(func.sum(Expense.amount))
-                .filter(
-                    Expense.organization_id == expense.organization_id,
-                    Expense.user_id == user.id,
-                    Expense.auto_approved == True,
-                    Expense.approved_at >= today_start,
-                    Expense.approved_at <= today_end,
-                )
-                .scalar() or Decimal(0)
-            )
+            daily_total = self.db.query(func.sum(Expense.amount)).filter(
+                Expense.organization_id == expense.organization_id,
+                Expense.user_id == user.id,
+                Expense.auto_approved == True,
+                Expense.approved_at >= today_start,
+                Expense.approved_at <= today_end,
+            ).scalar() or Decimal(0)
 
             if (daily_total + expense.amount) > policy.daily_limit_per_user:
-                return False, f"Would exceed daily limit of ${policy.daily_limit_per_user}"
+                return (
+                    False,
+                    f"Would exceed daily limit of ${policy.daily_limit_per_user}",
+                )
 
         # Monthly limit check
         if policy.monthly_limit_per_user:
@@ -212,40 +225,38 @@ class ApprovalPolicyService:
             else:
                 month_end = datetime(now.year, now.month + 1, 1) - timedelta(seconds=1)
 
-            monthly_total = (
-                self.db.query(func.sum(Expense.amount))
-                .filter(
-                    Expense.organization_id == expense.organization_id,
-                    Expense.user_id == user.id,
-                    Expense.auto_approved == True,
-                    Expense.approved_at >= month_start,
-                    Expense.approved_at <= month_end,
-                )
-                .scalar() or Decimal(0)
-            )
+            monthly_total = self.db.query(func.sum(Expense.amount)).filter(
+                Expense.organization_id == expense.organization_id,
+                Expense.user_id == user.id,
+                Expense.auto_approved == True,
+                Expense.approved_at >= month_start,
+                Expense.approved_at <= month_end,
+            ).scalar() or Decimal(0)
 
             if (monthly_total + expense.amount) > policy.monthly_limit_per_user:
-                return False, f"Would exceed monthly limit of ${policy.monthly_limit_per_user}"
+                return (
+                    False,
+                    f"Would exceed monthly limit of ${policy.monthly_limit_per_user}",
+                )
 
         # Yearly limit check
         if policy.yearly_limit_per_user:
             year_start = datetime(now.year, 1, 1)
             year_end = datetime(now.year, 12, 31, 23, 59, 59)
 
-            yearly_total = (
-                self.db.query(func.sum(Expense.amount))
-                .filter(
-                    Expense.organization_id == expense.organization_id,
-                    Expense.user_id == user.id,
-                    Expense.auto_approved == True,
-                    Expense.approved_at >= year_start,
-                    Expense.approved_at <= year_end,
-                )
-                .scalar() or Decimal(0)
-            )
+            yearly_total = self.db.query(func.sum(Expense.amount)).filter(
+                Expense.organization_id == expense.organization_id,
+                Expense.user_id == user.id,
+                Expense.auto_approved == True,
+                Expense.approved_at >= year_start,
+                Expense.approved_at <= year_end,
+            ).scalar() or Decimal(0)
 
             if (yearly_total + expense.amount) > policy.yearly_limit_per_user:
-                return False, f"Would exceed yearly limit of ${policy.yearly_limit_per_user}"
+                return (
+                    False,
+                    f"Would exceed yearly limit of ${policy.yearly_limit_per_user}",
+                )
 
         return True, "Within all limits"
 
@@ -258,10 +269,14 @@ class ApprovalPolicyService:
         Returns:
             Dictionary with remaining daily/monthly/yearly limits
         """
-        policy = self.db.query(ApprovalPolicy).filter(
-            ApprovalPolicy.id == policy_id,
-            ApprovalPolicy.organization_id == organization_id,
-        ).first()
+        policy = (
+            self.db.query(ApprovalPolicy)
+            .filter(
+                ApprovalPolicy.id == policy_id,
+                ApprovalPolicy.organization_id == organization_id,
+            )
+            .first()
+        )
 
         if not policy:
             return {}
@@ -274,17 +289,13 @@ class ApprovalPolicyService:
             today_start = datetime.combine(now.date(), time.min)
             today_end = datetime.combine(now.date(), time.max)
 
-            daily_used = (
-                self.db.query(func.sum(Expense.amount))
-                .filter(
-                    Expense.organization_id == organization_id,
-                    Expense.user_id == user_id,
-                    Expense.auto_approved == True,
-                    Expense.approved_at >= today_start,
-                    Expense.approved_at <= today_end,
-                )
-                .scalar() or Decimal(0)
-            )
+            daily_used = self.db.query(func.sum(Expense.amount)).filter(
+                Expense.organization_id == organization_id,
+                Expense.user_id == user_id,
+                Expense.auto_approved == True,
+                Expense.approved_at >= today_start,
+                Expense.approved_at <= today_end,
+            ).scalar() or Decimal(0)
 
             result["daily_remaining"] = max(
                 Decimal(0), policy.daily_limit_per_user - daily_used
@@ -300,17 +311,13 @@ class ApprovalPolicyService:
             else:
                 month_end = datetime(now.year, now.month + 1, 1) - timedelta(seconds=1)
 
-            monthly_used = (
-                self.db.query(func.sum(Expense.amount))
-                .filter(
-                    Expense.organization_id == organization_id,
-                    Expense.user_id == user_id,
-                    Expense.auto_approved == True,
-                    Expense.approved_at >= month_start,
-                    Expense.approved_at <= month_end,
-                )
-                .scalar() or Decimal(0)
-            )
+            monthly_used = self.db.query(func.sum(Expense.amount)).filter(
+                Expense.organization_id == organization_id,
+                Expense.user_id == user_id,
+                Expense.auto_approved == True,
+                Expense.approved_at >= month_start,
+                Expense.approved_at <= month_end,
+            ).scalar() or Decimal(0)
 
             result["monthly_remaining"] = max(
                 Decimal(0), policy.monthly_limit_per_user - monthly_used
@@ -323,17 +330,13 @@ class ApprovalPolicyService:
             year_start = datetime(now.year, 1, 1)
             year_end = datetime(now.year, 12, 31, 23, 59, 59)
 
-            yearly_used = (
-                self.db.query(func.sum(Expense.amount))
-                .filter(
-                    Expense.organization_id == organization_id,
-                    Expense.user_id == user_id,
-                    Expense.auto_approved == True,
-                    Expense.approved_at >= year_start,
-                    Expense.approved_at <= year_end,
-                )
-                .scalar() or Decimal(0)
-            )
+            yearly_used = self.db.query(func.sum(Expense.amount)).filter(
+                Expense.organization_id == organization_id,
+                Expense.user_id == user_id,
+                Expense.auto_approved == True,
+                Expense.approved_at >= year_start,
+                Expense.approved_at <= year_end,
+            ).scalar() or Decimal(0)
 
             result["yearly_remaining"] = max(
                 Decimal(0), policy.yearly_limit_per_user - yearly_used

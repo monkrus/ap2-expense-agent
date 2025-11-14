@@ -33,12 +33,16 @@ class ApprovalPolicy(Base):
 
     # Primary key
     id = Column(String, primary_key=True)
-    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    organization_id = Column(
+        String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
 
     # Policy details
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    priority = Column(Integer, nullable=False, default=0)  # Higher priority checked first
+    priority = Column(
+        Integer, nullable=False, default=0
+    )  # Higher priority checked first
     is_active = Column(Boolean, nullable=False, default=True)
 
     # Auto-approval settings
@@ -69,13 +73,23 @@ class ApprovalPolicy(Base):
 
     # Metadata
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    created_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    updated_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_at = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+    created_by = Column(
+        String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    updated_by = Column(
+        String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
 
     # Relationships
     organization = relationship("Organization", back_populates="approval_policies")
-    expenses = relationship("Expense", back_populates="approval_policy", foreign_keys="Expense.approval_policy_id")
+    expenses = relationship(
+        "Expense",
+        back_populates="approval_policy",
+        foreign_keys="Expense.approval_policy_id",
+    )
     creator = relationship("User", foreign_keys=[created_by])
     updater = relationship("User", foreign_keys=[updated_by])
 
@@ -96,10 +110,26 @@ class ApprovalPolicy(Base):
             "notify_on_auto_approve": self.notify_on_auto_approve,
             "conditions": self.conditions or {},
             "limits": {
-                "max_amount_per_expense": float(self.max_amount_per_expense) if self.max_amount_per_expense else None,
-                "daily_limit_per_user": float(self.daily_limit_per_user) if self.daily_limit_per_user else None,
-                "monthly_limit_per_user": float(self.monthly_limit_per_user) if self.monthly_limit_per_user else None,
-                "yearly_limit_per_user": float(self.yearly_limit_per_user) if self.yearly_limit_per_user else None,
+                "max_amount_per_expense": (
+                    float(self.max_amount_per_expense)
+                    if self.max_amount_per_expense
+                    else None
+                ),
+                "daily_limit_per_user": (
+                    float(self.daily_limit_per_user)
+                    if self.daily_limit_per_user
+                    else None
+                ),
+                "monthly_limit_per_user": (
+                    float(self.monthly_limit_per_user)
+                    if self.monthly_limit_per_user
+                    else None
+                ),
+                "yearly_limit_per_user": (
+                    float(self.yearly_limit_per_user)
+                    if self.yearly_limit_per_user
+                    else None
+                ),
             },
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
