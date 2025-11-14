@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Dict, Optional
 
 import stripe
+from stripe import _error as stripe_error
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -73,14 +74,17 @@ class StripePaymentProcessor:
                 "created": datetime.fromtimestamp(payment_intent.created).isoformat(),
             }
 
-        except stripe.error.CardError as e:
+        except stripe_error.CardError as e:
             return {
                 "success": False,
                 "error": "card_error",
                 "message": str(e.user_message),
             }
 
-        except stripe.error.StripeError as e:
+        except stripe_error.StripeError as e:
+            return {"success": False, "error": "stripe_error", "message": str(e)}
+
+        except Exception as e:
             return {"success": False, "error": "stripe_error", "message": str(e)}
 
     async def create_customer(
@@ -101,7 +105,7 @@ class StripePaymentProcessor:
                 "email": customer.email,
             }
 
-        except stripe.error.StripeError as e:
+        except stripe_error.StripeError as e:
             return {"success": False, "error": str(e)}
 
     async def create_subscription(
@@ -139,7 +143,7 @@ class StripePaymentProcessor:
                 ),
             }
 
-        except stripe.error.StripeError as e:
+        except stripe_error.StripeError as e:
             return {"success": False, "error": str(e)}
 
     async def cancel_subscription(
@@ -168,7 +172,7 @@ class StripePaymentProcessor:
                 ),
             }
 
-        except stripe.error.StripeError as e:
+        except stripe_error.StripeError as e:
             return {"success": False, "error": str(e)}
 
     async def create_setup_intent(self, customer_id: str) -> Dict:
@@ -187,7 +191,7 @@ class StripePaymentProcessor:
                 "id": setup_intent.id,
             }
 
-        except stripe.error.StripeError as e:
+        except stripe_error.StripeError as e:
             return {"success": False, "error": str(e)}
 
     async def refund_payment(
@@ -211,5 +215,5 @@ class StripePaymentProcessor:
                 "amount": refund.amount / 100,
             }
 
-        except stripe.error.StripeError as e:
+        except stripe_error.StripeError as e:
             return {"success": False, "error": str(e)}
