@@ -4,20 +4,21 @@ Tests compliance with Google's Agent-to-Payment (AP2) Protocol specifications
 Reference: https://github.com/google/agent-to-payment-protocol
 """
 
-import pytest
+import hashlib
+import json
 from datetime import datetime, timedelta
+
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import json
-import hashlib
 
-from src.models import Base, User, UserRole, Expense, ExpenseStatus, ExpenseCategory
 from src.agent_db import (
+    CartMandateData,
     ExpenseManagementAgent,
     IntentMandateData,
-    CartMandateData,
     PaymentMandateData,
 )
+from src.models import Base, Expense, ExpenseCategory, ExpenseStatus, User, UserRole
 from src.repository import AP2Repository
 
 
@@ -52,8 +53,9 @@ def test_db():
 @pytest.fixture
 def test_organization(test_db):
     """Create a test organization in the same SQLite database"""
-    from src.models import Organization
     from datetime import datetime
+
+    from src.models import Organization
 
     org = Organization(
         id="org_ap2_001",

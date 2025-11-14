@@ -15,15 +15,15 @@ from fastapi import HTTPException
 
 from src.models import UserRole
 from src.permissions import (
-    Permission,
-    has_permission,
-    has_any_permission,
-    has_all_permissions,
-    get_user_permissions,
-    check_permission,
-    check_expense_access,
-    can_approve_expense,
     ROLE_PERMISSIONS,
+    Permission,
+    can_approve_expense,
+    check_expense_access,
+    check_permission,
+    get_user_permissions,
+    has_all_permissions,
+    has_any_permission,
+    has_permission,
 )
 
 
@@ -38,18 +38,32 @@ class TestBasicPermissionChecks:
 
     def test_employee_cannot_approve(self):
         """Employee should NOT have approval permissions"""
-        assert has_permission(UserRole.EMPLOYEE, Permission.EXPENSE_APPROVE_DEPARTMENT) is False
-        assert has_permission(UserRole.EMPLOYEE, Permission.EXPENSE_APPROVE_ALL) is False
+        assert (
+            has_permission(UserRole.EMPLOYEE, Permission.EXPENSE_APPROVE_DEPARTMENT)
+            is False
+        )
+        assert (
+            has_permission(UserRole.EMPLOYEE, Permission.EXPENSE_APPROVE_ALL) is False
+        )
 
     def test_employee_cannot_view_all(self):
         """Employee should NOT be able to view all expenses"""
         assert has_permission(UserRole.EMPLOYEE, Permission.EXPENSE_VIEW_ALL) is False
-        assert has_permission(UserRole.EMPLOYEE, Permission.EXPENSE_VIEW_DEPARTMENT) is False
+        assert (
+            has_permission(UserRole.EMPLOYEE, Permission.EXPENSE_VIEW_DEPARTMENT)
+            is False
+        )
 
     def test_manager_can_approve_department(self):
         """Manager should be able to approve department expenses"""
-        assert has_permission(UserRole.MANAGER, Permission.EXPENSE_APPROVE_DEPARTMENT) is True
-        assert has_permission(UserRole.MANAGER, Permission.EXPENSE_REJECT_DEPARTMENT) is True
+        assert (
+            has_permission(UserRole.MANAGER, Permission.EXPENSE_APPROVE_DEPARTMENT)
+            is True
+        )
+        assert (
+            has_permission(UserRole.MANAGER, Permission.EXPENSE_REJECT_DEPARTMENT)
+            is True
+        )
         assert has_permission(UserRole.MANAGER, Permission.EXPENSE_BULK_APPROVE) is True
 
     def test_manager_cannot_approve_all(self):
@@ -69,8 +83,13 @@ class TestBasicPermissionChecks:
 
     def test_accountant_cannot_approve(self):
         """Accountant should NOT be able to approve expenses (read-only)"""
-        assert has_permission(UserRole.ACCOUNTANT, Permission.EXPENSE_APPROVE_DEPARTMENT) is False
-        assert has_permission(UserRole.ACCOUNTANT, Permission.EXPENSE_APPROVE_ALL) is False
+        assert (
+            has_permission(UserRole.ACCOUNTANT, Permission.EXPENSE_APPROVE_DEPARTMENT)
+            is False
+        )
+        assert (
+            has_permission(UserRole.ACCOUNTANT, Permission.EXPENSE_APPROVE_ALL) is False
+        )
 
     def test_admin_has_all_permissions(self):
         """Admin should have ALL permissions"""
@@ -90,31 +109,47 @@ class TestMultiplePermissionChecks:
 
     def test_has_any_permission_manager(self):
         """Manager should have at least one approval permission"""
-        assert has_any_permission(
-            UserRole.MANAGER,
-            [Permission.EXPENSE_APPROVE_DEPARTMENT, Permission.EXPENSE_APPROVE_ALL]
-        ) is True
+        assert (
+            has_any_permission(
+                UserRole.MANAGER,
+                [Permission.EXPENSE_APPROVE_DEPARTMENT, Permission.EXPENSE_APPROVE_ALL],
+            )
+            is True
+        )
 
     def test_has_any_permission_employee(self):
         """Employee should NOT have any approval permissions"""
-        assert has_any_permission(
-            UserRole.EMPLOYEE,
-            [Permission.EXPENSE_APPROVE_DEPARTMENT, Permission.EXPENSE_APPROVE_ALL]
-        ) is False
+        assert (
+            has_any_permission(
+                UserRole.EMPLOYEE,
+                [Permission.EXPENSE_APPROVE_DEPARTMENT, Permission.EXPENSE_APPROVE_ALL],
+            )
+            is False
+        )
 
     def test_has_all_permissions_admin(self):
         """Admin should have all specified permissions"""
-        assert has_all_permissions(
-            UserRole.ADMIN,
-            [Permission.EXPENSE_APPROVE_ALL, Permission.USER_CREATE, Permission.SYSTEM_CONFIGURE]
-        ) is True
+        assert (
+            has_all_permissions(
+                UserRole.ADMIN,
+                [
+                    Permission.EXPENSE_APPROVE_ALL,
+                    Permission.USER_CREATE,
+                    Permission.SYSTEM_CONFIGURE,
+                ],
+            )
+            is True
+        )
 
     def test_has_all_permissions_manager_fails(self):
         """Manager should NOT have all admin permissions"""
-        assert has_all_permissions(
-            UserRole.MANAGER,
-            [Permission.EXPENSE_APPROVE_ALL, Permission.USER_CREATE]
-        ) is False
+        assert (
+            has_all_permissions(
+                UserRole.MANAGER,
+                [Permission.EXPENSE_APPROVE_ALL, Permission.USER_CREATE],
+            )
+            is False
+        )
 
 
 class TestGetUserPermissions:
@@ -141,7 +176,7 @@ class TestCheckPermissionWithException:
         result = check_permission(
             UserRole.MANAGER,
             Permission.EXPENSE_APPROVE_DEPARTMENT,
-            raise_exception=True
+            raise_exception=True,
         )
         assert result is True
 
@@ -151,7 +186,7 @@ class TestCheckPermissionWithException:
             check_permission(
                 UserRole.EMPLOYEE,
                 Permission.EXPENSE_APPROVE_DEPARTMENT,
-                raise_exception=True
+                raise_exception=True,
             )
         assert exc_info.value.status_code == 403
         assert "Permission denied" in exc_info.value.detail
@@ -161,7 +196,7 @@ class TestCheckPermissionWithException:
         result = check_permission(
             UserRole.EMPLOYEE,
             Permission.EXPENSE_APPROVE_DEPARTMENT,
-            raise_exception=False
+            raise_exception=False,
         )
         assert result is False
 
@@ -172,9 +207,7 @@ class TestExpenseAccessControl:
     def test_employee_can_access_own_expense(self):
         """Employee should be able to access their own expense"""
         result = check_expense_access(
-            user_role=UserRole.EMPLOYEE,
-            user_id="user123",
-            expense_user_id="user123"
+            user_role=UserRole.EMPLOYEE, user_id="user123", expense_user_id="user123"
         )
         assert result is True
 
@@ -184,7 +217,7 @@ class TestExpenseAccessControl:
             check_expense_access(
                 user_role=UserRole.EMPLOYEE,
                 user_id="user123",
-                expense_user_id="user456"
+                expense_user_id="user456",
             )
         assert exc_info.value.status_code == 403
 
@@ -195,7 +228,7 @@ class TestExpenseAccessControl:
             user_id="manager123",
             expense_user_id="employee456",
             user_department_id="sales",
-            expense_owner_department_id="sales"
+            expense_owner_department_id="sales",
         )
         assert result is True
 
@@ -207,7 +240,7 @@ class TestExpenseAccessControl:
                 user_id="manager123",
                 expense_user_id="employee456",
                 user_department_id="sales",
-                expense_owner_department_id="engineering"
+                expense_owner_department_id="engineering",
             )
         assert exc_info.value.status_code == 403
         assert "department" in exc_info.value.detail.lower()
@@ -219,7 +252,7 @@ class TestExpenseAccessControl:
             user_id="admin123",
             expense_user_id="employee456",
             user_department_id="engineering",
-            expense_owner_department_id="sales"
+            expense_owner_department_id="sales",
         )
         assert result is True
 
@@ -228,7 +261,7 @@ class TestExpenseAccessControl:
         result = check_expense_access(
             user_role=UserRole.ACCOUNTANT,
             user_id="accountant123",
-            expense_user_id="employee456"
+            expense_user_id="employee456",
         )
         assert result is True
 
@@ -242,7 +275,7 @@ class TestExpenseApprovalLogic:
             user_role=UserRole.MANAGER,
             expense_amount=100.00,
             expense_user_id="user123",
-            user_id="user123"
+            user_id="user123",
         )
         assert result is False
 
@@ -252,7 +285,7 @@ class TestExpenseApprovalLogic:
             user_role=UserRole.ADMIN,
             expense_amount=10000.00,
             expense_user_id="employee123",
-            user_id="admin456"
+            user_id="admin456",
         )
         assert result is True
 
@@ -262,7 +295,7 @@ class TestExpenseApprovalLogic:
             user_role=UserRole.MANAGER,
             expense_amount=4999.99,
             expense_user_id="employee123",
-            user_id="manager456"
+            user_id="manager456",
         )
         assert result is True
 
@@ -272,7 +305,7 @@ class TestExpenseApprovalLogic:
             user_role=UserRole.MANAGER,
             expense_amount=5000.00,
             expense_user_id="employee123",
-            user_id="manager456"
+            user_id="manager456",
         )
         assert result is True
 
@@ -283,7 +316,7 @@ class TestExpenseApprovalLogic:
                 user_role=UserRole.MANAGER,
                 expense_amount=5000.01,
                 expense_user_id="employee123",
-                user_id="manager456"
+                user_id="manager456",
             )
         assert exc_info.value.status_code == 403
         assert "5000" in exc_info.value.detail
@@ -295,7 +328,7 @@ class TestExpenseApprovalLogic:
             user_role=UserRole.EMPLOYEE,
             expense_amount=100.00,
             expense_user_id="employee123",
-            user_id="employee456"
+            user_id="employee456",
         )
         assert result is False
 
@@ -307,7 +340,7 @@ class TestExpenseApprovalLogic:
             expense_user_id="employee123",
             user_id="manager456",
             user_department_id="sales",
-            expense_owner_department_id="sales"
+            expense_owner_department_id="sales",
         )
         assert result is True
 
@@ -320,7 +353,7 @@ class TestExpenseApprovalLogic:
                 expense_user_id="employee123",
                 user_id="manager456",
                 user_department_id="sales",
-                expense_owner_department_id="engineering"
+                expense_owner_department_id="engineering",
             )
         assert exc_info.value.status_code == 403
         assert "department" in exc_info.value.detail.lower()
@@ -336,7 +369,7 @@ class TestDepartmentFiltering:
             user_id="manager123",
             expense_user_id="employee456",
             user_department_id=None,
-            expense_owner_department_id=None
+            expense_owner_department_id=None,
         )
         assert result is True
 
@@ -347,7 +380,7 @@ class TestDepartmentFiltering:
             user_id="manager123",
             expense_user_id="employee456",
             user_department_id="sales",
-            expense_owner_department_id=None
+            expense_owner_department_id=None,
         )
         assert result is True
 
@@ -359,7 +392,7 @@ class TestDepartmentFiltering:
             expense_user_id="employee123",
             user_id="admin456",
             user_department_id="engineering",
-            expense_owner_department_id="sales"
+            expense_owner_department_id="sales",
         )
         assert result is True
 
@@ -412,20 +445,14 @@ class TestEdgeCases:
     def test_manager_approval_boundary_values(self):
         """Test manager approval at exact boundary values"""
         # Just under limit
-        assert can_approve_expense(
-            UserRole.MANAGER, 4999.99, "emp1", "mgr1"
-        ) is True
+        assert can_approve_expense(UserRole.MANAGER, 4999.99, "emp1", "mgr1") is True
 
         # Exactly at limit
-        assert can_approve_expense(
-            UserRole.MANAGER, 5000.00, "emp1", "mgr1"
-        ) is True
+        assert can_approve_expense(UserRole.MANAGER, 5000.00, "emp1", "mgr1") is True
 
         # Just over limit
         with pytest.raises(HTTPException):
-            can_approve_expense(
-                UserRole.MANAGER, 5000.01, "emp1", "mgr1"
-            )
+            can_approve_expense(UserRole.MANAGER, 5000.01, "emp1", "mgr1")
 
     def test_zero_amount_expense(self):
         """Manager should be able to approve zero amount expenses"""
@@ -433,7 +460,7 @@ class TestEdgeCases:
             user_role=UserRole.MANAGER,
             expense_amount=0.00,
             expense_user_id="employee123",
-            user_id="manager456"
+            user_id="manager456",
         )
         assert result is True
 
@@ -443,7 +470,7 @@ class TestEdgeCases:
             user_role=UserRole.MANAGER,
             expense_amount=-100.00,
             expense_user_id="employee123",
-            user_id="manager456"
+            user_id="manager456",
         )
         assert result is True
 
@@ -454,6 +481,6 @@ class TestEdgeCases:
                 user_role=UserRole.MANAGER,
                 expense_amount=1000000.00,
                 expense_user_id="employee123",
-                user_id="manager456"
+                user_id="manager456",
             )
         assert exc_info.value.status_code == 403

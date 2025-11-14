@@ -3,8 +3,9 @@ Tests for Subscription Service
 Critical billing module - targets 80%+ coverage
 """
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 from freezegun import freeze_time
 
 from src.billing.subscription_service import SubscriptionService
@@ -33,7 +34,7 @@ class TestSubscriptionService:
         subscription = subscription_service.create_subscription(
             user_id=test_subscription_user.id,
             tier=SubscriptionTier.STARTER,
-            trial_days=14
+            trial_days=14,
         )
 
         assert subscription is not None
@@ -42,7 +43,9 @@ class TestSubscriptionService:
         assert subscription.status == "trialing"
         assert subscription.trial_end is not None
         assert subscription.max_users == 5  # Starter tier limit
-        assert subscription.max_expenses_per_month == 50  # Starter tier limit per MONETIZATION_STRATEGY
+        assert (
+            subscription.max_expenses_per_month == 50
+        )  # Starter tier limit per MONETIZATION_STRATEGY
 
     def test_create_subscription_without_trial(
         self, subscription_service, test_subscription_user
@@ -51,7 +54,7 @@ class TestSubscriptionService:
         subscription = subscription_service.create_subscription(
             user_id=test_subscription_user.id,
             tier=SubscriptionTier.PROFESSIONAL,
-            trial_days=0
+            trial_days=0,
         )
 
         assert subscription.status == "active"
@@ -65,7 +68,7 @@ class TestSubscriptionService:
             user_id=test_subscription_user.id,
             tier=SubscriptionTier.PROFESSIONAL,
             stripe_customer_id="cus_test_123",
-            stripe_subscription_id="sub_test_456"
+            stripe_subscription_id="sub_test_456",
         )
 
         assert subscription.stripe_customer_id == "cus_test_123"
@@ -76,8 +79,7 @@ class TestSubscriptionService:
     ):
         """Test getting active subscription when it exists"""
         created_sub = subscription_service.create_subscription(
-            user_id=test_subscription_user.id,
-            tier=SubscriptionTier.STARTER
+            user_id=test_subscription_user.id, tier=SubscriptionTier.STARTER
         )
 
         retrieved_sub = subscription_service.get_active_subscription(
@@ -92,9 +94,7 @@ class TestSubscriptionService:
         self, subscription_service, test_subscription_user
     ):
         """Test getting active subscription when none exists"""
-        result = subscription_service.get_active_subscription(
-            test_subscription_user.id
-        )
+        result = subscription_service.get_active_subscription(test_subscription_user.id)
 
         assert result is None
 
@@ -104,14 +104,12 @@ class TestSubscriptionService:
         """Test upgrading subscription to higher tier"""
         # Create starter subscription
         subscription = subscription_service.create_subscription(
-            user_id=test_subscription_user.id,
-            tier=SubscriptionTier.STARTER
+            user_id=test_subscription_user.id, tier=SubscriptionTier.STARTER
         )
 
         # Upgrade to professional
         upgraded = subscription_service.upgrade_subscription(
-            subscription_id=subscription.id,
-            new_tier=SubscriptionTier.PROFESSIONAL
+            subscription_id=subscription.id, new_tier=SubscriptionTier.PROFESSIONAL
         )
 
         assert upgraded is not None
@@ -119,14 +117,11 @@ class TestSubscriptionService:
         assert upgraded.max_users == 25  # Professional tier limit
         assert upgraded.max_expenses_per_month is None  # Unlimited
 
-    def test_upgrade_subscription_not_found(
-        self, subscription_service
-    ):
+    def test_upgrade_subscription_not_found(self, subscription_service):
         """Test upgrading non-existent subscription"""
         with pytest.raises(ValueError, match="not found"):
             subscription_service.upgrade_subscription(
-                subscription_id="invalid_id",
-                new_tier=SubscriptionTier.PROFESSIONAL
+                subscription_id="invalid_id", new_tier=SubscriptionTier.PROFESSIONAL
             )
 
     def test_cancel_subscription_immediate(
@@ -134,13 +129,11 @@ class TestSubscriptionService:
     ):
         """Test canceling subscription immediately"""
         subscription = subscription_service.create_subscription(
-            user_id=test_subscription_user.id,
-            tier=SubscriptionTier.STARTER
+            user_id=test_subscription_user.id, tier=SubscriptionTier.STARTER
         )
 
         canceled = subscription_service.cancel_subscription(
-            subscription_id=subscription.id,
-            immediate=True
+            subscription_id=subscription.id, immediate=True
         )
 
         assert canceled is not None
@@ -152,27 +145,21 @@ class TestSubscriptionService:
     ):
         """Test canceling subscription at period end"""
         subscription = subscription_service.create_subscription(
-            user_id=test_subscription_user.id,
-            tier=SubscriptionTier.STARTER
+            user_id=test_subscription_user.id, tier=SubscriptionTier.STARTER
         )
 
         canceled = subscription_service.cancel_subscription(
-            subscription_id=subscription.id,
-            immediate=False
+            subscription_id=subscription.id, immediate=False
         )
 
         assert canceled is not None
         assert canceled.status == "active"  # Stays active until period end
         assert canceled.canceled_at is not None
 
-    def test_cancel_subscription_not_found(
-        self, subscription_service
-    ):
+    def test_cancel_subscription_not_found(self, subscription_service):
         """Test canceling non-existent subscription"""
         with pytest.raises(ValueError, match="not found"):
-            subscription_service.cancel_subscription(
-                subscription_id="invalid_id"
-            )
+            subscription_service.cancel_subscription(subscription_id="invalid_id")
 
     def test_reactivate_subscription(
         self, subscription_service, test_subscription_user
@@ -180,12 +167,10 @@ class TestSubscriptionService:
         """Test reactivating canceled subscription"""
         # Create and cancel subscription
         subscription = subscription_service.create_subscription(
-            user_id=test_subscription_user.id,
-            tier=SubscriptionTier.STARTER
+            user_id=test_subscription_user.id, tier=SubscriptionTier.STARTER
         )
         subscription_service.cancel_subscription(
-            subscription_id=subscription.id,
-            immediate=True
+            subscription_id=subscription.id, immediate=True
         )
 
         # Reactivate
@@ -197,14 +182,10 @@ class TestSubscriptionService:
         assert reactivated.status == "active"
         assert reactivated.canceled_at is None
 
-    def test_reactivate_subscription_not_found(
-        self, subscription_service
-    ):
+    def test_reactivate_subscription_not_found(self, subscription_service):
         """Test reactivating non-existent subscription"""
         with pytest.raises(ValueError, match="not found"):
-            subscription_service.reactivate_subscription(
-                subscription_id="invalid_id"
-            )
+            subscription_service.reactivate_subscription(subscription_id="invalid_id")
 
     @freeze_time("2025-01-01")
     def test_subscription_period_dates(
@@ -214,7 +195,7 @@ class TestSubscriptionService:
         subscription = subscription_service.create_subscription(
             user_id=test_subscription_user.id,
             tier=SubscriptionTier.STARTER,
-            trial_days=14
+            trial_days=14,
         )
 
         # Check period dates
@@ -240,9 +221,7 @@ class TestSubscriptionService:
         for tier, max_users, max_expenses, max_ai, max_ap2 in tiers_and_limits:
             user = sample_user(email=f"test_{tier.value}@example.com")
             subscription = subscription_service.create_subscription(
-                user_id=user.id,
-                tier=tier,
-                trial_days=0  # No trial for this test
+                user_id=user.id, tier=tier, trial_days=0  # No trial for this test
             )
 
             assert subscription.max_users == max_users
@@ -256,25 +235,20 @@ class TestSubscriptionService:
         """Test that only one subscription can be active at a time"""
         # Create first subscription
         sub1 = subscription_service.create_subscription(
-            user_id=test_subscription_user.id,
-            tier=SubscriptionTier.STARTER
+            user_id=test_subscription_user.id, tier=SubscriptionTier.STARTER
         )
 
         # Cancel first and create second
         subscription_service.cancel_subscription(
-            subscription_id=sub1.id,
-            immediate=True
+            subscription_id=sub1.id, immediate=True
         )
 
         sub2 = subscription_service.create_subscription(
-            user_id=test_subscription_user.id,
-            tier=SubscriptionTier.PROFESSIONAL
+            user_id=test_subscription_user.id, tier=SubscriptionTier.PROFESSIONAL
         )
 
         # Get active subscription
-        active = subscription_service.get_active_subscription(
-            test_subscription_user.id
-        )
+        active = subscription_service.get_active_subscription(test_subscription_user.id)
 
         assert active.id == sub2.id
         assert active.tier == SubscriptionTier.PROFESSIONAL
@@ -286,7 +260,7 @@ class TestSubscriptionService:
         subscription = subscription_service.create_subscription(
             user_id=test_subscription_user.id,
             tier=SubscriptionTier.STARTER,
-            trial_days=14
+            trial_days=14,
         )
 
         status = subscription_service.check_subscription_status(
@@ -314,36 +288,29 @@ class TestSubscriptionService:
         assert status["status"] == "none"
         assert status["limits"] is None
 
-    def test_update_billing_period(
-        self, subscription_service, test_subscription_user
-    ):
+    def test_update_billing_period(self, subscription_service, test_subscription_user):
         """Test updating subscription billing period"""
         subscription = subscription_service.create_subscription(
-            user_id=test_subscription_user.id,
-            tier=SubscriptionTier.STARTER
+            user_id=test_subscription_user.id, tier=SubscriptionTier.STARTER
         )
 
         new_start = datetime(2025, 2, 1)
         new_end = datetime(2025, 3, 1)
 
         updated = subscription_service.update_billing_period(
-            subscription_id=subscription.id,
-            period_start=new_start,
-            period_end=new_end
+            subscription_id=subscription.id, period_start=new_start, period_end=new_end
         )
 
         assert updated.current_period_start == new_start
         assert updated.current_period_end == new_end
 
-    def test_update_billing_period_not_found(
-        self, subscription_service
-    ):
+    def test_update_billing_period_not_found(self, subscription_service):
         """Test updating billing period for non-existent subscription"""
         with pytest.raises(ValueError, match="not found"):
             subscription_service.update_billing_period(
                 subscription_id="invalid_id",
                 period_start=datetime.utcnow(),
-                period_end=datetime.utcnow() + timedelta(days=30)
+                period_end=datetime.utcnow() + timedelta(days=30),
             )
 
     def test_trial_expiration_status_change(
@@ -354,7 +321,7 @@ class TestSubscriptionService:
             subscription = subscription_service.create_subscription(
                 user_id=test_subscription_user.id,
                 tier=SubscriptionTier.STARTER,
-                trial_days=14
+                trial_days=14,
             )
 
         # Move time forward past trial end and update billing period
@@ -362,7 +329,7 @@ class TestSubscriptionService:
             updated = subscription_service.update_billing_period(
                 subscription_id=subscription.id,
                 period_start=subscription.current_period_start,
-                period_end=subscription.current_period_end
+                period_end=subscription.current_period_end,
             )
 
             assert updated.status == "active"  # Trial expired, now active

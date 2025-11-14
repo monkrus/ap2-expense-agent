@@ -2,8 +2,9 @@
 Authentication tests - streamlined and focused
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
 
 
 class TestRegistration:
@@ -184,8 +185,9 @@ class TestAuthService:
 
     def test_create_access_token_with_custom_expiry(self):
         """Test creating token with custom expiration"""
-        from src.auth import AuthService
         from datetime import timedelta
+
+        from src.auth import AuthService
 
         data = {"sub": "user123"}
         token = AuthService.create_access_token(
@@ -209,9 +211,10 @@ class TestAuthService:
 
     def test_verify_token_invalid(self):
         """Test verifying invalid JWT token"""
-        from src.auth import AuthService
-        from fastapi import HTTPException
         import pytest
+        from fastapi import HTTPException
+
+        from src.auth import AuthService
 
         with pytest.raises(HTTPException) as exc_info:
             AuthService.verify_token("invalid.token.here")
@@ -231,9 +234,9 @@ class TestAuthService:
         assert len(token) > 0
 
         # Verify token was stored in database
-        stored_token = db_session.query(RefreshToken).filter_by(
-            user_id=test_user.id
-        ).first()
+        stored_token = (
+            db_session.query(RefreshToken).filter_by(user_id=test_user.id).first()
+        )
         assert stored_token is not None
         assert stored_token.token == token
         assert stored_token.device_info == "Test Device"
@@ -250,9 +253,10 @@ class TestAuthService:
 
     def test_verify_refresh_token_invalid(self, db_session):
         """Test verifying invalid refresh token"""
-        from src.auth import AuthService
-        from fastapi import HTTPException
         import pytest
+        from fastapi import HTTPException
+
+        from src.auth import AuthService
 
         with pytest.raises(HTTPException) as exc_info:
             AuthService.verify_refresh_token("invalid_token", db_session)
@@ -261,9 +265,10 @@ class TestAuthService:
 
     def test_verify_refresh_token_revoked(self, db_session, test_user):
         """Test verifying revoked refresh token"""
-        from src.auth import AuthService
-        from fastapi import HTTPException
         import pytest
+        from fastapi import HTTPException
+
+        from src.auth import AuthService
 
         token = AuthService.create_refresh_token(test_user.id, db_session)
         AuthService.revoke_refresh_token(token, db_session)
@@ -305,7 +310,7 @@ class TestAuthService:
             action="test.action",
             resource_type="test_resource",
             resource_id="res_123",
-            details={"key": "value"}
+            details={"key": "value"},
         )
 
         # Verify audit log was created
@@ -339,8 +344,9 @@ class TestTOTPService:
 
     def test_verify_totp_valid(self):
         """Test verifying valid TOTP code"""
-        from src.auth import TOTPService
         import pyotp
+
+        from src.auth import TOTPService
 
         secret = TOTPService.generate_secret()
         totp = pyotp.TOTP(secret)

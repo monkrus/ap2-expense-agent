@@ -152,11 +152,11 @@ class ApprovalPolicyService:
             and conditions["require_budget_compliance"]
         ):
             # Check if expense would exceed budget
+            from ..models import Budget
             from ..routes.budgets import (
                 calculate_budget_spending,
                 get_budget_period_dates,
             )
-            from ..models import Budget
 
             budgets = (
                 self.db.query(Budget)

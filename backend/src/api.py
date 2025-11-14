@@ -13,8 +13,8 @@ from .error_handlers import register_exception_handlers
 from .models import User
 from .permissions import (
     Permission,
-    check_permission,
     can_approve_expense,
+    check_permission,
     has_any_permission,
 )
 from .rate_limit import limiter, rate_limit_handler
@@ -22,10 +22,10 @@ from .routes import admin_router, auth_router, oauth_router, users_router
 from .routes.ap2 import router as ap2_router
 from .routes.billing import router as billing_router
 from .routes.billing_org import router as billing_org_router
+from .routes.gcp_webhooks import router as gcp_webhooks_router
 from .routes.organizations import router as organizations_router
 from .routes.receipts import router as receipts_router
 from .routes.webhooks import router as webhooks_router
-from .routes.gcp_webhooks import router as gcp_webhooks_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
 from .tenant_context import tenant_middleware
 
@@ -255,8 +255,9 @@ async def submit_expense(
 
         # Send email notifications
         try:
+            from .models import User as UserModel
+            from .models import UserRole
             from .services.notification_service import notification_service
-            from .models import UserRole, User as UserModel
 
             # Notify employee that expense was submitted
             notification_service.notify_expense_submitted(
@@ -350,8 +351,10 @@ async def export_expenses(
     db: Session = Depends(get_db),
 ):
     """Export expenses to CSV/PDF format"""
-    from fastapi.responses import StreamingResponse
     import io
+
+    from fastapi.responses import StreamingResponse
+
     from .models import Expense, OrganizationMember
 
     membership = (
@@ -401,6 +404,7 @@ async def get_expense_statistics(
 ):
     """Get expense statistics for current user's organization"""
     from sqlalchemy import func
+
     from .models import Expense, OrganizationMember
 
     membership = (
@@ -601,8 +605,8 @@ async def approve_expense(
 
         # Send approval notification to employee
         try:
-            from .services.notification_service import notification_service
             from .models import User as UserModel
+            from .services.notification_service import notification_service
 
             # Get employee details
             employee = (
@@ -712,8 +716,8 @@ async def reject_expense(
 
         # Send rejection notification to employee
         try:
-            from .services.notification_service import notification_service
             from .models import User as UserModel
+            from .services.notification_service import notification_service
 
             # Get employee details
             employee = (
@@ -1148,7 +1152,9 @@ async def add_expense_comment(
     """Add a comment to an expense"""
     try:
         import uuid
-        from .models import Expense, ExpenseComment, User as UserModel
+
+        from .models import Expense, ExpenseComment
+        from .models import User as UserModel
 
         # Get the expense
         expense = db.query(Expense).filter(Expense.id == expense_id).first()
@@ -1239,7 +1245,8 @@ async def get_expense_comments(
 ):
     """Get all comments for an expense"""
     try:
-        from .models import Expense, ExpenseComment, User as UserModel
+        from .models import Expense, ExpenseComment
+        from .models import User as UserModel
 
         # Verify expense exists
         expense = db.query(Expense).filter(Expense.id == expense_id).first()
@@ -1294,9 +1301,10 @@ async def upload_receipt(
     db: Session = Depends(get_db),
 ):
     """Upload receipt for an expense"""
-    from datetime import datetime
-    from .models import Expense, Receipt
     import uuid
+    from datetime import datetime
+
+    from .models import Expense, Receipt
 
     # Validate file type
     allowed_types = ["application/pdf", "image/jpeg", "image/png", "image/jpg"]
@@ -1367,7 +1375,10 @@ async def bulk_approve_expenses(
     """Approve multiple expenses at once (manager/admin only)"""
     try:
         from datetime import datetime
-        from .models import Expense, ExpenseStatus, UserRole, User as UserModel
+
+        from .models import Expense, ExpenseStatus
+        from .models import User as UserModel
+        from .models import UserRole
         from .services.audit_service import AuditService
 
         # Check permission for bulk approve
@@ -1501,13 +1512,10 @@ async def bulk_reject_expenses(
         import json
         import uuid
         from datetime import datetime
-        from .models import (
-            AuditLog,
-            Expense,
-            ExpenseStatus,
-            UserRole,
-            User as UserModel,
-        )
+
+        from .models import AuditLog, Expense, ExpenseStatus
+        from .models import User as UserModel
+        from .models import UserRole
 
         # Check permission for bulk reject
         check_permission(

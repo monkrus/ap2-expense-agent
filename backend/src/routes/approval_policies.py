@@ -454,8 +454,9 @@ def test_policy(
         )
 
     # Create mock expense for testing
-    from ..models import Expense, ExpenseCategory
     from decimal import Decimal
+
+    from ..models import Expense, ExpenseCategory
 
     mock_expense = Expense(
         id="test_expense",
@@ -526,9 +527,11 @@ def get_policy_analytics(
             detail="Only organization owners and admins can view analytics",
         )
 
-    from ..models import Expense
-    from sqlalchemy import func
     from datetime import datetime, timedelta
+
+    from sqlalchemy import func
+
+    from ..models import Expense
 
     # Last 30 days
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)

@@ -3,12 +3,13 @@ Tests for Usage Tracker
 Critical billing module - targets 75%+ coverage
 """
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 from freezegun import freeze_time
 
 from src.billing.usage_tracker import UsageTracker
-from src.models import Subscription, SubscriptionTier, UsageRecord, OrganizationMember
+from src.models import OrganizationMember, Subscription, SubscriptionTier, UsageRecord
 
 
 class TestUsageTracker:
@@ -32,20 +33,16 @@ class TestUsageTracker:
             max_ai_categorizations=100,  # STARTER tier limit
             max_ap2_transactions=10,  # STARTER tier limit
             current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow() + timedelta(days=30)
+            current_period_end=datetime.utcnow() + timedelta(days=30),
         )
         db_session.add(subscription)
         db_session.commit()
         return subscription
 
-    def test_track_usage_basic(
-        self, usage_tracker, test_user, test_subscription
-    ):
+    def test_track_usage_basic(self, usage_tracker, test_user, test_subscription):
         """Test basic usage tracking"""
         record = usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="expense",
-            quantity=1
+            user_id=test_user.id, usage_type="expense", quantity=1
         )
 
         assert record is not None
@@ -62,10 +59,7 @@ class TestUsageTracker:
         metadata = {"expense_id": "exp_123", "category": "travel"}
 
         record = usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="expense",
-            quantity=1,
-            metadata=metadata
+            user_id=test_user.id, usage_type="expense", quantity=1, metadata=metadata
         )
 
         assert record.extra_data is not None
@@ -76,23 +70,21 @@ class TestUsageTracker:
     ):
         """Test that tracking creates default subscription if none exists"""
         # Ensure no subscription exists
-        existing = db_session.query(Subscription).filter_by(
-            user_id=test_user.id
-        ).first()
+        existing = (
+            db_session.query(Subscription).filter_by(user_id=test_user.id).first()
+        )
         if existing:
             db_session.delete(existing)
             db_session.commit()
 
         record = usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="expense",
-            quantity=1
+            user_id=test_user.id, usage_type="expense", quantity=1
         )
 
         # Verify subscription was created
-        subscription = db_session.query(Subscription).filter_by(
-            user_id=test_user.id
-        ).first()
+        subscription = (
+            db_session.query(Subscription).filter_by(user_id=test_user.id).first()
+        )
 
         assert subscription is not None
         assert subscription.tier == SubscriptionTier.STARTER
@@ -106,16 +98,12 @@ class TestUsageTracker:
         # Track usage up to the limit (50 for expenses on Starter tier)
         for i in range(50):
             usage_tracker.track_usage(
-                user_id=test_user.id,
-                usage_type="expense",
-                quantity=1
+                user_id=test_user.id, usage_type="expense", quantity=1
             )
 
         # Next usage should be billable
         record = usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="expense",
-            quantity=1
+            user_id=test_user.id, usage_type="expense", quantity=1
         )
 
         assert record.billable is True
@@ -127,9 +115,7 @@ class TestUsageTracker:
     ):
         """Test tracking usage with quantity > 1"""
         record = usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="ai_categorization",
-            quantity=5
+            user_id=test_user.id, usage_type="ai_categorization", quantity=5
         )
 
         assert record.quantity == 5
@@ -142,28 +128,20 @@ class TestUsageTracker:
 
         for usage_type in usage_types:
             record = usage_tracker.track_usage(
-                user_id=test_user.id,
-                usage_type=usage_type,
-                quantity=1
+                user_id=test_user.id, usage_type=usage_type, quantity=1
             )
 
             assert record.usage_type == usage_type
 
-    def test_get_monthly_usage(
-        self, usage_tracker, test_user, test_subscription
-    ):
+    def test_get_monthly_usage(self, usage_tracker, test_user, test_subscription):
         """Test getting monthly usage statistics"""
         # Track some usage
         usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="expense",
-            quantity=10
+            user_id=test_user.id, usage_type="expense", quantity=10
         )
 
         usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="ai_categorization",
-            quantity=5
+            user_id=test_user.id, usage_type="ai_categorization", quantity=5
         )
 
         # Get monthly usage
@@ -183,21 +161,16 @@ class TestUsageTracker:
         """Test getting monthly usage filtered by type"""
         # Track different types
         usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="expense",
-            quantity=10
+            user_id=test_user.id, usage_type="expense", quantity=10
         )
 
         usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="ai_categorization",
-            quantity=5
+            user_id=test_user.id, usage_type="ai_categorization", quantity=5
         )
 
         # Get only expense usage
         usage_data = usage_tracker.get_monthly_usage(
-            subscription_id=test_subscription.id,
-            usage_type="expense"
+            subscription_id=test_subscription.id, usage_type="expense"
         )
 
         assert "expense" in usage_data["usage"]
@@ -210,9 +183,7 @@ class TestUsageTracker:
         """Test that monthly usage only includes current month"""
         # Track usage
         usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="expense",
-            quantity=5
+            user_id=test_user.id, usage_type="expense", quantity=5
         )
 
         usage_data = usage_tracker.get_monthly_usage(
@@ -232,9 +203,7 @@ class TestUsageTracker:
         # Track usage over limit to generate fees
         for i in range(55):  # Over 50 limit
             usage_tracker.track_usage(
-                user_id=test_user.id,
-                usage_type="expense",
-                quantity=1
+                user_id=test_user.id, usage_type="expense", quantity=1
             )
 
         usage_data = usage_tracker.get_monthly_usage(
@@ -251,14 +220,11 @@ class TestUsageTracker:
         """Test checking limit when under limit"""
         # Track some usage but stay under limit
         usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="expense",
-            quantity=25
+            user_id=test_user.id, usage_type="expense", quantity=25
         )
 
         exceeded, current, limit = usage_tracker.check_limit_exceeded(
-            user_id=test_user.id,
-            usage_type="expense"
+            user_id=test_user.id, usage_type="expense"
         )
 
         assert exceeded is False
@@ -271,14 +237,11 @@ class TestUsageTracker:
         """Test checking limit when at exactly at limit"""
         # Track usage up to limit
         usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="expense",
-            quantity=50
+            user_id=test_user.id, usage_type="expense", quantity=50
         )
 
         exceeded, current, limit = usage_tracker.check_limit_exceeded(
-            user_id=test_user.id,
-            usage_type="expense"
+            user_id=test_user.id, usage_type="expense"
         )
 
         assert exceeded is True  # At limit = exceeded
@@ -292,14 +255,11 @@ class TestUsageTracker:
         # Track usage over limit
         for i in range(60):
             usage_tracker.track_usage(
-                user_id=test_user.id,
-                usage_type="expense",
-                quantity=1
+                user_id=test_user.id, usage_type="expense", quantity=1
             )
 
         exceeded, current, limit = usage_tracker.check_limit_exceeded(
-            user_id=test_user.id,
-            usage_type="expense"
+            user_id=test_user.id, usage_type="expense"
         )
 
         assert exceeded is True
@@ -315,17 +275,14 @@ class TestUsageTracker:
         db_session.commit()
 
         exceeded, current, limit = usage_tracker.check_limit_exceeded(
-            user_id=test_user.id,
-            usage_type="expense"
+            user_id=test_user.id, usage_type="expense"
         )
 
         assert exceeded is False
         assert current == 0
         assert limit is None
 
-    def test_check_limit_unlimited_tier(
-        self, usage_tracker, test_user, db_session
-    ):
+    def test_check_limit_unlimited_tier(self, usage_tracker, test_user, db_session):
         """Test checking limit on unlimited tier (Enterprise)"""
         # Create enterprise subscription (unlimited)
         subscription = Subscription(
@@ -338,21 +295,18 @@ class TestUsageTracker:
             max_ai_categorizations=999999,
             max_ap2_transactions=999999,
             current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow() + timedelta(days=30)
+            current_period_end=datetime.utcnow() + timedelta(days=30),
         )
         db_session.add(subscription)
         db_session.commit()
 
         # Track huge usage
         usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="expense",
-            quantity=10000
+            user_id=test_user.id, usage_type="expense", quantity=10000
         )
 
         exceeded, current, limit = usage_tracker.check_limit_exceeded(
-            user_id=test_user.id,
-            usage_type="expense"
+            user_id=test_user.id, usage_type="expense"
         )
 
         # Enterprise has very high limits, effectively unlimited
@@ -370,16 +324,14 @@ class TestUsageTracker:
             organization_id=test_organization.id,
             user_id=test_user.id,
             role=OrganizationRole.MEMBER,
-            is_active=True
+            is_active=True,
         )
         db_session.add(membership)
         db_session.commit()
 
         # Track usage (should use organization context)
         record = usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="expense",
-            quantity=1
+            user_id=test_user.id, usage_type="expense", quantity=1
         )
 
         assert record is not None
@@ -392,7 +344,7 @@ class TestUsageTracker:
             user_id=test_user.id,
             usage_type="expense",
             quantity=1,
-            organization_id=test_organization.id
+            organization_id=test_organization.id,
         )
 
         assert record is not None
@@ -404,16 +356,12 @@ class TestUsageTracker:
         # Starter tier has 100 AI categorizations
         for i in range(100):
             usage_tracker.track_usage(
-                user_id=test_user.id,
-                usage_type="ai_categorization",
-                quantity=1
+                user_id=test_user.id, usage_type="ai_categorization", quantity=1
             )
 
         # Next one should be billable
         record = usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="ai_categorization",
-            quantity=1
+            user_id=test_user.id, usage_type="ai_categorization", quantity=1
         )
 
         assert record.billable is True
@@ -425,36 +373,26 @@ class TestUsageTracker:
         # Starter tier has 10 AP2 transactions
         for i in range(10):
             usage_tracker.track_usage(
-                user_id=test_user.id,
-                usage_type="ap2_transaction",
-                quantity=1
+                user_id=test_user.id, usage_type="ap2_transaction", quantity=1
             )
 
         # Next one should be billable
         record = usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="ap2_transaction",
-            quantity=1
+            user_id=test_user.id, usage_type="ap2_transaction", quantity=1
         )
 
         assert record.billable is True
 
-    def test_usage_record_timestamps(
-        self, usage_tracker, test_user, test_subscription
-    ):
+    def test_usage_record_timestamps(self, usage_tracker, test_user, test_subscription):
         """Test that usage records have proper timestamps"""
         record = usage_tracker.track_usage(
-            user_id=test_user.id,
-            usage_type="expense",
-            quantity=1
+            user_id=test_user.id, usage_type="expense", quantity=1
         )
 
         assert record.created_at is not None
         assert record.created_at <= datetime.utcnow()
 
-    def test_monthly_usage_empty_subscription(
-        self, usage_tracker, test_subscription
-    ):
+    def test_monthly_usage_empty_subscription(self, usage_tracker, test_subscription):
         """Test getting monthly usage for subscription with no usage"""
         usage_data = usage_tracker.get_monthly_usage(
             subscription_id=test_subscription.id
@@ -470,7 +408,7 @@ class TestUsageTracker:
         record = usage_tracker.track_usage(
             user_id=test_user.id,
             usage_type="expense",
-            quantity=150  # Way over limit in one go
+            quantity=150,  # Way over limit in one go
         )
 
         assert record.quantity == 150
@@ -484,9 +422,7 @@ class TestUsageTracker:
         # Track usage in February
         for i in range(50):
             usage_tracker.track_usage(
-                user_id=test_user.id,
-                usage_type="expense",
-                quantity=1
+                user_id=test_user.id, usage_type="expense", quantity=1
             )
 
         # Get February usage
@@ -498,8 +434,7 @@ class TestUsageTracker:
 
         # Check if we're at limit (50 expenses = limit for STARTER tier)
         exceeded, current, limit = usage_tracker.check_limit_exceeded(
-            user_id=test_user.id,
-            usage_type="expense"
+            user_id=test_user.id, usage_type="expense"
         )
 
         assert exceeded is True  # At limit = exceeded

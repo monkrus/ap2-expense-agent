@@ -5,9 +5,9 @@ This shows the changes needed to integrate auto-approval into the expense submis
 Replace the submit_expense function in api.py with this implementation.
 """
 
+import uuid
 from datetime import datetime
 from typing import Optional
-import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
@@ -23,11 +23,10 @@ from ..models import (
     UserRole,
 )
 from ..schemas import ExpenseSubmission
-from ..tenant_context import TenantContext
 from ..services.approval_policy_service import ApprovalPolicyService
 from ..services.audit_service import AuditService
 from ..services.notification_service import notification_service
-
+from ..tenant_context import TenantContext
 
 router = APIRouter()
 

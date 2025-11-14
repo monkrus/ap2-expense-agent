@@ -3,17 +3,18 @@ Tests for Repository Layer
 Data access layer - targets 60%+ coverage
 """
 
-import pytest
-from datetime import datetime, timedelta
 import json
+from datetime import datetime, timedelta
 
+import pytest
+
+from src.models import CartMandate, Expense, IntentMandate, PaymentMandate
 from src.repository import (
+    CartMandateRepository,
     ExpenseRepository,
     IntentMandateRepository,
-    CartMandateRepository,
-    PaymentMandateRepository
+    PaymentMandateRepository,
 )
-from src.models import Expense, IntentMandate, CartMandate, PaymentMandate
 
 
 class TestExpenseRepository:
@@ -25,9 +26,11 @@ class TestExpenseRepository:
         from src.models import OrganizationMember
 
         # Get test_user's organization
-        membership = db_session.query(OrganizationMember).filter(
-            OrganizationMember.user_id == test_user.id
-        ).first()
+        membership = (
+            db_session.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == test_user.id)
+            .first()
+        )
 
         return ExpenseRepository(db_session, organization_id=membership.organization_id)
 
@@ -39,7 +42,7 @@ class TestExpenseRepository:
             "amount": 100.50,
             "description": "Test expense",
             "category": "OFFICE_SUPPLIES",
-            "date": datetime.utcnow()
+            "date": datetime.utcnow(),
         }
         expense = expense_repo.create(expense_data)
 
@@ -55,7 +58,7 @@ class TestExpenseRepository:
             "amount": -50.00,
             "description": "Invalid expense",
             "category": "OTHER",
-            "date": datetime.utcnow()
+            "date": datetime.utcnow(),
         }
 
         with pytest.raises(ValueError, match="must be positive"):
@@ -101,8 +104,7 @@ class TestExpenseRepository:
     def test_update_expense(self, expense_repo, test_expense):
         """Test updating expense"""
         updated = expense_repo.update(
-            test_expense.id,
-            {"description": "Updated description", "amount": 150.00}
+            test_expense.id, {"description": "Updated description", "amount": 150.00}
         )
 
         assert updated.description == "Updated description"
@@ -124,7 +126,9 @@ class TestExpenseRepository:
 
         assert len(expenses) <= 10
 
-    def test_tenant_isolation(self, db_session, test_user, test_organization, test_expense):
+    def test_tenant_isolation(
+        self, db_session, test_user, test_organization, test_expense
+    ):
         """Test that tenant isolation works"""
         # Create repository with different organization
         other_repo = ExpenseRepository(db_session, organization_id="other_org")
@@ -148,7 +152,7 @@ class TestIntentMandateRepository:
         """Test creating intent mandate"""
         constraints = {
             "amount_max": 1000.00,
-            "merchant_allowlist": ["Amazon", "Walmart"]
+            "merchant_allowlist": ["Amazon", "Walmart"],
         }
 
         intent_data = {
@@ -156,7 +160,7 @@ class TestIntentMandateRepository:
             "constraints": json.dumps(constraints),
             "expiration": datetime.utcnow() + timedelta(hours=24),
             "signature": "test_signature_123",
-            "status": "active"
+            "status": "active",
         }
 
         intent = intent_repo.create(intent_data)
@@ -175,7 +179,7 @@ class TestIntentMandateRepository:
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
             timestamp=datetime.utcnow(),
-            status="active"
+            status="active",
         )
         db_session.add(intent)
         db_session.commit()
@@ -195,7 +199,7 @@ class TestIntentMandateRepository:
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
             timestamp=datetime.utcnow(),
-            status="active"
+            status="active",
         )
         db_session.add(intent)
         db_session.commit()
@@ -215,7 +219,7 @@ class TestIntentMandateRepository:
             expiration=datetime.utcnow() - timedelta(hours=1),
             signature="sig",
             timestamp=datetime.utcnow(),
-            status="active"
+            status="active",
         )
         db_session.add(intent)
         db_session.commit()
@@ -246,7 +250,7 @@ class TestCartMandateRepository:
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
             timestamp=datetime.utcnow(),
-            status="active"
+            status="active",
         )
         db_session.add(intent)
         db_session.commit()
@@ -258,7 +262,7 @@ class TestCartMandateRepository:
             "merchant": "Amazon",
             "timestamp": datetime.utcnow(),
             "user_signature": "user_sig",
-            "status": "pending"
+            "status": "pending",
         }
 
         cart = cart_repo.create(cart_data)
@@ -277,7 +281,7 @@ class TestCartMandateRepository:
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
             timestamp=datetime.utcnow(),
-            status="active"
+            status="active",
         )
         db_session.add(intent)
 
@@ -289,7 +293,7 @@ class TestCartMandateRepository:
             merchant="Test",
             timestamp=datetime.utcnow(),
             user_signature="sig",
-            status="pending"
+            status="pending",
         )
         db_session.add(cart)
         db_session.commit()
@@ -308,7 +312,7 @@ class TestCartMandateRepository:
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
             timestamp=datetime.utcnow(),
-            status="active"
+            status="active",
         )
         db_session.add(intent)
 
@@ -320,7 +324,7 @@ class TestCartMandateRepository:
             merchant="Test",
             timestamp=datetime.utcnow(),
             user_signature="sig",
-            status="pending"
+            status="pending",
         )
         db_session.add(cart)
         db_session.commit()
@@ -348,7 +352,7 @@ class TestPaymentMandateRepository:
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
             timestamp=datetime.utcnow(),
-            status="active"
+            status="active",
         )
         db_session.add(intent)
 
@@ -360,7 +364,7 @@ class TestPaymentMandateRepository:
             merchant="Test",
             timestamp=datetime.utcnow(),
             user_signature="sig",
-            status="pending"
+            status="pending",
         )
         db_session.add(cart)
         db_session.commit()
@@ -370,7 +374,7 @@ class TestPaymentMandateRepository:
             "payment_method": "stripe",
             "status": "pending",
             "audit_trail": "{}",
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.utcnow(),
         }
 
         payment = payment_repo.create(payment_data)
@@ -389,7 +393,7 @@ class TestPaymentMandateRepository:
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
             timestamp=datetime.utcnow(),
-            status="active"
+            status="active",
         )
         db_session.add(intent)
 
@@ -401,7 +405,7 @@ class TestPaymentMandateRepository:
             merchant="Test",
             timestamp=datetime.utcnow(),
             user_signature="sig",
-            status="pending"
+            status="pending",
         )
         db_session.add(cart)
 
@@ -411,7 +415,7 @@ class TestPaymentMandateRepository:
             payment_method="stripe",
             status="pending",
             audit_trail="{}",
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
         db_session.add(payment)
         db_session.commit()
@@ -431,7 +435,7 @@ class TestPaymentMandateRepository:
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
             timestamp=datetime.utcnow(),
-            status="active"
+            status="active",
         )
         db_session.add(intent)
 
@@ -443,7 +447,7 @@ class TestPaymentMandateRepository:
             merchant="Test",
             timestamp=datetime.utcnow(),
             user_signature="sig",
-            status="pending"
+            status="pending",
         )
         db_session.add(cart)
 
@@ -453,15 +457,12 @@ class TestPaymentMandateRepository:
             payment_method="stripe",
             status="pending",
             audit_trail="{}",
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
         db_session.add(payment)
         db_session.commit()
 
-        updated = payment_repo.update_status(
-            "payment_update",
-            "completed"
-        )
+        updated = payment_repo.update_status("payment_update", "completed")
 
         assert updated.status == "completed"
 
@@ -474,7 +475,7 @@ class TestPaymentMandateRepository:
             expiration=datetime.utcnow() + timedelta(hours=24),
             signature="sig",
             timestamp=datetime.utcnow(),
-            status="active"
+            status="active",
         )
         db_session.add(intent)
 
@@ -486,7 +487,7 @@ class TestPaymentMandateRepository:
             merchant="Test",
             timestamp=datetime.utcnow(),
             user_signature="sig",
-            status="pending"
+            status="pending",
         )
         db_session.add(cart)
 
@@ -496,7 +497,7 @@ class TestPaymentMandateRepository:
             payment_method="stripe",
             status="pending",
             audit_trail="{}",
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
         db_session.add(payment)
         db_session.commit()

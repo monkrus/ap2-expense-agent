@@ -7,8 +7,8 @@ from datetime import datetime
 from typing import Dict, Optional
 
 import stripe
-from stripe import _error as stripe_error
 from sqlalchemy.orm import Session
+from stripe import _error as stripe_error
 
 from ..config import settings
 from ..models import PaymentMandate

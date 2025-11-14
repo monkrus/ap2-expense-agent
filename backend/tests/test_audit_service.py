@@ -1,14 +1,23 @@
 """
 Tests for AP2 audit service
 """
-import pytest
+
 from datetime import datetime, timedelta
 
-from src.services.audit_service import AuditService
+import pytest
+
 from src.models import (
-    Expense, ExpenseStatus, ExpenseCategory, User, UserRole,
-    IntentMandate, CartMandate, PaymentMandate, AuditLog
+    AuditLog,
+    CartMandate,
+    Expense,
+    ExpenseCategory,
+    ExpenseStatus,
+    IntentMandate,
+    PaymentMandate,
+    User,
+    UserRole,
 )
+from src.services.audit_service import AuditService
 
 
 class TestAuditServiceMandateCreation:
@@ -23,9 +32,7 @@ class TestAuditServiceMandateCreation:
         # Create audit service and generate trail
         audit_service = AuditService(db_session)
         audit_trail = audit_service.create_complete_audit_trail(
-            expense=expense,
-            approver=approver,
-            action="approve"
+            expense=expense, approver=approver, action="approve"
         )
 
         # Verify all mandates were created
@@ -66,9 +73,7 @@ class TestAuditServiceMandateCreation:
 
         audit_service = AuditService(db_session)
         audit_trail = audit_service.create_complete_audit_trail(
-            expense=expense,
-            approver=approver,
-            action="approve"
+            expense=expense, approver=approver, action="approve"
         )
 
         # Refresh expense from database
@@ -87,16 +92,17 @@ class TestAuditServiceMandateCreation:
 
         audit_service = AuditService(db_session)
         audit_service.create_complete_audit_trail(
-            expense=expense,
-            approver=approver,
-            action="approve"
+            expense=expense, approver=approver, action="approve"
         )
 
         # Check audit log was created
-        audit_logs = db_session.query(AuditLog).filter(
-            AuditLog.resource_type == "expense",
-            AuditLog.resource_id == expense.id
-        ).all()
+        audit_logs = (
+            db_session.query(AuditLog)
+            .filter(
+                AuditLog.resource_type == "expense", AuditLog.resource_id == expense.id
+            )
+            .all()
+        )
 
         assert len(audit_logs) > 0
         log = audit_logs[-1]
@@ -115,9 +121,7 @@ class TestAuditServiceRetrieval:
         # Create audit trail
         audit_service = AuditService(db_session)
         created_trail = audit_service.create_complete_audit_trail(
-            expense=expense,
-            approver=approver,
-            action="approve"
+            expense=expense, approver=approver, action="approve"
         )
 
         transaction_id = created_trail["transaction_id"]
@@ -150,9 +154,7 @@ class TestAuditServiceRetrieval:
         # Create audit trail (which creates audit logs)
         audit_service = AuditService(db_session)
         audit_service.create_complete_audit_trail(
-            expense=expense,
-            approver=approver,
-            action="approve"
+            expense=expense, approver=approver, action="approve"
         )
 
         # Get expense history
@@ -173,9 +175,7 @@ class TestAuditServiceConstraints:
 
         audit_service = AuditService(db_session)
         audit_trail = audit_service.create_complete_audit_trail(
-            expense=expense,
-            approver=approver,
-            action="approve"
+            expense=expense, approver=approver, action="approve"
         )
 
         constraints = audit_trail["intent_mandate"]["constraints"]
@@ -197,9 +197,7 @@ class TestAuditServiceConstraints:
 
         audit_service = AuditService(db_session)
         audit_trail = audit_service.create_complete_audit_trail(
-            expense=expense,
-            approver=approver,
-            action="approve"
+            expense=expense, approver=approver, action="approve"
         )
 
         items = audit_trail["cart_mandate"]["items"]
@@ -218,9 +216,7 @@ class TestAuditServiceConstraints:
 
         audit_service = AuditService(db_session)
         audit_trail = audit_service.create_complete_audit_trail(
-            expense=expense,
-            approver=approver,
-            action="approve"
+            expense=expense, approver=approver, action="approve"
         )
 
         payment_audit = audit_trail["payment_mandate"]["audit_trail"]
@@ -246,9 +242,7 @@ class TestAuditServiceVerification:
 
         audit_service = AuditService(db_session)
         created_trail = audit_service.create_complete_audit_trail(
-            expense=expense,
-            approver=approver,
-            action="approve"
+            expense=expense, approver=approver, action="approve"
         )
 
         # Retrieve trail with verification
@@ -274,13 +268,16 @@ class TestAuditServiceVerification:
         assert len(sig2) > 300
         # Verify base64 format (alphanumeric + / + = for padding)
         import re
-        assert re.match(r'^[A-Za-z0-9+/]+=*$', sig1)
+
+        assert re.match(r"^[A-Za-z0-9+/]+=*$", sig1)
 
 
 class TestAuditServiceRejection:
     """Test audit service for rejection scenarios"""
 
-    def test_rejection_does_not_create_mandates(self, db_session, sample_user, sample_expense):
+    def test_rejection_does_not_create_mandates(
+        self, db_session, sample_user, sample_expense
+    ):
         """Test that rejection doesn't create AP2 mandates"""
         # This test verifies that rejection uses simple audit log,
         # not full AP2 protocol
@@ -296,15 +293,16 @@ class TestAuditServiceRejection:
             expense=expense,
             user=approver,
             action="reject",
-            details={
-                "rejection_reason": "Does not meet policy"
-            }
+            details={"rejection_reason": "Does not meet policy"},
         )
 
         # Verify audit log exists
-        audit_logs = db_session.query(AuditLog).filter(
-            AuditLog.resource_type == "expense",
-            AuditLog.resource_id == expense.id
-        ).all()
+        audit_logs = (
+            db_session.query(AuditLog)
+            .filter(
+                AuditLog.resource_type == "expense", AuditLog.resource_id == expense.id
+            )
+            .all()
+        )
 
         assert len(audit_logs) > 0

@@ -16,7 +16,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from sqlalchemy.types import TypeDecorator, String as SQLString
+from sqlalchemy.types import String as SQLString
+from sqlalchemy.types import TypeDecorator
 
 Base = declarative_base()
 
