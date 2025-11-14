@@ -34,7 +34,7 @@ class TestStripePaymentProcessor:
     """Test Stripe payment processing"""
 
     @pytest.mark.asyncio
-    @patch('src.payments.stripe_processor.settings')
+    @patch("src.payments.stripe_processor.settings")
     async def test_process_payment_without_stripe_configured(
         self, mock_settings, payment_processor, mock_payment_mandate
     ):
@@ -50,8 +50,8 @@ class TestStripePaymentProcessor:
         assert "Stripe is not configured" in result["message"]
 
     @pytest.mark.asyncio
-    @patch('src.payments.stripe_processor.stripe.PaymentIntent.create')
-    @patch('src.payments.stripe_processor.settings')
+    @patch("src.payments.stripe_processor.stripe.PaymentIntent.create")
+    @patch("src.payments.stripe_processor.settings")
     async def test_process_payment_success(
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
@@ -85,8 +85,8 @@ class TestStripePaymentProcessor:
         assert call_args["metadata"]["ap2_payment_mandate_id"] == "payment_test_001"
 
     @pytest.mark.asyncio
-    @patch('src.payments.stripe_processor.stripe.PaymentIntent.create')
-    @patch('src.payments.stripe_processor.settings')
+    @patch("src.payments.stripe_processor.stripe.PaymentIntent.create")
+    @patch("src.payments.stripe_processor.settings")
     async def test_process_payment_card_error(
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
@@ -94,7 +94,9 @@ class TestStripePaymentProcessor:
         mock_settings.stripe_secret_key = "sk_test_123"
 
         # Mock card error from Stripe
-        mock_error = stripe_error.CardError("Your card was declined", param="card", code="card_declined")
+        mock_error = stripe_error.CardError(
+            "Your card was declined", param="card", code="card_declined"
+        )
         mock_stripe_create.side_effect = mock_error
 
         result = await payment_processor.process_payment_mandate(
@@ -106,15 +108,17 @@ class TestStripePaymentProcessor:
         assert "declined" in result["message"].lower()
 
     @pytest.mark.asyncio
-    @patch('src.payments.stripe_processor.stripe.PaymentIntent.create')
-    @patch('src.payments.stripe_processor.settings')
+    @patch("src.payments.stripe_processor.stripe.PaymentIntent.create")
+    @patch("src.payments.stripe_processor.settings")
     async def test_process_payment_invalid_request(
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
         """Test handling of invalid request errors"""
         mock_settings.stripe_secret_key = "sk_test_123"
 
-        mock_error = stripe_error.InvalidRequestError("Invalid currency", param="currency")
+        mock_error = stripe_error.InvalidRequestError(
+            "Invalid currency", param="currency"
+        )
         mock_stripe_create.side_effect = mock_error
 
         result = await payment_processor.process_payment_mandate(
@@ -125,8 +129,8 @@ class TestStripePaymentProcessor:
         assert result["error"] == "stripe_error"
 
     @pytest.mark.asyncio
-    @patch('src.payments.stripe_processor.stripe.PaymentIntent.create')
-    @patch('src.payments.stripe_processor.settings')
+    @patch("src.payments.stripe_processor.stripe.PaymentIntent.create")
+    @patch("src.payments.stripe_processor.settings")
     async def test_process_payment_authentication_error(
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
@@ -144,8 +148,8 @@ class TestStripePaymentProcessor:
         assert result["error"] == "stripe_error"
 
     @pytest.mark.asyncio
-    @patch('src.payments.stripe_processor.stripe.PaymentIntent.create')
-    @patch('src.payments.stripe_processor.settings')
+    @patch("src.payments.stripe_processor.stripe.PaymentIntent.create")
+    @patch("src.payments.stripe_processor.settings")
     async def test_process_payment_api_error(
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
@@ -163,8 +167,8 @@ class TestStripePaymentProcessor:
         assert result["error"] == "stripe_error"
 
     @pytest.mark.asyncio
-    @patch('src.payments.stripe_processor.stripe.PaymentIntent.create')
-    @patch('src.payments.stripe_processor.settings')
+    @patch("src.payments.stripe_processor.stripe.PaymentIntent.create")
+    @patch("src.payments.stripe_processor.settings")
     async def test_process_payment_rate_limit_error(
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
@@ -182,8 +186,8 @@ class TestStripePaymentProcessor:
         assert result["error"] == "stripe_error"
 
     @pytest.mark.asyncio
-    @patch('src.payments.stripe_processor.stripe.PaymentIntent.create')
-    @patch('src.payments.stripe_processor.settings')
+    @patch("src.payments.stripe_processor.stripe.PaymentIntent.create")
+    @patch("src.payments.stripe_processor.settings")
     async def test_process_payment_generic_error(
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
@@ -200,8 +204,8 @@ class TestStripePaymentProcessor:
         assert result["error"] == "stripe_error"
 
     @pytest.mark.asyncio
-    @patch('src.payments.stripe_processor.stripe.PaymentIntent.create')
-    @patch('src.payments.stripe_processor.settings')
+    @patch("src.payments.stripe_processor.stripe.PaymentIntent.create")
+    @patch("src.payments.stripe_processor.settings")
     async def test_process_payment_with_metadata(
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
@@ -228,8 +232,8 @@ class TestStripePaymentProcessor:
         assert metadata["ap2_cart_mandate_id"] == "cart_test_001"
 
     @pytest.mark.asyncio
-    @patch('src.payments.stripe_processor.stripe.PaymentIntent.create')
-    @patch('src.payments.stripe_processor.settings')
+    @patch("src.payments.stripe_processor.stripe.PaymentIntent.create")
+    @patch("src.payments.stripe_processor.settings")
     async def test_process_payment_amount_conversion(
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
