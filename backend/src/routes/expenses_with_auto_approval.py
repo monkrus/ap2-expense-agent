@@ -5,22 +5,28 @@ This shows the changes needed to integrate auto-approval into the expense submis
 Replace the submit_expense function in api.py with this implementation.
 """
 
+import uuid
 from datetime import datetime
 from typing import Optional
-import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_active_user
 from ..database import get_db
-from ..models import Expense, ExpenseStatus, Organization, OrganizationMember, User, UserRole
+from ..models import (
+    Expense,
+    ExpenseStatus,
+    Organization,
+    OrganizationMember,
+    User,
+    UserRole,
+)
 from ..schemas import ExpenseSubmission
-from ..tenant_context import TenantContext
 from ..services.approval_policy_service import ApprovalPolicyService
 from ..services.audit_service import AuditService
 from ..services.notification_service import notification_service
-
+from ..tenant_context import TenantContext
 
 router = APIRouter()
 
@@ -91,7 +97,9 @@ async def submit_expense_with_auto_approval(
             )
 
         # Parse expense date
-        expense_date = datetime.fromisoformat(data.date) if data.date else datetime.utcnow()
+        expense_date = (
+            datetime.fromisoformat(data.date) if data.date else datetime.utcnow()
+        )
 
         # Create expense with PENDING status initially
         expense = Expense(
@@ -134,7 +142,7 @@ async def submit_expense_with_auto_approval(
             audit_trail = audit_service.create_complete_audit_trail(
                 expense=expense,
                 approver=current_user,  # Self-approval
-                action="auto_approve"
+                action="auto_approve",
             )
 
             db.commit()
@@ -243,4 +251,6 @@ async def submit_expense_with_auto_approval(
     except Exception as e:
         db.rollback()
         print(f"Error creating expense: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create expense: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create expense: {str(e)}"
+        )

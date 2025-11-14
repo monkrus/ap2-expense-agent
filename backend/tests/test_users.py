@@ -1,6 +1,7 @@
 """
 Tests for user management endpoints
 """
+
 import pytest
 
 
@@ -9,10 +10,7 @@ class TestUserManagement:
 
     def test_get_current_user(self, client, auth_headers):
         """Test getting current user info"""
-        response = client.get(
-            "/api/v1/auth/me",
-            headers=auth_headers
-        )
+        response = client.get("/api/v1/auth/me", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert data["username"] == "testuser"
@@ -20,19 +18,13 @@ class TestUserManagement:
 
     def test_list_users_as_manager(self, client, manager_headers):
         """Test listing users as manager"""
-        response = client.get(
-            "/api/v1/users/",
-            headers=manager_headers
-        )
+        response = client.get("/api/v1/users/", headers=manager_headers)
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
     def test_list_users_as_employee_forbidden(self, client, auth_headers):
         """Test that employees cannot list all users"""
-        response = client.get(
-            "/api/v1/users/",
-            headers=auth_headers
-        )
+        response = client.get("/api/v1/users/", headers=auth_headers)
         assert response.status_code == 403
 
     def test_create_user_as_admin(self, client, admin_headers):
@@ -45,8 +37,8 @@ class TestUserManagement:
                 "username": "createduser",
                 "password": "CreatedPassword123!",
                 "full_name": "Created User",
-                "role": "employee"
-            }
+                "role": "employee",
+            },
         )
         assert response.status_code == 201
         data = response.json()
@@ -63,8 +55,8 @@ class TestUserManagement:
                 "username": "attemptuser",
                 "password": "Password123!",
                 "full_name": "Attempt User",
-                "role": "employee"
-            }
+                "role": "employee",
+            },
         )
         assert response.status_code == 403
 
@@ -73,22 +65,20 @@ class TestUserManagement:
         response = client.patch(
             f"/api/v1/users/{test_user.id}",
             headers=auth_headers,
-            json={
-                "full_name": "Updated Test User"
-            }
+            json={"full_name": "Updated Test User"},
         )
         assert response.status_code == 200
         data = response.json()
         assert data["full_name"] == "Updated Test User"
 
-    def test_update_other_user_as_employee_forbidden(self, client, auth_headers, test_admin):
+    def test_update_other_user_as_employee_forbidden(
+        self, client, auth_headers, test_admin
+    ):
         """Test that employees cannot update other users"""
         response = client.patch(
             f"/api/v1/users/{test_admin.id}",
             headers=auth_headers,
-            json={
-                "full_name": "Hacked Admin"
-            }
+            json={"full_name": "Hacked Admin"},
         )
         assert response.status_code == 403
 
@@ -97,9 +87,7 @@ class TestUserManagement:
         response = client.patch(
             f"/api/v1/users/{test_user.id}",
             headers=admin_headers,
-            json={
-                "role": "manager"
-            }
+            json={"role": "manager"},
         )
         assert response.status_code == 200
         data = response.json()
@@ -110,25 +98,19 @@ class TestUserManagement:
         response = client.patch(
             f"/api/v1/users/{test_user.id}",
             headers=auth_headers,
-            json={
-                "role": "admin"
-            }
+            json={"role": "admin"},
         )
         assert response.status_code == 403
 
     def test_delete_user_as_admin(self, client, admin_headers, test_user):
         """Test deleting user as admin"""
-        response = client.delete(
-            f"/api/v1/users/{test_user.id}",
-            headers=admin_headers
-        )
+        response = client.delete(f"/api/v1/users/{test_user.id}", headers=admin_headers)
         assert response.status_code == 204
 
     def test_admin_cannot_delete_self(self, client, admin_headers, test_admin):
         """Test that admin cannot delete their own account"""
         response = client.delete(
-            f"/api/v1/users/{test_admin.id}",
-            headers=admin_headers
+            f"/api/v1/users/{test_admin.id}", headers=admin_headers
         )
         assert response.status_code == 400
         assert "Cannot delete your own account" in response.json()["detail"]
@@ -140,8 +122,7 @@ class TestSessionManagement:
     def test_get_user_sessions(self, client, auth_headers, test_user):
         """Test getting user sessions"""
         response = client.get(
-            f"/api/v1/users/{test_user.id}/sessions",
-            headers=auth_headers
+            f"/api/v1/users/{test_user.id}/sessions", headers=auth_headers
         )
         assert response.status_code == 200
         assert isinstance(response.json(), list)
@@ -150,8 +131,7 @@ class TestSessionManagement:
         """Test revoking a session"""
         # Get sessions
         sessions_response = client.get(
-            f"/api/v1/users/{test_user.id}/sessions",
-            headers=auth_headers
+            f"/api/v1/users/{test_user.id}/sessions", headers=auth_headers
         )
         sessions = sessions_response.json()
 
@@ -161,6 +141,6 @@ class TestSessionManagement:
             # Revoke session
             response = client.delete(
                 f"/api/v1/users/{test_user.id}/sessions/{session_id}",
-                headers=auth_headers
+                headers=auth_headers,
             )
             assert response.status_code == 200

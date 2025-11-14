@@ -2,8 +2,9 @@
 Expense management tests - streamlined and focused
 """
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 
 
 class TestExpenseCreation:

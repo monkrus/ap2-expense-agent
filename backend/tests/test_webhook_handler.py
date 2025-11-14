@@ -3,14 +3,15 @@ Tests for Stripe Webhook Handler
 Critical payment webhook module - targets 80%+ coverage
 """
 
-import pytest
 import json
 from datetime import datetime
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 from fastapi import HTTPException
 
+from src.models import CartMandate, PaymentMandate, Subscription
 from src.payments.webhook_handler import StripeWebhookHandler
-from src.models import PaymentMandate, Subscription, CartMandate
 
 
 class TestStripeWebhookHandler:
@@ -39,7 +40,7 @@ class TestStripeWebhookHandler:
             currency="usd",
             created=1234567890,
             metadata={"ap2_payment_mandate_id": "mandate_test_123"},
-            last_payment_error=None
+            last_payment_error=None,
         )
 
     @pytest.fixture
@@ -53,7 +54,7 @@ class TestStripeWebhookHandler:
             current_period_end=1237246290,
             trial_end=None,
             canceled_at=None,
-            items=Mock(data=[Mock(price=Mock(id="price_test"))])
+            items=Mock(data=[Mock(price=Mock(id="price_test"))]),
         )
 
     @pytest.fixture
@@ -63,10 +64,10 @@ class TestStripeWebhookHandler:
             id="inv_test_123",
             subscription="sub_test_123",
             amount_paid=10000,
-            status="paid"
+            status="paid",
         )
 
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_webhook_missing_secret(
         self, mock_settings, webhook_handler, mock_request
     ):
@@ -79,8 +80,8 @@ class TestStripeWebhookHandler:
         assert exc_info.value.status_code == 500
         assert "not configured" in exc_info.value.detail
 
-    @patch('src.payments.webhook_handler.stripe.Webhook.construct_event')
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_webhook_invalid_payload(
         self, mock_settings, mock_construct, webhook_handler, mock_request
     ):
@@ -94,13 +95,14 @@ class TestStripeWebhookHandler:
         assert exc_info.value.status_code == 400
         assert "Invalid payload" in exc_info.value.detail
 
-    @patch('src.payments.webhook_handler.stripe.Webhook.construct_event')
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_webhook_invalid_signature(
         self, mock_settings, mock_construct, webhook_handler, mock_request
     ):
         """Test webhook with invalid signature"""
         import stripe
+
         mock_settings.stripe_webhook_secret = "test_secret"
         mock_construct.side_effect = stripe.error.SignatureVerificationError(
             "Invalid signature", "sig_header"
@@ -112,11 +114,16 @@ class TestStripeWebhookHandler:
         assert exc_info.value.status_code == 400
         assert "Invalid signature" in exc_info.value.detail
 
-    @patch('src.payments.webhook_handler.stripe.Webhook.construct_event')
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_payment_intent_succeeded(
-        self, mock_settings, mock_construct, webhook_handler, mock_request,
-        payment_intent_data, db_session
+        self,
+        mock_settings,
+        mock_construct,
+        webhook_handler,
+        mock_request,
+        payment_intent_data,
+        db_session,
     ):
         """Test handling successful payment intent"""
         mock_settings.stripe_webhook_secret = "test_secret"
@@ -130,7 +137,7 @@ class TestStripeWebhookHandler:
             merchant="Test",
             timestamp=datetime.utcnow(),
             user_signature="sig",
-            status="pending"
+            status="pending",
         )
         db_session.add(cart_mandate)
 
@@ -140,7 +147,7 @@ class TestStripeWebhookHandler:
             payment_method="stripe",
             status="pending",
             audit_trail="{}",
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
         db_session.add(payment_mandate)
         db_session.commit()
@@ -163,11 +170,16 @@ class TestStripeWebhookHandler:
         assert payment_mandate.status == "completed"
         assert cart_mandate.status == "completed"
 
-    @patch('src.payments.webhook_handler.stripe.Webhook.construct_event')
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_payment_intent_failed(
-        self, mock_settings, mock_construct, webhook_handler, mock_request,
-        payment_intent_data, db_session
+        self,
+        mock_settings,
+        mock_construct,
+        webhook_handler,
+        mock_request,
+        payment_intent_data,
+        db_session,
     ):
         """Test handling failed payment intent"""
         mock_settings.stripe_webhook_secret = "test_secret"
@@ -185,7 +197,7 @@ class TestStripeWebhookHandler:
             merchant="Test",
             timestamp=datetime.utcnow(),
             user_signature="sig",
-            status="pending"
+            status="pending",
         )
         db_session.add(cart_mandate)
 
@@ -195,7 +207,7 @@ class TestStripeWebhookHandler:
             payment_method="stripe",
             status="pending",
             audit_trail="{}",
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
         db_session.add(payment_mandate)
         db_session.commit()
@@ -217,11 +229,17 @@ class TestStripeWebhookHandler:
         assert payment_mandate.status == "failed"
         assert cart_mandate.status == "failed"
 
-    @patch('src.payments.webhook_handler.stripe.Webhook.construct_event')
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_subscription_created(
-        self, mock_settings, mock_construct, webhook_handler, mock_request,
-        subscription_data, db_session, test_user
+        self,
+        mock_settings,
+        mock_construct,
+        webhook_handler,
+        mock_request,
+        subscription_data,
+        db_session,
+        test_user,
     ):
         """Test handling subscription created event"""
         mock_settings.stripe_webhook_secret = "test_secret"
@@ -234,7 +252,7 @@ class TestStripeWebhookHandler:
             status="trialing",
             stripe_customer_id="cus_test_456",
             current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow()
+            current_period_end=datetime.utcnow(),
         )
         db_session.add(subscription)
         db_session.commit()
@@ -255,11 +273,17 @@ class TestStripeWebhookHandler:
         assert subscription.stripe_subscription_id == "sub_test_123"
         assert subscription.status == "active"
 
-    @patch('src.payments.webhook_handler.stripe.Webhook.construct_event')
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_subscription_updated(
-        self, mock_settings, mock_construct, webhook_handler, mock_request,
-        subscription_data, db_session, test_user
+        self,
+        mock_settings,
+        mock_construct,
+        webhook_handler,
+        mock_request,
+        subscription_data,
+        db_session,
+        test_user,
     ):
         """Test handling subscription updated event"""
         mock_settings.stripe_webhook_secret = "test_secret"
@@ -273,7 +297,7 @@ class TestStripeWebhookHandler:
             stripe_subscription_id="sub_test_123",
             stripe_customer_id="cus_test_456",
             current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow()
+            current_period_end=datetime.utcnow(),
         )
         db_session.add(subscription)
         db_session.commit()
@@ -294,11 +318,17 @@ class TestStripeWebhookHandler:
         db_session.refresh(subscription)
         assert subscription.status == "past_due"
 
-    @patch('src.payments.webhook_handler.stripe.Webhook.construct_event')
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_subscription_deleted(
-        self, mock_settings, mock_construct, webhook_handler, mock_request,
-        subscription_data, db_session, test_user
+        self,
+        mock_settings,
+        mock_construct,
+        webhook_handler,
+        mock_request,
+        subscription_data,
+        db_session,
+        test_user,
     ):
         """Test handling subscription deleted event"""
         mock_settings.stripe_webhook_secret = "test_secret"
@@ -312,7 +342,7 @@ class TestStripeWebhookHandler:
             stripe_subscription_id="sub_test_123",
             stripe_customer_id="cus_test_456",
             current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow()
+            current_period_end=datetime.utcnow(),
         )
         db_session.add(subscription)
         db_session.commit()
@@ -334,11 +364,17 @@ class TestStripeWebhookHandler:
         assert subscription.status == "canceled"
         assert subscription.canceled_at is not None
 
-    @patch('src.payments.webhook_handler.stripe.Webhook.construct_event')
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_invoice_paid(
-        self, mock_settings, mock_construct, webhook_handler, mock_request,
-        invoice_data, db_session, test_user
+        self,
+        mock_settings,
+        mock_construct,
+        webhook_handler,
+        mock_request,
+        invoice_data,
+        db_session,
+        test_user,
     ):
         """Test handling invoice paid event"""
         mock_settings.stripe_webhook_secret = "test_secret"
@@ -352,7 +388,7 @@ class TestStripeWebhookHandler:
             stripe_subscription_id="sub_test_123",
             stripe_customer_id="cus_test_456",
             current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow()
+            current_period_end=datetime.utcnow(),
         )
         db_session.add(subscription)
         db_session.commit()
@@ -372,11 +408,17 @@ class TestStripeWebhookHandler:
         db_session.refresh(subscription)
         assert subscription.status == "active"
 
-    @patch('src.payments.webhook_handler.stripe.Webhook.construct_event')
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_invoice_payment_failed(
-        self, mock_settings, mock_construct, webhook_handler, mock_request,
-        invoice_data, db_session, test_user
+        self,
+        mock_settings,
+        mock_construct,
+        webhook_handler,
+        mock_request,
+        invoice_data,
+        db_session,
+        test_user,
     ):
         """Test handling invoice payment failed event"""
         mock_settings.stripe_webhook_secret = "test_secret"
@@ -390,7 +432,7 @@ class TestStripeWebhookHandler:
             stripe_subscription_id="sub_test_123",
             stripe_customer_id="cus_test_456",
             current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow()
+            current_period_end=datetime.utcnow(),
         )
         db_session.add(subscription)
         db_session.commit()
@@ -411,8 +453,8 @@ class TestStripeWebhookHandler:
         db_session.refresh(subscription)
         assert subscription.status == "past_due"
 
-    @patch('src.payments.webhook_handler.stripe.Webhook.construct_event')
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_unknown_event_type(
         self, mock_settings, mock_construct, webhook_handler, mock_request
     ):
@@ -431,11 +473,15 @@ class TestStripeWebhookHandler:
         assert result["status"] == "success"
         assert result["event_type"] == "unknown.event.type"
 
-    @patch('src.payments.webhook_handler.stripe.Webhook.construct_event')
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_payment_without_mandate(
-        self, mock_settings, mock_construct, webhook_handler, mock_request,
-        payment_intent_data
+        self,
+        mock_settings,
+        mock_construct,
+        webhook_handler,
+        mock_request,
+        payment_intent_data,
     ):
         """Test handling payment for non-existent mandate"""
         mock_settings.stripe_webhook_secret = "test_secret"
@@ -451,11 +497,16 @@ class TestStripeWebhookHandler:
 
         assert result["status"] == "success"
 
-    @patch('src.payments.webhook_handler.stripe.Webhook.construct_event')
-    @patch('src.payments.webhook_handler.settings')
+    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
+    @patch("src.payments.webhook_handler.settings")
     async def test_handle_subscription_without_trial_end(
-        self, mock_settings, mock_construct, webhook_handler, mock_request,
-        db_session, test_user
+        self,
+        mock_settings,
+        mock_construct,
+        webhook_handler,
+        mock_request,
+        db_session,
+        test_user,
     ):
         """Test handling subscription created without trial"""
         mock_settings.stripe_webhook_secret = "test_secret"
@@ -468,7 +519,7 @@ class TestStripeWebhookHandler:
             status="active",
             stripe_customer_id="cus_test_456",
             current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow()
+            current_period_end=datetime.utcnow(),
         )
         db_session.add(subscription)
         db_session.commit()
@@ -481,7 +532,7 @@ class TestStripeWebhookHandler:
             current_period_start=1234567890,
             current_period_end=1237246290,
             trial_end=None,
-            items=Mock(data=[Mock(price=Mock(id="price_test"))])
+            items=Mock(data=[Mock(price=Mock(id="price_test"))]),
         )
 
         # Mock webhook event

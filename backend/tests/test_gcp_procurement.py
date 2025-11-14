@@ -3,17 +3,18 @@ Tests for GCP Marketplace Procurement Handler
 Critical integration module - targets 80%+ coverage
 """
 
-import pytest
-from unittest.mock import Mock, patch, AsyncMock
 from datetime import datetime
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 from src.gcp.procurement_handler import (
     generate_secure_password,
     generate_slug,
+    get_tier_max_members,
     handle_procurement_webhook,
-    get_tier_max_members
 )
-from src.models import Organization, User, OrganizationMember, OrganizationRole
+from src.models import Organization, OrganizationMember, OrganizationRole, User
 
 
 class TestProcurementHelpers:
@@ -89,13 +90,13 @@ class TestProcurementWebhook:
             "plan": "professional",
             "user_email": "admin@acme.com",
             "company_name": "Acme Corporation",
-            "state": "ACTIVE"
+            "state": "ACTIVE",
         }
 
     @pytest.fixture
     def mock_email_service(self):
         """Mock email service"""
-        with patch('src.gcp.procurement_handler.EmailService') as mock:
+        with patch("src.gcp.procurement_handler.EmailService") as mock:
             mock_instance = Mock()
             mock_instance.send_email = AsyncMock()
             mock.return_value = mock_instance
@@ -115,9 +116,11 @@ class TestProcurementWebhook:
         assert "admin_user_id" in result
 
         # Verify organization was created in DB
-        org = db_session.query(Organization).filter_by(
-            id=result["organization_id"]
-        ).first()
+        org = (
+            db_session.query(Organization)
+            .filter_by(id=result["organization_id"])
+            .first()
+        )
         assert org is not None
         assert org.name == "Acme Corporation"
         assert org.is_active is True
@@ -165,10 +168,14 @@ class TestProcurementWebhook:
         result = await handle_procurement_webhook(webhook_data, db_session)
 
         # Verify membership was created
-        membership = db_session.query(OrganizationMember).filter_by(
-            organization_id=result["organization_id"],
-            user_id=result["admin_user_id"]
-        ).first()
+        membership = (
+            db_session.query(OrganizationMember)
+            .filter_by(
+                organization_id=result["organization_id"],
+                user_id=result["admin_user_id"],
+            )
+            .first()
+        )
 
         assert membership is not None
         assert membership.role == OrganizationRole.OWNER
@@ -183,9 +190,11 @@ class TestProcurementWebhook:
         result = await handle_procurement_webhook(webhook_data, db_session)
 
         # Verify subscription was created
-        subscription = db_session.query(OrganizationSubscription).filter_by(
-            id=result["subscription_id"]
-        ).first()
+        subscription = (
+            db_session.query(OrganizationSubscription)
+            .filter_by(id=result["subscription_id"])
+            .first()
+        )
 
         assert subscription is not None
         assert subscription.organization_id == result["organization_id"]
@@ -204,10 +213,14 @@ class TestProcurementWebhook:
         result = await handle_procurement_webhook(webhook_data, db_session)
 
         # Verify billing event was created
-        event = db_session.query(BillingEvent).filter_by(
-            organization_id=result["organization_id"],
-            event_type="gcp_procurement_created"
-        ).first()
+        event = (
+            db_session.query(BillingEvent)
+            .filter_by(
+                organization_id=result["organization_id"],
+                event_type="gcp_procurement_created",
+            )
+            .first()
+        )
 
         assert event is not None
         assert event.status == "success"
@@ -218,10 +231,7 @@ class TestProcurementWebhook:
         self, db_session, mock_email_service
     ):
         """Test webhook with missing entitlement_id raises error"""
-        webhook_data = {
-            "account_id": "acct_test_456",
-            "user_email": "admin@acme.com"
-        }
+        webhook_data = {"account_id": "acct_test_456", "user_email": "admin@acme.com"}
 
         with pytest.raises(ValueError, match="Missing required fields"):
             await handle_procurement_webhook(webhook_data, db_session)
@@ -230,10 +240,7 @@ class TestProcurementWebhook:
         self, db_session, mock_email_service
     ):
         """Test webhook with missing user_email raises error"""
-        webhook_data = {
-            "entitlement_id": "ent_test_123",
-            "account_id": "acct_test_456"
-        }
+        webhook_data = {"entitlement_id": "ent_test_123", "account_id": "acct_test_456"}
 
         with pytest.raises(ValueError, match="Missing required fields"):
             await handle_procurement_webhook(webhook_data, db_session)
@@ -242,8 +249,9 @@ class TestProcurementWebhook:
         self, db_session, webhook_data, mock_email_service
     ):
         """Test webhook with duplicate entitlement returns existing org"""
-        from src.models_billing import OrganizationSubscription
         import uuid
+
+        from src.models_billing import OrganizationSubscription
 
         # Create existing organization and subscription
         org_id = str(uuid.uuid4())
@@ -254,7 +262,7 @@ class TestProcurementWebhook:
             currency="USD",
             timezone="UTC",
             max_members=100,
-            is_active=True
+            is_active=True,
         )
         db_session.add(org)
 
@@ -264,7 +272,7 @@ class TestProcurementWebhook:
             tier_id="professional",
             tier_name="professional",
             gcp_entitlement_id="ent_test_123",  # Same as webhook
-            status="active"
+            status="active",
         )
         db_session.add(subscription)
         db_session.commit()
@@ -283,7 +291,7 @@ class TestProcurementWebhook:
             "entitlement_id": "ent_test_123",
             "account_id": "acct_test_456",
             "user_email": "admin@acme.com",
-            "company_name": "Acme Corporation"
+            "company_name": "Acme Corporation",
         }
 
         result = await handle_procurement_webhook(webhook_data, db_session)
@@ -291,9 +299,11 @@ class TestProcurementWebhook:
         assert result["tier"] == "professional"
 
         # Verify organization has professional tier limits
-        org = db_session.query(Organization).filter_by(
-            id=result["organization_id"]
-        ).first()
+        org = (
+            db_session.query(Organization)
+            .filter_by(id=result["organization_id"])
+            .first()
+        )
         assert org.max_members == 100  # Professional tier
 
     async def test_handle_procurement_default_company_name(
@@ -303,7 +313,7 @@ class TestProcurementWebhook:
         webhook_data = {
             "entitlement_id": "ent_test_123",
             "account_id": "acct_test_456",
-            "user_email": "admin@acme.com"
+            "user_email": "admin@acme.com",
         }
 
         result = await handle_procurement_webhook(webhook_data, db_session)
@@ -314,9 +324,11 @@ class TestProcurementWebhook:
         self, db_session, webhook_data
     ):
         """Test that email failure doesn't prevent org creation"""
-        with patch('src.gcp.procurement_handler.EmailService') as mock_email:
+        with patch("src.gcp.procurement_handler.EmailService") as mock_email:
             mock_email_instance = Mock()
-            mock_email_instance.send_email = AsyncMock(side_effect=Exception("Email error"))
+            mock_email_instance.send_email = AsyncMock(
+                side_effect=Exception("Email error")
+            )
             mock_email.return_value = mock_email_instance
 
             # Should not raise exception
@@ -325,9 +337,11 @@ class TestProcurementWebhook:
             assert result["status"] == "created"
 
             # Verify organization was still created
-            org = db_session.query(Organization).filter_by(
-                id=result["organization_id"]
-            ).first()
+            org = (
+                db_session.query(Organization)
+                .filter_by(id=result["organization_id"])
+                .first()
+            )
             assert org is not None
 
     async def test_handle_procurement_database_error(
@@ -335,26 +349,22 @@ class TestProcurementWebhook:
     ):
         """Test handling of database errors"""
         # Force IntegrityError by using invalid data
-        with patch.object(db_session, 'commit', side_effect=Exception("DB error")):
+        with patch.object(db_session, "commit", side_effect=Exception("DB error")):
             with pytest.raises(Exception):
                 await handle_procurement_webhook(webhook_data, db_session)
 
             # Verify rollback occurred
             # Organization should not exist
-            orgs = db_session.query(Organization).filter_by(
-                name="Acme Corporation"
-            ).all()
+            orgs = (
+                db_session.query(Organization).filter_by(name="Acme Corporation").all()
+            )
             assert len(orgs) == 0
 
     async def test_handle_procurement_different_tiers(
         self, db_session, webhook_data, mock_email_service
     ):
         """Test provisioning with different tier plans"""
-        tiers_to_test = [
-            ("starter", 25),
-            ("professional", 100),
-            ("enterprise", 10000)
-        ]
+        tiers_to_test = [("starter", 25), ("professional", 100), ("enterprise", 10000)]
 
         for tier, expected_max_members in tiers_to_test:
             webhook_data["plan"] = tier
@@ -363,9 +373,11 @@ class TestProcurementWebhook:
 
             result = await handle_procurement_webhook(webhook_data, db_session)
 
-            org = db_session.query(Organization).filter_by(
-                id=result["organization_id"]
-            ).first()
+            org = (
+                db_session.query(Organization)
+                .filter_by(id=result["organization_id"])
+                .first()
+            )
 
             assert org.max_members == expected_max_members
             assert result["tier"] == tier

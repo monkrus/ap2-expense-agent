@@ -55,11 +55,7 @@ nltk==3.9.2
 numpy==2.3.4
 packaging==25.0
 passlib==1.7.4
-claude/review-expense-agent-011CV4QAcyaPRV3UcZdW6mPL
 Pillow==11.0.0
-=======
-Pillow==10.3.0
-main
 pluggy==1.6.0
 proto-plus==1.26.1
 protobuf==4.25.8

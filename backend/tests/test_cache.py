@@ -2,12 +2,20 @@
 Tests for Redis Cache Implementation
 """
 
-import pytest
 import time
+
+import pytest
+
 from src.cache import (
-    cache, cached, SessionCache, QueryCache, RateLimitCache,
-    cache_user_organizations, get_cached_user_organizations,
-    invalidate_user_cache, invalidate_organization_cache
+    QueryCache,
+    RateLimitCache,
+    SessionCache,
+    cache,
+    cache_user_organizations,
+    cached,
+    get_cached_user_organizations,
+    invalidate_organization_cache,
+    invalidate_user_cache,
 )
 
 
@@ -174,7 +182,7 @@ class TestSessionCache:
         user_data = {
             "user_id": "user_456",
             "email": "test@example.com",
-            "role": "admin"
+            "role": "admin",
         }
 
         # Set session
@@ -232,7 +240,7 @@ class TestQueryCache:
         report_data = {
             "total_expenses": 1500.00,
             "expense_count": 5,
-            "categories": {"meals": 800.00, "transport": 700.00}
+            "categories": {"meals": 800.00, "transport": 700.00},
         }
 
         # Cache report
@@ -269,7 +277,7 @@ class TestQueryCache:
         org_id = "org_members_test"
         members_data = [
             {"id": "user_1", "email": "user1@example.com", "role": "admin"},
-            {"id": "user_2", "email": "user2@example.com", "role": "member"}
+            {"id": "user_2", "email": "user2@example.com", "role": "member"},
         ]
 
         # Cache members
@@ -309,7 +317,9 @@ class TestRateLimitCache:
 
         # First 5 requests should be allowed
         for i in range(max_requests):
-            allowed, remaining = RateLimitCache.check_rate_limit(key, max_requests, window)
+            allowed, remaining = RateLimitCache.check_rate_limit(
+                key, max_requests, window
+            )
             assert allowed is True
             assert remaining == max_requests - (i + 1)
 
@@ -366,10 +376,7 @@ class TestHelperFunctions:
             pytest.skip("Redis not available")
 
         user_id = "user_cache_test"
-        orgs = [
-            {"id": "org_1", "name": "Org 1"},
-            {"id": "org_2", "name": "Org 2"}
-        ]
+        orgs = [{"id": "org_1", "name": "Org 1"}, {"id": "org_2", "name": "Org 2"}]
 
         # Cache organizations
         cache_user_organizations(user_id, orgs)

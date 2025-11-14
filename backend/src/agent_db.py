@@ -313,7 +313,7 @@ class ExpenseManagementAgent:
         vendor: str,
         category: str,
         description: str,
-        organization_id: str = None
+        organization_id: str = None,
     ) -> Dict:
         """
         Submit a new expense with AP2 mandate creation
@@ -329,7 +329,7 @@ class ExpenseManagementAgent:
         expense_id = f"EXP-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}"
 
         # Determine organization_id: prefer instance org, then parameter, then create test
-        if hasattr(self, 'organization_id') and self.organization_id:
+        if hasattr(self, "organization_id") and self.organization_id:
             org_id = self.organization_id
         elif organization_id:
             org_id = organization_id

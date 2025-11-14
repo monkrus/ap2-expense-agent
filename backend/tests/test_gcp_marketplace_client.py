@@ -3,9 +3,10 @@ Tests for GCP Marketplace Client
 Critical integration module - targets 80%+ coverage
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 from src.gcp.marketplace_client import GCPMarketplaceClient
 
@@ -13,7 +14,7 @@ from src.gcp.marketplace_client import GCPMarketplaceClient
 class TestGCPMarketplaceClient:
     """Test GCP Marketplace API client"""
 
-    @patch('src.gcp.marketplace_client.settings')
+    @patch("src.gcp.marketplace_client.settings")
     def test_init_without_credentials(self, mock_settings):
         """Test client initialization without service account"""
         mock_settings.gcp_project_id = "test-project"
@@ -24,8 +25,10 @@ class TestGCPMarketplaceClient:
         assert client.project_id == "test-project"
         assert client.credentials is None
 
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
     def test_init_with_credentials(self, mock_settings, mock_creds):
         """Test client initialization with service account"""
         mock_settings.gcp_project_id = "test-project"
@@ -39,7 +42,7 @@ class TestGCPMarketplaceClient:
         assert client.credentials == mock_credentials
         mock_creds.assert_called_once()
 
-    @patch('src.gcp.marketplace_client.settings')
+    @patch("src.gcp.marketplace_client.settings")
     def test_get_access_token_no_credentials(self, mock_settings):
         """Test getting access token without credentials raises error"""
         mock_settings.gcp_project_id = "test-project"
@@ -50,8 +53,10 @@ class TestGCPMarketplaceClient:
         with pytest.raises(ValueError, match="not configured"):
             client._get_access_token()
 
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
     def test_get_access_token_valid(self, mock_settings, mock_creds):
         """Test getting valid access token"""
         mock_settings.gcp_project_id = "test-project"
@@ -67,8 +72,10 @@ class TestGCPMarketplaceClient:
 
         assert token == "test-token-123"
 
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
     def test_get_access_token_expired(self, mock_settings, mock_creds):
         """Test getting access token when expired (should refresh)"""
         mock_settings.gcp_project_id = "test-project"
@@ -85,7 +92,7 @@ class TestGCPMarketplaceClient:
         mock_credentials.refresh.assert_called_once()
         assert token == "refreshed-token-456"
 
-    @patch('src.gcp.marketplace_client.settings')
+    @patch("src.gcp.marketplace_client.settings")
     async def test_report_usage_no_credentials(self, mock_settings):
         """Test usage reporting without credentials (should skip gracefully)"""
         mock_settings.gcp_project_id = "test-project"
@@ -93,16 +100,17 @@ class TestGCPMarketplaceClient:
 
         client = GCPMarketplaceClient()
         result = await client.report_usage(
-            "ent_test_123",
-            {"ai_categorization": 100, "ap2_transaction": 50}
+            "ent_test_123", {"ai_categorization": 100, "ap2_transaction": 50}
         )
 
         assert result["status"] == "skipped"
         assert result["reason"] == "no_credentials"
 
-    @patch('src.gcp.marketplace_client.requests.post')
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
+    @patch("src.gcp.marketplace_client.requests.post")
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
     async def test_report_usage_success(self, mock_settings, mock_creds, mock_post):
         """Test successful usage reporting"""
         mock_settings.gcp_project_id = "test-project"
@@ -121,8 +129,7 @@ class TestGCPMarketplaceClient:
 
         client = GCPMarketplaceClient()
         result = await client.report_usage(
-            "ent_test_123",
-            {"ai_categorization": 100, "ap2_transaction": 50}
+            "ent_test_123", {"ai_categorization": 100, "ap2_transaction": 50}
         )
 
         assert result["status"] == "success"
@@ -135,9 +142,11 @@ class TestGCPMarketplaceClient:
         assert "reportUsage" in call_args[0][0]
         assert call_args[1]["headers"]["Authorization"] == "Bearer test-token"
 
-    @patch('src.gcp.marketplace_client.requests.post')
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
+    @patch("src.gcp.marketplace_client.requests.post")
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
     async def test_report_usage_api_error(self, mock_settings, mock_creds, mock_post):
         """Test usage reporting with API error"""
         mock_settings.gcp_project_id = "test-project"
@@ -155,17 +164,16 @@ class TestGCPMarketplaceClient:
         mock_post.return_value = mock_response
 
         client = GCPMarketplaceClient()
-        result = await client.report_usage(
-            "ent_test_123",
-            {"ai_categorization": 100}
-        )
+        result = await client.report_usage("ent_test_123", {"ai_categorization": 100})
 
         assert result["status"] == "error"
         assert result["status_code"] == 400
 
-    @patch('src.gcp.marketplace_client.requests.post')
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
+    @patch("src.gcp.marketplace_client.requests.post")
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
     async def test_report_usage_exception(self, mock_settings, mock_creds, mock_post):
         """Test usage reporting with exception"""
         mock_settings.gcp_project_id = "test-project"
@@ -180,17 +188,16 @@ class TestGCPMarketplaceClient:
         mock_post.side_effect = Exception("Network error")
 
         client = GCPMarketplaceClient()
-        result = await client.report_usage(
-            "ent_test_123",
-            {"ai_categorization": 100}
-        )
+        result = await client.report_usage("ent_test_123", {"ai_categorization": 100})
 
         assert result["status"] == "error"
         assert "Network error" in result["error"]
 
-    @patch('src.gcp.marketplace_client.requests.get')
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
+    @patch("src.gcp.marketplace_client.requests.get")
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
     async def test_get_entitlement_success(self, mock_settings, mock_creds, mock_get):
         """Test getting entitlement details successfully"""
         mock_settings.gcp_project_id = "test-project"
@@ -207,7 +214,7 @@ class TestGCPMarketplaceClient:
         mock_response.json.return_value = {
             "name": "ent_test_123",
             "state": "ACTIVE",
-            "plan": "professional"
+            "plan": "professional",
         }
         mock_get.return_value = mock_response
 
@@ -217,8 +224,10 @@ class TestGCPMarketplaceClient:
         assert result["state"] == "ACTIVE"
         assert result["plan"] == "professional"
 
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
     async def test_get_entitlement_no_credentials(self, mock_settings, mock_creds):
         """Test getting entitlement without credentials raises error"""
         mock_settings.gcp_project_id = "test-project"
@@ -229,10 +238,14 @@ class TestGCPMarketplaceClient:
         with pytest.raises(ValueError, match="not configured"):
             await client.get_entitlement("ent_test_123")
 
-    @patch('src.gcp.marketplace_client.GCPMarketplaceClient.get_entitlement')
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
-    async def test_validate_entitlement_active(self, mock_settings, mock_creds, mock_get_ent):
+    @patch("src.gcp.marketplace_client.GCPMarketplaceClient.get_entitlement")
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
+    async def test_validate_entitlement_active(
+        self, mock_settings, mock_creds, mock_get_ent
+    ):
         """Test validating active entitlement"""
         mock_settings.gcp_project_id = "test-project"
         mock_settings.gcp_service_account_path = "/path/to/service-account.json"
@@ -247,10 +260,14 @@ class TestGCPMarketplaceClient:
 
         assert is_valid is True
 
-    @patch('src.gcp.marketplace_client.GCPMarketplaceClient.get_entitlement')
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
-    async def test_validate_entitlement_inactive(self, mock_settings, mock_creds, mock_get_ent):
+    @patch("src.gcp.marketplace_client.GCPMarketplaceClient.get_entitlement")
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
+    async def test_validate_entitlement_inactive(
+        self, mock_settings, mock_creds, mock_get_ent
+    ):
         """Test validating inactive entitlement"""
         mock_settings.gcp_project_id = "test-project"
         mock_settings.gcp_service_account_path = "/path/to/service-account.json"
@@ -265,10 +282,14 @@ class TestGCPMarketplaceClient:
 
         assert is_valid is False
 
-    @patch('src.gcp.marketplace_client.GCPMarketplaceClient.get_entitlement')
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
-    async def test_validate_entitlement_error(self, mock_settings, mock_creds, mock_get_ent):
+    @patch("src.gcp.marketplace_client.GCPMarketplaceClient.get_entitlement")
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
+    async def test_validate_entitlement_error(
+        self, mock_settings, mock_creds, mock_get_ent
+    ):
         """Test validating entitlement with error returns False"""
         mock_settings.gcp_project_id = "test-project"
         mock_settings.gcp_service_account_path = "/path/to/service-account.json"
@@ -288,18 +309,15 @@ class TestGCPMarketplaceClient:
         request_body = b'{"test": "data"}'
         webhook_secret = "test-secret-key"
 
-        import hmac
         import hashlib
+        import hmac
+
         expected_signature = hmac.new(
-            webhook_secret.encode(),
-            request_body,
-            hashlib.sha256
+            webhook_secret.encode(), request_body, hashlib.sha256
         ).hexdigest()
 
         is_valid = GCPMarketplaceClient.verify_webhook_signature(
-            request_body,
-            expected_signature,
-            webhook_secret
+            request_body, expected_signature, webhook_secret
         )
 
         assert is_valid is True
@@ -311,9 +329,7 @@ class TestGCPMarketplaceClient:
         invalid_signature = "invalid-signature-123"
 
         is_valid = GCPMarketplaceClient.verify_webhook_signature(
-            request_body,
-            invalid_signature,
-            webhook_secret
+            request_body, invalid_signature, webhook_secret
         )
 
         assert is_valid is False
@@ -323,16 +339,16 @@ class TestGCPMarketplaceClient:
         request_body = b'{"test": "data"}'
 
         is_valid = GCPMarketplaceClient.verify_webhook_signature(
-            request_body,
-            "any-signature",
-            None
+            request_body, "any-signature", None
         )
 
         assert is_valid is True  # Should skip verification in dev mode
 
-    @patch('src.gcp.marketplace_client.requests.get')
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
+    @patch("src.gcp.marketplace_client.requests.get")
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
     async def test_get_account_info_success(self, mock_settings, mock_creds, mock_get):
         """Test getting account info successfully"""
         mock_settings.gcp_project_id = "test-project"
@@ -349,7 +365,7 @@ class TestGCPMarketplaceClient:
         mock_response.json.return_value = {
             "name": "acct_test_456",
             "company": "Acme Corp",
-            "email": "admin@acme.com"
+            "email": "admin@acme.com",
         }
         mock_get.return_value = mock_response
 
@@ -359,9 +375,11 @@ class TestGCPMarketplaceClient:
         assert result["company"] == "Acme Corp"
         assert result["email"] == "admin@acme.com"
 
-    @patch('src.gcp.marketplace_client.requests.get')
-    @patch('src.gcp.marketplace_client.service_account.Credentials.from_service_account_file')
-    @patch('src.gcp.marketplace_client.settings')
+    @patch("src.gcp.marketplace_client.requests.get")
+    @patch(
+        "src.gcp.marketplace_client.service_account.Credentials.from_service_account_file"
+    )
+    @patch("src.gcp.marketplace_client.settings")
     async def test_get_account_info_error(self, mock_settings, mock_creds, mock_get):
         """Test getting account info with error"""
         mock_settings.gcp_project_id = "test-project"

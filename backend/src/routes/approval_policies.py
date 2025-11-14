@@ -80,6 +80,7 @@ class ApprovalPolicyResponse(BaseModel):
 
 class PolicyTestRequest(BaseModel):
     """Test if an expense would match a policy"""
+
     amount: float = Field(..., gt=0)
     category: str
     vendor: str
@@ -139,7 +140,9 @@ def check_admin_or_owner(user: User, organization_id: str, db: Session) -> bool:
 # ============================================================================
 
 
-@router.post("", response_model=ApprovalPolicyResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=ApprovalPolicyResponse, status_code=status.HTTP_201_CREATED
+)
 def create_approval_policy(
     data: ApprovalPolicyCreate,
     current_user: User = Depends(get_current_user),
@@ -201,7 +204,13 @@ def create_approval_policy(
     if data.conditions:
         # Validate category list
         if "categories" in data.conditions:
-            valid_categories = ["Travel", "Meals", "Software", "Office Supplies", "Other"]
+            valid_categories = [
+                "Travel",
+                "Meals",
+                "Software",
+                "Office Supplies",
+                "Other",
+            ]
             for cat in data.conditions["categories"]:
                 if cat not in valid_categories:
                     raise HTTPException(
@@ -248,14 +257,14 @@ def list_approval_policies(
             detail="User is not a member of any organization",
         )
 
-    query = db.query(ApprovalPolicy).filter(
-        ApprovalPolicy.organization_id == org_id
-    )
+    query = db.query(ApprovalPolicy).filter(ApprovalPolicy.organization_id == org_id)
 
     if active_only:
         query = query.filter(ApprovalPolicy.is_active == True)
 
-    query = query.order_by(ApprovalPolicy.priority.desc(), ApprovalPolicy.created_at.desc())
+    query = query.order_by(
+        ApprovalPolicy.priority.desc(), ApprovalPolicy.created_at.desc()
+    )
 
     policies = query.all()
 
@@ -445,8 +454,9 @@ def test_policy(
         )
 
     # Create mock expense for testing
-    from ..models import Expense, ExpenseCategory
     from decimal import Decimal
+
+    from ..models import Expense, ExpenseCategory
 
     mock_expense = Expense(
         id="test_expense",
@@ -517,9 +527,11 @@ def get_policy_analytics(
             detail="Only organization owners and admins can view analytics",
         )
 
-    from ..models import Expense
-    from sqlalchemy import func
     from datetime import datetime, timedelta
+
+    from sqlalchemy import func
+
+    from ..models import Expense
 
     # Last 30 days
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
@@ -531,7 +543,8 @@ def get_policy_analytics(
             Expense.organization_id == org_id,
             Expense.created_at >= thirty_days_ago,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     # Auto-approved expenses
@@ -542,7 +555,8 @@ def get_policy_analytics(
             Expense.auto_approved == True,
             Expense.approved_at >= thirty_days_ago,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     # Manual approved
@@ -554,7 +568,8 @@ def get_policy_analytics(
             Expense.status == "approved",
             Expense.approved_at >= thirty_days_ago,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     # Auto-approval rate
@@ -568,7 +583,8 @@ def get_policy_analytics(
             Expense.auto_approved == True,
             Expense.approved_at >= thirty_days_ago,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     # By policy statistics
@@ -590,13 +606,17 @@ def get_policy_analytics(
     policy_breakdown = []
     for policy_id, count, total_amount in policy_stats:
         if policy_id:
-            policy = db.query(ApprovalPolicy).filter(ApprovalPolicy.id == policy_id).first()
-            policy_breakdown.append({
-                "policy_id": policy_id,
-                "policy_name": policy.name if policy else "Unknown",
-                "expense_count": count,
-                "total_amount": float(total_amount) if total_amount else 0,
-            })
+            policy = (
+                db.query(ApprovalPolicy).filter(ApprovalPolicy.id == policy_id).first()
+            )
+            policy_breakdown.append(
+                {
+                    "policy_id": policy_id,
+                    "policy_name": policy.name if policy else "Unknown",
+                    "expense_count": count,
+                    "total_amount": float(total_amount) if total_amount else 0,
+                }
+            )
 
     return {
         "period": "last_30_days",

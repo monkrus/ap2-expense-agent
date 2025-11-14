@@ -3,17 +3,27 @@ Compliance Validation Tests for AP2 Expense Management Agent
 Tests business rules, security compliance, and data integrity
 """
 
-import pytest
+import json
 from datetime import datetime, timedelta
 from decimal import Decimal
+
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import json
 
-from src.models import Base, Expense, ExpenseStatus, ExpenseCategory, User, UserRole
-from src.models import IntentMandate, CartMandate, PaymentMandate
 from src.agent_db import ExpenseManagementAgent
-from src.repository import ExpenseRepository, AP2Repository
+from src.models import (
+    Base,
+    CartMandate,
+    Expense,
+    ExpenseCategory,
+    ExpenseStatus,
+    IntentMandate,
+    PaymentMandate,
+    User,
+    UserRole,
+)
+from src.repository import AP2Repository, ExpenseRepository
 
 
 # Test database setup
@@ -47,8 +57,9 @@ def test_db():
 @pytest.fixture
 def test_organization(test_db):
     """Create a test organization in the same SQLite database"""
-    from src.models import Organization
     from datetime import datetime
+
+    from src.models import Organization
 
     org = Organization(
         id="org_compliance_001",
@@ -206,7 +217,7 @@ class TestExpenseCompliance:
             ("Meals", "MEALS"),
             ("Software", "SOFTWARE"),
             ("Office Supplies", "OFFICE_SUPPLIES"),
-            ("Other", "OTHER")
+            ("Other", "OTHER"),
         ]
 
         for input_category, expected_category in valid_categories:

@@ -3,14 +3,15 @@ Tests for Stripe Payment Processor
 Critical module - targets 80%+ coverage
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import Mock, patch, MagicMock
 from decimal import Decimal
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 from stripe import _error as stripe_error
 
-from src.payments.stripe_processor import StripePaymentProcessor
 from src.models import PaymentMandate
+from src.payments.stripe_processor import StripePaymentProcessor
 
 
 @pytest.fixture
