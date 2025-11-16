@@ -106,7 +106,12 @@
       "Bash(docker-compose:*)",
       "Bash(git rm:*)",
       "Bash(alembic heads:*)",
-      "Bash(alembic history:*)"
+      "Bash(alembic history:*)",
+      "Bash(rm:*)",
+      "Bash(requirements_windows.txt)",
+      "Bash(requirements_dev.txt)",
+      "Bash(timeout /t 10 /nobreak)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
