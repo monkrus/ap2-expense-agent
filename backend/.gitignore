@@ -43,6 +43,7 @@ htmlcov/
 *.cover
 *.log
 .hypothesis/
+pytest-report.xml
 
 # Database
 *.db
