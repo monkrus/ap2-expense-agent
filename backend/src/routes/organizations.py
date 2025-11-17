@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_active_user
+from ..cache import invalidate_user_cache
 from ..database import get_db
 from ..email_service import EmailService
 from ..models import (
@@ -170,9 +171,23 @@ async def delete_organization(
 
     organization = get_organization_or_404(organization_id, db)
 
+    # Get all members to invalidate their caches
+    members = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == organization_id,
+            OrganizationMember.is_active == True,
+        )
+        .all()
+    )
+
     # Soft delete
     organization.is_active = False
     db.commit()
+
+    # Invalidate cache for all members
+    for member in members:
+        invalidate_user_cache(member.user_id)
 
 
 # ============================================================================

@@ -168,6 +168,62 @@ const OrganizationManagement = () => {
     }
   };
 
+  const handleDeleteOrg = async () => {
+    if (!currentOrg) return;
+
+    // Use organization slug for confirmation to avoid apostrophe/quote issues
+    const confirmText = currentOrg.slug.toLowerCase();
+
+    const userInput = prompt(
+      `⚠️ WARNING: This will permanently delete "${currentOrg.name}" and all associated data.\n\n` +
+      `This action CANNOT be undone.\n\n` +
+      `To confirm, type the organization ID: ${confirmText}`
+    );
+
+    // Case-insensitive comparison and trim whitespace
+    if (userInput?.toLowerCase().trim() !== confirmText) {
+      if (userInput !== null) {
+        showError('Deletion cancelled - confirmation text did not match');
+      }
+      return;
+    }
+
+    setProcessing(true);
+    const orgName = currentOrg.name; // Store name before deletion
+    const deletedOrgId = currentOrg.id; // Store ID before deletion
+    try {
+      await organizationAPI.deleteOrganization(currentOrg.id);
+
+      // Clear current org immediately
+      setCurrentOrg(null);
+
+      // Refetch organizations to ensure we get updated list from server
+      const data = await organizationAPI.listOrganizations();
+      setOrganizations(data);
+
+      // Select first available organization or null if none left
+      if (data.length > 0) {
+        // Select a different org (not the deleted one)
+        const nextOrg = data.find(org => org.id !== deletedOrgId) || data[0];
+        setCurrentOrg(nextOrg);
+      } else {
+        setCurrentOrg(null);
+      }
+
+      // Show success confirmation
+      success(`✓ Organization "${orgName}" has been permanently deleted`);
+
+      // Additional confirmation alert
+      setTimeout(() => {
+        alert(`✓ Deletion Confirmed\n\nOrganization "${orgName}" and all associated data have been permanently removed.`);
+      }, 500);
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleRevokeInvite = async (inviteId) => {
     if (!currentOrg) return;
     setProcessing(true);
@@ -235,7 +291,14 @@ const OrganizationManagement = () => {
                 <Building2 className="w-8 h-8 text-indigo-600" />
                 Organization Management
               </h1>
-              <p className="text-gray-600 mt-1">Manage organizations, members, and team settings</p>
+              <p className="text-gray-600 mt-1">
+                Manage organizations, members, and team settings
+                {organizations.length > 0 && (
+                  <span className="ml-2 text-indigo-600 font-medium">
+                    • {organizations.length} {organizations.length === 1 ? 'organization' : 'organizations'}
+                  </span>
+                )}
+              </p>
             </div>
             {/* Only show Create button in header if organizations exist */}
             {organizations.length > 0 && (
@@ -357,15 +420,8 @@ const OrganizationManagement = () => {
 
               {activeTab === 'members' && (
                 <div>
-                  <div className="flex justify-between items-center mb-6">
+                  <div className="mb-6">
                     <h3 className="text-lg font-semibold">Team Members ({members.length})</h3>
-                    <button
-                      onClick={() => setShowInviteModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      Invite Member
-                    </button>
                   </div>
                   <div className="space-y-3">
                     {members.map(member => (
@@ -511,6 +567,28 @@ const OrganizationManagement = () => {
                       )}
                     </dl>
                   </div>
+
+                  {/* Danger Zone */}
+                  <div className="border-2 border-red-200 rounded-lg p-6 bg-red-50">
+                    <div className="flex items-start gap-3 mb-4">
+                      <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-red-900 mb-1">Danger Zone</h3>
+                        <p className="text-sm text-red-700">
+                          Once you delete an organization, there is no going back. This action will permanently delete
+                          the organization, all members, expenses, and associated data.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleDeleteOrg}
+                      disabled={processing}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Organization
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -546,7 +624,7 @@ const OrganizationManagement = () => {
                 onChange={(e) => setCreateOrgForm({ ...createOrgForm, slug: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg font-mono text-sm"
                 placeholder="acme-corp"
-                pattern="[a-z0-9-]+"
+                pattern="[a-z0-9\-]+"
                 title="Use only lowercase letters, numbers, and hyphens"
                 required
               />
@@ -584,11 +662,68 @@ const OrganizationManagement = () => {
                   onChange={(e) => setCreateOrgForm({ ...createOrgForm, timezone: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
                 >
-                  <option value="UTC">UTC</option>
-                  <option value="America/New_York">America/New_York</option>
-                  <option value="America/Los_Angeles">America/Los_Angeles</option>
-                  <option value="Europe/London">Europe/London</option>
+                  <optgroup label="Universal">
+                    <option value="UTC">UTC (Coordinated Universal Time)</option>
+                  </optgroup>
+                  <optgroup label="North America">
+                    <option value="America/New_York">Eastern Time (New York)</option>
+                    <option value="America/Chicago">Central Time (Chicago)</option>
+                    <option value="America/Denver">Mountain Time (Denver)</option>
+                    <option value="America/Los_Angeles">Pacific Time (Los Angeles)</option>
+                    <option value="America/Phoenix">Arizona (Phoenix)</option>
+                    <option value="America/Anchorage">Alaska (Anchorage)</option>
+                    <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+                    <option value="America/Toronto">Canada Eastern (Toronto)</option>
+                    <option value="America/Vancouver">Canada Pacific (Vancouver)</option>
+                  </optgroup>
+                  <optgroup label="Europe">
+                    <option value="Europe/London">UK (London)</option>
+                    <option value="Europe/Paris">France (Paris)</option>
+                    <option value="Europe/Berlin">Germany (Berlin)</option>
+                    <option value="Europe/Rome">Italy (Rome)</option>
+                    <option value="Europe/Madrid">Spain (Madrid)</option>
+                    <option value="Europe/Amsterdam">Netherlands (Amsterdam)</option>
+                    <option value="Europe/Brussels">Belgium (Brussels)</option>
+                    <option value="Europe/Zurich">Switzerland (Zurich)</option>
+                    <option value="Europe/Stockholm">Sweden (Stockholm)</option>
+                    <option value="Europe/Oslo">Norway (Oslo)</option>
+                    <option value="Europe/Moscow">Russia (Moscow)</option>
+                  </optgroup>
+                  <optgroup label="Asia">
+                    <option value="Asia/Dubai">UAE (Dubai)</option>
+                    <option value="Asia/Kolkata">India (Kolkata)</option>
+                    <option value="Asia/Singapore">Singapore</option>
+                    <option value="Asia/Hong_Kong">Hong Kong</option>
+                    <option value="Asia/Shanghai">China (Shanghai)</option>
+                    <option value="Asia/Tokyo">Japan (Tokyo)</option>
+                    <option value="Asia/Seoul">South Korea (Seoul)</option>
+                    <option value="Asia/Bangkok">Thailand (Bangkok)</option>
+                    <option value="Asia/Jakarta">Indonesia (Jakarta)</option>
+                  </optgroup>
+                  <optgroup label="Australia & Pacific">
+                    <option value="Australia/Sydney">Australia East (Sydney)</option>
+                    <option value="Australia/Melbourne">Australia (Melbourne)</option>
+                    <option value="Australia/Brisbane">Australia (Brisbane)</option>
+                    <option value="Australia/Perth">Australia West (Perth)</option>
+                    <option value="Pacific/Auckland">New Zealand (Auckland)</option>
+                  </optgroup>
+                  <optgroup label="Africa">
+                    <option value="Africa/Cairo">Egypt (Cairo)</option>
+                    <option value="Africa/Johannesburg">South Africa (Johannesburg)</option>
+                    <option value="Africa/Lagos">Nigeria (Lagos)</option>
+                    <option value="Africa/Nairobi">Kenya (Nairobi)</option>
+                  </optgroup>
+                  <optgroup label="South America">
+                    <option value="America/Sao_Paulo">Brazil (São Paulo)</option>
+                    <option value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</option>
+                    <option value="America/Santiago">Chile (Santiago)</option>
+                    <option value="America/Bogota">Colombia (Bogota)</option>
+                    <option value="America/Lima">Peru (Lima)</option>
+                  </optgroup>
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  <strong>Why UTC?</strong> UTC ensures consistent timestamps across global teams and prevents daylight saving confusion. Recommended for international organizations.
+                </p>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
@@ -653,9 +788,64 @@ const OrganizationManagement = () => {
                   onChange={(e) => setEditOrgForm({ ...editOrgForm, timezone: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
                 >
-                  <option value="UTC">UTC</option>
-                  <option value="America/New_York">America/New_York</option>
-                  <option value="America/Los_Angeles">America/Los_Angeles</option>
+                  <optgroup label="Universal">
+                    <option value="UTC">UTC (Coordinated Universal Time)</option>
+                  </optgroup>
+                  <optgroup label="North America">
+                    <option value="America/New_York">Eastern Time (New York)</option>
+                    <option value="America/Chicago">Central Time (Chicago)</option>
+                    <option value="America/Denver">Mountain Time (Denver)</option>
+                    <option value="America/Los_Angeles">Pacific Time (Los Angeles)</option>
+                    <option value="America/Phoenix">Arizona (Phoenix)</option>
+                    <option value="America/Anchorage">Alaska (Anchorage)</option>
+                    <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+                    <option value="America/Toronto">Canada Eastern (Toronto)</option>
+                    <option value="America/Vancouver">Canada Pacific (Vancouver)</option>
+                  </optgroup>
+                  <optgroup label="Europe">
+                    <option value="Europe/London">UK (London)</option>
+                    <option value="Europe/Paris">France (Paris)</option>
+                    <option value="Europe/Berlin">Germany (Berlin)</option>
+                    <option value="Europe/Rome">Italy (Rome)</option>
+                    <option value="Europe/Madrid">Spain (Madrid)</option>
+                    <option value="Europe/Amsterdam">Netherlands (Amsterdam)</option>
+                    <option value="Europe/Brussels">Belgium (Brussels)</option>
+                    <option value="Europe/Zurich">Switzerland (Zurich)</option>
+                    <option value="Europe/Stockholm">Sweden (Stockholm)</option>
+                    <option value="Europe/Oslo">Norway (Oslo)</option>
+                    <option value="Europe/Moscow">Russia (Moscow)</option>
+                  </optgroup>
+                  <optgroup label="Asia">
+                    <option value="Asia/Dubai">UAE (Dubai)</option>
+                    <option value="Asia/Kolkata">India (Kolkata)</option>
+                    <option value="Asia/Singapore">Singapore</option>
+                    <option value="Asia/Hong_Kong">Hong Kong</option>
+                    <option value="Asia/Shanghai">China (Shanghai)</option>
+                    <option value="Asia/Tokyo">Japan (Tokyo)</option>
+                    <option value="Asia/Seoul">South Korea (Seoul)</option>
+                    <option value="Asia/Bangkok">Thailand (Bangkok)</option>
+                    <option value="Asia/Jakarta">Indonesia (Jakarta)</option>
+                  </optgroup>
+                  <optgroup label="Australia & Pacific">
+                    <option value="Australia/Sydney">Australia East (Sydney)</option>
+                    <option value="Australia/Melbourne">Australia (Melbourne)</option>
+                    <option value="Australia/Brisbane">Australia (Brisbane)</option>
+                    <option value="Australia/Perth">Australia West (Perth)</option>
+                    <option value="Pacific/Auckland">New Zealand (Auckland)</option>
+                  </optgroup>
+                  <optgroup label="Africa">
+                    <option value="Africa/Cairo">Egypt (Cairo)</option>
+                    <option value="Africa/Johannesburg">South Africa (Johannesburg)</option>
+                    <option value="Africa/Lagos">Nigeria (Lagos)</option>
+                    <option value="Africa/Nairobi">Kenya (Nairobi)</option>
+                  </optgroup>
+                  <optgroup label="South America">
+                    <option value="America/Sao_Paulo">Brazil (São Paulo)</option>
+                    <option value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</option>
+                    <option value="America/Santiago">Chile (Santiago)</option>
+                    <option value="America/Bogota">Colombia (Bogota)</option>
+                    <option value="America/Lima">Peru (Lima)</option>
+                  </optgroup>
                 </select>
               </div>
             </div>

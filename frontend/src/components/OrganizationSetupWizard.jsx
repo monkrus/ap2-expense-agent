@@ -331,15 +331,68 @@ const OrganizationSetupWizard = ({ onComplete }) => {
               onChange={(e) => setCompanyData({ ...companyData, timezone: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
-              <option value="UTC">UTC</option>
-              <option value="America/New_York">Eastern Time</option>
-              <option value="America/Chicago">Central Time</option>
-              <option value="America/Denver">Mountain Time</option>
-              <option value="America/Los_Angeles">Pacific Time</option>
-              <option value="Europe/London">London</option>
-              <option value="Europe/Paris">Paris</option>
-              <option value="Asia/Tokyo">Tokyo</option>
+              <optgroup label="Universal">
+                <option value="UTC">UTC (Coordinated Universal Time)</option>
+              </optgroup>
+              <optgroup label="North America">
+                <option value="America/New_York">Eastern Time (New York)</option>
+                <option value="America/Chicago">Central Time (Chicago)</option>
+                <option value="America/Denver">Mountain Time (Denver)</option>
+                <option value="America/Los_Angeles">Pacific Time (Los Angeles)</option>
+                <option value="America/Phoenix">Arizona (Phoenix)</option>
+                <option value="America/Anchorage">Alaska (Anchorage)</option>
+                <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+                <option value="America/Toronto">Canada Eastern (Toronto)</option>
+                <option value="America/Vancouver">Canada Pacific (Vancouver)</option>
+              </optgroup>
+              <optgroup label="Europe">
+                <option value="Europe/London">UK (London)</option>
+                <option value="Europe/Paris">France (Paris)</option>
+                <option value="Europe/Berlin">Germany (Berlin)</option>
+                <option value="Europe/Rome">Italy (Rome)</option>
+                <option value="Europe/Madrid">Spain (Madrid)</option>
+                <option value="Europe/Amsterdam">Netherlands (Amsterdam)</option>
+                <option value="Europe/Brussels">Belgium (Brussels)</option>
+                <option value="Europe/Zurich">Switzerland (Zurich)</option>
+                <option value="Europe/Stockholm">Sweden (Stockholm)</option>
+                <option value="Europe/Oslo">Norway (Oslo)</option>
+                <option value="Europe/Moscow">Russia (Moscow)</option>
+              </optgroup>
+              <optgroup label="Asia">
+                <option value="Asia/Dubai">UAE (Dubai)</option>
+                <option value="Asia/Kolkata">India (Kolkata)</option>
+                <option value="Asia/Singapore">Singapore</option>
+                <option value="Asia/Hong_Kong">Hong Kong</option>
+                <option value="Asia/Shanghai">China (Shanghai)</option>
+                <option value="Asia/Tokyo">Japan (Tokyo)</option>
+                <option value="Asia/Seoul">South Korea (Seoul)</option>
+                <option value="Asia/Bangkok">Thailand (Bangkok)</option>
+                <option value="Asia/Jakarta">Indonesia (Jakarta)</option>
+              </optgroup>
+              <optgroup label="Australia & Pacific">
+                <option value="Australia/Sydney">Australia East (Sydney)</option>
+                <option value="Australia/Melbourne">Australia (Melbourne)</option>
+                <option value="Australia/Brisbane">Australia (Brisbane)</option>
+                <option value="Australia/Perth">Australia West (Perth)</option>
+                <option value="Pacific/Auckland">New Zealand (Auckland)</option>
+              </optgroup>
+              <optgroup label="Africa">
+                <option value="Africa/Cairo">Egypt (Cairo)</option>
+                <option value="Africa/Johannesburg">South Africa (Johannesburg)</option>
+                <option value="Africa/Lagos">Nigeria (Lagos)</option>
+                <option value="Africa/Nairobi">Kenya (Nairobi)</option>
+              </optgroup>
+              <optgroup label="South America">
+                <option value="America/Sao_Paulo">Brazil (São Paulo)</option>
+                <option value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</option>
+                <option value="America/Santiago">Chile (Santiago)</option>
+                <option value="America/Bogota">Colombia (Bogota)</option>
+                <option value="America/Lima">Peru (Lima)</option>
+              </optgroup>
             </select>
+            <p className="text-xs text-gray-500 mt-1">
+              <strong>Why UTC?</strong> UTC ensures consistent timestamps across global teams and prevents daylight saving confusion.
+            </p>
           </div>
         </div>
       </div>
