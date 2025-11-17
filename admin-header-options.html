@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard Header Options</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <h1 class="text-3xl font-bold mb-8 text-gray-900">Admin Dashboard Header Layout Options</h1>
+
+    <!-- Option 1: Two-Row Layout -->
+    <div class="mb-12 bg-white p-6 rounded-xl shadow-lg">
+        <h2 class="text-xl font-bold mb-4 text-gray-800">Option 1: Two-Row Layout (Recommended)</h2>
+        <p class="text-sm text-gray-600 mb-4">Title on top, actions below - Clean and organized</p>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="mb-4">
+                <div class="flex items-center gap-3 mb-2">
+                    <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                        <i data-lucide="shield" class="w-8 h-8 text-blue-600"></i>
+                        Admin Dashboard
+                    </h1>
+                    <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">Administrator</span>
+                </div>
+                <p class="text-gray-600">System administration and user management</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <button class="flex items-center gap-2 px-3 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium text-sm">
+                    <i data-lucide="building-2" class="w-4 h-4"></i>
+                    Organizations
+                </button>
+                <button class="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors font-medium text-sm">
+                    <i data-lucide="credit-card" class="w-4 h-4"></i>
+                    Billing
+                </button>
+                <button class="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium text-sm">
+                    <i data-lucide="key" class="w-4 h-4"></i>
+                    Change Password
+                </button>
+                <button class="flex items-center gap-2 px-3 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium text-sm">
+                    <i data-lucide="upload" class="w-4 h-4"></i>
+                    Batch Upload
+                </button>
+                <button class="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    Refresh
+                </button>
+                <button class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors relative">
+                    <i data-lucide="bell" class="w-5 h-5 text-gray-700"></i>
+                    <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span>
+                </button>
+                <button class="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium text-sm">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    Logout
+                </button>
+            </div>
+        </div>
+        <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p class="text-sm text-green-800"><strong>✓ Best for:</strong> Clear hierarchy, easy to scan, no overlap issues</p>
+        </div>
+    </div>
+
+    <!-- Option 2: Compact Single Row with Icons Only -->
+    <div class="mb-12 bg-white p-6 rounded-xl shadow-lg">
+        <h2 class="text-xl font-bold mb-4 text-gray-800">Option 2: Compact Icon-Only Buttons</h2>
+        <p class="text-sm text-gray-600 mb-4">Icon-only buttons with tooltips - Space efficient</p>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="flex items-center gap-3 mb-2">
+                        <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                            <i data-lucide="shield" class="w-8 h-8 text-blue-600"></i>
+                            Admin Dashboard
+                        </h1>
+                        <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">Administrator</span>
+                    </div>
+                    <p class="text-gray-600">System administration and user management</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button title="Organizations" class="w-10 h-10 flex items-center justify-center bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors">
+                        <i data-lucide="building-2" class="w-5 h-5"></i>
+                    </button>
+                    <button title="Billing" class="w-10 h-10 flex items-center justify-center bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors">
+                        <i data-lucide="credit-card" class="w-5 h-5"></i>
+                    </button>
+                    <button title="Change Password" class="w-10 h-10 flex items-center justify-center bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                        <i data-lucide="key" class="w-5 h-5"></i>
+                    </button>
+                    <button title="Batch Upload" class="w-10 h-10 flex items-center justify-center bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors">
+                        <i data-lucide="upload" class="w-5 h-5"></i>
+                    </button>
+                    <button title="Refresh" class="w-10 h-10 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                    </button>
+                    <button class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors relative">
+                        <i data-lucide="bell" class="w-5 h-5 text-gray-700"></i>
+                        <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span>
+                    </button>
+                    <button title="Logout" class="w-10 h-10 flex items-center justify-center bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p class="text-sm text-blue-800"><strong>✓ Best for:</strong> Maximum space efficiency, clean modern look</p>
+        </div>
+    </div>
+
+    <!-- Option 3: Grouped Actions with Dividers -->
+    <div class="mb-12 bg-white p-6 rounded-xl shadow-lg">
+        <h2 class="text-xl font-bold mb-4 text-gray-800">Option 3: Grouped with Dividers</h2>
+        <p class="text-sm text-gray-600 mb-4">Related actions grouped together - Organized by purpose</p>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="mb-4">
+                <div class="flex items-center gap-3 mb-2">
+                    <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                        <i data-lucide="shield" class="w-8 h-8 text-blue-600"></i>
+                        Admin Dashboard
+                    </h1>
+                    <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">Administrator</span>
+                </div>
+                <p class="text-gray-600">System administration and user management</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Management Group -->
+                <div class="flex items-center gap-2 pr-3 border-r border-gray-300">
+                    <button class="flex items-center gap-2 px-3 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium text-sm">
+                        <i data-lucide="building-2" class="w-4 h-4"></i>
+                        Organizations
+                    </button>
+                    <button class="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors font-medium text-sm">
+                        <i data-lucide="credit-card" class="w-4 h-4"></i>
+                        Billing
+                    </button>
+                </div>
+
+                <!-- Actions Group -->
+                <div class="flex items-center gap-2 pr-3 border-r border-gray-300">
+                    <button class="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium text-sm">
+                        <i data-lucide="key" class="w-4 h-4"></i>
+                        Password
+                    </button>
+                    <button class="flex items-center gap-2 px-3 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium text-sm">
+                        <i data-lucide="upload" class="w-4 h-4"></i>
+                        Upload
+                    </button>
+                    <button class="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Refresh
+                    </button>
+                </div>
+
+                <!-- User Group -->
+                <div class="flex items-center gap-2">
+                    <button class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors relative">
+                        <i data-lucide="bell" class="w-5 h-5 text-gray-700"></i>
+                        <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span>
+                    </button>
+                    <button class="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium text-sm">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+            <p class="text-sm text-purple-800"><strong>✓ Best for:</strong> Visual organization, clear separation of concerns</p>
+        </div>
+    </div>
+
+    <!-- Option 4: Dropdown Menu for Secondary Actions -->
+    <div class="mb-12 bg-white p-6 rounded-xl shadow-lg">
+        <h2 class="text-xl font-bold mb-4 text-gray-800">Option 4: Dropdown Menu</h2>
+        <p class="text-sm text-gray-600 mb-4">Primary actions visible, secondary in dropdown - Cleanest look</p>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="flex items-center gap-3 mb-2">
+                        <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                            <i data-lucide="shield" class="w-8 h-8 text-blue-600"></i>
+                            Admin Dashboard
+                        </h1>
+                        <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">Administrator</span>
+                    </div>
+                    <p class="text-gray-600">System administration and user management</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button class="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium">
+                        <i data-lucide="upload" class="w-4 h-4"></i>
+                        Batch Upload
+                    </button>
+                    <button class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Refresh
+                    </button>
+                    <button class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors relative">
+                        <i data-lucide="bell" class="w-5 h-5 text-gray-700"></i>
+                        <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span>
+                    </button>
+                    <div class="relative">
+                        <button class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                            <i data-lucide="more-vertical" class="w-4 h-4"></i>
+                            More
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </button>
+                        <!-- Dropdown would appear here -->
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+                            <button class="w-full text-left px-4 py-2 hover:bg-indigo-50 flex items-center gap-2 text-sm">
+                                <i data-lucide="building-2" class="w-4 h-4 text-indigo-600"></i>
+                                Organizations
+                            </button>
+                            <button class="w-full text-left px-4 py-2 hover:bg-purple-50 flex items-center gap-2 text-sm">
+                                <i data-lucide="credit-card" class="w-4 h-4 text-purple-600"></i>
+                                Billing
+                            </button>
+                            <button class="w-full text-left px-4 py-2 hover:bg-blue-50 flex items-center gap-2 text-sm">
+                                <i data-lucide="key" class="w-4 h-4 text-blue-600"></i>
+                                Change Password
+                            </button>
+                            <div class="border-t border-gray-200 my-1"></div>
+                            <button class="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-2 text-sm text-red-700">
+                                <i data-lucide="log-out" class="w-4 h-4"></i>
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-lg">
+            <p class="text-sm text-teal-800"><strong>✓ Best for:</strong> Minimalist design, focus on most-used actions</p>
+        </div>
+    </div>
+
+    <!-- Comparison Table -->
+    <div class="bg-white p-6 rounded-xl shadow-lg">
+        <h2 class="text-2xl font-bold mb-4 text-gray-900">Quick Comparison</h2>
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b-2 border-gray-300">
+                    <th class="py-3 px-4">Layout</th>
+                    <th class="py-3 px-4">Visual Clarity</th>
+                    <th class="py-3 px-4">Space Efficiency</th>
+                    <th class="py-3 px-4">Accessibility</th>
+                    <th class="py-3 px-4">Mobile Friendly</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                <tr class="bg-green-50">
+                    <td class="py-3 px-4 font-medium">Option 1: Two-Row</td>
+                    <td class="py-3 px-4">⭐⭐⭐⭐⭐</td>
+                    <td class="py-3 px-4">⭐⭐⭐</td>
+                    <td class="py-3 px-4">⭐⭐⭐⭐⭐</td>
+                    <td class="py-3 px-4">⭐⭐⭐⭐⭐</td>
+                </tr>
+                <tr>
+                    <td class="py-3 px-4 font-medium">Option 2: Icon-Only</td>
+                    <td class="py-3 px-4">⭐⭐⭐</td>
+                    <td class="py-3 px-4">⭐⭐⭐⭐⭐</td>
+                    <td class="py-3 px-4">⭐⭐⭐</td>
+                    <td class="py-3 px-4">⭐⭐⭐⭐</td>
+                </tr>
+                <tr>
+                    <td class="py-3 px-4 font-medium">Option 3: Grouped</td>
+                    <td class="py-3 px-4">⭐⭐⭐⭐</td>
+                    <td class="py-3 px-4">⭐⭐⭐</td>
+                    <td class="py-3 px-4">⭐⭐⭐⭐</td>
+                    <td class="py-3 px-4">⭐⭐⭐</td>
+                </tr>
+                <tr>
+                    <td class="py-3 px-4 font-medium">Option 4: Dropdown</td>
+                    <td class="py-3 px-4">⭐⭐⭐⭐</td>
+                    <td class="py-3 px-4">⭐⭐⭐⭐⭐</td>
+                    <td class="py-3 px-4">⭐⭐⭐⭐</td>
+                    <td class="py-3 px-4">⭐⭐⭐⭐⭐</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

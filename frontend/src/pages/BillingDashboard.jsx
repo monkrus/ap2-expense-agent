@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   CreditCard, TrendingUp, Users, Zap, AlertCircle, ExternalLink,
-  Calendar, DollarSign, BarChart3, ArrowUpRight, Settings, Download, ArrowLeft
+  Calendar, DollarSign, BarChart3, ArrowUpRight, Settings, Download, ArrowLeft, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/useToast';
@@ -167,7 +167,9 @@ const BillingDashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
+            <RefreshCw className="w-8 h-8 animate-spin text-purple-600" />
+          </div>
           <p className="text-gray-600">Loading billing information...</p>
         </div>
       </div>
@@ -217,10 +219,10 @@ const BillingDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Current Plan Card */}
-        <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl p-8 text-white mb-8">
+        <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-8 text-white mb-8">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-indigo-200 text-sm font-medium mb-2">Current Plan</p>
+              <p className="text-purple-200 text-sm font-medium mb-2">Current Plan</p>
               <h2 className="text-4xl font-bold mb-2">
                 {(() => {
                   const tierName = subscription?.tier_display_name || subscription?.tier || 'professional';
@@ -232,7 +234,7 @@ const BillingDashboard = () => {
               <p className="text-2xl font-semibold mb-4">
                 ${estimatedBill.toFixed(2)} <span className="text-lg font-normal text-indigo-200">/month</span>
               </p>
-              <div className="flex items-center gap-2 text-indigo-100">
+              <div className="flex items-center gap-2 text-purple-100">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">
                   Billing period: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
@@ -250,7 +252,7 @@ const BillingDashboard = () => {
                 </button>
                 <button
                   onClick={() => window.location.href = '/pricing'}
-                  className="px-6 py-3 bg-white text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition-colors"
+                  className="px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
                 >
                   Upgrade Plan
                 </button>
@@ -262,7 +264,7 @@ const BillingDashboard = () => {
                 href={`https://console.cloud.google.com/marketplace`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
               >
                 Manage in GCP
                 <ExternalLink className="w-4 h-4" />
@@ -275,8 +277,8 @@ const BillingDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-indigo-600" />
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Users className="w-6 h-6 text-purple-600" />
               </div>
               <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
@@ -401,7 +403,7 @@ const BillingDashboard = () => {
 
             <div className="flex justify-between items-center pt-4 border-t border-gray-300">
               <span className="text-xl font-bold text-gray-900">Total Estimated</span>
-              <span className="text-3xl font-bold text-indigo-600">
+              <span className="text-3xl font-bold text-purple-600">
                 ${totalEstimated.toFixed(2)}
               </span>
             </div>
@@ -441,8 +443,8 @@ const BillingDashboard = () => {
                     key={tier.tier}
                     className={`p-6 rounded-lg border-2 ${
                       isCurrent
-                        ? 'border-indigo-600 bg-indigo-50'
-                        : 'border-gray-200 hover:border-indigo-300'
+                        ? 'border-purple-600 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-300'
                     }`}
                   >
                     <h3 className="text-xl font-bold mb-2">{tier.display_name || tier.tier}</h3>
@@ -475,7 +477,7 @@ const BillingDashboard = () => {
                     {isCurrent ? (
                       <button
                         disabled
-                        className="w-full py-2 bg-indigo-600 text-white rounded-lg font-semibold opacity-50 cursor-not-allowed"
+                        className="w-full py-2 bg-purple-600 text-white rounded-lg font-semibold opacity-50 cursor-not-allowed"
                       >
                         Current Plan
                       </button>
@@ -484,7 +486,7 @@ const BillingDashboard = () => {
                         onClick={() => handleUpgrade(tier.tier)}
                         className={`w-full py-2 rounded-lg font-semibold ${
                           isHigher
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            ? 'bg-purple-600 text-white hover:bg-purple-700'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                       >

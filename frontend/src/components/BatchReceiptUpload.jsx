@@ -216,7 +216,9 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
         {/* Header */}
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Upload className="w-6 h-6 text-indigo-600" />
+            <div className="inline-flex items-center justify-center w-10 h-10 bg-teal-100 rounded-full">
+              <Upload className="w-6 h-6 text-teal-600" />
+            </div>
             <h2 className="text-xl font-bold text-gray-900">Batch Receipt Upload</h2>
           </div>
           <button
@@ -236,7 +238,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-indigo-400 hover:bg-indigo-50 transition-colors cursor-pointer"
+                className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-teal-400 hover:bg-teal-50 transition-colors cursor-pointer"
               >
                 <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-lg font-medium text-gray-700 mb-2">
@@ -292,7 +294,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                   <button
                     onClick={handleUploadAndExtract}
                     disabled={uploading}
-                    className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {uploading ? (
                       <>
@@ -415,7 +417,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={handleSaveEdit}
-                          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
                         >
                           <Save className="w-4 h-4" />
                           Save
@@ -465,7 +467,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                             </button>
                             <button
                               onClick={() => handleCreateExpense(index)}
-                              className="flex items-center gap-1 px-3 py-1 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+                              className="flex items-center gap-1 px-3 py-1 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 transition-colors"
                             >
                               <Check className="w-4 h-4" />
                               Create

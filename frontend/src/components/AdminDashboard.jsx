@@ -715,50 +715,60 @@ const AdminDashboard = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                  <Shield className="w-8 h-8 text-blue-600" />
-                  {user?.role === 'manager' ? 'Manager Dashboard' : user?.role === 'accountant' ? 'Accountant Dashboard' : 'Admin Dashboard'}
-                </h1>
-                <RoleBadge role={user?.role?.toUpperCase() || 'ADMIN'} showCapabilities={true} />
-              </div>
-              <p className="text-gray-600">{theme.description}</p>
+          {/* Title Row */}
+          <div className="mb-4">
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                <Shield className="w-8 h-8 text-blue-600" />
+                {user?.role === 'manager' ? 'Manager Dashboard' : user?.role === 'accountant' ? 'Accountant Dashboard' : 'Admin Dashboard'}
+              </h1>
+              <RoleBadge role={user?.role?.toUpperCase() || 'ADMIN'} showCapabilities={true} />
             </div>
-            <div className="flex items-center gap-3">
+            <p className="text-gray-600">{theme.description}</p>
+          </div>
+
+          {/* Actions Row */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            {/* Left side - Feature actions */}
+            <div className="flex flex-wrap items-center gap-2">
               {user?.role === 'admin' && (
                 <button
                   onClick={() => window.location.href = '/organizations'}
                   title="Manage Organizations"
-                  className="flex items-center gap-2 px-4 py-3 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium ml-4"
+                  className="flex items-center gap-2 px-3 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium text-sm whitespace-nowrap"
                 >
-                  <Building2 className="w-5 h-5" />
+                  <Building2 className="w-4 h-4" />
                   Organizations
                 </button>
               )}
               <button
                 onClick={() => window.location.href = '/billing'}
                 title="View Billing Dashboard"
-                className="flex items-center gap-2 px-4 py-3 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors font-medium"
+                className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors font-medium text-sm whitespace-nowrap"
               >
-                <CreditCard className="w-5 h-5" />
+                <CreditCard className="w-4 h-4" />
                 Billing
               </button>
               <button
                 onClick={() => setShowChangePassword(true)}
-                className="flex items-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                title="Change Password"
+                className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium text-sm whitespace-nowrap"
               >
-                <Key className="w-5 h-5" />
+                <Key className="w-4 h-4" />
                 Change Password
               </button>
               <button
                 onClick={() => setShowBatchUpload(true)}
-                className="flex items-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                title="Batch Upload"
+                className="flex items-center gap-2 px-3 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium text-sm whitespace-nowrap"
               >
-                <Upload className="w-5 h-5" />
+                <Upload className="w-4 h-4" />
                 Batch Upload
               </button>
+            </div>
+
+            {/* Right side - System actions */}
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => {
                   if (activeTab === 'pending') fetchPendingExpenses();
@@ -766,7 +776,8 @@ const AdminDashboard = () => {
                   else fetchAllExpenses();
                 }}
                 disabled={loading}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50"
+                title="Refresh Data"
+                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm disabled:opacity-50 whitespace-nowrap"
               >
                 {loading ? 'Refreshing...' : 'Refresh'}
               </button>
@@ -777,9 +788,9 @@ const AdminDashboard = () => {
                   window.location.reload();
                 }}
                 title="Logout"
-                className="flex items-center gap-2 px-4 py-3 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+                className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium text-sm whitespace-nowrap"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-4 h-4" />
                 Logout
               </button>
             </div>

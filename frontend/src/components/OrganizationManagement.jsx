@@ -204,7 +204,9 @@ const OrganizationManagement = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-4" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
+            <RefreshCw className="w-8 h-8 animate-spin text-indigo-600" />
+          </div>
           <p className="text-gray-600">Loading organizations...</p>
         </div>
       </div>
