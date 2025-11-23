@@ -10,10 +10,13 @@ from typing import List
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+from fastapi import status as http_status
+
 from ..auth import get_current_active_user
 from ..database import get_db
-from ..models import Expense, Receipt, User
+from ..models import Expense, Receipt, User, OrganizationMember
 from ..services.receipt_ai_service import get_receipt_ai_service
+from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
 
 router = APIRouter(prefix="/api/v1/receipts", tags=["Receipts"])
 
@@ -137,6 +140,33 @@ async def batch_upload_receipts(
 
     if len(files) > 10:
         raise HTTPException(status_code=400, detail="Maximum 10 files per batch")
+
+    # Get user's organization for limit checking
+    membership = (
+        db.query(OrganizationMember)
+        .filter(OrganizationMember.user_id == current_user.id)
+        .first()
+    )
+
+    if membership:
+        # Check OCR limit (hard block for Free tier)
+        try:
+            limit_enforcer = LimitEnforcer(db)
+            limit_enforcer.check_ocr_limit(
+                membership.organization_id, count=len(files), raise_error=True
+            )
+        except LimitExceededError as e:
+            raise HTTPException(
+                status_code=http_status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "error": "limit_exceeded",
+                    "feature": e.feature,
+                    "limit": e.limit,
+                    "current": e.current,
+                    "message": str(e),
+                    "upgrade_message": e.upgrade_message,
+                },
+            )
 
     results = []
     temp_files = []

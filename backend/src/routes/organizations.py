@@ -38,6 +38,7 @@ from ..tenant_context import (
     get_user_organizations,
     verify_organization_access,
 )
+from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
 
 router = APIRouter(prefix="/api/v1/organizations", tags=["Organizations"])
 
@@ -352,6 +353,23 @@ async def create_invitation(
         )
 
     organization = get_organization_or_404(organization_id, db)
+
+    # Check user limit (hard block for Free tier)
+    try:
+        limit_enforcer = LimitEnforcer(db)
+        limit_enforcer.check_user_limit(organization_id, raise_error=True)
+    except LimitExceededError as e:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "error": "limit_exceeded",
+                "feature": e.feature,
+                "limit": e.limit,
+                "current": e.current,
+                "message": str(e),
+                "upgrade_message": e.upgrade_message,
+            },
+        )
 
     # Check if user already a member
     existing_user = db.query(User).filter(User.email == invitation_data.email).first()

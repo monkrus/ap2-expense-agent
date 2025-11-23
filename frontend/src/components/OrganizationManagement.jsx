@@ -39,6 +39,10 @@ const OrganizationManagement = () => {
 
   useEffect(() => {
     if (currentOrg) {
+      // Save to localStorage and dispatch event for other components (like Billing)
+      organizationAPI.setCurrentOrganizationId(currentOrg.id);
+      window.dispatchEvent(new CustomEvent('organizationChanged', { detail: { orgId: currentOrg.id } }));
+
       fetchOrgMembers();
       fetchOrgInvitations();
     }
@@ -49,7 +53,15 @@ const OrganizationManagement = () => {
       setLoading(true);
       const data = await organizationAPI.listOrganizations();
       setOrganizations(data);
-      if (data.length > 0 && !currentOrg) setCurrentOrg(data[0]);
+
+      if (data.length > 0 && !currentOrg) {
+        // Check if there's a saved organization in localStorage
+        const savedOrgId = organizationAPI.getCurrentOrganizationId();
+        const savedOrg = savedOrgId ? data.find(org => org.id === savedOrgId) : null;
+
+        // Use saved org if found, otherwise use first org
+        setCurrentOrg(savedOrg || data[0]);
+      }
     } catch (err) {
       showError('Failed to load organizations');
     } finally {
@@ -317,7 +329,16 @@ const OrganizationManagement = () => {
             <div className="mt-6">
               <select
                 value={currentOrg?.id || ''}
-                onChange={(e) => setCurrentOrg(organizations.find(o => o.id === e.target.value))}
+                onChange={(e) => {
+                  const newOrg = organizations.find(o => o.id === e.target.value);
+                  setCurrentOrg(newOrg);
+
+                  // Save to localStorage and notify other components
+                  if (newOrg) {
+                    organizationAPI.setCurrentOrganizationId(newOrg.id);
+                    window.dispatchEvent(new CustomEvent('organizationChanged', { detail: { organizationId: newOrg.id } }));
+                  }
+                }}
                 className="block w-full max-w-md pl-4 pr-10 py-3 border-gray-300 rounded-lg"
               >
                 {organizations.map(org => (

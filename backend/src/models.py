@@ -110,6 +110,11 @@ class Organization(Base):
     max_members = Column(Integer, nullable=False, default=25)
     max_expenses_per_month = Column(Integer, nullable=True)
 
+    # Stripe integration
+    stripe_customer_id = Column(String(255), nullable=True, index=True)
+    stripe_subscription_id = Column(String(255), nullable=True, index=True)
+    stripe_price_id = Column(String(255), nullable=True)
+
     # Status
     is_active = Column(Boolean, default=True, nullable=False)
 
@@ -825,6 +830,7 @@ class PaymentMandate(Base):
 
 
 class SubscriptionTier(str, enum.Enum):
+    FREE = "free"
     STARTER = "starter"
     PROFESSIONAL = "professional"
     ENTERPRISE = "enterprise"

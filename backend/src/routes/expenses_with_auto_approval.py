@@ -27,6 +27,7 @@ from ..services.approval_policy_service import ApprovalPolicyService
 from ..services.audit_service import AuditService
 from ..services.notification_service import notification_service
 from ..tenant_context import TenantContext
+from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
 
 router = APIRouter()
 
@@ -89,6 +90,23 @@ async def submit_expense_with_auto_approval(
                     db.refresh(default_org)
 
                 organization_id = default_org.id
+
+        # Check expense limit (hard block for Free tier)
+        try:
+            limit_enforcer = LimitEnforcer(db)
+            limit_enforcer.check_expense_limit(organization_id, raise_error=True)
+        except LimitExceededError as e:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "error": "limit_exceeded",
+                    "feature": e.feature,
+                    "limit": e.limit,
+                    "current": e.current,
+                    "message": str(e),
+                    "upgrade_message": e.upgrade_message,
+                },
+            )
 
         # Validate expense amount
         if data.amount <= 0:

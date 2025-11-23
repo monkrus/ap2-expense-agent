@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   CreditCard, TrendingUp, Users, Zap, AlertCircle, ExternalLink,
-  Calendar, DollarSign, BarChart3, ArrowUpRight, Settings, Download, ArrowLeft, RefreshCw
+  Calendar, DollarSign, BarChart3, Download, ArrowLeft, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/useToast';
@@ -31,6 +31,29 @@ const BillingDashboard = () => {
 
   useEffect(() => {
     loadBillingData();
+
+    // Listen for organization changes from other components
+    const handleStorageChange = (e) => {
+      if (e.key === 'currentOrganizationId' && e.newValue !== e.oldValue) {
+        console.log('Organization changed, reloading billing data');
+        loadBillingData();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also listen for custom events (for same-tab changes)
+    const handleOrgChange = () => {
+      console.log('Organization changed (custom event), reloading billing data');
+      loadBillingData();
+    };
+
+    window.addEventListener('organizationChanged', handleOrgChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('organizationChanged', handleOrgChange);
+    };
   }, []);
 
   const loadBillingData = async () => {
@@ -39,19 +62,37 @@ const BillingDashboard = () => {
 
       // Get current organization
       try {
-        const orgId = organizationAPI.getCurrentOrganizationId();
-        if (!orgId) {
+        let orgId = organizationAPI.getCurrentOrganizationId();
+        let org = null;
+
+        // Try to fetch the stored organization
+        if (orgId) {
+          try {
+            org = await organizationAPI.getOrganization(orgId);
+            setOrganization(org);
+          } catch (err) {
+            // Stored org ID is invalid (deleted or no access), clear it
+            console.warn('Stored organization not accessible, fetching new one');
+            organizationAPI.setCurrentOrganizationId(null);
+            orgId = null;
+          }
+        }
+
+        // If no valid org, get first available
+        if (!org) {
           const orgs = await organizationAPI.listOrganizations();
           if (orgs && orgs.length > 0) {
             organizationAPI.setCurrentOrganizationId(orgs[0].id);
             setOrganization(orgs[0]);
+          } else {
+            showError('No organizations found. Please create an organization first.');
+            setLoading(false);
+            return;
           }
-        } else {
-          const org = await organizationAPI.getOrganization(orgId);
-          setOrganization(org);
         }
       } catch (orgErr) {
         console.error('Failed to fetch organizations:', orgErr);
+        showError('Failed to load organization data');
         // Continue loading billing data even if org fetch fails
       }
 
@@ -225,7 +266,7 @@ const BillingDashboard = () => {
               <p className="text-purple-200 text-sm font-medium mb-2">Current Plan</p>
               <h2 className="text-4xl font-bold mb-2">
                 {(() => {
-                  const tierName = subscription?.tier_display_name || subscription?.tier || 'professional';
+                  const tierName = subscription?.tier_display_name || subscription?.tier || 'Free';
                   // Map enterprise_plus to enterprise +
                   if (tierName.toLowerCase() === 'enterprise_plus') return 'enterprise +';
                   return tierName.toLowerCase();
@@ -503,20 +544,49 @@ const BillingDashboard = () => {
         {/* Actions */}
         <div className="flex gap-4 mt-8">
           <button
-            onClick={() => window.print()}
+            onClick={() => {
+              // Generate billing report as CSV
+              const reportData = [
+                ['AP2 Expense Agent - Billing Report'],
+                ['Generated', new Date().toLocaleString()],
+                ['Organization', organization?.name || 'N/A'],
+                [''],
+                ['Current Plan'],
+                ['Tier', subscription?.tier_display_name || subscription?.tier || 'N/A'],
+                ['Monthly Price', `$${estimatedBill.toFixed(2)}`],
+                ['Billing Period', new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })],
+                [''],
+                ['Usage This Month'],
+                ['Active Users', usage?.usage?.active_users?.quantity || 0],
+                ['AI Categorizations', usage?.usage?.ai_categorization?.quantity || 0],
+                ['AP2 Transactions', usage?.usage?.ap2_transaction?.quantity || 0],
+                ['OCR Scans', usage?.usage?.ocr_scan?.quantity || 0],
+                ['Expenses Submitted', usage?.usage?.expense?.quantity || 0],
+                [''],
+                ['Estimated Bill'],
+                ['Base Subscription', `$${estimatedBill.toFixed(2)}`],
+                ['Usage Overages', `$${totalOverage.toFixed(2)}`],
+                ['Total Estimated', `$${totalEstimated.toFixed(2)}`],
+              ];
+
+              const csvContent = reportData.map(row => row.join(',')).join('\n');
+              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `billing-report-${new Date().toISOString().split('T')[0]}.csv`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              success('Billing report exported successfully');
+            }}
             className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             <Download className="w-4 h-4" />
             Export Report
           </button>
 
-          <button
-            onClick={() => window.location.href = '/settings'}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            <Settings className="w-4 h-4" />
-            Billing Settings
-          </button>
         </div>
       </div>
     </div>

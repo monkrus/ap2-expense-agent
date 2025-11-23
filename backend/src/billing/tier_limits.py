@@ -35,6 +35,26 @@ class TierLimits:
 
 # Tier configuration based on MONETIZATION_STRATEGY.md
 TIER_CONFIGS = {
+    SubscriptionTier.FREE: TierLimits(
+        tier=SubscriptionTier.FREE,
+        name="Free",
+        price_monthly=0.00,
+        max_users=1,
+        max_expenses_per_month=20,
+        max_ai_categorizations=0,  # No AI for free tier
+        max_ap2_transactions=0,  # No AP2 for free tier
+        ocr_scans_included=5,
+        data_retention_days=30,
+        priority_support=False,
+        custom_integrations=False,
+        sso_enabled=False,
+        white_label=False,
+        api_access=False,
+        advanced_analytics=False,
+        dedicated_account_manager=False,
+        sla_guarantee=None,
+        support_channels=["docs"],  # Self-serve only
+    ),
     SubscriptionTier.STARTER: TierLimits(
         tier=SubscriptionTier.STARTER,
         name="Starter",
@@ -120,7 +140,7 @@ TIER_CONFIGS = {
 
 def get_tier_limits(tier: SubscriptionTier) -> TierLimits:
     """Get limits for a subscription tier"""
-    return TIER_CONFIGS.get(tier, TIER_CONFIGS[SubscriptionTier.STARTER])
+    return TIER_CONFIGS.get(tier, TIER_CONFIGS[SubscriptionTier.FREE])
 
 
 # Usage overage fees (per MONETIZATION_STRATEGY.md)
