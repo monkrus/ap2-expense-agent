@@ -200,19 +200,19 @@ class UsageTracker:
         return True, total_fee
 
     def _create_default_subscription(self, user_id: str) -> Subscription:
-        """Create a default starter subscription for new user"""
-        limits = get_tier_limits(SubscriptionTier.STARTER)
+        """Create a default FREE subscription for new user"""
+        limits = get_tier_limits(SubscriptionTier.FREE)
 
         subscription = Subscription(
             id=str(uuid.uuid4()),
             user_id=user_id,
-            tier=SubscriptionTier.STARTER,
-            status="trialing",
+            tier=SubscriptionTier.FREE,
+            status="active",  # Free tier is always active (no trial needed)
             max_users=limits.max_users,
             max_expenses_per_month=limits.max_expenses_per_month,
             max_ai_categorizations=limits.max_ai_categorizations,
             max_ap2_transactions=limits.max_ap2_transactions,
-            trial_end=datetime.utcnow() + timedelta(days=14),  # 14-day trial
+            trial_end=None,  # Free tier has no trial
         )
 
         self.db.add(subscription)

@@ -40,7 +40,7 @@ class StripeIntegration:
             )
             logger.info(f"Created Stripe customer: {customer.id} for {email}")
             return customer
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             logger.error(f"Failed to create Stripe customer: {str(e)}")
             raise
 
@@ -79,7 +79,7 @@ class StripeIntegration:
                 f"Created subscription: {subscription.id} for customer: {customer_id}"
             )
             return subscription
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             logger.error(f"Failed to create subscription: {str(e)}")
             raise
 
@@ -115,7 +115,7 @@ class StripeIntegration:
             )
             logger.info(f"Created checkout session: {session.id}")
             return session
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             logger.error(f"Failed to create checkout session: {str(e)}")
             raise
 
@@ -139,7 +139,7 @@ class StripeIntegration:
             )
             logger.info(f"Created portal session for customer: {customer_id}")
             return session
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             logger.error(f"Failed to create portal session: {str(e)}")
             raise
 
@@ -158,7 +158,7 @@ class StripeIntegration:
             subscription = stripe.Subscription.delete(subscription_id)
             logger.info(f"Cancelled subscription: {subscription_id}")
             return subscription
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             logger.error(f"Failed to cancel subscription: {str(e)}")
             raise
 
@@ -194,7 +194,7 @@ class StripeIntegration:
             subscription = stripe.Subscription.modify(subscription_id, **params)
             logger.info(f"Updated subscription: {subscription_id}")
             return subscription
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             logger.error(f"Failed to update subscription: {str(e)}")
             raise
 
@@ -211,7 +211,7 @@ class StripeIntegration:
         """
         try:
             return stripe.Customer.retrieve(customer_id)
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             logger.error(f"Failed to retrieve customer: {str(e)}")
             raise
 
@@ -228,7 +228,7 @@ class StripeIntegration:
         """
         try:
             return stripe.Subscription.retrieve(subscription_id)
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             logger.error(f"Failed to retrieve subscription: {str(e)}")
             raise
 
@@ -258,7 +258,7 @@ class StripeIntegration:
         except ValueError as e:
             logger.error(f"Invalid webhook payload: {str(e)}")
             raise
-        except stripe.error.SignatureVerificationError as e:
+        except stripe.SignatureVerificationError as e:
             logger.error(f"Invalid webhook signature: {str(e)}")
             raise
 
@@ -275,7 +275,7 @@ class StripeIntegration:
         """
         try:
             return stripe.Price.list(active=active)
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             logger.error(f"Failed to list prices: {str(e)}")
             raise
 
@@ -311,6 +311,6 @@ class StripeIntegration:
             payment_intent = stripe.PaymentIntent.create(**params)
             logger.info(f"Created payment intent: {payment_intent.id}")
             return payment_intent
-        except stripe.error.StripeError as e:
+        except stripe.StripeError as e:
             logger.error(f"Failed to create payment intent: {str(e)}")
             raise

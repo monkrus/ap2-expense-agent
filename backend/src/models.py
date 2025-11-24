@@ -847,7 +847,7 @@ class Subscription(Base):
     tier = Column(
         StringEnum(SubscriptionTier),
         nullable=False,
-        default=SubscriptionTier.STARTER.value,
+        default=SubscriptionTier.FREE.value,
     )
     status = Column(
         String(50), nullable=False, default="active", index=True

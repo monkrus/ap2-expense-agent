@@ -25,6 +25,7 @@ router = APIRouter(prefix="/api/payment", tags=["payment"])
 
 # Initialize Stripe
 stripe.api_key = settings.stripe_secret_key
+# Reload trigger for portal-session endpoint
 
 
 @router.post("/setup-intent")
@@ -84,7 +85,7 @@ async def create_setup_intent(
             "customer_id": organization.stripe_customer_id,
         }
 
-    except stripe.error.StripeError as e:
+    except stripe.StripeError as e:
         logger.error(f"Stripe error creating setup intent: {e}")
         raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
     except Exception as e:
@@ -255,7 +256,7 @@ async def create_subscription(
             "tier": tier_name,
         }
 
-    except stripe.error.StripeError as e:
+    except stripe.StripeError as e:
         logger.error(f"Stripe error creating subscription: {e}")
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
@@ -270,6 +271,7 @@ async def create_subscription(
 @router.post("/checkout-session")
 async def create_checkout_session(
     tier_name: str,
+    billing_cycle: str = "monthly",
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -277,8 +279,19 @@ async def create_checkout_session(
     Create a Stripe Checkout session for subscription signup
 
     This provides a hosted checkout page for easier payment collection
+
+    Args:
+        tier_name: Billing tier (starter, professional, enterprise)
+        billing_cycle: "monthly" or "annual"
     """
     try:
+        # Validate billing cycle
+        if billing_cycle not in ["monthly", "annual"]:
+            raise HTTPException(
+                status_code=400,
+                detail="billing_cycle must be 'monthly' or 'annual'",
+            )
+
         # Get user's organization
         membership = (
             db.query(OrganizationMember)
@@ -301,18 +314,21 @@ async def create_checkout_session(
             .first()
         )
 
-        # Get Stripe price ID
+        # Get Stripe price ID based on tier and billing cycle
         price_id_map = {
-            "starter": settings.stripe_price_id_starter,
-            "professional": settings.stripe_price_id_professional,
-            "enterprise": settings.stripe_price_id_enterprise,
+            ("starter", "monthly"): settings.stripe_price_id_starter_monthly,
+            ("starter", "annual"): settings.stripe_price_id_starter_annual,
+            ("professional", "monthly"): settings.stripe_price_id_professional_monthly,
+            ("professional", "annual"): settings.stripe_price_id_professional_annual,
+            ("enterprise", "monthly"): settings.stripe_price_id_enterprise_monthly,
+            ("enterprise", "annual"): settings.stripe_price_id_enterprise_annual,
         }
 
-        price_id = price_id_map.get(tier_name.lower())
+        price_id = price_id_map.get((tier_name.lower(), billing_cycle))
         if not price_id:
             raise HTTPException(
                 status_code=400,
-                detail=f"Stripe pricing not configured for tier '{tier_name}'",
+                detail=f"Stripe pricing not configured for tier '{tier_name}' with {billing_cycle} billing",
             )
 
         # Create or get Stripe customer
@@ -335,12 +351,12 @@ async def create_checkout_session(
             price_id=price_id,
             success_url=f"{frontend_url}/billing?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{frontend_url}/pricing",
-            metadata={"organization_id": organization.id, "tier_name": tier_name},
+            metadata={"organization_id": organization.id, "tier_name": tier_name, "billing_cycle": billing_cycle},
         )
 
-        return {"session_id": session.id, "url": session.url}
+        return {"session_id": session.id, "url": session.url, "billing_cycle": billing_cycle}
 
-    except stripe.error.StripeError as e:
+    except stripe.StripeError as e:
         logger.error(f"Stripe error creating checkout session: {e}")
         raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
     except Exception as e:
@@ -375,10 +391,21 @@ async def create_portal_session(
             .first()
         )
 
-        if not organization or not organization.stripe_customer_id:
-            raise HTTPException(
-                status_code=400, detail="No Stripe customer found for organization"
+        if not organization:
+            raise HTTPException(status_code=404, detail="Organization not found")
+
+        # Create Stripe customer if not exists
+        if not organization.stripe_customer_id:
+            customer = StripeIntegration.create_customer(
+                email=current_user.email,
+                name=organization.name,
+                metadata={
+                    "organization_id": organization.id,
+                    "user_id": current_user.id,
+                },
             )
+            organization.stripe_customer_id = customer.id
+            db.commit()
 
         # Create portal session
         frontend_url = settings.frontend_url or "http://localhost:5173"
@@ -389,7 +416,7 @@ async def create_portal_session(
 
         return {"url": session.url}
 
-    except stripe.error.StripeError as e:
+    except stripe.StripeError as e:
         logger.error(f"Stripe error creating portal session: {e}")
         raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
     except Exception as e:
@@ -428,7 +455,7 @@ async def stripe_webhook(
                 event = stripe.Webhook.construct_event(
                     payload, stripe_signature, settings.stripe_webhook_secret
                 )
-            except stripe.error.SignatureVerificationError as e:
+            except stripe.SignatureVerificationError as e:
                 logger.error(f"Stripe webhook signature verification failed: {e}")
                 raise HTTPException(status_code=400, detail="Invalid signature")
 

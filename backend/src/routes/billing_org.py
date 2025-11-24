@@ -137,6 +137,16 @@ def get_monthly_usage(
             db.query(BillingTier).filter(BillingTier.id == subscription.tier_id).first()
         )
 
+    # Count active organization members
+    active_members_count = (
+        db.query(func.count(OrganizationMember.id))
+        .filter(
+            OrganizationMember.organization_id == org_id,
+            OrganizationMember.is_active == True,
+        )
+        .scalar()
+    )
+
     # Aggregate usage by type
     usage_by_type = {}
     for metric in usage_metrics:
@@ -196,6 +206,15 @@ def get_monthly_usage(
                 "overage": int(overage) if overage else 0,
                 "overage_fee": float(overage_fee),
             }
+
+        # Add active users count to usage details
+        max_users = limits.get("max_users")
+        usage_details["active_users"] = {
+            "quantity": active_members_count,
+            "limit": max_users,
+            "overage": 0,
+            "overage_fee": 0.0,
+        }
     else:
         # No tier limits, just return usage
         for usage_type, quantity in usage_by_type.items():
@@ -205,6 +224,14 @@ def get_monthly_usage(
                 "overage": 0,
                 "overage_fee": 0.0,
             }
+
+        # Add active users count even when no tier
+        usage_details["active_users"] = {
+            "quantity": active_members_count,
+            "limit": None,
+            "overage": 0,
+            "overage_fee": 0.0,
+        }
 
     return {
         "period_start": period_start,

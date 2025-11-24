@@ -19,7 +19,7 @@ const api = axios.create({
 
 // Add auth token to all requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -59,13 +59,15 @@ const paymentAPI = {
    *
    * This provides a hosted checkout page
    *
-   * @param {string} tierName - Tier name
-   * @returns {Promise<{session_id: string, url: string}>}
+   * @param {string} tierName - Tier name (starter, professional, enterprise)
+   * @param {string} billingCycle - Billing cycle ('monthly' or 'annual')
+   * @returns {Promise<{session_id: string, url: string, billing_cycle: string}>}
    */
-  createCheckoutSession: async (tierName) => {
+  createCheckoutSession: async (tierName, billingCycle = 'monthly') => {
     const response = await api.post('/api/payment/checkout-session', null, {
       params: {
         tier_name: tierName,
+        billing_cycle: billingCycle,
       },
     });
     return response.data;

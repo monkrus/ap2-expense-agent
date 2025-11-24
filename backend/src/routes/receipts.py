@@ -149,11 +149,16 @@ async def batch_upload_receipts(
     )
 
     if membership:
-        # Check OCR limit (hard block for Free tier)
+        # Check OCR limits (hard block for Free tier)
         try:
             limit_enforcer = LimitEnforcer(db)
+            # Check monthly OCR limit
             limit_enforcer.check_ocr_limit(
                 membership.organization_id, count=len(files), raise_error=True
+            )
+            # Check daily rate limit (anti-abuse for Free tier)
+            limit_enforcer.check_daily_rate_limit(
+                membership.organization_id, "ocr_scan", raise_error=True
             )
         except LimitExceededError as e:
             raise HTTPException(

@@ -91,10 +91,15 @@ async def submit_expense_with_auto_approval(
 
                 organization_id = default_org.id
 
-        # Check expense limit (hard block for Free tier)
+        # Check expense limits (hard block for Free tier)
         try:
             limit_enforcer = LimitEnforcer(db)
+            # Check monthly expense limit
             limit_enforcer.check_expense_limit(organization_id, raise_error=True)
+            # Check daily rate limit (anti-abuse for Free tier)
+            limit_enforcer.check_daily_rate_limit(
+                organization_id, "expense", raise_error=True
+            )
         except LimitExceededError as e:
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,

@@ -16,6 +16,7 @@ import RecurringExpenses from '../pages/RecurringExpenses';
 import BudgetManagement from '../pages/BudgetManagement';
 import NotificationCenter from './NotificationCenter';
 import BatchReceiptUpload from './BatchReceiptUpload';
+import { UpgradeBanner, UsageLimitWarning, SidebarUpgradeCard } from './upsell';
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
@@ -710,9 +711,56 @@ const AdminDashboard = () => {
   console.log('[AdminDashboard] Render - allExpenses:', allExpenses.length);
   console.log('[AdminDashboard] Render - currentExpenses:', currentExpenses.length);
 
+  // Determine if user is on free/starter plan for upsells
+  const isFreePlan = !subscription || subscription?.tier?.toLowerCase() === 'free';
+  const isStarterPlan = subscription?.tier?.toLowerCase() === 'starter';
+  const showUpsells = isFreePlan || isStarterPlan;
+
+  // Calculate usage percentages for upsell warnings
+  const getUsagePercent = (type) => {
+    if (!monthlyUsage?.usage_by_type || !subscription?.limits) return 0;
+    const usage = monthlyUsage.usage_by_type[type]?.count || 0;
+    const limit = subscription.limits[`max_${type}`];
+    if (!limit) return 0;
+    return Math.round((usage / limit) * 100);
+  };
+
+  const aiUsagePercent = getUsagePercent('ai_categorizations');
+  const expenseUsagePercent = getUsagePercent('expenses_per_month');
+
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${getBackgroundGradient()} p-6`}>
+    <div className={`min-h-screen bg-gradient-to-br ${getBackgroundGradient()}`}>
+      {/* Upsell Banner - Show for free/starter users */}
+      {showUpsells && (
+        <UpgradeBanner
+          variant={isFreePlan ? 'upgrade' : aiUsagePercent >= 80 ? 'limit' : 'upgrade'}
+          usagePercent={aiUsagePercent >= 80 ? aiUsagePercent : null}
+          feature={aiUsagePercent >= 80 ? 'AI categorizations' : null}
+        />
+      )}
+
+      <div className="p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Usage Warnings */}
+        {showUpsells && monthlyUsage && (
+          <div className="mb-4 space-y-3">
+            {aiUsagePercent >= 70 && (
+              <UsageLimitWarning
+                feature="AI categorizations"
+                currentUsage={monthlyUsage.usage_by_type?.ai_categorizations?.count || 0}
+                limit={subscription?.limits?.max_ai_categorizations || 100}
+              />
+            )}
+            {expenseUsagePercent >= 70 && (
+              <UsageLimitWarning
+                feature="expenses"
+                currentUsage={monthlyUsage.usage_by_type?.expenses_per_month?.count || 0}
+                limit={subscription?.limits?.max_expenses_per_month || 500}
+              />
+            )}
+          </div>
+        )}
+
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           {/* Title Row */}
@@ -1804,6 +1852,7 @@ const AdminDashboard = () => {
             onCancel={() => setShowBatchUpload(false)}
           />
         )}
+      </div>
       </div>
     </div>
   );

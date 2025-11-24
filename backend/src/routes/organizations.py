@@ -21,7 +21,10 @@ from ..models import (
     OrganizationMember,
     OrganizationRole,
     User,
+    Subscription,
+    SubscriptionTier,
 )
+from ..billing.tier_limits import get_tier_limits
 from ..schemas import (
     OrganizationCreate,
     OrganizationInvitationCreate,
@@ -66,6 +69,40 @@ async def create_organization(
             detail="Organization slug already taken",
         )
 
+    # Anti-abuse: Free tier users can only own ONE organization
+    user_subscription = (
+        db.query(Subscription)
+        .filter(Subscription.user_id == current_user.id)
+        .filter(Subscription.status.in_(["active", "trialing"]))
+        .first()
+    )
+
+    # Check if user is on Free tier (no subscription = Free, or explicit Free tier)
+    is_free_tier = (
+        not user_subscription or user_subscription.tier == SubscriptionTier.FREE
+    )
+
+    if is_free_tier:
+        # Count how many organizations user already owns
+        owned_orgs_count = (
+            db.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == current_user.id)
+            .filter(OrganizationMember.role == OrganizationRole.OWNER)
+            .filter(OrganizationMember.is_active == True)
+            .count()
+        )
+
+        if owned_orgs_count >= 1:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "error": "Free tier limit reached",
+                    "message": "Free tier allows only 1 organization. Upgrade to create more.",
+                    "upgrade_required": True,
+                    "current_limit": 1,
+                },
+            )
+
     # Create organization
     organization = Organization(
         id=str(uuid.uuid4()),
@@ -89,6 +126,30 @@ async def create_organization(
         is_active=True,
     )
     db.add(membership)
+
+    # Check if user already has a subscription
+    existing_subscription = (
+        db.query(Subscription)
+        .filter(Subscription.user_id == current_user.id)
+        .filter(Subscription.status.in_(["active", "trialing"]))
+        .first()
+    )
+
+    # Create explicit Free subscription if none exists
+    if not existing_subscription:
+        free_limits = get_tier_limits(SubscriptionTier.FREE)
+        subscription = Subscription(
+            id=str(uuid.uuid4()),
+            user_id=current_user.id,
+            tier=SubscriptionTier.FREE,
+            status="active",
+            max_users=free_limits.max_users,
+            max_expenses_per_month=free_limits.max_expenses_per_month,
+            max_ai_categorizations=free_limits.max_ai_categorizations,
+            max_ap2_transactions=free_limits.max_ap2_transactions,
+        )
+        db.add(subscription)
+
     db.commit()
     db.refresh(organization)
 

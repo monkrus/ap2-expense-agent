@@ -23,7 +23,9 @@ from .routes.ap2 import router as ap2_router
 from .routes.billing import router as billing_router
 from .routes.billing_org import router as billing_org_router
 from .routes.gcp_webhooks import router as gcp_webhooks_router
+from .routes.notifications import router as notifications_router
 from .routes.organizations import router as organizations_router
+from .routes.payment import router as payment_router  # Payment endpoints - reload trigger
 from .routes.receipts import router as receipts_router
 from .routes.webhooks import router as webhooks_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
@@ -99,9 +101,11 @@ app.include_router(organizations_router)
 # Include billing and payment routers
 app.include_router(billing_router)
 app.include_router(billing_org_router)  # Organization-based billing
+app.include_router(payment_router)
 app.include_router(ap2_router)
 app.include_router(webhooks_router)
 app.include_router(receipts_router)
+app.include_router(notifications_router)
 
 # Include GCP Marketplace webhooks
 app.include_router(gcp_webhooks_router)
@@ -223,8 +227,31 @@ async def submit_expense(
 
         from .models import Expense, ExpenseStatus
         from .tenant_context import TenantContext
+        from .billing.limit_enforcer import LimitEnforcer, LimitExceededError
 
         organization_id = get_organization_context(current_user, db)
+
+        # Check expense limits (hard block for Free tier)
+        try:
+            limit_enforcer = LimitEnforcer(db)
+            # Check monthly expense limit
+            limit_enforcer.check_expense_limit(organization_id, raise_error=True)
+            # Check daily rate limit (anti-abuse for Free tier)
+            limit_enforcer.check_daily_rate_limit(
+                organization_id, "expense", raise_error=True
+            )
+        except LimitExceededError as e:
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "error": "limit_exceeded",
+                    "feature": e.feature,
+                    "limit": e.limit,
+                    "current": e.current,
+                    "message": str(e),
+                    "upgrade_message": e.upgrade_message,
+                },
+            )
 
         # Parse expense date or use current date
         if data.date:
@@ -308,6 +335,9 @@ async def submit_expense(
             },
             "message": "Expense submitted successfully",
         }
+    except HTTPException:
+        # Re-raise HTTP exceptions (including 402 for limit exceeded)
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
@@ -434,6 +464,131 @@ async def get_expense_statistics(
         "total": float(total),
         "count": int(count),
         "organization_id": membership.organization_id,
+    }
+
+
+@app.get("/api/v1/expenses/all-pending")
+async def get_all_pending_expenses(
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
+):
+    """Get all pending expenses from all users (admin/manager only)"""
+    from .models import Expense, ExpenseStatus
+    from .models import User as UserModel
+
+    # Check permission to view all expenses
+    check_permission(
+        current_user.role, Permission.EXPENSE_VIEW_ALL, raise_exception=True
+    )
+
+    # Get all pending expenses with user information
+    expenses = db.query(Expense).filter(Expense.status == ExpenseStatus.PENDING).all()
+
+    # Get user details for each expense
+    result = []
+    for e in expenses:
+        user = db.query(UserModel).filter(UserModel.id == e.user_id).first()
+        result.append(
+            {
+                "id": e.id,
+                "amount": float(e.amount),
+                "vendor": e.vendor,
+                "category": e.category,
+                "description": e.description,
+                "status": e.status.value,
+                "date": e.date.isoformat() if e.date else None,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+                "user_id": e.user_id,
+                "user_email": user.email if user else "Unknown",
+                "user_name": user.full_name if user else "Unknown",
+            }
+        )
+
+    return {
+        "pending_count": len(result),
+        "total_amount": sum(e["amount"] for e in result),
+        "expenses": result,
+    }
+
+
+@app.get("/api/v1/expenses/all")
+async def get_all_expenses(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+    status: Optional[str] = None,
+):
+    """Get all expenses from all users with optional status filter (admin/manager only)"""
+    import logging
+
+    from .models import Expense, ExpenseStatus
+    from .models import User as UserModel
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"[get_all_expenses] Called with status filter: {status}")
+
+    # Check permission to view all expenses
+    check_permission(
+        current_user.role, Permission.EXPENSE_VIEW_ALL, raise_exception=True
+    )
+
+    # Build query - exclude withdrawn by default
+    query = db.query(Expense).filter(Expense.status != ExpenseStatus.WITHDRAWN)
+
+    # Apply status filter if provided
+    if status and status != "all":
+        try:
+            status_enum = ExpenseStatus(status.lower())
+            logger.info(f"[get_all_expenses] Filtering by status enum: {status_enum}")
+            query = query.filter(Expense.status == status_enum)
+        except ValueError:
+            logger.warning(f"[get_all_expenses] Invalid status value: {status}")
+            pass  # Invalid status, ignore filter
+
+    # Get all expenses ordered by creation date (newest first)
+    expenses = query.order_by(Expense.created_at.desc()).all()
+    logger.info(f"[get_all_expenses] Found {len(expenses)} expenses")
+
+    # Get user details for each expense and include approver info
+    result = []
+    for e in expenses:
+        user = db.query(UserModel).filter(UserModel.id == e.user_id).first()
+        approver = None
+        if e.approved_by:
+            approver = db.query(UserModel).filter(UserModel.id == e.approved_by).first()
+
+        result.append(
+            {
+                "id": e.id,
+                "amount": float(e.amount),
+                "vendor": e.vendor,
+                "category": e.category,
+                "description": e.description,
+                "status": e.status.value,
+                "date": e.date.isoformat() if e.date else None,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+                "approved_at": e.approved_at.isoformat() if e.approved_at else None,
+                "transaction_id": e.transaction_id,
+                "rejection_reason": e.rejection_reason,
+                "user_id": e.user_id,
+                "user_email": user.email if user else "Unknown",
+                "user_name": user.full_name if user else "Unknown",
+                "approved_by_name": approver.full_name if approver else None,
+                "approved_by_email": approver.email if approver else None,
+            }
+        )
+
+    # Calculate stats
+    total_amount = sum(e["amount"] for e in result)
+    pending_count = sum(1 for e in result if e["status"] == "pending")
+    approved_count = sum(1 for e in result if e["status"] == "approved")
+    rejected_count = sum(1 for e in result if e["status"] == "rejected")
+
+    return {
+        "total_count": len(result),
+        "total_amount": total_amount,
+        "pending_count": pending_count,
+        "approved_count": approved_count,
+        "rejected_count": rejected_count,
+        "expenses": result,
     }
 
 
@@ -806,134 +961,6 @@ async def withdraw_expense(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.get("/api/v1/expenses/all-pending")
-async def get_all_pending_expenses(
-    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
-):
-    """Get all pending expenses from all users (admin/manager only)"""
-    from .models import Expense, ExpenseStatus
-    from .models import User as UserModel
-    from .models import UserRole
-
-    # Check permission to view all expenses
-    check_permission(
-        current_user.role, Permission.EXPENSE_VIEW_ALL, raise_exception=True
-    )
-
-    # Get all pending expenses with user information
-    expenses = db.query(Expense).filter(Expense.status == ExpenseStatus.PENDING).all()
-
-    # Get user details for each expense
-    result = []
-    for e in expenses:
-        user = db.query(UserModel).filter(UserModel.id == e.user_id).first()
-        result.append(
-            {
-                "id": e.id,
-                "amount": float(e.amount),
-                "vendor": e.vendor,
-                "category": e.category,
-                "description": e.description,
-                "status": e.status.value,
-                "date": e.date.isoformat() if e.date else None,
-                "created_at": e.created_at.isoformat() if e.created_at else None,
-                "user_id": e.user_id,
-                "user_email": user.email if user else "Unknown",
-                "user_name": user.full_name if user else "Unknown",
-            }
-        )
-
-    return {
-        "pending_count": len(result),
-        "total_amount": sum(e["amount"] for e in result),
-        "expenses": result,
-    }
-
-
-@app.get("/api/v1/expenses/all")
-async def get_all_expenses(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db),
-    status: Optional[str] = None,
-):
-    """Get all expenses from all users with optional status filter (admin/manager only)"""
-    # Reload trigger
-    import logging
-
-    from .models import Expense, ExpenseStatus
-    from .models import User as UserModel
-    from .models import UserRole
-
-    logger = logging.getLogger(__name__)
-    logger.info(f"[get_all_expenses] Called with status filter: {status}")
-
-    # Check permission to view all expenses
-    check_permission(
-        current_user.role, Permission.EXPENSE_VIEW_ALL, raise_exception=True
-    )
-
-    # Build query - exclude withdrawn by default
-    query = db.query(Expense).filter(Expense.status != ExpenseStatus.WITHDRAWN)
-
-    # Apply status filter if provided
-    if status and status != "all":
-        try:
-            status_enum = ExpenseStatus(status.lower())
-            logger.info(f"[get_all_expenses] Filtering by status enum: {status_enum}")
-            query = query.filter(Expense.status == status_enum)
-        except ValueError:
-            logger.warning(f"[get_all_expenses] Invalid status value: {status}")
-            pass  # Invalid status, ignore filter
-
-    # Get all expenses ordered by creation date (newest first)
-    expenses = query.order_by(Expense.created_at.desc()).all()
-    logger.info(f"[get_all_expenses] Found {len(expenses)} expenses")
-
-    # Get user details for each expense and include approver info
-    result = []
-    for e in expenses:
-        user = db.query(UserModel).filter(UserModel.id == e.user_id).first()
-        approver = None
-        if e.approved_by:
-            approver = db.query(UserModel).filter(UserModel.id == e.approved_by).first()
-
-        result.append(
-            {
-                "id": e.id,
-                "amount": float(e.amount),
-                "vendor": e.vendor,
-                "category": e.category,
-                "description": e.description,
-                "status": e.status.value,
-                "date": e.date.isoformat() if e.date else None,
-                "created_at": e.created_at.isoformat() if e.created_at else None,
-                "approved_at": e.approved_at.isoformat() if e.approved_at else None,
-                "transaction_id": e.transaction_id,
-                "rejection_reason": e.rejection_reason,
-                "user_id": e.user_id,
-                "user_email": user.email if user else "Unknown",
-                "user_name": user.full_name if user else "Unknown",
-                "approved_by_name": approver.full_name if approver else None,
-                "approved_by_email": approver.email if approver else None,
-            }
-        )
-
-    # Calculate stats
-    total_amount = sum(e["amount"] for e in result)
-    pending_count = sum(1 for e in result if e["status"] == "pending")
-    approved_count = sum(1 for e in result if e["status"] == "approved")
-    rejected_count = sum(1 for e in result if e["status"] == "rejected")
-
-    return {
-        "total_count": len(result),
-        "total_amount": total_amount,
-        "pending_count": pending_count,
-        "approved_count": approved_count,
-        "rejected_count": rejected_count,
-        "expenses": result,
-    }
 
 
 @app.get("/api/v1/expenses/report")

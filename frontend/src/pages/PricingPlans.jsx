@@ -219,7 +219,7 @@ const PricingPlans = () => {
     fetchCurrentPlan();
   }, [user]);
 
-  const handleSelectPlan = async (tierId) => {
+  const handleSelectPlan = async (tierId, selectedBillingCycle = 'monthly') => {
     // Free tier - just redirect to signup/dashboard
     if (tierId === 'free') {
       if (!user) {
@@ -232,13 +232,14 @@ const PricingPlans = () => {
 
     if (!user) {
       localStorage.setItem('intended_plan', tierId);
+      localStorage.setItem('intended_billing_cycle', selectedBillingCycle);
       window.location.href = '/login?redirect=pricing';
       return;
     }
 
     try {
       setProcessingTier(tierId);
-      const { url } = await paymentAPI.createCheckoutSession(tierId);
+      const { url } = await paymentAPI.createCheckoutSession(tierId, selectedBillingCycle);
       window.location.href = url;
     } catch (err) {
       showError(err.response?.data?.detail || 'Failed to start checkout. Please try again.');
@@ -316,7 +317,7 @@ const PricingPlans = () => {
           </div>
 
           {/* Current Selection Indicator */}
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm font-semibold text-gray-700 mb-4">
             {billingCycle === 'annual'
               ? 'Billed annually (save 17%)'
               : 'Billed monthly'}
@@ -426,14 +427,14 @@ const PricingPlans = () => {
                       {tier.id === 'free'
                         ? 'Forever free'
                         : billingCycle === 'annual'
-                        ? `Save $${annualSavings}/year`
+                        ? `$${tier.annualPrice * 12}/year (save $${annualSavings})`
                         : `or $${tier.annualPrice}/mo annually`}
                     </p>
                   </div>
 
                   {/* CTA Button */}
                   <button
-                    onClick={() => !isCurrentPlan && handleSelectPlan(tier.id)}
+                    onClick={() => !isCurrentPlan && handleSelectPlan(tier.id, billingCycle)}
                     disabled={isProcessing || isCurrentPlan}
                     className={`w-full py-3 px-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 text-sm ${
                       isCurrentPlan
@@ -616,7 +617,7 @@ const PricingPlans = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button
-              onClick={() => handleSelectPlan('professional')}
+              onClick={() => handleSelectPlan('professional', billingCycle)}
               className="bg-white text-indigo-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all hover:shadow-lg inline-flex items-center gap-2"
             >
               Start Free Trial
