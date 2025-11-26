@@ -152,7 +152,30 @@ class ExpenseSubmission(BaseModel):
     def validate_amount(cls, v):
         if v <= 0:
             raise ValueError("Amount must be positive")
+        # Security: Prevent unreasonably large amounts (max $1,000,000 per expense)
+        if v > 1000000:
+            raise ValueError("Amount cannot exceed $1,000,000 per expense")
         return v
+
+    @validator("description")
+    def sanitize_description(cls, v):
+        """Sanitize description to prevent XSS attacks"""
+        import html
+        # HTML escape any dangerous characters
+        sanitized = html.escape(v)
+        # Also limit length
+        if len(sanitized) > 1000:
+            raise ValueError("Description cannot exceed 1000 characters")
+        return sanitized
+
+    @validator("vendor")
+    def sanitize_vendor(cls, v):
+        """Sanitize vendor name to prevent XSS attacks"""
+        import html
+        sanitized = html.escape(v)
+        if len(sanitized) > 200:
+            raise ValueError("Vendor name cannot exceed 200 characters")
+        return sanitized
 
     @validator("category")
     def validate_category(cls, v):

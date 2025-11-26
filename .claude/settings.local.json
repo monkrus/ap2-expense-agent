@@ -39,7 +39,17 @@
       "Bash(__NEW_LINE__ echo \"=== TEST 3: Check usage summary ===\")",
       "Bash(__NEW_LINE__ echo \"=== TEST 4: Submit first expense (should succeed) ===\")",
       "Bash(__NEW_LINE__ echo \"Expense 2:\")",
-      "Bash(__NEW_LINE__ echo \"Expenses 4-10:\")"
+      "Bash(__NEW_LINE__ echo \"Expenses 4-10:\")",
+      "Bash(git shortlog:*)",
+      "Bash(git log:*)",
+      "Bash(xargs cat:*)",
+      "Bash(python -m uvicorn:*)",
+      "Bash(timeout:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(ping:*)",
+      "Bash(python:*)",
+      "Bash(venvScriptsactivate)"
     ],
     "deny": [],
     "ask": []

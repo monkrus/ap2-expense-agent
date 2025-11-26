@@ -342,41 +342,61 @@ def get_usage_summary(
     Returns tier info, current usage, limits, and warnings.
     Useful for displaying usage dashboards and limit warnings to users.
     """
-    # Get user's organization
-    if not organization_id:
-        membership = (
+    # Get user's organization membership
+    membership = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.user_id == current_user.id,
+            OrganizationMember.is_active == True,
+        )
+        .first()
+    )
+
+    # Security: If organization_id is provided, verify user has access to it FIRST
+    # This check must happen BEFORE the early return for users without orgs
+    if organization_id:
+        # Check if user is a member of the requested organization
+        has_access = (
             db.query(OrganizationMember)
             .filter(
                 OrganizationMember.user_id == current_user.id,
+                OrganizationMember.organization_id == organization_id,
                 OrganizationMember.is_active == True,
             )
             .first()
         )
+        if not has_access:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have access to this organization"
+            )
 
-        if not membership:
-            # Return default Free tier info for users without organizations
-            free_limits = get_tier_limits(SubscriptionTier.FREE)
-            return {
-                "tier": "free",
-                "tier_name": "Free",
-                "is_free_tier": True,
-                "usage": {
-                    "expenses": {"current": 0, "limit": 20, "percentage": 0, "warning": False, "blocked": False},
-                    "users": {"current": 0, "limit": 1, "percentage": 0, "warning": False, "blocked": False},
-                    "ai_categorizations": {"current": 0, "limit": 0, "percentage": 0, "warning": True, "blocked": True},
-                    "ocr_scans": {"current": 0, "limit": 5, "percentage": 0, "warning": False, "blocked": False},
-                    "ap2_transactions": {"current": 0, "limit": 0, "percentage": 0, "warning": True, "blocked": True},
-                },
-                "features": {
-                    "api_access": False,
-                    "sso_enabled": False,
-                    "custom_integrations": False,
-                    "advanced_analytics": False,
-                    "priority_support": False,
-                },
-                "data_retention_days": 30,
-            }
+    if not membership:
+        # Return default Free tier info for users without organizations
+        free_limits = get_tier_limits(SubscriptionTier.FREE)
+        return {
+            "tier": "free",
+            "tier_name": "Free",
+            "is_free_tier": True,
+            "usage": {
+                "expenses": {"current": 0, "limit": 20, "percentage": 0, "warning": False, "blocked": False},
+                "users": {"current": 0, "limit": 1, "percentage": 0, "warning": False, "blocked": False},
+                "ai_categorizations": {"current": 0, "limit": 0, "percentage": 0, "warning": True, "blocked": True},
+                "ocr_scans": {"current": 0, "limit": 5, "percentage": 0, "warning": False, "blocked": False},
+                "ap2_transactions": {"current": 0, "limit": 0, "percentage": 0, "warning": True, "blocked": True},
+            },
+            "features": {
+                "api_access": False,
+                "sso_enabled": False,
+                "custom_integrations": False,
+                "advanced_analytics": False,
+                "priority_support": False,
+            },
+            "data_retention_days": 30,
+        }
 
+    if not organization_id:
+        # Use user's first organization
         organization_id = membership.organization_id
 
     # Get usage summary from LimitEnforcer

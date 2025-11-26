@@ -16,6 +16,7 @@ class TierLimits:
     name: str
     price_monthly: float
     max_users: int
+    max_organizations: Optional[int]  # None = unlimited
     max_expenses_per_month: Optional[int]  # None = unlimited
     max_ai_categorizations: Optional[int]
     max_ap2_transactions: Optional[int]
@@ -40,6 +41,7 @@ TIER_CONFIGS = {
         name="Free",
         price_monthly=0.00,
         max_users=1,
+        max_organizations=1,
         max_expenses_per_month=20,
         max_ai_categorizations=0,  # No AI for free tier
         max_ap2_transactions=0,  # No AP2 for free tier
@@ -60,6 +62,7 @@ TIER_CONFIGS = {
         name="Starter",
         price_monthly=29.00,
         max_users=5,
+        max_organizations=3,
         max_expenses_per_month=50,
         max_ai_categorizations=100,
         max_ap2_transactions=10,  # Let them try AP2!
@@ -80,6 +83,7 @@ TIER_CONFIGS = {
         name="Pro",
         price_monthly=99.00,
         max_users=25,
+        max_organizations=10,
         max_expenses_per_month=None,  # Unlimited
         max_ai_categorizations=2000,
         max_ap2_transactions=50,
@@ -100,6 +104,7 @@ TIER_CONFIGS = {
         name="Enterprise",
         price_monthly=399.00,
         max_users=100,
+        max_organizations=25,
         max_expenses_per_month=None,  # Unlimited
         max_ai_categorizations=None,  # Unlimited
         max_ap2_transactions=None,  # Unlimited
@@ -120,6 +125,7 @@ TIER_CONFIGS = {
         name="Enterprise +",
         price_monthly=999.00,  # Starting price, custom negotiated
         max_users=None,  # Unlimited
+        max_organizations=None,  # Unlimited
         max_expenses_per_month=None,  # Unlimited
         max_ai_categorizations=None,  # Unlimited
         max_ap2_transactions=None,  # Unlimited

@@ -3,6 +3,7 @@ Organization Management API Routes
 Handles multi-tenancy, organization creation, member management, and invitations
 """
 
+import logging
 import secrets
 import uuid
 from datetime import datetime, timedelta
@@ -10,6 +11,8 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from ..auth import get_current_active_user
 from ..cache import invalidate_user_cache
@@ -83,21 +86,27 @@ async def create_organization(
     )
 
     if is_free_tier:
-        # Count how many organizations user already owns
+        # Count how many ACTIVE organizations user already owns
+        # Join with Organization table to ensure we only count active orgs
         owned_orgs_count = (
             db.query(OrganizationMember)
+            .join(Organization, OrganizationMember.organization_id == Organization.id)
             .filter(OrganizationMember.user_id == current_user.id)
             .filter(OrganizationMember.role == OrganizationRole.OWNER)
             .filter(OrganizationMember.is_active == True)
+            .filter(Organization.is_active == True)  # Only count active organizations
             .count()
         )
 
+        logger.info(f"Free tier check: user={current_user.username}, owned_orgs_count={owned_orgs_count}")
+
         if owned_orgs_count >= 1:
+            logger.warning(f"Free tier limit reached for user={current_user.username}, count={owned_orgs_count}")
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail={
                     "error": "Free tier limit reached",
-                    "message": "Free tier allows only 1 organization. Upgrade to create more.",
+                    "message": "Cannot create a second organization on the Free tier.",
                     "upgrade_required": True,
                     "current_limit": 1,
                 },

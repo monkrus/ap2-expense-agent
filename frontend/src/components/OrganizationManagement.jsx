@@ -100,7 +100,28 @@ const OrganizationManagement = () => {
       setShowCreateOrgModal(false);
       setCreateOrgForm({ name: '', slug: '', description: '', currency: 'USD', timezone: 'UTC' });
     } catch (err) {
-      showError(err.message);
+      // Handle Free tier limit (402 Payment Required)
+      if (err.status === 402) {
+        const errorData = err.data || {};
+        const message = errorData.message || 'Cannot create a second organization on the Free tier.';
+
+        // Show friendly error message
+        showError(message);
+
+        // Show upgrade dialog
+        const shouldUpgrade = confirm(
+          `Free Tier Limit\n\n` +
+          `You can't create a second organization on the Free tier.\n\n` +
+          `Upgrade to a paid plan for more organizations.\n\n` +
+          `View pricing plans?`
+        );
+
+        if (shouldUpgrade) {
+          window.location.href = '/pricing';
+        }
+      } else {
+        showError(err.message);
+      }
     } finally {
       setProcessing(false);
     }
@@ -314,13 +335,15 @@ const OrganizationManagement = () => {
             </div>
             {/* Only show Create button in header if organizations exist */}
             {organizations.length > 0 && (
-              <button
-                onClick={() => setShowCreateOrgModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-              >
-                <Plus className="w-5 h-5" />
-                Create Organization
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowCreateOrgModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                >
+                  <Plus className="w-5 h-5" />
+                  Create Organization
+                </button>
+              </div>
             )}
           </div>
 

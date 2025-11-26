@@ -82,6 +82,16 @@ export const createOrganization = async (data) => {
 
   if (!response.ok) {
     const error = await response.json();
+
+    // Handle 402 Payment Required - Free tier limit
+    if (response.status === 402) {
+      const errorData = typeof error.detail === 'object' ? error.detail : { message: error.detail };
+      const customError = new Error(errorData.message || 'Payment required');
+      customError.status = 402;
+      customError.data = errorData;
+      throw customError;
+    }
+
     throw new Error(error.detail || 'Failed to create organization');
   }
 
