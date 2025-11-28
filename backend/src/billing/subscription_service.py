@@ -200,12 +200,30 @@ class SubscriptionService:
                 "current_period_start": None,
                 "current_period_end": None,
                 "trial_end": None,
+                "cancel_at": None,
                 "limits": None,
                 "stripe_customer_id": None,
                 "stripe_subscription_id": None,
             }
 
         limits = get_tier_limits(subscription.tier)
+
+        # Get cancel_at from Stripe if available
+        cancel_at = None
+        if subscription.stripe_subscription_id:
+            try:
+                import stripe
+                import os
+
+                stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+                stripe_sub = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
+
+                # Check if subscription is scheduled to be canceled
+                if stripe_sub.get("cancel_at"):
+                    cancel_at = datetime.fromtimestamp(stripe_sub["cancel_at"])
+            except Exception as e:
+                # Log error but don't fail the request
+                print(f"Error fetching Stripe cancel_at: {e}")
 
         return {
             "has_subscription": True,
@@ -215,6 +233,7 @@ class SubscriptionService:
             "current_period_start": subscription.current_period_start,
             "current_period_end": subscription.current_period_end,
             "trial_end": subscription.trial_end,
+            "cancel_at": cancel_at,
             "limits": {
                 "max_users": limits.max_users,
                 "max_expenses_per_month": limits.max_expenses_per_month,

@@ -49,7 +49,12 @@
       "Bash(findstr:*)",
       "Bash(ping:*)",
       "Bash(python:*)",
-      "Bash(venvScriptsactivate)"
+      "Bash(venvScriptsactivate)",
+      "Bash(tasklist:*)",
+      "Bash(PYTHONPATH=. python -m uvicorn:*)",
+      "Bash(.venv/Scripts/uvicorn.exe:*)",
+      "Bash(.venv/Scripts/python.exe -m uvicorn:*)",
+      "Bash(.venv/Scripts/python.exe:*)"
     ],
     "deny": [],
     "ask": []

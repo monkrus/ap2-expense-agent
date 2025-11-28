@@ -120,27 +120,6 @@ TIER_CONFIGS = {
         sla_guarantee="99.9%",
         support_channels=["email", "chat", "phone", "slack"],
     ),
-    SubscriptionTier.ENTERPRISE_PLUS: TierLimits(
-        tier=SubscriptionTier.ENTERPRISE_PLUS,
-        name="Enterprise +",
-        price_monthly=999.00,  # Starting price, custom negotiated
-        max_users=None,  # Unlimited
-        max_organizations=None,  # Unlimited
-        max_expenses_per_month=None,  # Unlimited
-        max_ai_categorizations=None,  # Unlimited
-        max_ap2_transactions=None,  # Unlimited
-        ocr_scans_included=None,  # Unlimited
-        data_retention_days=365,
-        priority_support=True,
-        custom_integrations=True,
-        sso_enabled=True,
-        white_label=True,
-        api_access=True,
-        advanced_analytics=True,
-        dedicated_account_manager=True,
-        sla_guarantee="99.99%",
-        support_channels=["email", "chat", "phone", "slack", "dedicated"],
-    ),
 }
 
 

@@ -64,15 +64,33 @@ async def create_organization(
 ):
     """Create a new organization"""
 
-    # Check if slug is already taken
-    existing = db.query(Organization).filter(Organization.slug == org_data.slug).first()
-    if existing:
+    # Check if slug is already taken (only check ACTIVE organizations)
+    existing_slug = (
+        db.query(Organization)
+        .filter(Organization.slug == org_data.slug)
+        .filter(Organization.is_active == True)
+        .first()
+    )
+    if existing_slug:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Organization slug already taken",
         )
 
-    # Anti-abuse: Free tier users can only own ONE organization
+    # Check if name is already taken (case-insensitive, only ACTIVE organizations)
+    existing_name = (
+        db.query(Organization)
+        .filter(func.lower(Organization.name) == func.lower(org_data.name))
+        .filter(Organization.is_active == True)
+        .first()
+    )
+    if existing_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization name already taken",
+        )
+
+    # Get user's subscription tier
     user_subscription = (
         db.query(Subscription)
         .filter(Subscription.user_id == current_user.id)
@@ -80,35 +98,43 @@ async def create_organization(
         .first()
     )
 
-    # Check if user is on Free tier (no subscription = Free, or explicit Free tier)
-    is_free_tier = (
-        not user_subscription or user_subscription.tier == SubscriptionTier.FREE
-    )
+    # Determine tier (no subscription = Free tier)
+    user_tier = user_subscription.tier if user_subscription else SubscriptionTier.FREE
+    tier_limits = get_tier_limits(user_tier)
 
-    if is_free_tier:
+    # Check organization limit for this tier
+    if tier_limits.max_organizations is not None:
         # Count how many ACTIVE organizations user already owns
-        # Join with Organization table to ensure we only count active orgs
         owned_orgs_count = (
             db.query(OrganizationMember)
             .join(Organization, OrganizationMember.organization_id == Organization.id)
             .filter(OrganizationMember.user_id == current_user.id)
             .filter(OrganizationMember.role == OrganizationRole.OWNER)
             .filter(OrganizationMember.is_active == True)
-            .filter(Organization.is_active == True)  # Only count active organizations
+            .filter(Organization.is_active == True)
             .count()
         )
 
-        logger.info(f"Free tier check: user={current_user.username}, owned_orgs_count={owned_orgs_count}")
+        logger.info(
+            f"Organization limit check: user={current_user.username}, "
+            f"tier={user_tier.value}, owned_orgs={owned_orgs_count}, "
+            f"limit={tier_limits.max_organizations}"
+        )
 
-        if owned_orgs_count >= 1:
-            logger.warning(f"Free tier limit reached for user={current_user.username}, count={owned_orgs_count}")
+        if owned_orgs_count >= tier_limits.max_organizations:
+            logger.warning(
+                f"Organization limit reached: user={current_user.username}, "
+                f"count={owned_orgs_count}, limit={tier_limits.max_organizations}"
+            )
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail={
-                    "error": "Free tier limit reached",
-                    "message": "Cannot create a second organization on the Free tier.",
+                    "error": "Organization limit reached",
+                    "message": f"You have reached the maximum of {tier_limits.max_organizations} organization(s) for your {tier_limits.name} plan.",
                     "upgrade_required": True,
-                    "current_limit": 1,
+                    "current_tier": user_tier.value,
+                    "current_limit": tier_limits.max_organizations,
+                    "current_count": owned_orgs_count,
                 },
             )
 
@@ -158,6 +184,33 @@ async def create_organization(
             max_ap2_transactions=free_limits.max_ap2_transactions,
         )
         db.add(subscription)
+
+    # Create Free tier organization subscription for the new organization
+    from ..models_billing import BillingTier, OrganizationSubscription
+    from datetime import datetime, timedelta
+
+    # Get Free tier
+    free_tier = db.query(BillingTier).filter(BillingTier.tier_name == "free").first()
+    if not free_tier:
+        # Log error but don't fail - organization creation should still succeed
+        logger.warning(f"Free tier not found in billing_tiers table. Organization {organization.id} created without subscription.")
+    else:
+        now = datetime.utcnow()
+        org_subscription = OrganizationSubscription(
+            id=f"sub_{uuid.uuid4().hex[:12]}",
+            organization_id=organization.id,
+            tier_id=free_tier.id,
+            tier_name="free",
+            status="active",
+            billing_period_start=now,
+            billing_period_end=now + timedelta(days=30),
+            next_billing_date=now + timedelta(days=30),
+            is_trial=False,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(org_subscription)
+        logger.info(f"Created Free tier subscription for organization {organization.id}")
 
     db.commit()
     db.refresh(organization)
@@ -252,8 +305,13 @@ async def delete_organization(
         .all()
     )
 
-    # Soft delete
+    # Soft delete organization AND its members
     organization.is_active = False
+
+    # Also deactivate all organization members
+    for member in members:
+        member.is_active = False
+
     db.commit()
 
     # Invalidate cache for all members

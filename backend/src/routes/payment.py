@@ -18,6 +18,7 @@ from ..database import get_db
 from ..integrations.stripe_integration import StripeIntegration
 from ..models import Organization, OrganizationMember, User
 from ..models_billing import BillingEvent, BillingTier, OrganizationSubscription
+from ..rate_limit import RateLimits, limiter
 
 logger = logging.getLogger(__name__)
 
@@ -269,7 +270,9 @@ async def create_subscription(
 
 
 @router.post("/checkout-session")
+@limiter.limit(RateLimits.CHECKOUT)
 async def create_checkout_session(
+    request: Request,
     tier_name: str,
     billing_cycle: str = "monthly",
     current_user: User = Depends(get_current_user),
@@ -314,6 +317,36 @@ async def create_checkout_session(
             .first()
         )
 
+        # SAFEGUARD 1: Check if organization already has an active Stripe subscription
+        if organization.stripe_subscription_id:
+            try:
+                # Verify the subscription still exists and is active in Stripe
+                existing_sub = stripe.Subscription.retrieve(organization.stripe_subscription_id)
+                if existing_sub.status in ['active', 'trialing', 'past_due']:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Organization already has an active subscription. Please cancel your current subscription before subscribing to a new plan, or use the billing portal to change your plan."
+                    )
+            except stripe.error.InvalidRequestError:
+                # Subscription doesn't exist in Stripe anymore, safe to continue
+                logger.warning(f"Stripe subscription {organization.stripe_subscription_id} not found, allowing new checkout")
+                pass
+
+        # SAFEGUARD 2: Check for existing active subscription in database
+        existing_db_sub = (
+            db.query(OrganizationSubscription)
+            .filter(
+                OrganizationSubscription.organization_id == organization.id,
+                OrganizationSubscription.status.in_(['active', 'trialing'])
+            )
+            .first()
+        )
+        if existing_db_sub:
+            raise HTTPException(
+                status_code=400,
+                detail="Organization already has an active subscription. Please manage your subscription through the billing dashboard."
+            )
+
         # Get Stripe price ID based on tier and billing cycle
         price_id_map = {
             ("starter", "monthly"): settings.stripe_price_id_starter_monthly,
@@ -344,15 +377,25 @@ async def create_checkout_session(
             organization.stripe_customer_id = customer.id
             db.commit()
 
-        # Create checkout session
+        # SAFEGUARD 3: Create checkout session with idempotency key to prevent duplicate sessions
         frontend_url = settings.frontend_url or "http://localhost:5173"
-        session = StripeIntegration.create_checkout_session(
-            customer_id=organization.stripe_customer_id,
-            price_id=price_id,
+
+        # Generate idempotency key based on org + tier + billing cycle
+        # This ensures the same request can't create multiple checkout sessions
+        import hashlib
+        idempotency_data = f"{organization.id}:{tier_name}:{billing_cycle}:{datetime.utcnow().strftime('%Y-%m-%d-%H')}"
+        idempotency_key = hashlib.sha256(idempotency_data.encode()).hexdigest()[:32]
+
+        session = stripe.checkout.Session.create(
+            customer=organization.stripe_customer_id,
+            line_items=[{"price": price_id, "quantity": 1}],
+            mode="subscription",
             success_url=f"{frontend_url}/billing?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{frontend_url}/pricing",
             metadata={"organization_id": organization.id, "tier_name": tier_name, "billing_cycle": billing_cycle},
+            idempotency_key=idempotency_key,
         )
+        logger.info(f"Created checkout session {session.id} with idempotency key {idempotency_key}")
 
         return {"session_id": session.id, "url": session.url, "billing_cycle": billing_cycle}
 

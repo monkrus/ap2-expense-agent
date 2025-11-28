@@ -48,5 +48,9 @@ class RateLimits:
     # Admin endpoints
     ADMIN = "30/minute"  # 30 admin operations per minute
 
+    # Payment endpoints (strict limits to prevent duplicate charges)
+    CHECKOUT = "3/hour"  # Maximum 3 checkout attempts per hour per user
+    SUBSCRIPTION = "5/hour"  # 5 subscription operations per hour
+
     # Heavy operations
     HEAVY = "10/minute"  # 10 heavy operations per minute (e.g., reports, exports)

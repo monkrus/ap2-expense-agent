@@ -275,12 +275,30 @@ const BillingDashboard = () => {
               <p className="text-2xl font-semibold mb-4">
                 ${estimatedBill.toFixed(2)} <span className="text-lg font-normal text-indigo-200">/month</span>
               </p>
-              <div className="flex items-center gap-2 text-purple-100">
-                <Calendar className="w-4 h-4" />
-                <span className="text-sm">
-                  Billing period: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </span>
-              </div>
+              {subscription?.cancel_at ? (
+                <div className="bg-orange-500/20 border border-orange-300/30 rounded-lg px-4 py-3 mb-2">
+                  <div className="flex items-center gap-2 text-white">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-sm">Subscription Scheduled to Cancel</p>
+                      <p className="text-sm text-purple-100">
+                        Expires on {new Date(subscription.cancel_at).toLocaleDateString('en-US', {
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-purple-100">
+                  <Calendar className="w-4 h-4" />
+                  <span className="text-sm">
+                    Billing period: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
             </div>
 
             {!subscription?.gcp_entitlement_id && (

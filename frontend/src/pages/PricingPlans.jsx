@@ -34,6 +34,7 @@ const PRICING_TIERS = [
     annualPrice: 0,
     features: {
       users: '1 user',
+      organizations: '1 organization',
       expenses: '20 expenses/month',
       aiCategorization: 'No AI',
       receiptScanning: '5 OCR scans',
@@ -66,6 +67,7 @@ const PRICING_TIERS = [
     annualPrice: 24,
     features: {
       users: '5 users',
+      organizations: '3 organizations',
       expenses: '50 expenses/month',
       aiCategorization: '100 AI categorizations',
       receiptScanning: '50 OCR scans',
@@ -100,6 +102,7 @@ const PRICING_TIERS = [
     annualPrice: 82,
     features: {
       users: '25 users',
+      organizations: '10 organizations',
       expenses: 'Unlimited expenses',
       aiCategorization: '2,000 AI categorizations',
       receiptScanning: '500 OCR scans',
@@ -134,6 +137,7 @@ const PRICING_TIERS = [
     annualPrice: 332,
     features: {
       users: '100 users',
+      organizations: '25 organizations',
       expenses: 'Unlimited expenses',
       aiCategorization: 'Unlimited AI',
       receiptScanning: 'Unlimited OCR',
@@ -157,6 +161,7 @@ const FEATURE_CATEGORIES = [
     name: 'Usage Limits',
     features: [
       { name: 'Team members', key: 'users' },
+      { name: 'Organizations', key: 'organizations' },
       { name: 'Monthly expenses', key: 'expenses' },
       { name: 'AI categorizations', key: 'aiCategorization' },
       { name: 'Receipt scanning (OCR)', key: 'receiptScanning' },
@@ -220,6 +225,12 @@ const PricingPlans = () => {
   }, [user]);
 
   const handleSelectPlan = async (tierId, selectedBillingCycle = 'monthly') => {
+    // SAFEGUARD: Prevent multiple simultaneous checkout attempts
+    if (processingTier) {
+      console.warn('Checkout already in progress, ignoring duplicate request');
+      return;
+    }
+
     // Free tier - just redirect to signup/dashboard
     if (tierId === 'free') {
       if (!user) {
@@ -240,10 +251,12 @@ const PricingPlans = () => {
     try {
       setProcessingTier(tierId);
       const { url } = await paymentAPI.createCheckoutSession(tierId, selectedBillingCycle);
+      // Redirect to Stripe checkout
       window.location.href = url;
     } catch (err) {
-      showError(err.response?.data?.detail || 'Failed to start checkout. Please try again.');
-      console.error(err);
+      const errorMessage = err.response?.data?.detail || 'Failed to start checkout. Please try again.';
+      showError(errorMessage);
+      console.error('Checkout error:', err);
       setProcessingTier(null);
     }
   };

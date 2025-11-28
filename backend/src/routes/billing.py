@@ -40,6 +40,7 @@ class SubscriptionResponse(BaseModel):
     current_period_start: Optional[datetime]
     current_period_end: Optional[datetime]
     trial_end: Optional[datetime]
+    cancel_at: Optional[datetime]  # When subscription will be canceled
     limits: Optional[dict]
     stripe_customer_id: Optional[str]
     stripe_subscription_id: Optional[str]

@@ -70,6 +70,23 @@ def get_organization_subscription(
     # Get tier details
     tier = db.query(BillingTier).filter(BillingTier.id == subscription.tier_id).first()
 
+    # Get cancel_at from Stripe if available
+    cancel_at = None
+    if subscription.stripe_subscription_id:
+        try:
+            import stripe
+            import os
+
+            stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+            stripe_sub = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
+
+            # Check if subscription is scheduled to be canceled
+            if stripe_sub.get("cancel_at"):
+                cancel_at = datetime.fromtimestamp(stripe_sub["cancel_at"])
+        except Exception as e:
+            # Log error but don't fail the request
+            print(f"Error fetching Stripe cancel_at: {e}")
+
     return {
         "has_subscription": True,
         "subscription_id": subscription.id,
@@ -80,6 +97,7 @@ def get_organization_subscription(
         "billing_period_start": subscription.billing_period_start,
         "billing_period_end": subscription.billing_period_end,
         "next_billing_date": subscription.next_billing_date,
+        "cancel_at": cancel_at,
         "is_trial": subscription.is_trial,
         "trial_end": subscription.trial_end,
         "limits": tier.limits if tier else {},
