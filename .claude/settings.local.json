@@ -54,7 +54,11 @@
       "Bash(PYTHONPATH=. python -m uvicorn:*)",
       "Bash(.venv/Scripts/uvicorn.exe:*)",
       "Bash(.venv/Scripts/python.exe -m uvicorn:*)",
-      "Bash(.venv/Scripts/python.exe:*)"
+      "Bash(.venv/Scripts/python.exe:*)",
+      "Bash(npm audit:*)",
+      "Bash(if not exist \".github\" mkdir .github)",
+      "Bash(npm run build:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

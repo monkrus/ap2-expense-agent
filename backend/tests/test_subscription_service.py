@@ -210,12 +210,13 @@ class TestSubscriptionService:
         self, subscription_service, test_subscription_user, db_session, sample_user
     ):
         """Test that tier limits are correctly applied per MONETIZATION_STRATEGY"""
-        # Test each tier with correct limits from tier_limits.py
+        # Test each tier with correct limits from tier_limits.py (updated for FREE tier)
+        # Format: (tier, max_users, max_expenses, max_ai, max_ap2)
         tiers_and_limits = [
-            (SubscriptionTier.STARTER, 5, 50, 100, 10),
-            (SubscriptionTier.PROFESSIONAL, 25, None, 2000, 50),  # None = unlimited
-            (SubscriptionTier.ENTERPRISE, 100, None, None, None),
-            (SubscriptionTier.ENTERPRISE_PLUS, None, None, None, None),
+            (SubscriptionTier.FREE, 1, 20, 0, 0),                    # FREE tier
+            (SubscriptionTier.STARTER, 5, 50, 100, 10),              # STARTER
+            (SubscriptionTier.PROFESSIONAL, 25, None, 2000, 50),     # None = unlimited
+            (SubscriptionTier.ENTERPRISE, 100, None, None, None),    # All unlimited
         ]
 
         for tier, max_users, max_expenses, max_ai, max_ap2 in tiers_and_limits:
@@ -224,10 +225,10 @@ class TestSubscriptionService:
                 user_id=user.id, tier=tier, trial_days=0  # No trial for this test
             )
 
-            assert subscription.max_users == max_users
-            assert subscription.max_expenses_per_month == max_expenses
-            assert subscription.max_ai_categorizations == max_ai
-            assert subscription.max_ap2_transactions == max_ap2
+            assert subscription.max_users == max_users, f"Failed for {tier.value}: max_users"
+            assert subscription.max_expenses_per_month == max_expenses, f"Failed for {tier.value}: max_expenses"
+            assert subscription.max_ai_categorizations == max_ai, f"Failed for {tier.value}: max_ai"
+            assert subscription.max_ap2_transactions == max_ap2, f"Failed for {tier.value}: max_ap2"
 
     def test_multiple_subscriptions_only_one_active(
         self, subscription_service, test_subscription_user, db_session

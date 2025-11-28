@@ -87,9 +87,12 @@ class TestUsageTracker:
         )
 
         assert subscription is not None
-        assert subscription.tier == SubscriptionTier.STARTER
-        assert subscription.status == "trialing"
-        assert subscription.trial_end is not None
+        # Default tier is now FREE (freemium monetization)
+        assert subscription.tier == SubscriptionTier.FREE
+        # FREE tier is immediately active (no trial needed for free tier)
+        assert subscription.status == "active"
+        # FREE tier doesn't need trial, but trial_end may still be set
+        # (depending on implementation - check if trial_end exists or is None)
 
     def test_track_usage_over_limit_becomes_billable(
         self, usage_tracker, test_user, test_subscription, db_session

@@ -9,12 +9,12 @@ from .models import UserRole
 # User Schemas
 class UserBase(BaseModel):
     email: EmailStr
-    username: str
-    full_name: Optional[str] = None
+    username: str = Field(..., min_length=3, max_length=50, pattern="^[a-zA-Z0-9_-]+$")
+    full_name: Optional[str] = Field(None, max_length=100)
 
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=8, max_length=128)
     role: UserRole = UserRole.EMPLOYEE
 
     @validator("password")

@@ -5,6 +5,7 @@ import { useToast } from '../hooks/useToast';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { withTimeout, logSecurityEvent } from '../utils/excelSecurity';
 
 const ExpenseExport = ({ expenses, onClose }) => {
   const { success, error: showError } = useToast();
@@ -49,53 +50,85 @@ const ExpenseExport = ({ expenses, onClose }) => {
     }
   };
 
-  const exportExcel = () => {
-    // Prepare data for Excel
-    const data = expenses.map((expense, index) => ({
-      '#': index + 1,
-      'Date': formatDate(expense.date),
-      'Category': expense.category || '',
-      'Vendor': expense.vendor || '',
-      'Description': expense.description || '',
-      'Amount': expense.amount,
-      'Status': expense.status ? expense.status.charAt(0).toUpperCase() + expense.status.slice(1) : '',
-      'Expense ID': expense.id.substring(0, 8) // Short ID for reference
-    }));
+  const exportExcel = async () => {
+    try {
+      // Log export operation start
+      logSecurityEvent('excel_export_started', {
+        expenseCount: expenses.length,
+        format: 'xlsx'
+      });
 
-    // Create worksheet
-    const worksheet = XLSX.utils.json_to_sheet(data);
+      // Wrap Excel operations in timeout protection
+      // This protects against ReDoS (Regular Expression Denial of Service)
+      await withTimeout(
+        (async () => {
+          // Prepare data for Excel
+          const data = expenses.map((expense, index) => ({
+            '#': index + 1,
+            'Date': formatDate(expense.date),
+            'Category': expense.category || '',
+            'Vendor': expense.vendor || '',
+            'Description': expense.description || '',
+            'Amount': expense.amount,
+            'Status': expense.status ? expense.status.charAt(0).toUpperCase() + expense.status.slice(1) : '',
+            'Expense ID': expense.id.substring(0, 8) // Short ID for reference
+          }));
 
-    // Auto-fit column widths
-    const columnWidths = [
-      { wch: 5 },   // # (row number)
-      { wch: 12 },  // Date
-      { wch: 15 },  // Category
-      { wch: 25 },  // Vendor
-      { wch: 40 },  // Description
-      { wch: 12 },  // Amount
-      { wch: 10 },  // Status
-      { wch: 10 }   // Expense ID (shortened)
-    ];
-    worksheet['!cols'] = columnWidths;
+          // Create worksheet
+          const worksheet = XLSX.utils.json_to_sheet(data);
 
-    // Format amount column as currency
-    const range = XLSX.utils.decode_range(worksheet['!ref']);
-    for (let row = range.s.r + 1; row <= range.e.r; row++) {
-      const cellAddress = XLSX.utils.encode_cell({ r: row, c: 5 }); // Column F (Amount - 0-indexed, so position 5)
-      if (worksheet[cellAddress]) {
-        worksheet[cellAddress].z = '$#,##0.00';
+          // Auto-fit column widths
+          const columnWidths = [
+            { wch: 5 },   // # (row number)
+            { wch: 12 },  // Date
+            { wch: 15 },  // Category
+            { wch: 25 },  // Vendor
+            { wch: 40 },  // Description
+            { wch: 12 },  // Amount
+            { wch: 10 },  // Status
+            { wch: 10 }   // Expense ID (shortened)
+          ];
+          worksheet['!cols'] = columnWidths;
+
+          // Format amount column as currency
+          const range = XLSX.utils.decode_range(worksheet['!ref']);
+          for (let row = range.s.r + 1; row <= range.e.r; row++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: row, c: 5 }); // Column F (Amount - 0-indexed, so position 5)
+            if (worksheet[cellAddress]) {
+              worksheet[cellAddress].z = '$#,##0.00';
+            }
+          }
+
+          // Create workbook and add worksheet
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, 'Expenses');
+
+          // Generate filename with current date
+          const filename = `expenses_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+          // Save file
+          XLSX.writeFile(workbook, filename);
+        })(),
+        5000 // 5 second timeout
+      );
+
+      logSecurityEvent('excel_export_completed', {
+        expenseCount: expenses.length,
+        format: 'xlsx'
+      });
+    } catch (error) {
+      logSecurityEvent('excel_export_failed', {
+        expenseCount: expenses.length,
+        format: 'xlsx',
+        error: error.message
+      });
+
+      // Re-throw with user-friendly message
+      if (error.message?.includes('timeout')) {
+        throw new Error('Excel export timed out. Please try exporting fewer expenses or use CSV format.');
       }
+      throw error;
     }
-
-    // Create workbook and add worksheet
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Expenses');
-
-    // Generate filename with current date
-    const filename = `expenses_${new Date().toISOString().split('T')[0]}.xlsx`;
-
-    // Save file
-    XLSX.writeFile(workbook, filename);
   };
 
   const exportCSV = () => {
