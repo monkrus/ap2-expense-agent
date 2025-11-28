@@ -14,7 +14,8 @@ from fastapi.security import (
     HTTPBearer,
     OAuth2PasswordBearer,
 )
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
@@ -121,7 +122,7 @@ class AuthService:
                 token, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
             )
             return payload
-        except JWTError:
+        except InvalidTokenError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
