@@ -505,7 +505,11 @@ async def stripe_webhook(
         logger.info(f"Received Stripe webhook: {event.type}")
 
         # Handle different event types
-        if event.type == "customer.subscription.created":
+        if event.type == "checkout.session.completed":
+            session = event.data.object
+            await handle_checkout_completed(session, db)
+
+        elif event.type == "customer.subscription.created":
             subscription = event.data.object
             await handle_subscription_created(subscription, db)
 
@@ -532,6 +536,139 @@ async def stripe_webhook(
     except Exception as e:
         logger.error(f"Error processing Stripe webhook: {e}")
         raise HTTPException(status_code=500, detail="Webhook processing failed")
+
+
+async def handle_checkout_completed(session, db: Session):
+    """Handle checkout.session.completed event - CRITICAL for subscription activation"""
+    try:
+        logger.info(f"Processing checkout.session.completed: {session.id}")
+
+        # Extract metadata from checkout session
+        metadata = session.metadata
+        organization_id = metadata.get("organization_id")
+        tier_name = metadata.get("tier_name")
+        billing_cycle = metadata.get("billing_cycle", "monthly")
+
+        if not organization_id or not tier_name:
+            logger.error(f"Missing metadata in checkout session {session.id}: org_id={organization_id}, tier={tier_name}")
+            return
+
+        # Find organization
+        organization = (
+            db.query(Organization)
+            .filter(Organization.id == organization_id)
+            .first()
+        )
+
+        if not organization:
+            logger.error(f"Organization {organization_id} not found for checkout session {session.id}")
+            return
+
+        # Update organization with Stripe IDs
+        organization.stripe_customer_id = session.customer
+        organization.stripe_subscription_id = session.subscription
+
+        # Get or create billing tier
+        tier = (
+            db.query(BillingTier)
+            .filter(BillingTier.tier_name == tier_name.lower())
+            .first()
+        )
+
+        if not tier:
+            logger.warning(f"Billing tier '{tier_name}' not found, creating default")
+            # Create default tier (should be seeded in production)
+            tier = BillingTier(
+                id=f"tier_{uuid.uuid4().hex[:12]}",
+                tier_name=tier_name.lower(),
+                display_name=tier_name.capitalize(),
+                base_price_monthly=0,  # Will be updated from Stripe
+                limits={},
+                features=[],
+            )
+            db.add(tier)
+            db.flush()
+
+        # Create or update organization subscription
+        org_sub = (
+            db.query(OrganizationSubscription)
+            .filter(OrganizationSubscription.organization_id == organization_id)
+            .first()
+        )
+
+        # Determine if trial (check if subscription has trial in Stripe)
+        is_trial = False
+        trial_end = None
+        if session.subscription:
+            try:
+                stripe_sub = stripe.Subscription.retrieve(session.subscription)
+                if stripe_sub.trial_end:
+                    is_trial = True
+                    trial_end = datetime.fromtimestamp(stripe_sub.trial_end)
+            except Exception as e:
+                logger.warning(f"Could not retrieve subscription details: {e}")
+
+        now = datetime.utcnow()
+
+        if org_sub:
+            # Update existing subscription
+            logger.info(f"Updating existing subscription for org {organization_id}")
+            org_sub.tier_id = tier.id
+            org_sub.tier_name = tier_name.lower()
+            org_sub.status = "trialing" if is_trial else "active"
+            org_sub.billing_period_start = now
+            org_sub.is_trial = is_trial
+            org_sub.trial_end = trial_end
+            org_sub.additional_metadata = {
+                "billing_cycle": billing_cycle,
+                "checkout_session_id": session.id,
+                "activated_at": now.isoformat(),
+            }
+        else:
+            # Create new subscription
+            logger.info(f"Creating new subscription for org {organization_id}")
+            org_sub = OrganizationSubscription(
+                id=f"sub_{uuid.uuid4().hex[:12]}",
+                organization_id=organization_id,
+                tier_id=tier.id,
+                tier_name=tier_name.lower(),
+                status="trialing" if is_trial else "active",
+                billing_period_start=now,
+                is_trial=is_trial,
+                trial_end=trial_end,
+                additional_metadata={
+                    "billing_cycle": billing_cycle,
+                    "checkout_session_id": session.id,
+                    "activated_at": now.isoformat(),
+                },
+            )
+            db.add(org_sub)
+
+        # Log billing event
+        event = BillingEvent(
+            id=f"event_{uuid.uuid4().hex[:12]}",
+            organization_id=organization_id,
+            event_type="checkout_completed",
+            event_data={
+                "checkout_session_id": session.id,
+                "tier_name": tier_name,
+                "billing_cycle": billing_cycle,
+                "stripe_customer_id": session.customer,
+                "stripe_subscription_id": session.subscription,
+                "is_trial": is_trial,
+                "trial_end": trial_end.isoformat() if trial_end else None,
+                "amount_total": session.amount_total / 100 if session.amount_total else 0,
+            },
+            status="success",
+        )
+        db.add(event)
+
+        db.commit()
+        logger.info(f"Successfully processed checkout for org {organization_id}: tier={tier_name}, status={org_sub.status}")
+
+    except Exception as e:
+        logger.error(f"Error handling checkout.session.completed: {e}", exc_info=True)
+        db.rollback()
 
 
 async def handle_subscription_created(subscription, db: Session):
