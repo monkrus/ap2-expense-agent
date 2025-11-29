@@ -6,6 +6,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/useToast';
 import organizationAPI from '../services/organizationAPI';
+import UpgradePrompt from './upsell/UpgradePrompt';
 
 const OrganizationManagement = () => {
   const { user } = useAuth();
@@ -23,6 +24,8 @@ const OrganizationManagement = () => {
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showEditOrgModal, setShowEditOrgModal] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [upgradeTierInfo, setUpgradeTierInfo] = useState(null);
 
   // Forms
   const [createOrgForm, setCreateOrgForm] = useState({
@@ -103,22 +106,20 @@ const OrganizationManagement = () => {
       // Handle Free tier limit (402 Payment Required)
       if (err.status === 402) {
         const errorData = err.data || {};
-        const message = errorData.message || 'Cannot create a second organization on the Free tier.';
 
-        // Show friendly error message
-        showError(message);
+        // Store tier info for upgrade prompt
+        setUpgradeTierInfo({
+          currentTier: errorData.current_tier || 'free',
+          currentLimit: errorData.current_limit || 1,
+          currentCount: errorData.current_count || 1,
+          message: errorData.message || 'You have reached your organization limit.'
+        });
 
-        // Show upgrade dialog
-        const shouldUpgrade = confirm(
-          `Free Tier Limit\n\n` +
-          `You can't create a second organization on the Free tier.\n\n` +
-          `Upgrade to a paid plan for more organizations.\n\n` +
-          `View pricing plans?`
-        );
+        // Close create modal
+        setShowCreateOrgModal(false);
 
-        if (shouldUpgrade) {
-          window.location.href = '/pricing';
-        }
+        // Show upgrade prompt modal
+        setShowUpgradePrompt(true);
       } else {
         showError(err.message);
       }
@@ -974,6 +975,18 @@ const OrganizationManagement = () => {
           </div>
         </Modal>
       )}
+
+      {/* Upgrade Prompt for Organization Limit */}
+      <UpgradePrompt
+        isOpen={showUpgradePrompt}
+        onClose={() => setShowUpgradePrompt(false)}
+        feature="Multiple Organizations"
+        currentUsage={upgradeTierInfo?.currentCount}
+        limit={upgradeTierInfo?.currentLimit}
+        title="Organization Limit Reached"
+        description={upgradeTierInfo?.message || "Upgrade to create more organizations and unlock additional features."}
+        recommendedPlan="Starter"
+      />
     </div>
   );
 };
