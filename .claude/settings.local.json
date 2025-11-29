@@ -76,7 +76,10 @@
       "Bash(cmd.exe /c \"stripe-login.bat\")",
       "Bash(/c/Users/robot/AppData/Local/Temp/chocolatey/ChocolateyScratch/stripe-cli/1.33.0/tools/stripe.exe --version)",
       "Bash(/c/Users/robot/AppData/Local/Temp/chocolatey/ChocolateyScratch/stripe-cli/1.33.0/tools/stripe.exe config:*)",
-      "Bash(/c/Users/robot/AppData/Local/Temp/chocolatey/ChocolateyScratch/stripe-cli/1.33.0/tools/stripe.exe listen --forward-to localhost:8000/api/payment/webhooks/stripe --print-secret)"
+      "Bash(/c/Users/robot/AppData/Local/Temp/chocolatey/ChocolateyScratch/stripe-cli/1.33.0/tools/stripe.exe listen --forward-to localhost:8000/api/payment/webhooks/stripe --print-secret)",
+      "Bash(alembic upgrade:*)",
+      "Bash(alembic heads:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []
