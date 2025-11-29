@@ -341,6 +341,10 @@ export default {
   updateOrganization,
   deleteOrganization,
 
+  // Validation
+  checkNameAvailability,
+  checkSlugAvailability,
+
   // Members
   listMembers,
   updateMemberRole,

@@ -142,9 +142,17 @@ def setup_logging(
         # If error file logging fails, continue without it
         logging.warning(f"Could not set up error file logging: {e}")
 
-    # Set levels for specific loggers
-    logging.getLogger("uvicorn").setLevel(logging.INFO)
+    # Set levels for specific loggers to reduce noise
+    logging.getLogger("uvicorn").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
+
+    # Suppress verbose SQLAlchemy logs (only show warnings and errors)
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.orm").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.dialects").setLevel(logging.WARNING)
+
     logging.getLogger("fastapi").setLevel(logging.INFO)
 
     logging.info(f"Logging configured: level={level}, file={log_file}")
