@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,81 @@ router = APIRouter(prefix="/api/v1/organizations", tags=["Organizations"])
 
 
 # ============================================================================
+# Validation Helpers
+# ============================================================================
+
+
+@router.get("/validate/name")
+async def check_name_availability(
+    name: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Check if organization name is available (real-time validation)"""
+
+    if not name or len(name.strip()) == 0:
+        return {"available": False, "message": "Name cannot be empty"}
+
+    # Check if name is already taken (case-insensitive, only ACTIVE organizations)
+    existing_name = (
+        db.query(Organization)
+        .filter(func.lower(Organization.name) == func.lower(name))
+        .filter(Organization.is_active == True)
+        .first()
+    )
+
+    if existing_name:
+        suggestions = [
+            f"{name} Team",
+            f"{name} Inc",
+            f"{name} Group",
+            f"The {name}",
+        ]
+        return {
+            "available": False,
+            "message": f"The name '{name}' is already in use",
+            "suggestions": suggestions,
+            "hint": "Names are case-insensitive"
+        }
+
+    return {"available": True, "message": "Name is available"}
+
+
+@router.get("/validate/slug")
+async def check_slug_availability(
+    slug: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Check if organization slug is available (real-time validation)"""
+
+    if not slug or len(slug.strip()) == 0:
+        return {"available": False, "message": "Slug cannot be empty"}
+
+    # Check if slug is already taken (only check ACTIVE organizations)
+    existing_slug = (
+        db.query(Organization)
+        .filter(Organization.slug == slug)
+        .filter(Organization.is_active == True)
+        .first()
+    )
+
+    if existing_slug:
+        suggestions = [
+            f"{slug}-team",
+            f"{slug}-inc",
+            f"{slug}-co",
+        ]
+        return {
+            "available": False,
+            "message": f"The slug '{slug}' is already in use",
+            "suggestions": suggestions
+        }
+
+    return {"available": True, "message": "Slug is available"}
+
+
+# ============================================================================
 # Organization CRUD
 # ============================================================================
 
@@ -72,9 +148,20 @@ async def create_organization(
         .first()
     )
     if existing_slug:
+        # Provide helpful suggestions for alternative slugs
+        suggestions = [
+            f"{org_data.slug}-team",
+            f"{org_data.slug}-inc",
+            f"{org_data.slug}-co",
+        ]
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Organization slug already taken",
+            detail={
+                "error": "slug_already_taken",
+                "message": f"The slug '{org_data.slug}' is already in use by another active organization.",
+                "field": "slug",
+                "suggestions": suggestions,
+            },
         )
 
     # Check if name is already taken (case-insensitive, only ACTIVE organizations)
@@ -85,9 +172,22 @@ async def create_organization(
         .first()
     )
     if existing_name:
+        # Provide helpful suggestions for alternative names
+        suggestions = [
+            f"{org_data.name} Team",
+            f"{org_data.name} Inc",
+            f"{org_data.name} Group",
+            f"The {org_data.name}",
+        ]
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Organization name already taken",
+            detail={
+                "error": "name_already_taken",
+                "message": f"The organization name '{org_data.name}' is already in use. Please choose a different name.",
+                "field": "name",
+                "suggestions": suggestions,
+                "hint": "Names are case-insensitive. You can reuse names from deleted organizations.",
+            },
         )
 
     # Get user's subscription tier
@@ -185,32 +285,9 @@ async def create_organization(
         )
         db.add(subscription)
 
-    # Create Free tier organization subscription for the new organization
-    from ..models_billing import BillingTier, OrganizationSubscription
-    from datetime import datetime, timedelta
-
-    # Get Free tier
-    free_tier = db.query(BillingTier).filter(BillingTier.tier_name == "free").first()
-    if not free_tier:
-        # Log error but don't fail - organization creation should still succeed
-        logger.warning(f"Free tier not found in billing_tiers table. Organization {organization.id} created without subscription.")
-    else:
-        now = datetime.utcnow()
-        org_subscription = OrganizationSubscription(
-            id=f"sub_{uuid.uuid4().hex[:12]}",
-            organization_id=organization.id,
-            tier_id=free_tier.id,
-            tier_name="free",
-            status="active",
-            billing_period_start=now,
-            billing_period_end=now + timedelta(days=30),
-            next_billing_date=now + timedelta(days=30),
-            is_trial=False,
-            created_at=now,
-            updated_at=now,
-        )
-        db.add(org_subscription)
-        logger.info(f"Created Free tier subscription for organization {organization.id}")
+    # Note: Organization-level billing subscriptions are managed separately
+    # The user-level subscription (created above) controls tier limits
+    # Organization-specific billing (GCP Marketplace) is handled via webhooks
 
     db.commit()
     db.refresh(organization)

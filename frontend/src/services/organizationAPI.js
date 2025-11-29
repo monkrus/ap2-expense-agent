@@ -71,6 +71,46 @@ export const getOrganization = async (orgId) => {
 };
 
 /**
+ * Check if organization name is available (real-time validation)
+ */
+export const checkNameAvailability = async (name) => {
+  if (!name || name.trim().length === 0) {
+    return { available: false, message: 'Name cannot be empty' };
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/organizations/validate/name?name=${encodeURIComponent(name)}`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+
+  if (!response.ok) {
+    return { available: false, message: 'Failed to check availability' };
+  }
+
+  return response.json();
+};
+
+/**
+ * Check if organization slug is available (real-time validation)
+ */
+export const checkSlugAvailability = async (slug) => {
+  if (!slug || slug.trim().length === 0) {
+    return { available: false, message: 'Slug cannot be empty' };
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/organizations/validate/slug?slug=${encodeURIComponent(slug)}`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+
+  if (!response.ok) {
+    return { available: false, message: 'Failed to check availability' };
+  }
+
+  return response.json();
+};
+
+/**
  * Create new organization
  */
 export const createOrganization = async (data) => {
@@ -86,9 +126,17 @@ export const createOrganization = async (data) => {
     // Handle 402 Payment Required - Free tier limit
     if (response.status === 402) {
       const errorData = typeof error.detail === 'object' ? error.detail : { message: error.detail };
-      const customError = new Error(errorData.message || 'Payment required');
+      const customError = new Error('Organization limit reached');
       customError.status = 402;
       customError.data = errorData;
+      throw customError;
+    }
+
+    // Handle 400 Bad Request - Validation errors with suggestions
+    if (response.status === 400 && typeof error.detail === 'object') {
+      const customError = new Error(error.detail.message || 'Validation failed');
+      customError.status = 400;
+      customError.data = error.detail;
       throw customError;
     }
 

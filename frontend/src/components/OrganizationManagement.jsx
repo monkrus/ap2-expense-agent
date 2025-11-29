@@ -36,6 +36,54 @@ const OrganizationManagement = () => {
   const [bulkEmails, setBulkEmails] = useState('');
   const [showBulk, setShowBulk] = useState(false);
 
+  // Real-time validation state
+  const [nameValidation, setNameValidation] = useState({ checking: false, result: null });
+  const [slugValidation, setSlugValidation] = useState({ checking: false, result: null });
+
+  // Debounced name validation
+  useEffect(() => {
+    if (!createOrgForm.name || createOrgForm.name.trim().length === 0) {
+      setNameValidation({ checking: false, result: null });
+      return;
+    }
+
+    setNameValidation({ checking: true, result: null });
+
+    const timer = setTimeout(async () => {
+      try {
+        const result = await organizationAPI.checkNameAvailability(createOrgForm.name);
+        setNameValidation({ checking: false, result });
+      } catch (err) {
+        console.error('Name validation error:', err);
+        setNameValidation({ checking: false, result: null });
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [createOrgForm.name]);
+
+  // Debounced slug validation
+  useEffect(() => {
+    if (!createOrgForm.slug || createOrgForm.slug.trim().length === 0) {
+      setSlugValidation({ checking: false, result: null });
+      return;
+    }
+
+    setSlugValidation({ checking: true, result: null });
+
+    const timer = setTimeout(async () => {
+      try {
+        const result = await organizationAPI.checkSlugAvailability(createOrgForm.slug);
+        setSlugValidation({ checking: false, result });
+      } catch (err) {
+        console.error('Slug validation error:', err);
+        setSlugValidation({ checking: false, result: null });
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [createOrgForm.slug]);
+
   useEffect(() => {
     fetchOrganizations();
   }, []);
@@ -120,7 +168,25 @@ const OrganizationManagement = () => {
 
         // Show upgrade prompt modal
         setShowUpgradePrompt(true);
-      } else {
+      }
+      // Handle validation errors with suggestions (400 Bad Request)
+      else if (err.status === 400 && err.data) {
+        const errorData = err.data;
+        let errorMessage = errorData.message || err.message;
+
+        // Add suggestions if available
+        if (errorData.suggestions && errorData.suggestions.length > 0) {
+          errorMessage += '\n\nSuggestions:\n' + errorData.suggestions.map(s => `  • ${s}`).join('\n');
+        }
+
+        // Add hint if available
+        if (errorData.hint) {
+          errorMessage += '\n\n' + errorData.hint;
+        }
+
+        showError(errorMessage);
+      }
+      else {
         showError(err.message);
       }
     } finally {
@@ -655,9 +721,60 @@ const OrganizationManagement = () => {
                   name: e.target.value,
                   slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
                 })}
-                className="w-full px-3 py-2 border rounded-lg"
+                className={`w-full px-3 py-2 border rounded-lg ${
+                  nameValidation.result && !nameValidation.result.available
+                    ? 'border-yellow-400 focus:ring-yellow-400'
+                    : nameValidation.result?.available
+                      ? 'border-green-400 focus:ring-green-400'
+                      : ''
+                }`}
                 required
               />
+              {/* Real-time validation feedback */}
+              {nameValidation.checking && (
+                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Checking availability...
+                </p>
+              )}
+              {nameValidation.result && !nameValidation.result.available && (
+                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-xs text-yellow-800 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {nameValidation.result.message}
+                  </p>
+                  {nameValidation.result.suggestions && nameValidation.result.suggestions.length > 0 && (
+                    <div className="mt-1">
+                      <p className="text-xs text-yellow-700 mb-1">Try these instead:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {nameValidation.result.suggestions.map((suggestion, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setCreateOrgForm({
+                              ...createOrgForm,
+                              name: suggestion,
+                              slug: suggestion.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                            })}
+                            className="text-xs px-2 py-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded border border-yellow-300 transition-colors"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {nameValidation.result.hint && (
+                    <p className="text-xs text-yellow-600 mt-1 italic">{nameValidation.result.hint}</p>
+                  )}
+                </div>
+              )}
+              {nameValidation.result?.available && (
+                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  Name is available
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">
@@ -667,7 +784,13 @@ const OrganizationManagement = () => {
                 type="text"
                 value={createOrgForm.slug}
                 onChange={(e) => setCreateOrgForm({ ...createOrgForm, slug: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg font-mono text-sm"
+                className={`w-full px-3 py-2 border rounded-lg font-mono text-sm ${
+                  slugValidation.result && !slugValidation.result.available
+                    ? 'border-yellow-400 focus:ring-yellow-400'
+                    : slugValidation.result?.available
+                      ? 'border-green-400 focus:ring-green-400'
+                      : ''
+                }`}
                 placeholder="acme-corp"
                 pattern="[a-z0-9\-]+"
                 title="Use only lowercase letters, numbers, and hyphens"
@@ -676,6 +799,44 @@ const OrganizationManagement = () => {
               <p className="text-xs text-gray-500 mt-1">
                 <strong>Auto-generated from name</strong> (you can customize it). Use only lowercase letters, numbers, and hyphens. Example: "Corex Inc" becomes "corex-inc"
               </p>
+              {/* Real-time slug validation feedback */}
+              {slugValidation.checking && (
+                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Checking slug availability...
+                </p>
+              )}
+              {slugValidation.result && !slugValidation.result.available && (
+                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-xs text-yellow-800 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {slugValidation.result.message}
+                  </p>
+                  {slugValidation.result.suggestions && slugValidation.result.suggestions.length > 0 && (
+                    <div className="mt-1">
+                      <p className="text-xs text-yellow-700 mb-1">Try these instead:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {slugValidation.result.suggestions.map((suggestion, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setCreateOrgForm({ ...createOrgForm, slug: suggestion })}
+                            className="text-xs px-2 py-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded border border-yellow-300 font-mono transition-colors"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {slugValidation.result?.available && (
+                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  Slug is available
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Description</label>
@@ -781,8 +942,14 @@ const OrganizationManagement = () => {
               </button>
               <button
                 type="submit"
-                disabled={processing}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg disabled:opacity-50"
+                disabled={
+                  processing ||
+                  nameValidation.checking ||
+                  slugValidation.checking ||
+                  (nameValidation.result && !nameValidation.result.available) ||
+                  (slugValidation.result && !slugValidation.result.available)
+                }
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {processing ? 'Creating...' : 'Create Organization'}
               </button>
