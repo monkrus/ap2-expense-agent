@@ -1,9 +1,8 @@
 name: Deploy to Google Cloud
 
 on:
-  # Disabled automatic deployment on push - only manual deployment
-  # push:
-  #   branches: [ main ]
+  push:
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       environment:
@@ -18,8 +17,8 @@ on:
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
-  BACKEND_IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/ap2-expense-agent-backend
-  FRONTEND_IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/ap2-expense-agent-frontend
+  BACKEND_IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/ap2-expense-backend
+  FRONTEND_IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/ap2-expense-frontend
 
 jobs:
   deploy:
@@ -44,23 +43,17 @@ jobs:
 
       - name: Build and push backend image
         run: |
-          docker build -t $BACKEND_IMAGE:${{ github.sha }} \
-                       -t $BACKEND_IMAGE:latest \
-                       ./backend
+          docker build -t $BACKEND_IMAGE:${{ github.sha }} ./backend
           docker push $BACKEND_IMAGE:${{ github.sha }}
-          docker push $BACKEND_IMAGE:latest
 
       - name: Build and push frontend image
         run: |
-          docker build -t $FRONTEND_IMAGE:${{ github.sha }} \
-                       -t $FRONTEND_IMAGE:latest \
-                       ./frontend
+          docker build -t $FRONTEND_IMAGE:${{ github.sha }} ./frontend
           docker push $FRONTEND_IMAGE:${{ github.sha }}
-          docker push $FRONTEND_IMAGE:latest
 
       - name: Deploy to Cloud Run - Backend
         run: |
-          gcloud run deploy ap2-expense-agent-backend \
+          gcloud run deploy ap2-expense-backend \
             --image $BACKEND_IMAGE:${{ github.sha }} \
             --platform managed \
             --region $GCP_REGION \
@@ -80,7 +73,7 @@ jobs:
 
       - name: Deploy to Cloud Run - Frontend
         run: |
-          gcloud run deploy ap2-expense-agent-frontend \
+          gcloud run deploy ap2-expense-frontend \
             --image $FRONTEND_IMAGE:${{ github.sha }} \
             --platform managed \
             --region $GCP_REGION \
@@ -106,7 +99,7 @@ jobs:
 
       - name: Health check
         run: |
-          BACKEND_URL=$(gcloud run services describe ap2-expense-agent-backend \
+          BACKEND_URL=$(gcloud run services describe ap2-expense-backend \
             --region $GCP_REGION \
             --format 'value(status.url)')
 
