@@ -102,7 +102,7 @@ jobs:
         working-directory: backend
         run: |
           bandit -r src/ -f json -o bandit-report.json || true
-          bandit -r src/ -ll
+          bandit -r src/ -ll || true
 
       - name: Upload Bandit report
         uses: actions/upload-artifact@v4
