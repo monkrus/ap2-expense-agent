@@ -106,14 +106,14 @@ ingress:
           pathType: ImplementationSpecific
           backend:
             service:
-              name: backend-service
-              port: 8000
+              name: backend
+              port: 8080
         - path: /*
           pathType: ImplementationSpecific
           backend:
             service:
-              name: frontend-service
-              port: 80
+              name: frontend
+              port: 8080
 
 # TLS/SSL configuration
 tls:
@@ -188,10 +188,5 @@ billing:
     active_users:
       enabled: true
       type: "gauge"
-# Global settings
-global:
-  projectId: "YOUR_PROJECT_ID"
-  region: "us-central1"
-
 # CI-provided commit SHA for image tagging (overrides tags when set)
 gitSha: ""

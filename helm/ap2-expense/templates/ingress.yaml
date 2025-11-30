@@ -5,10 +5,13 @@ metadata:
   name: {{ include "ap2-expense.fullname" . }}
   labels:
     {{- include "ap2-expense.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
   annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- if .Values.ingress.annotations }}
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+    {{- end }}
+    {{- if and .Values.tls.enabled .Values.tls.managedCertificate.enabled }}
+    networking.gke.io/managed-certificates: {{ include "ap2-expense.fullname" . }}-managed-cert
+    {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:
