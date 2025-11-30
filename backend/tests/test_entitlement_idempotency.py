@@ -20,6 +20,10 @@ def seed_subscription(db, org_id: str, entitlement_id: str, plan: str = "profess
     return sub
 
 
+import pytest
+
+
+@pytest.mark.asyncio
 async def test_tier_change_idempotency(db_session):
     org_id = f"org_{uuid.uuid4().hex[:8]}"
     entitlement_id = f"ent_{uuid.uuid4().hex[:8]}"
@@ -42,6 +46,7 @@ async def test_tier_change_idempotency(db_session):
     assert len(events) == 1
 
 
+@pytest.mark.asyncio
 async def test_cancellation_idempotency(db_session):
     org_id = f"org_{uuid.uuid4().hex[:8]}"
     entitlement_id = f"ent_{uuid.uuid4().hex[:8]}"
@@ -65,4 +70,3 @@ async def test_cancellation_idempotency(db_session):
         .all()
     )
     assert len(events) == 1
-

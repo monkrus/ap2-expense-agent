@@ -1,0 +1,15 @@
+name: AP2 CodeQL Config
+paths:
+  - backend/src
+  - frontend/src
+  - helm/ap2-expense
+paths-ignore:
+  - backend/tests
+  - frontend/tests
+  - k8s/**
+  - docs/**
+  - scripts/**
+  - **/*.md
+queries:
+  - uses: security-extended
+  - uses: security-and-quality

@@ -16,7 +16,7 @@ from ..models_billing import BillingEvent, OrganizationSubscription
 
 
 def _event_already_processed(db: Session, event_type: str, dedupe_key: str) -> bool:
-    from .models_billing import BillingEvent
+    from ..models_billing import BillingEvent
 
     events = (
         db.query(BillingEvent)
