@@ -52,9 +52,20 @@ class JSONFormatter(logging.Formatter):
             log_data["status_code"] = record.status_code
         if hasattr(record, "response_time"):
             log_data["response_time_ms"] = record.response_time
+        if hasattr(record, "request_size"):
+            log_data["request_size"] = record.request_size
+        if hasattr(record, "response_size"):
+            log_data["response_size"] = record.response_size
 
         # Add environment
         log_data["environment"] = os.getenv("ENVIRONMENT", "development")
+
+        # Include Cloud Trace correlation if provided
+        # Expected field name for Google Cloud Logging
+        if hasattr(record, "gcp_trace") and record.gcp_trace:
+            log_data["logging.googleapis.com/trace"] = record.gcp_trace
+        if hasattr(record, "gcp_span") and record.gcp_span:
+            log_data["logging.googleapis.com/spanId"] = record.gcp_span
 
         return json.dumps(log_data)
 
@@ -197,6 +208,10 @@ class RequestLogger:
         user_id: str = None,
         organization_id: str = None,
         request_id: str = None,
+        gcp_trace: str = None,
+        gcp_span: str = None,
+        request_size: int = None,
+        response_size: int = None,
     ):
         """Log HTTP request"""
         logger = logging.getLogger("http.access")
@@ -210,6 +225,10 @@ class RequestLogger:
                 "user_id": user_id,
                 "organization_id": organization_id,
                 "request_id": request_id,
+                "gcp_trace": gcp_trace,
+                "gcp_span": gcp_span,
+                "request_size": request_size,
+                "response_size": response_size,
             },
         )
 

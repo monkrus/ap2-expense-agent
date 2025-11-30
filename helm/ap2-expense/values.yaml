@@ -11,11 +11,13 @@ global:
 images:
   backend:
     repository: us-central1-docker.pkg.dev/YOUR_PROJECT_ID/ap2-expense/backend
-    tag: "latest"
+    tag: "1.0.0"
+    # digest: "sha256:..."  # optional: if set, overrides tag
     pullPolicy: IfNotPresent
   frontend:
     repository: us-central1-docker.pkg.dev/YOUR_PROJECT_ID/ap2-expense/frontend
-    tag: "latest"
+    tag: "1.0.0"
+    # digest: "sha256:..."  # optional: if set, overrides tag
     pullPolicy: IfNotPresent
 
 # Backend configuration
@@ -39,12 +41,14 @@ backend:
 
   service:
     type: ClusterIP
-    port: 8000
-    targetPort: 8000
+    port: 8080
+    targetPort: 8080
 
   env:
     ENVIRONMENT: "production"
     LOG_LEVEL: "info"
+    # Optional: set webhook audience for OIDC Pub/Sub push
+    GCP_WEBHOOK_AUDIENCE: ""
 
 # Frontend configuration
 frontend:
@@ -66,8 +70,8 @@ frontend:
 
   service:
     type: ClusterIP
-    port: 80
-    targetPort: 80
+    port: 8080
+    targetPort: 8080
 
 # Database configuration (Cloud SQL)
 database:
@@ -119,6 +123,9 @@ tls:
     domains:
       - your-domain.com
       - www.your-domain.com
+  # Note: For GKE ManagedCertificate resource, ensure Ingress has
+  # annotation networking.gke.io/managed-certificates pointing to the
+  # managed certificate name '{{ .Release.Name }}-ap2-expense-managed-cert'
 
 # ServiceAccount
 serviceAccount:
@@ -181,3 +188,10 @@ billing:
     active_users:
       enabled: true
       type: "gauge"
+# Global settings
+global:
+  projectId: "YOUR_PROJECT_ID"
+  region: "us-central1"
+
+# CI-provided commit SHA for image tagging (overrides tags when set)
+gitSha: ""

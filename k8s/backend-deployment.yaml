@@ -26,7 +26,7 @@ spec:
         app.kubernetes.io/version: "1.0.0"
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8000"
+        prometheus.io/port: "8080"
         prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: ap2-expense-sa
@@ -42,7 +42,13 @@ spec:
         args:
           - "--structured-logs"
           - "--port=5432"
+          - "--address=0.0.0.0"
           - "YOUR_PROJECT_ID:us-central1:ap2-expense-db"
+        # If using a service account key file (otherwise prefer Workload Identity)
+        # volumeMounts:
+        # - name: gcp-sa
+        #   mountPath: /secrets
+        #   readOnly: true
 
         securityContext:
           runAsNonRoot: true
@@ -60,17 +66,42 @@ spec:
             memory: 256Mi
 
       - name: backend
-        image: gcr.io/YOUR_PROJECT_ID/ap2-expense-backend:latest
+        image: gcr.io/YOUR_PROJECT_ID/ap2-expense-backend:1.0.0
         imagePullPolicy: Always
 
         ports:
         - name: http
-          containerPort: 8000
+          containerPort: 8080
           protocol: TCP
 
         env:
         - name: PORT
-          value: "8000"
+          value: "8080"
+        # Prefer Secret Manager CSI synced secrets if available
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: ap2-expense-secrets-gsm
+              key: DATABASE_URL
+              optional: true
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ap2-expense-secrets-gsm
+              key: JWT_SECRET_KEY
+              optional: true
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ap2-expense-secrets-gsm
+              key: STRIPE_SECRET_KEY
+              optional: true
+        - name: GCP_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: ap2-expense-secrets-gsm
+              key: GCP_WEBHOOK_SECRET
+              optional: true
         - name: ENVIRONMENT
           valueFrom:
             configMapKeyRef:
@@ -168,6 +199,9 @@ spec:
       volumes:
       - name: tmp
         emptyDir: {}
+      # - name: gcp-sa
+      #   secret:
+      #     secretName: ap2-expense-gcp-sa
 
       affinity:
         podAntiAffinity:

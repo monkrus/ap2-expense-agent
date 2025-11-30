@@ -63,12 +63,28 @@ Create the name of the service account to use
 Backend image
 */}}
 {{- define "ap2-expense.backend.image" -}}
-{{- printf "%s:%s" .Values.images.backend.repository (.Values.images.backend.tag | default .Chart.AppVersion) }}
+{{- if .Values.images.backend.digest -}}
+{{- printf "%s@%s" .Values.images.backend.repository .Values.images.backend.digest -}}
+{{- else -}}
+{{- $tag := ( .Values.images.backend.tag | default .Chart.AppVersion ) -}}
+{{- if .Values.gitSha }}
+{{- $tag = .Values.gitSha -}}
+{{- end -}}
+{{- printf "%s:%s" .Values.images.backend.repository $tag -}}
+{{- end -}}
 {{- end }}
 
 {{/*
 Frontend image
 */}}
 {{- define "ap2-expense.frontend.image" -}}
-{{- printf "%s:%s" .Values.images.frontend.repository (.Values.images.frontend.tag | default .Chart.AppVersion) }}
+{{- if .Values.images.frontend.digest -}}
+{{- printf "%s@%s" .Values.images.frontend.repository .Values.images.frontend.digest -}}
+{{- else -}}
+{{- $tag := ( .Values.images.frontend.tag | default .Chart.AppVersion ) -}}
+{{- if .Values.gitSha }}
+{{- $tag = .Values.gitSha -}}
+{{- end -}}
+{{- printf "%s:%s" .Values.images.frontend.repository $tag -}}
+{{- end -}}
 {{- end }}

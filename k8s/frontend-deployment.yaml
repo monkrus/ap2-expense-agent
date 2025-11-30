@@ -33,12 +33,12 @@ spec:
 
       containers:
       - name: frontend
-        image: gcr.io/YOUR_PROJECT_ID/ap2-expense-frontend:latest
+        image: gcr.io/YOUR_PROJECT_ID/ap2-expense-frontend:1.0.0
         imagePullPolicy: Always
 
         ports:
         - name: http
-          containerPort: 80
+          containerPort: 8080
           protocol: TCP
 
         resources:

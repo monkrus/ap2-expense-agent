@@ -323,11 +323,16 @@ async def get_current_user(
 
 # Dependency to get current active user
 async def get_current_active_user(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user), request: Request = None
 ) -> User:
     """Get the current active user"""
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    try:
+        if request is not None and hasattr(request, "state"):
+            request.state.user_id = current_user.id
+    except Exception:
+        pass
     return current_user
 
 

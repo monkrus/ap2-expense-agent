@@ -15,6 +15,29 @@ from ..models import Organization
 from ..models_billing import BillingEvent, OrganizationSubscription
 
 
+def _event_already_processed(db: Session, event_type: str, dedupe_key: str) -> bool:
+    from .models_billing import BillingEvent
+
+    events = (
+        db.query(BillingEvent)
+        .filter(BillingEvent.event_type == event_type)
+        .order_by(BillingEvent.occurred_at.desc())
+        .all()
+    )
+    for e in events:
+        meta = e.event_metadata or {}
+        try:
+            if isinstance(meta, str):
+                import json as _json
+
+                meta = _json.loads(meta)
+        except Exception:
+            meta = {}
+        if isinstance(meta, dict) and meta.get("dedupe_key") == dedupe_key:
+            return True
+    return False
+
+
 async def handle_entitlement_update(webhook_data: Dict, db: Session) -> Dict:
     """
     Handle tier upgrade/downgrade from GCP Marketplace
@@ -50,6 +73,16 @@ async def handle_entitlement_update(webhook_data: Dict, db: Session) -> Dict:
 
         if not entitlement_id or not new_plan:
             raise ValueError("Missing required fields: entitlement_id or new_plan")
+
+        # Idempotency key based on entitlement + new_plan + effective_at if provided
+        dedupe_key = f"{entitlement_id}|{new_plan}|{webhook_data.get('effective_at','')}"
+        if _event_already_processed(db, "gcp_tier_changed", dedupe_key):
+            return {
+                "status": "already_processed",
+                "message": "Duplicate tier change ignored",
+                "entitlement_id": entitlement_id,
+                "new_tier": new_plan,
+            }
 
         # === Step 1: Find subscription ===
         subscription = (
@@ -106,6 +139,7 @@ async def handle_entitlement_update(webhook_data: Dict, db: Session) -> Dict:
             },
             status="success",
             occurred_at=datetime.utcnow(),
+            event_metadata={"dedupe_key": dedupe_key},
         )
         db.add(billing_event)
 
@@ -192,6 +226,15 @@ async def handle_entitlement_cancellation(webhook_data: Dict, db: Session) -> Di
         if not entitlement_id:
             raise ValueError("Missing required field: entitlement_id")
 
+        # Idempotency key based on entitlement + cancellation effective
+        dedupe_key = f"{entitlement_id}|cancel|{webhook_data.get('effective_at','')}"
+        if _event_already_processed(db, "gcp_subscription_cancelled", dedupe_key):
+            return {
+                "status": "already_processed",
+                "message": "Duplicate cancellation ignored",
+                "entitlement_id": entitlement_id,
+            }
+
         # === Step 1: Find subscription ===
         subscription = (
             db.query(OrganizationSubscription)
@@ -254,6 +297,7 @@ async def handle_entitlement_cancellation(webhook_data: Dict, db: Session) -> Di
             },
             status="success",
             occurred_at=datetime.utcnow(),
+            event_metadata={"dedupe_key": dedupe_key},
         )
         db.add(billing_event)
 

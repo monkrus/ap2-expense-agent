@@ -25,7 +25,7 @@ spec:
         app.kubernetes.io/component: backend
       annotations:
         prometheus.io/scrape: "{{ .Values.monitoring.enabled }}"
-        prometheus.io/port: "8000"
+        prometheus.io/port: "{{ .Values.backend.service.targetPort }}"
         prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: {{ include "ap2-expense.serviceAccountName" . }}
@@ -46,6 +46,10 @@ spec:
           value: "{{ .Values.backend.env.ENVIRONMENT }}"
         - name: LOG_LEVEL
           value: "{{ .Values.backend.env.LOG_LEVEL }}"
+        {{- if .Values.backend.env.GCP_WEBHOOK_AUDIENCE }}
+        - name: GCP_WEBHOOK_AUDIENCE
+          value: "{{ .Values.backend.env.GCP_WEBHOOK_AUDIENCE }}"
+        {{- end }}
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:

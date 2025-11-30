@@ -64,11 +64,50 @@ def verify_gcp_signature(request_body: bytes, signature: Optional[str]) -> bool:
     return is_valid
 
 
+def verify_google_oidc_token(authorization: Optional[str], expected_audience: str) -> bool:
+    """
+    Verify Google-signed OIDC token (e.g., Pub/Sub push) in Authorization header.
+
+    Args:
+        authorization: Header value 'Bearer <token>'
+        expected_audience: Audience to validate (endpoint URL or configured value)
+
+    Returns:
+        True if token is valid and audience matches, else False
+    """
+    try:
+        if not authorization or not authorization.startswith("Bearer "):
+            return False
+
+        token = authorization.split(" ", 1)[1]
+
+        from google.oauth2 import id_token
+        from google.auth.transport import requests as grequests
+
+        req = grequests.Request()
+        claims = id_token.verify_oauth2_token(token, req, audience=expected_audience)
+
+        issuer = claims.get("iss")
+        if issuer not in ("https://accounts.google.com", "accounts.google.com"):
+            return False
+        return True
+    except Exception as e:
+        print(f"OIDC token verification failed: {e}")
+        return False
+
+
+@router.get("/health")
+async def gcp_webhook_health():
+    """Lightweight health endpoint for deployment verification."""
+    return {"status": "ok"}
+
+
 @router.post("/procurement")
 async def gcp_procurement_webhook(
     request: Request,
     db: Session = Depends(get_db),
     x_goog_signature: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None),
 ):
     """
     Handle new customer signup from GCP Marketplace
@@ -98,11 +137,12 @@ async def gcp_procurement_webhook(
     # Get raw body for signature verification
     body = await request.body()
 
-    # Verify signature
-    if not verify_gcp_signature(body, x_goog_signature):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid webhook signature"
-        )
+    # Verify request authenticity (prefer OIDC, fallback to HMAC in dev)
+    audience = settings.gcp_webhook_audience or str(request.url)
+    oidc_ok = verify_google_oidc_token(authorization, audience)
+    hmac_ok = settings.environment == "development" and verify_gcp_signature(body, x_goog_signature)
+    if not (oidc_ok or hmac_ok):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request")
 
     # Parse payload
     try:
@@ -127,11 +167,83 @@ async def gcp_procurement_webhook(
         )
 
 
+@router.post("/events")
+async def gcp_events_webhook(
+    request: Request,
+    db: Session = Depends(get_db),
+    x_goog_signature: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None),
+):
+    """
+    Generic Pub/Sub push endpoint for GCP Marketplace events.
+
+    Verifies Google OIDC Authorization and parses Pub/Sub envelope, then
+    normalizes Consumer Procurement entitlement events and routes to handlers.
+    """
+    raw_body = await request.body()
+    audience = settings.gcp_webhook_audience or str(request.url)
+    oidc_ok = verify_google_oidc_token(authorization, audience)
+    hmac_ok = settings.environment == "development" and verify_gcp_signature(
+        raw_body, x_goog_signature
+    )
+    if not (oidc_ok or hmac_ok):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request"
+        )
+
+    # Parse JSON body
+    try:
+        body = json.loads(raw_body)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload"
+        )
+
+    # Decode Pub/Sub envelope if present, then normalize
+    from ..gcp.events import (
+        decode_pubsub_envelope,
+        normalize_entitlement_event,
+        EventParseError,
+    )
+
+    try:
+        payload = decode_pubsub_envelope(body) if isinstance(body, dict) and "message" in body else body
+        event_type, normalized = normalize_entitlement_event(payload)
+    except EventParseError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid event payload: {e}"
+        )
+
+    # Route to appropriate handler
+    if event_type == "entitlement_plan_change":
+        result = await handle_entitlement_update(normalized, db)
+        return {"status": result.get("status", "updated"), "detail": result}
+    elif event_type == "entitlement_cancelled":
+        result = await handle_entitlement_cancellation(normalized, db)
+        return {"status": result.get("status", "cancelled"), "detail": result}
+    elif event_type == "entitlement_created":
+        # If we have admin/company info, provision via procurement handler
+        if normalized.get("user_email") and normalized.get("company_name"):
+            result = await handle_procurement_webhook(normalized, db)
+            return {"status": result.get("status", "created"), "detail": result}
+        # Otherwise acknowledge; full provisioning will occur via onboarding flow
+        return {
+            "status": "acknowledged",
+            "entitlement_id": normalized.get("entitlement_id"),
+        }
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported event type"
+    )
+
 @router.post("/entitlement-updated")
 async def gcp_entitlement_update_webhook(
     request: Request,
     db: Session = Depends(get_db),
     x_goog_signature: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None),
 ):
     """
     Handle tier upgrade/downgrade from GCP Marketplace
@@ -159,11 +271,11 @@ async def gcp_entitlement_update_webhook(
     # Get raw body for signature verification
     body = await request.body()
 
-    # Verify signature
-    if not verify_gcp_signature(body, x_goog_signature):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid webhook signature"
-        )
+    audience = settings.gcp_webhook_audience or str(request.url)
+    oidc_ok = verify_google_oidc_token(authorization, audience)
+    hmac_ok = settings.environment == "development" and verify_gcp_signature(body, x_goog_signature)
+    if not (oidc_ok or hmac_ok):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request")
 
     # Parse payload
     try:
@@ -193,6 +305,7 @@ async def gcp_entitlement_cancel_webhook(
     request: Request,
     db: Session = Depends(get_db),
     x_goog_signature: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None),
 ):
     """
     Handle subscription cancellation from GCP Marketplace
@@ -219,11 +332,11 @@ async def gcp_entitlement_cancel_webhook(
     # Get raw body for signature verification
     body = await request.body()
 
-    # Verify signature
-    if not verify_gcp_signature(body, x_goog_signature):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid webhook signature"
-        )
+    audience = settings.gcp_webhook_audience or str(request.url)
+    oidc_ok = verify_google_oidc_token(authorization, audience)
+    hmac_ok = settings.environment == "development" and verify_gcp_signature(body, x_goog_signature)
+    if not (oidc_ok or hmac_ok):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request")
 
     # Parse payload
     try:

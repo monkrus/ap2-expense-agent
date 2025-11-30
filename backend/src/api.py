@@ -29,6 +29,7 @@ from .routes.payment import router as payment_router  # Payment endpoints - relo
 from .routes.receipts import router as receipts_router
 from .routes.webhooks import router as webhooks_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
+from .logging_config import setup_logging, RequestLogger
 from .tenant_context import tenant_middleware
 
 # Try to import database-integrated agent, fallback to in-memory agent
@@ -59,6 +60,11 @@ app = FastAPI(
     description="AI-powered expense management with AP2 protocol",
     version="1.0.0",
 )
+# Initialize structured logging early
+try:
+    setup_logging(level=("DEBUG" if settings.debug else "INFO"))
+except Exception:
+    pass
 # Force reload - auth routes should be available
 
 # Register global error handlers
@@ -89,6 +95,84 @@ app.add_middleware(
 # Add tenant middleware for multi-tenancy support
 app.middleware("http")(tenant_middleware)
 
+
+# Basic request metrics middleware
+try:
+    from prometheus_client import Counter, Histogram
+
+    HTTP_REQUESTS = Counter(
+        "http_requests_total", "Total HTTP requests", ["method", "path", "status"]
+    )
+    HTTP_LATENCY = Histogram(
+        "http_request_duration_seconds", "HTTP request latency (s)", ["method", "path"]
+    )
+
+    @app.middleware("http")
+    async def metrics_middleware(request: Request, call_next):
+        path = request.url.path
+        method = request.method
+        with HTTP_LATENCY.labels(method=method, path=path).time():
+            response = await call_next(request)
+        HTTP_REQUESTS.labels(method=method, path=path, status=str(response.status_code)).inc()
+        return response
+except Exception:
+    pass
+
+
+# Access logging with Cloud Trace correlation
+import time as _time
+
+
+@app.middleware("http")
+async def access_log_middleware(request: Request, call_next):
+    trace_header = request.headers.get("X-Cloud-Trace-Context")
+    gcp_trace = None
+    gcp_span = None
+    if trace_header:
+        # Format: TRACE_ID/SPAN_ID;o=TRACE_TRUE
+        parts = trace_header.split("/", 1)
+        trace_id = parts[0]
+        if len(parts) > 1 and ";" in parts[1]:
+            span_part = parts[1].split(";", 1)[0]
+            gcp_span = span_part
+        project_id = settings.google_cloud_project or settings.gcp_project_id
+        if project_id and trace_id:
+            gcp_trace = f"projects/{project_id}/traces/{trace_id}"
+
+    start = _time.perf_counter()
+    req_size = None
+    try:
+        req_size = int(request.headers.get("content-length", "0"))
+    except Exception:
+        req_size = None
+    response = await call_next(request)
+    duration_ms = (_time.perf_counter() - start) * 1000.0
+
+    req_id = response.headers.get("X-Request-ID") or request.headers.get("X-Request-ID")
+    resp_size = None
+    try:
+        resp_size = int(response.headers.get("content-length", "0"))
+    except Exception:
+        resp_size = None
+    org_id = request.headers.get("X-Organization-Id")
+    try:
+        RequestLogger.log_request(
+            method=request.method,
+            endpoint=request.url.path,
+            status_code=response.status_code,
+            response_time=duration_ms,
+            organization_id=org_id,
+            request_id=req_id,
+            gcp_trace=gcp_trace,
+            gcp_span=gcp_span,
+            request_size=req_size,
+            response_size=resp_size,
+        )
+    except Exception:
+        pass
+
+    return response
+
 # Include authentication routers
 app.include_router(auth_router)
 app.include_router(users_router)
@@ -109,6 +193,18 @@ app.include_router(notifications_router)
 
 # Include GCP Marketplace webhooks
 app.include_router(gcp_webhooks_router)
+
+
+# Prometheus metrics endpoint (for GKE scraping)
+try:
+    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+    @app.get("/metrics")
+    async def metrics():
+        data = generate_latest()
+        return Response(content=data, media_type=CONTENT_TYPE_LATEST)
+except Exception:
+    pass
 
 
 # Initialize database on startup

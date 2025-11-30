@@ -71,6 +71,7 @@ class Settings(BaseSettings):
     gcp_project_id: Optional[str] = None  # GCP Project ID
     gcp_service_account_path: Optional[str] = None  # Path to service account JSON file
     gcp_webhook_secret: Optional[str] = None  # Webhook secret from GCP Marketplace
+    gcp_webhook_audience: Optional[str] = None  # Expected OIDC audience for Pub/Sub push
     enable_gcp_marketplace: bool = False  # Enable/disable GCP Marketplace integration
     gcp_usage_reporting_enabled: bool = True  # Enable hourly usage reporting to GCP
 
@@ -91,3 +92,22 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+# Post-init validation for production/staging
+try:
+    # pydantic v2: model_post_init
+    def _post_init(self):
+        if self.environment in ("production", "staging"):
+            if not self.jwt_secret:
+                raise ValueError("JWT_SECRET must be set in production/staging")
+            if not self.database_url:
+                raise ValueError("DATABASE_URL must be set in production/staging")
+            if self.enable_gcp_marketplace and not self.gcp_webhook_audience:
+                raise ValueError(
+                    "GCP_WEBHOOK_AUDIENCE must be set when Marketplace integration is enabled"
+                )
+
+    Settings.model_post_init = _post_init  # type: ignore[attr-defined]
+except Exception:
+    pass

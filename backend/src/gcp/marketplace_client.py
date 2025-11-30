@@ -31,7 +31,6 @@ class GCPMarketplaceClient:
         self.project_id = settings.gcp_project_id
         self.service_account_path = settings.gcp_service_account_path
         self.api_base_url = "https://cloudcommerceprocurement.googleapis.com/v1"
-        self.usage_api_url = "https://serviceconsumermanagement.googleapis.com/v1"
 
         # Initialize credentials
         self.credentials = None
@@ -103,38 +102,28 @@ class GCPMarketplaceClient:
         if not timestamp:
             timestamp = datetime.utcnow().isoformat() + "Z"
 
-        # Format usage report according to GCP spec
+        # Build Consumer Procurement usage payload (entitlement-scoped)
+        usage_items = []
+        for metric_name, value in metrics.items():
+            usage_items.append(
+                {
+                    "metric": metric_name,
+                    "value": int(value),
+                    "effectiveTime": timestamp,
+                }
+            )
+
         usage_report = {
-            "operationId": f"usage-{entitlement_id}-{int(datetime.utcnow().timestamp())}",
-            "consumerId": f"project:{self.project_id}",
-            "operations": [],
+            "requestId": f"usage-{entitlement_id}-{int(datetime.utcnow().timestamp())}",
+            "usage": usage_items,
         }
 
-        # Add each metric as an operation
-        for metric_name, value in metrics.items():
-            operation = {
-                "operationName": f"services/{self.project_id}.appspot.com/operations/{metric_name}",
-                "consumerId": entitlement_id,
-                "startTime": timestamp,
-                "endTime": timestamp,
-                "metricValueSets": [
-                    {
-                        "metricName": f"serviceruntime.googleapis.com/{metric_name}",
-                        "metricValues": [
-                            {
-                                "int64Value": str(int(value)),
-                                "startTime": timestamp,
-                                "endTime": timestamp,
-                            }
-                        ],
-                    }
-                ],
-            }
-            usage_report["operations"].append(operation)
-
         try:
-            # Send usage report to GCP
-            url = f"{self.usage_api_url}/services/{self.project_id}.appspot.com:reportUsage"
+            # Send usage report to GCP Consumer Procurement API
+            url = (
+                f"{self.api_base_url}/providers/{self.project_id}/"
+                f"entitlements/{entitlement_id}:reportUsage"
+            )
             response = requests.post(
                 url, headers=self._get_headers(), json=usage_report, timeout=30
             )

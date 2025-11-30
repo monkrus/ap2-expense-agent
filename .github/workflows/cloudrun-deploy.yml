@@ -1,0 +1,69 @@
+name: Deploy to Cloud Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: 'GCP Project ID'
+        required: true
+      region:
+        description: 'GCP Region'
+        default: 'us-central1'
+        required: true
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}
+          install_components: 'beta'
+
+      - name: Auth with Workload Identity / SA
+        if: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Configure gcloud project/region
+        run: |
+          gcloud config set project "${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}"
+          echo "REGION=${{ github.event.inputs.region || secrets.GCP_REGION || 'us-central1' }}" >> $GITHUB_ENV
+
+      - name: Build and push Backend image
+        run: |
+          COMMIT_SHA=${GITHUB_SHA::12}
+          gcloud builds submit --tag gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-backend:${COMMIT_SHA} --config cloudbuild.yaml
+
+      - name: Build and push Frontend image
+        run: |
+          COMMIT_SHA=${GITHUB_SHA::12}
+          gcloud builds submit --tag gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-frontend:${COMMIT_SHA} --config cloudbuild.yaml
+
+      - name: Deploy Backend to Cloud Run
+        run: |
+          COMMIT_SHA=${GITHUB_SHA::12}
+          gcloud run deploy ap2-expense-backend \
+            --image gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-backend:${COMMIT_SHA} \
+            --region $REGION --platform managed --allow-unauthenticated \
+            --min-instances 1 --max-instances 10 --memory 2Gi --cpu 2 --port 8080 \
+            --set-env-vars ENVIRONMENT=production
+
+      - name: Deploy Frontend to Cloud Run
+        run: |
+          COMMIT_SHA=${GITHUB_SHA::12}
+          gcloud run deploy ap2-expense-frontend \
+            --image gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-frontend:${COMMIT_SHA} \
+            --region $REGION --platform managed --allow-unauthenticated \
+            --min-instances 1 --max-instances 5 --memory 512Mi --cpu 1 --port 8080
+
