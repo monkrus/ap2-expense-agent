@@ -13,6 +13,8 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - main
 
 jobs:
   deploy:
@@ -66,4 +68,3 @@ jobs:
             --image gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-frontend:${COMMIT_SHA} \
             --region $REGION --platform managed --allow-unauthenticated \
             --min-instances 1 --max-instances 5 --memory 512Mi --cpu 1 --port 8080
-
