@@ -213,6 +213,8 @@ jobs:
   test-backend:
     name: Test Backend (Unit + Integration)
     runs-on: ubuntu-latest
+    env:
+      PIP_CONSTRAINT: ""
     steps:
       - uses: actions/checkout@v4
 

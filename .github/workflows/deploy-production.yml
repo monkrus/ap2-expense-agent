@@ -31,6 +31,8 @@ jobs:
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
+    env:
+      PIP_CONSTRAINT: ""
     if: ${{ !inputs.skip_backend }}
     defaults:
       run:
