@@ -32,11 +32,15 @@ Namespace: {{ .Release.Namespace }}
 - Backend health: http{{ if .Values.tls.enabled }}s{{ end }}://{{ (index .Values.ingress.hosts 0).host }}/api/v1/health
 - API docs: http{{ if .Values.tls.enabled }}s{{ end }}://{{ (index .Values.ingress.hosts 0).host }}/docs
 
-{{- if .Values.autoscaling.enabled }}
+{{- if or (and .Values.backend .Values.backend.autoscaling.enabled) (and .Values.frontend .Values.frontend.autoscaling.enabled) }}
 
 🔄 Auto-scaling is enabled:
+{{- if and .Values.backend .Values.backend.autoscaling.enabled }}
 - Backend: {{ .Values.backend.autoscaling.minReplicas }} - {{ .Values.backend.autoscaling.maxReplicas }} replicas
+{{- end }}
+{{- if and .Values.frontend .Values.frontend.autoscaling.enabled }}
 - Frontend: {{ .Values.frontend.autoscaling.minReplicas }} - {{ .Values.frontend.autoscaling.maxReplicas }} replicas
+{{- end }}
 {{- end }}
 
 ⚠️  Important:

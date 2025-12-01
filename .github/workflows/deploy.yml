@@ -24,6 +24,7 @@ jobs:
   deploy:
     name: Deploy Application
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && secrets.GCP_SA_KEY != ''
     environment: ${{ github.event.inputs.environment || 'staging' }}
 
     steps:
@@ -121,7 +122,6 @@ jobs:
         if: success()
         uses: slackapi/slack-github-action@v1
         with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           payload: |
             {
               "text": "✅ Deployment to ${{ github.event.inputs.environment || 'staging' }} successful",
@@ -135,12 +135,13 @@ jobs:
                 }
               ]
             }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Notify deployment failure
         if: failure()
         uses: slackapi/slack-github-action@v1
         with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           payload: |
             {
               "text": "❌ Deployment to ${{ github.event.inputs.environment || 'staging' }} failed",
@@ -154,6 +155,8 @@ jobs:
                 }
               ]
             }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   rollback:
     name: Rollback on Failure
