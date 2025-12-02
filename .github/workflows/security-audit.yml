@@ -89,22 +89,31 @@ jobs:
       - name: Install Safety CLI v3
         run: |
           python -m pip install --upgrade pip
-          pip install safety==3.2.6
+          # Use stable v2 CLI to avoid recent typer/CLI regressions in v3
+          pip install safety==2.3.5
 
       - name: Run Safety scan (requirements)
         run: |
-          safety scan --file backend/requirements.txt --output json > safety-results.json || true
+          safety check -r backend/requirements.txt --json > safety-results.json || true
           echo "=== Python Safety Scan (non-blocking) ==="
-          safety scan --file backend/requirements.txt --output text || true
+          safety check -r backend/requirements.txt --full-report || true
 
-          # Parse results (safety 3.x format)
-          VULN_COUNT=$(jq '.report_meta.vulnerabilities_found // 0' safety-results.json)
+          # Parse results (safety v2 JSON shape)
+          if [ -f safety-results.json ]; then
+            VULN_COUNT=$(jq '(.vulnerabilities | length) // 0' safety-results.json)
+          else
+            VULN_COUNT=0
+          fi
 
           echo "Vulnerabilities found: $VULN_COUNT"
 
           # Check for specific critical CVEs
           # Note: ecdsa vulnerabilities are known and documented
-          CRITICAL_VULNS=$(jq '[.vulnerabilities[] | select(.CVE != null and .CVE != "CVE-2024-23342")] | length' safety-results.json)
+          if [ -f safety-results.json ]; then
+            CRITICAL_VULNS=$(jq '[.vulnerabilities[] | select((.CVE // .cve) != null and (.CVE // .cve) != "CVE-2024-23342")] | length' safety-results.json)
+          else
+            CRITICAL_VULNS=0
+          fi
 
           if [ "$CRITICAL_VULNS" -gt 0 ]; then
             echo "❌ BLOCKING: New critical vulnerabilities found!"
