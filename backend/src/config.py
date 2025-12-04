@@ -84,6 +84,8 @@ class Settings(BaseSettings):
     # Environment
     environment: str = "development"
     debug: bool = True
+    # Security toggles
+    allow_dev_kms_fallback: bool = False  # Only enable dev signing fallback explicitly (tests/dev)
 
     class Config:
         env_file = ".env"
