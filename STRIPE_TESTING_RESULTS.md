@@ -56,12 +56,12 @@ All 6 product configurations tested successfully:
 Verified all 6 Stripe price IDs are configured in `.env`:
 
 ```env
-STRIPE_PRICE_ID_STARTER_MONTHLY=price_1SWhfjBwTvP2uLFyVmCtWX7G
-STRIPE_PRICE_ID_STARTER_ANNUAL=price_1SWhk2BwTvP2uLFyP34s0rEQ
-STRIPE_PRICE_ID_PROFESSIONAL_MONTHLY=price_1SWhlJBwTvP2uLFyY1mrVv8v
-STRIPE_PRICE_ID_PROFESSIONAL_ANNUAL=price_1SWhqIBwTvP2uLFywB6mCLD8
-STRIPE_PRICE_ID_ENTERPRISE_MONTHLY=price_1SWhrtBwTvP2uLFyCxPNkwSv
-STRIPE_PRICE_ID_ENTERPRISE_ANNUAL=price_1SWhtOBwTvP2uLFyI09i5FZU
+STRIPE_PRICE_ID_STARTER_MONTHLY=price_test_starter_monthly_placeholder
+STRIPE_PRICE_ID_STARTER_ANNUAL=price_test_starter_annual_placeholder
+STRIPE_PRICE_ID_PROFESSIONAL_MONTHLY=price_test_professional_monthly_placeholder
+STRIPE_PRICE_ID_PROFESSIONAL_ANNUAL=price_test_professional_annual_placeholder
+STRIPE_PRICE_ID_ENTERPRISE_MONTHLY=price_test_enterprise_monthly_placeholder
+STRIPE_PRICE_ID_ENTERPRISE_ANNUAL=price_test_enterprise_annual_placeholder
 ```
 
 ### 6. Webhook Endpoint Accessibility ✅
@@ -88,8 +88,8 @@ Organizations with Stripe customer IDs:
 
 Current configuration (`.env`):
 ```
-STRIPE_SECRET_KEY=sk_test_51OMjslBwTvP2uLFy9jUT3VCNLvJ9As8MDQEsZu14WIFLggRDMwhKl1hbAAgF2v2qUndrrOACBpCMfs3xfay7Aczn00gneKSr6V
-STRIPE_PUBLISHABLE_KEY=pk_test_51OMjslBwTvP2uLFyG0yaBtvW6lISY3nCkCYYzbLrRURjtqJb9xx6f56vHgsu12bhSugcmDnIPn3FFpTwvJew7p8s00WFNiFyEU
+STRIPE_SECRET_KEY=sk_test_PLACEHOLDER
+STRIPE_PUBLISHABLE_KEY=pk_test_PLACEHOLDER
 STRIPE_WEBHOOK_SECRET=(empty - needs Stripe CLI)
 ```
 
@@ -145,7 +145,7 @@ This will:
 ### 2. Configure Webhook Secret
 Add to `backend/.env`:
 ```env
-STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_PLACEHOLDER
 ```
 
 ### 3. Restart Backend
@@ -225,9 +225,9 @@ Interactive menu to trigger test webhook events
 ### 2. Use Production API Keys
 Replace test keys in `.env` with production keys:
 ```env
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_PUBLISHABLE_KEY=pk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...  # From Stripe Dashboard
+STRIPE_SECRET_KEY=sk_live_PLACEHOLDER
+STRIPE_PUBLISHABLE_KEY=pk_live_PLACEHOLDER
+STRIPE_WEBHOOK_SECRET=whsec_PLACEHOLDER  # From Stripe Dashboard
 ```
 
 ### 3. Test Production Prices

@@ -74,7 +74,7 @@ Include the token in the `Authorization` header:
 
 ```bash
 curl -X GET https://your-backend-url/api/v1/expenses \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 **Step 3: Refresh Token (when expired)**

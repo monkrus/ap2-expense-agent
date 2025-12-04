@@ -55,6 +55,10 @@ backend/*.log
 backend/logs/*.log
 backend/nul
 
+# Top-level logs and artifacts
+logs/*.log
+logs/*.log.*
+
 # Frontend temporary files
 frontend/*.log
 frontend/nul

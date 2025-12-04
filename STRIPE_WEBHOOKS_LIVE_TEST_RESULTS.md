@@ -27,11 +27,11 @@ Successfully configured and tested live Stripe webhook forwarding using Stripe C
 
 ### 2. Webhook Secret Configuration ✅
 
-**Webhook Signing Secret**: `whsec_9c579428dad656c759646143f2ca8381462da701cd9612c363fe38326c83af31`
+**Webhook Signing Secret**: `whsec_PLACEHOLDER`
 
 **Configured in**: `backend/.env` (line 79)
 ```env
-STRIPE_WEBHOOK_SECRET=whsec_9c579428dad656c759646143f2ca8381462da701cd9612c363fe38326c83af31
+STRIPE_WEBHOOK_SECRET=whsec_PLACEHOLDER
 ```
 
 ### 3. Webhook Listener Status ✅
