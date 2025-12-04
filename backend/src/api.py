@@ -30,6 +30,7 @@ from .routes.receipts import router as receipts_router
 from .routes.webhooks import router as webhooks_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
 from .logging_config import setup_logging, RequestLogger
+from .startup_checks import validate_settings
 from .tenant_context import tenant_middleware
 
 # Try to import database-integrated agent, fallback to in-memory agent
@@ -54,6 +55,9 @@ if not AGENT_DB_AVAILABLE:
         )
 else:
     AGENT_AVAILABLE = True
+
+# Fail fast on insecure production settings
+validate_settings()
 
 app = FastAPI(
     title="AP2 Expense Management Agent",
