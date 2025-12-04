@@ -43,17 +43,14 @@ jobs:
       - name: Run Black (code formatting)
         working-directory: backend
         run: black --check src/ tests/
-        continue-on-error: true
 
       - name: Run isort (import sorting)
         working-directory: backend
         run: isort --check-only src/ tests/
-        continue-on-error: true
 
       - name: Run Flake8 (linting)
         working-directory: backend
         run: flake8 src/ tests/ --max-line-length=120 --extend-ignore=E203,W503
-        continue-on-error: true
 
   lint-frontend:
     name: Lint Frontend (TypeScript/JavaScript)
@@ -74,11 +71,11 @@ jobs:
 
       - name: Run ESLint
         working-directory: frontend
-        run: npm run lint || true
+        run: npm run lint
 
       - name: Run Prettier check
         working-directory: frontend
-        run: npx prettier --check "src/**/*.{js,jsx,ts,tsx,json,css,md}" || true
+        run: npx prettier --check "src/**/*.{js,jsx,ts,tsx,json,css,md}"
 
   # ============================================================================
   # SECURITY - SAST (Static Application Security Testing)
@@ -102,7 +99,7 @@ jobs:
         working-directory: backend
         run: |
           bandit -r src/ -f json -o bandit-report.json || true
-          bandit -r src/ -ll || true
+          bandit -r src/ -ll
 
       - name: Upload Bandit report
         uses: actions/upload-artifact@v4
@@ -130,7 +127,7 @@ jobs:
         working-directory: frontend
         run: |
           npm install --save-dev eslint-plugin-security
-          npx eslint --plugin security --rule "security/detect-object-injection: error" src/ || true
+          npx eslint --plugin security --rule "security/detect-object-injection: error" src/
 
   # ============================================================================
   # SECURITY - Dependency Scanning
