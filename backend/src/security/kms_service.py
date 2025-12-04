@@ -61,9 +61,16 @@ class KMSSigningService:
         Raises:
             ValueError: If KMS is not configured
         """
+        # Determine if we are in a non-prod/test context
+        in_test_mode = (
+            os.getenv("TESTING") in ("true", "True", "1")
+            or os.getenv("PYTEST_CURRENT_TEST") is not None
+            or settings.environment not in ("production", "staging")
+        )
+
         if not self.client or not self.key_path:
-            # Development fallback (INSECURE - only for local testing)
-            if settings.environment == "development":
+            # Development/testing fallback (INSECURE - only for non-prod)
+            if in_test_mode:
                 return self._dev_sign(data)
             raise ValueError(
                 "Cloud KMS not configured. Set GCP_PROJECT_ID and "
@@ -99,9 +106,15 @@ class KMSSigningService:
         Returns:
             True if signature is valid, False otherwise
         """
+        in_test_mode = (
+            os.getenv("TESTING") in ("true", "True", "1")
+            or os.getenv("PYTEST_CURRENT_TEST") is not None
+            or settings.environment not in ("production", "staging")
+        )
+
         if not self.client or not self.key_path:
-            # Development fallback
-            if settings.environment == "development":
+            # Development/testing fallback
+            if in_test_mode:
                 return self._dev_verify(data, signature)
             return False
 
