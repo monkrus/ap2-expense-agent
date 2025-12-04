@@ -123,7 +123,7 @@ jobs:
     name: Deploy Backend to Cloud Run
     needs: test-backend
     runs-on: ubuntu-latest
-    if: ${{ !inputs.skip_backend }}
+    if: ${{ !inputs.skip_backend && secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != '' }}
     permissions:
       contents: read
       id-token: write
@@ -190,7 +190,7 @@ jobs:
     name: Deploy Frontend to Cloud Run
     needs: [test-frontend, deploy-backend]
     runs-on: ubuntu-latest
-    if: ${{ !inputs.skip_frontend }}
+    if: ${{ !inputs.skip_frontend && secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != '' }}
     permissions:
       contents: read
       id-token: write
