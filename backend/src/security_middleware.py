@@ -2,7 +2,6 @@
 Security middleware for HTTP headers and request processing
 """
 
-import os
 import uuid
 from typing import Callable
 
@@ -23,9 +22,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
-        # HSTS (HTTP Strict Transport Security) - enabled in production
-        if os.getenv("ENVIRONMENT") == "production":
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        # HSTS (HTTP Strict Transport Security) - only in production with HTTPS
+        # Uncomment when using HTTPS:
+        # response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
 
         # Content Security Policy
         csp_directives = [
