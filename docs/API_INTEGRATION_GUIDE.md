@@ -61,8 +61,8 @@ curl -X POST https://your-backend-url/api/v1/auth/login \
 **Response:**
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "<ACCESS_TOKEN>",
+  "refresh_token": "<REFRESH_TOKEN>",
   "token_type": "bearer",
   "expires_in": 3600
 }
@@ -74,7 +74,7 @@ Include the token in the `Authorization` header:
 
 ```bash
 curl -X GET https://your-backend-url/api/v1/expenses \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+  -H "Authorization: Bearer <TOKEN>"
 ```
 
 **Step 3: Refresh Token (when expired)**
@@ -83,7 +83,7 @@ curl -X GET https://your-backend-url/api/v1/expenses \
 curl -X POST https://your-backend-url/api/v1/auth/refresh \
   -H "Content-Type: application/json" \
   -d '{
-    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    "refresh_token": "<REFRESH_TOKEN>"
   }'
 ```
 
@@ -248,7 +248,7 @@ submitExpense();
 
 ```bash
 curl -X POST https://your-backend-url/api/v1/expenses \
-  -H "Authorization: Bearer your_jwt_token" \
+  -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
     "amount": 45.99,

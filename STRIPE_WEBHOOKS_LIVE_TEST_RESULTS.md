@@ -211,7 +211,7 @@ curl -X POST "http://localhost:8000/api/v1/auth/login" \
 3. **Create Organization**:
 ```bash
 curl -X POST "http://localhost:8000/api/v1/organizations" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"name":"Webhook Test Org","slug":"webhook-test-org"}'
 ```
@@ -219,7 +219,7 @@ curl -X POST "http://localhost:8000/api/v1/organizations" \
 4. **Create Checkout Session**:
 ```bash
 curl -X POST "http://localhost:8000/api/payment/checkout-session?tier_name=starter&billing_cycle=monthly" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+  -H "Authorization: Bearer <TOKEN>"
 ```
 
 5. **Complete Checkout**:

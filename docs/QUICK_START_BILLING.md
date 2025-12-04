@@ -129,7 +129,7 @@ npm run dev
 2. **Payment Endpoints Available**:
    ```bash
    curl http://localhost:8000/api/payment/setup-intent \
-     -H "Authorization: Bearer YOUR_TOKEN"
+     -H "Authorization: Bearer <TOKEN>"
    # Should return client_secret
    ```
 

@@ -844,8 +844,8 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 **Expected Response**:
 ```json
 {
-  "access_token": "eyJhbGc...",
-  "refresh_token": "abc123...",
+  "access_token": "<ACCESS_TOKEN>",
+  "refresh_token": "<REFRESH_TOKEN>",
   "token_type": "bearer",
   "expires_in": 3600,
   "user": {

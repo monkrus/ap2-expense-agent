@@ -73,7 +73,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 
 # 2. Create checkout session
 curl -X POST "http://localhost:8000/api/payment/checkout-session?tier_name=starter&billing_cycle=monthly" \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+  -H "Authorization: Bearer <TOKEN>"
 ```
 
 ### Check Database for Stripe Data

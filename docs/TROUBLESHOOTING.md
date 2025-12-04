@@ -46,7 +46,7 @@ Common issues and solutions for AP2 Expense Agent.
    ```bash
    # Admin can check via API
    curl -X GET https://your-backend-url/api/v1/admin/users/{user_id} \
-     -H "Authorization: Bearer ADMIN_TOKEN"
+     -H "Authorization: Bearer <TOKEN>"
 
    # Look for: "is_active": true
    ```
@@ -63,7 +63,7 @@ Common issues and solutions for AP2 Expense Agent.
    ```bash
    curl -X POST https://your-backend-url/api/v1/auth/refresh \
      -H "Content-Type: application/json" \
-     -d '{"refresh_token": "YOUR_REFRESH_TOKEN"}'
+     -d '{"refresh_token": "<REFRESH_TOKEN>"}'
    ```
 
 2. **Login again**
@@ -362,14 +362,14 @@ Common issues and solutions for AP2 Expense Agent.
 1. **Set X-Organization-Id header**
    ```bash
    curl -X GET https://your-backend-url/api/v1/expenses \
-     -H "Authorization: Bearer TOKEN" \
+     -H "Authorization: Bearer <TOKEN>" \
      -H "X-Organization-Id: org_abc123"
    ```
 
 2. **Get your organization ID**
    ```bash
    curl -X GET https://your-backend-url/api/v1/organizations \
-     -H "Authorization: Bearer TOKEN"
+     -H "Authorization: Bearer <TOKEN>"
    ```
 
 3. **Join an organization**
