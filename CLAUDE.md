@@ -71,6 +71,31 @@ python test_organization_scenarios.py
 python security_audit_comprehensive.py
 ```
 
+### Production Deployment & Operations
+
+```bash
+# Validate environment before deployment
+./scripts/validate-environment.sh production
+
+# Create database backup
+./scripts/backup-database.sh
+
+# Deploy to production (automated)
+./scripts/deploy-production.sh v1.0.0 production
+
+# Run smoke tests after deployment
+./scripts/smoke-test.sh production
+
+# Rollback if needed
+./scripts/rollback-deployment.sh v0.9.0
+
+# Seed demo data for screenshots
+python backend/seed_screenshot_data.py
+
+# Capture screenshots with guided helper
+./scripts/capture-screenshots.sh
+```
+
 ---
 
 ## Code Architecture
@@ -414,7 +439,22 @@ git commit -m "refactor: improve X without breaking Y"
 
 Keep this updated when making significant changes:
 
-**2025-11-27**:
+**2025-12-04: Production Automation Suite**:
+- ✅ Created comprehensive automation scripts for production deployment
+- ✅ **Deployment Automation** (`scripts/deploy-production.sh`): End-to-end production deployment with gradual rollout
+- ✅ **Environment Validation** (`scripts/validate-environment.sh`): Validates all required environment variables
+- ✅ **Database Backup** (`scripts/backup-database.sh`): Automated Cloud SQL backup creation
+- ✅ **Rollback Procedure** (`scripts/rollback-deployment.sh`): Safe deployment rollback with health checks
+- ✅ **Smoke Tests** (`scripts/smoke-test.sh`): Post-deployment verification (13 tests)
+- ✅ **Screenshot Helper** (`scripts/capture-screenshots.sh`): Interactive guide for GCP Marketplace screenshots
+- ✅ **Demo Data Seeder** (`backend/seed_screenshot_data.py`): Generates realistic demo data
+- ✅ Created **CHANGELOG.md**: Project changelog following Keep a Changelog format
+- ✅ Updated **README.md**: Added automation scripts section and documentation links
+- ✅ Enhanced **CI/CD Pipeline**: Made linters blocking, enabled E2E tests
+- ✅ Security hardening: Environment-aware HSTS headers in production
+- ✅ Updated **.gitignore**: Added backup cache, screenshots, test data exclusions
+
+**2025-11-27: Security & Testing**:
 - ✅ Added case-insensitive organization name validation
 - ✅ Fixed soft-delete slug filtering (allow reuse after deletion)
 - ✅ Created comprehensive test suite (test_org_final.py)

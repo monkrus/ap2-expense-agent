@@ -69,3 +69,16 @@ dump.rdb
 # Upload directories (dynamically generated)
 backend/uploads/
 uploads/
+
+# Backup verification cache and reports
+scripts/.backup-verification-cache
+*.backup-report.json
+
+# Screenshot staging area
+screenshots/staging/
+marketplace/screenshots/*.png
+marketplace/screenshots/*.jpg
+
+# Temporary test data
+test-data/
+sample-data-*.json

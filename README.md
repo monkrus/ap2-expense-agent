@@ -161,6 +161,38 @@ docker-compose up -d
 
 ---
 
+## 🤖 Automation Scripts
+
+We provide comprehensive automation scripts for production deployment and operations:
+
+### Deployment & Operations
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| [`scripts/deploy-production.sh`](scripts/deploy-production.sh) | End-to-end production deployment | `./scripts/deploy-production.sh v1.0.0` |
+| [`scripts/validate-environment.sh`](scripts/validate-environment.sh) | Validate environment variables | `./scripts/validate-environment.sh production` |
+| [`scripts/backup-database.sh`](scripts/backup-database.sh) | Create database backups | `./scripts/backup-database.sh` |
+| [`scripts/rollback-deployment.sh`](scripts/rollback-deployment.sh) | Safe deployment rollback | `./scripts/rollback-deployment.sh v0.9.0` |
+| [`scripts/smoke-test.sh`](scripts/smoke-test.sh) | Post-deployment verification | `./scripts/smoke-test.sh production` |
+
+### Marketplace Assets
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| [`scripts/capture-screenshots.sh`](scripts/capture-screenshots.sh) | Screenshot capture guide | `./scripts/capture-screenshots.sh` |
+| [`backend/seed_screenshot_data.py`](backend/seed_screenshot_data.py) | Generate demo data | `python backend/seed_screenshot_data.py` |
+
+**Features:**
+- ✅ Automated environment validation
+- ✅ Pre-deployment database backups
+- ✅ Health checks and smoke tests
+- ✅ Gradual traffic rollout (25% → 50% → 75% → 100%)
+- ✅ Automatic rollback on failure
+- ✅ Slack and PagerDuty notifications
+- ✅ Comprehensive deployment reports
+
+---
+
 ## 📖 Documentation
 
 | Document | Description | Lines |
@@ -172,8 +204,12 @@ docker-compose up -d
 | [POSTGRESQL_MIGRATION.md](backend/POSTGRESQL_MIGRATION.md) | PostgreSQL setup & migration | 550 |
 | [SECURITY_REMEDIATION_REPORT.md](backend/SECURITY_REMEDIATION_REPORT.md) | Security audit & fixes | 231 |
 | [GCP_INTEGRATION_TEST_RESULTS.md](backend/GCP_INTEGRATION_TEST_RESULTS.md) | Integration test results | 380 |
+| [MARKETPLACE_ASSET_CREATION_GUIDE.md](MARKETPLACE_ASSET_CREATION_GUIDE.md) | Screenshot & video guide | 9,000+ |
+| [PRODUCTION_ALERTING_SETUP.md](PRODUCTION_ALERTING_SETUP.md) | Monitoring & alerting setup | 7,000+ |
+| [PRE_LAUNCH_CHECKLIST.md](PRE_LAUNCH_CHECKLIST.md) | 150+ item deployment checklist | 10,000+ |
+| [CHANGELOG.md](CHANGELOG.md) | Project changelog | 650+ |
 
-**Total:** 3,594 lines of comprehensive documentation
+**Total:** 30,000+ lines of comprehensive documentation
 
 ---
 
