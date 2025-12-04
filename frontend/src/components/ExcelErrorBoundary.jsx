@@ -6,11 +6,7 @@ import { logSecurityEvent } from '../utils/excelSecurity';
  * Error Boundary for Excel/File Operations
  *
  * Catches errors during Excel export/import operations to prevent
- * application crashes from xlsx library vulnerabilities.
- *
- * Related CVEs:
- * - GHSA-4r6h-8v6p-xvw6 (Prototype Pollution)
- * - GHSA-5pgg-2g8v-p4x9 (ReDoS)
+ * application crashes and provide a safe fallback UI during file handling.
  */
 class ExcelErrorBoundary extends React.Component {
   constructor(props) {

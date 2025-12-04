@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Download, FileText, Table } from 'lucide-react';
 import { expenseAPI } from '../services/api';
 import { useToast } from '../hooks/useToast';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { withTimeout, logSecurityEvent } from '../utils/excelSecurity';
@@ -62,52 +62,50 @@ const ExpenseExport = ({ expenses, onClose }) => {
       // This protects against ReDoS (Regular Expression Denial of Service)
       await withTimeout(
         (async () => {
-          // Prepare data for Excel
-          const data = expenses.map((expense, index) => ({
-            '#': index + 1,
-            'Date': formatDate(expense.date),
-            'Category': expense.category || '',
-            'Vendor': expense.vendor || '',
-            'Description': expense.description || '',
-            'Amount': expense.amount,
-            'Status': expense.status ? expense.status.charAt(0).toUpperCase() + expense.status.slice(1) : '',
-            'Expense ID': expense.id.substring(0, 8) // Short ID for reference
-          }));
+          const workbook = new ExcelJS.Workbook();
+          const worksheet = workbook.addWorksheet('Expenses');
 
-          // Create worksheet
-          const worksheet = XLSX.utils.json_to_sheet(data);
-
-          // Auto-fit column widths
-          const columnWidths = [
-            { wch: 5 },   // # (row number)
-            { wch: 12 },  // Date
-            { wch: 15 },  // Category
-            { wch: 25 },  // Vendor
-            { wch: 40 },  // Description
-            { wch: 12 },  // Amount
-            { wch: 10 },  // Status
-            { wch: 10 }   // Expense ID (shortened)
+          worksheet.columns = [
+            { header: '#', key: 'rowNumber', width: 5 },
+            { header: 'Date', key: 'date', width: 12 },
+            { header: 'Category', key: 'category', width: 15 },
+            { header: 'Vendor', key: 'vendor', width: 25 },
+            { header: 'Description', key: 'description', width: 40 },
+            { header: 'Amount', key: 'amount', width: 12 },
+            { header: 'Status', key: 'status', width: 10 },
+            { header: 'Expense ID', key: 'expenseId', width: 12 },
           ];
-          worksheet['!cols'] = columnWidths;
 
-          // Format amount column as currency
-          const range = XLSX.utils.decode_range(worksheet['!ref']);
-          for (let row = range.s.r + 1; row <= range.e.r; row++) {
-            const cellAddress = XLSX.utils.encode_cell({ r: row, c: 5 }); // Column F (Amount - 0-indexed, so position 5)
-            if (worksheet[cellAddress]) {
-              worksheet[cellAddress].z = '$#,##0.00';
-            }
-          }
+          expenses.forEach((expense, index) => {
+            worksheet.addRow({
+              rowNumber: index + 1,
+              date: formatDate(expense.date),
+              category: expense.category || '',
+              vendor: expense.vendor || '',
+              description: expense.description || '',
+              amount: Number(expense.amount ?? 0),
+              status: expense.status
+                ? expense.status.charAt(0).toUpperCase() + expense.status.slice(1)
+                : '',
+              expenseId: (expense.id || '').substring(0, 8),
+            });
+          });
 
-          // Create workbook and add worksheet
-          const workbook = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(workbook, worksheet, 'Expenses');
+          // Currency formatting for Amount column
+          worksheet.getColumn('amount').numFmt = '$#,##0.00';
 
-          // Generate filename with current date
           const filename = `expenses_${new Date().toISOString().split('T')[0]}.xlsx`;
+          const buffer = await workbook.xlsx.writeBuffer();
+          const blob = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          });
 
-          // Save file
-          XLSX.writeFile(workbook, filename);
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename;
+          link.click();
+          window.URL.revokeObjectURL(url);
         })(),
         5000 // 5 second timeout
       );

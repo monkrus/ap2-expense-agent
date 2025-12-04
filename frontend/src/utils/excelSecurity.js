@@ -1,11 +1,9 @@
 /**
  * Excel Security Utilities
  *
- * Mitigations for xlsx library vulnerabilities:
- * - CVE: GHSA-4r6h-8v6p-xvw6 (Prototype Pollution)
- * - CVE: GHSA-5pgg-2g8v-p4x9 (ReDoS)
- *
- * See: DEPENDENCY_AUDIT_REPORT.md for full details
+ * Safety rails for Excel export/import operations.
+ * We use ExcelJS (browser build) to avoid known xlsx CVEs and still
+ * enforce resource limits and timeouts as defense-in-depth.
  */
 
 // Security constants
@@ -104,38 +102,47 @@ export async function safeExcelParse(parseFunction, args, timeout = EXCEL_SECURI
 
 /**
  * Validate workbook structure to prevent excessive memory usage
- * @param {Object} workbook - XLSX workbook object
+ * @param {Object} workbook - ExcelJS workbook object (or compatible shape)
  * @throws {Error} If workbook structure is dangerous
  */
 export function validateWorkbookStructure(workbook) {
-  if (!workbook || !workbook.SheetNames) {
+  if (!workbook) {
     throw new Error('Invalid workbook structure');
   }
 
-  // Check sheet count
-  if (workbook.SheetNames.length > 50) {
+  const sheets =
+    workbook.worksheets ||
+    (workbook.SheetNames
+      ? workbook.SheetNames.map(name => workbook.Sheets?.[name]).filter(Boolean)
+      : []);
+
+  if (!sheets.length) {
+    throw new Error('Invalid workbook structure');
+  }
+
+  if (sheets.length > 50) {
     throw new Error(
-      `Too many sheets. Maximum: 50. Found: ${workbook.SheetNames.length}`
+      `Too many sheets. Maximum: 50. Found: ${sheets.length}`
     );
   }
 
   // Validate each sheet
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
+  for (const sheet of sheets) {
+    // ExcelJS exposes rowCount/columnCount; fall back to xlsx-style ranges
+    const rowCount =
+      typeof sheet.rowCount === 'number'
+        ? sheet.rowCount
+        : sheet['!ref']
+          ? parseRange(sheet['!ref'])?.rows
+          : 0;
+    const colCount =
+      typeof sheet.columnCount === 'number'
+        ? sheet.columnCount
+        : sheet['!ref']
+          ? parseRange(sheet['!ref'])?.cols
+          : 0;
 
-    if (!sheet || !sheet['!ref']) {
-      continue; // Empty sheet
-    }
-
-    // Parse range to get dimensions
-    const range = parseRange(sheet['!ref']);
-
-    if (!range) {
-      throw new Error(`Invalid range in sheet: ${sheetName}`);
-    }
-
-    const rowCount = range.e.r - range.s.r + 1;
-    const colCount = range.e.c - range.s.c + 1;
+    const sheetName = sheet.name || 'Sheet';
 
     if (rowCount > EXCEL_SECURITY.MAX_ROWS) {
       throw new Error(
@@ -181,6 +188,8 @@ function parseRange(range) {
     return {
       s: start, // start
       e: end,   // end
+      rows: end.r - start.r + 1,
+      cols: end.c - start.c + 1,
     };
   } catch (error) {
     console.error('Range parsing error:', error);
