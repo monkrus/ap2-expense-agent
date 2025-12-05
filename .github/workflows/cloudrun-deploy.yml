@@ -95,8 +95,18 @@ jobs:
           gcloud run deploy ap2-expense-backend \
             --image gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-backend:${COMMIT_SHA} \
             --region $REGION --platform managed --allow-unauthenticated \
-            --min-instances 1 --max-instances 10 --memory 2Gi --cpu 2 --port 8080 \
+            --min-instances 1 --max-instances 10 --memory 2Gi --cpu 2 --port 8080 --concurrency 80 \
             --set-env-vars ENVIRONMENT=production,DEBUG=false,ALLOW_DEV_KMS_FALLBACK=false,RATE_LIMIT_ENABLED=true,JWT_SECRET=$JWT_SECRET,DATABASE_URL=$DATABASE_URL,GCP_PROJECT_ID=${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }},REDIS_URL=${REDIS_URL:-redis://localhost:6379/0},FRONTEND_URL=${FRONTEND_URL:-},CORS_ORIGINS="$CORS_ORIGINS"
+
+      - name: Smoke test backend
+        run: |
+          URL=$(gcloud run services describe ap2-expense-backend --region $REGION --format="value(status.url)")
+          if [ -z "$URL" ]; then
+            echo "::error::Could not resolve backend URL"
+            exit 1
+          fi
+          curl -f "$URL/health" || exit 1
+          curl -f "$URL/api/webhooks/gcp/health" || exit 1
 
       - name: Deploy Frontend to Cloud Run
         run: |

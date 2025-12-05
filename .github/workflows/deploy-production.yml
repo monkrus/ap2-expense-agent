@@ -165,6 +165,7 @@ jobs:
             --memory 2Gi \
             --cpu 2 \
             --port 8080 \
+            --concurrency 80 \
             --timeout 300 \
             --set-env-vars ENVIRONMENT=production,DEBUG=false,ALLOW_DEV_KMS_FALLBACK=false,RATE_LIMIT_ENABLED=true,COMMIT_SHA=${{ github.sha }},JWT_SECRET=${{ secrets.JWT_SECRET }},DATABASE_URL=${{ secrets.DATABASE_URL }},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
 
