@@ -85,6 +85,12 @@ jobs:
           ALLOW_UNAUTHENTICATED: ${{ secrets.ALLOW_UNAUTHENTICATED }}
           MAX_INSTANCES_BACKEND: ${{ secrets.MAX_INSTANCES_BACKEND }}
           MAX_INSTANCES_FRONTEND: ${{ secrets.MAX_INSTANCES_FRONTEND }}
+          MIN_INSTANCES_BACKEND: ${{ secrets.MIN_INSTANCES_BACKEND }}
+          MIN_INSTANCES_FRONTEND: ${{ secrets.MIN_INSTANCES_FRONTEND }}
+          CPU_BACKEND: ${{ secrets.CPU_BACKEND }}
+          MEMORY_BACKEND: ${{ secrets.MEMORY_BACKEND }}
+          CPU_FRONTEND: ${{ secrets.CPU_FRONTEND }}
+          MEMORY_FRONTEND: ${{ secrets.MEMORY_FRONTEND }}
         run: |
           if [ -z "$JWT_SECRET" ] || [ -z "$DATABASE_URL" ]; then
             echo "::error::Missing JWT_SECRET or DATABASE_URL secrets; refusing to deploy insecure defaults."
@@ -102,10 +108,13 @@ jobs:
             INGRESS_FLAG="--ingress all"
           fi
           MAX_BACKEND=${MAX_INSTANCES_BACKEND:-10}
+          MIN_BACKEND=${MIN_INSTANCES_BACKEND:-1}
+          CPU_BACK=${CPU_BACKEND:-2}
+          MEM_BACK=${MEMORY_BACKEND:-2Gi}
           gcloud run deploy ap2-expense-backend \
             --image gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-backend:${COMMIT_SHA} \
             --region $REGION --platform managed \
-            --min-instances 1 --max-instances $MAX_BACKEND --memory 2Gi --cpu 2 --port 8080 --concurrency 80 --execution-environment gen2 --cpu-boost \
+            --min-instances $MIN_BACKEND --max-instances $MAX_BACKEND --memory $MEM_BACK --cpu $CPU_BACK --port 8080 --concurrency 80 --execution-environment gen2 --cpu-boost \
             --set-env-vars ENVIRONMENT=production,DEBUG=false,ALLOW_DEV_KMS_FALLBACK=false,RATE_LIMIT_ENABLED=true,JWT_SECRET=$JWT_SECRET,DATABASE_URL=$DATABASE_URL,GCP_PROJECT_ID=${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }},REDIS_URL=${REDIS_URL:-redis://localhost:6379/0},FRONTEND_URL=${FRONTEND_URL:-},CORS_ORIGINS="$CORS_ORIGINS" \
             $AUTH_FLAG $INGRESS_FLAG
 
@@ -129,10 +138,13 @@ jobs:
             INGRESS_FLAG="--ingress internal-and-cloud-load-balancing"
           fi
           MAX_FRONT=${MAX_INSTANCES_FRONTEND:-5}
+          MIN_FRONT=${MIN_INSTANCES_FRONTEND:-1}
+          CPU_FRONT=${CPU_FRONTEND:-1}
+          MEM_FRONT=${MEMORY_FRONTEND:-512Mi}
           gcloud run deploy ap2-expense-frontend \
             --image gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-frontend:${COMMIT_SHA} \
             --region $REGION --platform managed \
-            --min-instances 1 --max-instances $MAX_FRONT --memory 512Mi --cpu 1 --port 8080 --concurrency 50 --execution-environment gen2 --cpu-boost \
+            --min-instances $MIN_FRONT --max-instances $MAX_FRONT --memory $MEM_FRONT --cpu $CPU_FRONT --port 8080 --concurrency 50 --execution-environment gen2 --cpu-boost \
             $AUTH_FLAG $INGRESS_FLAG
 
       - name: Smoke test frontend

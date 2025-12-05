@@ -157,6 +157,9 @@ jobs:
         env:
           ALLOW_UNAUTHENTICATED: ${{ secrets.ALLOW_UNAUTHENTICATED }}
           MAX_INSTANCES_BACKEND: ${{ secrets.MAX_INSTANCES_BACKEND }}
+          MIN_INSTANCES_BACKEND: ${{ secrets.MIN_INSTANCES_BACKEND }}
+          CPU_BACKEND: ${{ secrets.CPU_BACKEND }}
+          MEMORY_BACKEND: ${{ secrets.MEMORY_BACKEND }}
         run: |
           AUTH_FLAG="--allow-unauthenticated"
           INGRESS_FLAG="--ingress all"
@@ -165,14 +168,17 @@ jobs:
             INGRESS_FLAG="--ingress internal-and-cloud-load-balancing"
           fi
           MAX_BACKEND=${MAX_INSTANCES_BACKEND:-10}
+          MIN_BACKEND=${MIN_INSTANCES_BACKEND:-1}
+          CPU_BACK=${CPU_BACKEND:-2}
+          MEM_BACK=${MEMORY_BACKEND:-2Gi}
           gcloud run deploy ${{ env.BACKEND_SERVICE }} \
             --image gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
-            --min-instances 1 \
+            --min-instances $MIN_BACKEND \
             --max-instances $MAX_BACKEND \
-            --memory 2Gi \
-            --cpu 2 \
+            --memory $MEM_BACK \
+            --cpu $CPU_BACK \
             --port 8080 \
             --concurrency 80 \
             --execution-environment gen2 \
@@ -242,6 +248,9 @@ jobs:
         env:
           ALLOW_UNAUTHENTICATED: ${{ secrets.ALLOW_UNAUTHENTICATED }}
           MAX_INSTANCES_FRONTEND: ${{ secrets.MAX_INSTANCES_FRONTEND }}
+          MIN_INSTANCES_FRONTEND: ${{ secrets.MIN_INSTANCES_FRONTEND }}
+          CPU_FRONTEND: ${{ secrets.CPU_FRONTEND }}
+          MEMORY_FRONTEND: ${{ secrets.MEMORY_FRONTEND }}
         run: |
           AUTH_FLAG="--allow-unauthenticated"
           INGRESS_FLAG="--ingress all"
@@ -250,14 +259,17 @@ jobs:
             INGRESS_FLAG="--ingress internal-and-cloud-load-balancing"
           fi
           MAX_FRONT=${MAX_INSTANCES_FRONTEND:-5}
+          MIN_FRONT=${MIN_INSTANCES_FRONTEND:-1}
+          CPU_FRONT=${CPU_FRONTEND:-1}
+          MEM_FRONT=${MEMORY_FRONTEND:-512Mi}
           gcloud run deploy ${{ env.FRONTEND_SERVICE }} \
             --image gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
-            --min-instances 1 \
+            --min-instances $MIN_FRONT \
             --max-instances $MAX_FRONT \
-            --memory 512Mi \
-            --cpu 1 \
+            --memory $MEM_FRONT \
+            --cpu $CPU_FRONT \
             --port 80 \
             --concurrency 50 \
             --execution-environment gen2 \
