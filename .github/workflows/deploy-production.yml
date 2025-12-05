@@ -154,12 +154,19 @@ jobs:
           docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:latest
 
       - name: Deploy to Cloud Run
+        env:
+          ALLOW_UNAUTHENTICATED: ${{ secrets.ALLOW_UNAUTHENTICATED }}
         run: |
+          AUTH_FLAG="--allow-unauthenticated"
+          INGRESS_FLAG="--ingress all"
+          if [ "${ALLOW_UNAUTHENTICATED:-true}" = "false" ]; then
+            AUTH_FLAG="--no-allow-unauthenticated"
+            INGRESS_FLAG="--ingress internal-and-cloud-load-balancing"
+          fi
           gcloud run deploy ${{ env.BACKEND_SERVICE }} \
             --image gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
-            --allow-unauthenticated \
             --min-instances 1 \
             --max-instances 10 \
             --memory 2Gi \
@@ -167,7 +174,8 @@ jobs:
             --port 8080 \
             --concurrency 80 \
             --timeout 300 \
-            --set-env-vars ENVIRONMENT=production,DEBUG=false,ALLOW_DEV_KMS_FALLBACK=false,RATE_LIMIT_ENABLED=true,COMMIT_SHA=${{ github.sha }},JWT_SECRET=${{ secrets.JWT_SECRET }},DATABASE_URL=${{ secrets.DATABASE_URL }},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
+            --set-env-vars ENVIRONMENT=production,DEBUG=false,ALLOW_DEV_KMS_FALLBACK=false,RATE_LIMIT_ENABLED=true,COMMIT_SHA=${{ github.sha }},JWT_SECRET=${{ secrets.JWT_SECRET }},DATABASE_URL=${{ secrets.DATABASE_URL }},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},CORS_ORIGINS=${{ secrets.CORS_ORIGINS }} \
+            $AUTH_FLAG $INGRESS_FLAG
 
       - name: Get backend URL
         id: backend-url
@@ -239,6 +247,17 @@ jobs:
             --cpu 1 \
             --port 80 \
             --timeout 60
+
+      - name: Test frontend
+        run: |
+          URL=$(gcloud run services describe ${{ env.FRONTEND_SERVICE }} \
+            --region ${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+          if [ -z "$URL" ]; then
+            echo "::error::Could not resolve frontend URL"
+            exit 1
+          fi
+          curl -f "$URL" || exit 1
 
       - name: Get frontend URL
         id: frontend-url
