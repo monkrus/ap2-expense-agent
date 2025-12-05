@@ -83,6 +83,8 @@ jobs:
           FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
           CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
           ALLOW_UNAUTHENTICATED: ${{ secrets.ALLOW_UNAUTHENTICATED }}
+          MAX_INSTANCES_BACKEND: ${{ secrets.MAX_INSTANCES_BACKEND }}
+          MAX_INSTANCES_FRONTEND: ${{ secrets.MAX_INSTANCES_FRONTEND }}
         run: |
           if [ -z "$JWT_SECRET" ] || [ -z "$DATABASE_URL" ]; then
             echo "::error::Missing JWT_SECRET or DATABASE_URL secrets; refusing to deploy insecure defaults."
@@ -93,16 +95,17 @@ jobs:
             exit 1
           fi
           COMMIT_SHA=${GITHUB_SHA::12}
-          AUTH_FLAG="--allow-unauthenticated"
-          INGRESS_FLAG="--ingress all"
-          if [ "${ALLOW_UNAUTHENTICATED:-true}" = "false" ]; then
-            AUTH_FLAG="--no-allow-unauthenticated"
-            INGRESS_FLAG="--ingress internal-and-cloud-load-balancing"
+          AUTH_FLAG="--no-allow-unauthenticated"
+          INGRESS_FLAG="--ingress internal-and-cloud-load-balancing"
+          if [ "${ALLOW_UNAUTHENTICATED:-false}" = "true" ]; then
+            AUTH_FLAG="--allow-unauthenticated"
+            INGRESS_FLAG="--ingress all"
           fi
+          MAX_BACKEND=${MAX_INSTANCES_BACKEND:-10}
           gcloud run deploy ap2-expense-backend \
             --image gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-backend:${COMMIT_SHA} \
             --region $REGION --platform managed \
-            --min-instances 1 --max-instances 10 --memory 2Gi --cpu 2 --port 8080 --concurrency 80 \
+            --min-instances 1 --max-instances $MAX_BACKEND --memory 2Gi --cpu 2 --port 8080 --concurrency 80 --execution-environment gen2 --cpu-boost \
             --set-env-vars ENVIRONMENT=production,DEBUG=false,ALLOW_DEV_KMS_FALLBACK=false,RATE_LIMIT_ENABLED=true,JWT_SECRET=$JWT_SECRET,DATABASE_URL=$DATABASE_URL,GCP_PROJECT_ID=${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }},REDIS_URL=${REDIS_URL:-redis://localhost:6379/0},FRONTEND_URL=${FRONTEND_URL:-},CORS_ORIGINS="$CORS_ORIGINS" \
             $AUTH_FLAG $INGRESS_FLAG
 
@@ -119,10 +122,18 @@ jobs:
       - name: Deploy Frontend to Cloud Run
         run: |
           COMMIT_SHA=${GITHUB_SHA::12}
+          AUTH_FLAG="--allow-unauthenticated"
+          INGRESS_FLAG="--ingress all"
+          if [ "${ALLOW_UNAUTHENTICATED:-false}" = "false" ]; then
+            AUTH_FLAG="--no-allow-unauthenticated"
+            INGRESS_FLAG="--ingress internal-and-cloud-load-balancing"
+          fi
+          MAX_FRONT=${MAX_INSTANCES_FRONTEND:-5}
           gcloud run deploy ap2-expense-frontend \
             --image gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-frontend:${COMMIT_SHA} \
-            --region $REGION --platform managed --allow-unauthenticated \
-            --min-instances 1 --max-instances 5 --memory 512Mi --cpu 1 --port 8080
+            --region $REGION --platform managed \
+            --min-instances 1 --max-instances $MAX_FRONT --memory 512Mi --cpu 1 --port 8080 --concurrency 50 --execution-environment gen2 --cpu-boost \
+            $AUTH_FLAG $INGRESS_FLAG
 
       - name: Smoke test frontend
         run: |

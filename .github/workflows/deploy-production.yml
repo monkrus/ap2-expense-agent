@@ -156,23 +156,27 @@ jobs:
       - name: Deploy to Cloud Run
         env:
           ALLOW_UNAUTHENTICATED: ${{ secrets.ALLOW_UNAUTHENTICATED }}
+          MAX_INSTANCES_BACKEND: ${{ secrets.MAX_INSTANCES_BACKEND }}
         run: |
           AUTH_FLAG="--allow-unauthenticated"
           INGRESS_FLAG="--ingress all"
-          if [ "${ALLOW_UNAUTHENTICATED:-true}" = "false" ]; then
+          if [ "${ALLOW_UNAUTHENTICATED:-false}" = "false" ]; then
             AUTH_FLAG="--no-allow-unauthenticated"
             INGRESS_FLAG="--ingress internal-and-cloud-load-balancing"
           fi
+          MAX_BACKEND=${MAX_INSTANCES_BACKEND:-10}
           gcloud run deploy ${{ env.BACKEND_SERVICE }} \
             --image gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --min-instances 1 \
-            --max-instances 10 \
+            --max-instances $MAX_BACKEND \
             --memory 2Gi \
             --cpu 2 \
             --port 8080 \
             --concurrency 80 \
+            --execution-environment gen2 \
+            --cpu-boost \
             --timeout 300 \
             --set-env-vars ENVIRONMENT=production,DEBUG=false,ALLOW_DEV_KMS_FALLBACK=false,RATE_LIMIT_ENABLED=true,COMMIT_SHA=${{ github.sha }},JWT_SECRET=${{ secrets.JWT_SECRET }},DATABASE_URL=${{ secrets.DATABASE_URL }},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},CORS_ORIGINS=${{ secrets.CORS_ORIGINS }} \
             $AUTH_FLAG $INGRESS_FLAG
@@ -235,18 +239,31 @@ jobs:
           docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.FRONTEND_SERVICE }}:latest
 
       - name: Deploy to Cloud Run
+        env:
+          ALLOW_UNAUTHENTICATED: ${{ secrets.ALLOW_UNAUTHENTICATED }}
+          MAX_INSTANCES_FRONTEND: ${{ secrets.MAX_INSTANCES_FRONTEND }}
         run: |
+          AUTH_FLAG="--allow-unauthenticated"
+          INGRESS_FLAG="--ingress all"
+          if [ "${ALLOW_UNAUTHENTICATED:-false}" = "false" ]; then
+            AUTH_FLAG="--no-allow-unauthenticated"
+            INGRESS_FLAG="--ingress internal-and-cloud-load-balancing"
+          fi
+          MAX_FRONT=${MAX_INSTANCES_FRONTEND:-5}
           gcloud run deploy ${{ env.FRONTEND_SERVICE }} \
             --image gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
-            --allow-unauthenticated \
             --min-instances 1 \
-            --max-instances 5 \
+            --max-instances $MAX_FRONT \
             --memory 512Mi \
             --cpu 1 \
             --port 80 \
-            --timeout 60
+            --concurrency 50 \
+            --execution-environment gen2 \
+            --cpu-boost \
+            --timeout 60 \
+            $AUTH_FLAG $INGRESS_FLAG
 
       - name: Test frontend
         run: |
