@@ -86,6 +86,7 @@ class Settings(BaseSettings):
     debug: bool = True
     # Security toggles
     allow_dev_kms_fallback: bool = False  # Only enable dev signing fallback explicitly (tests/dev)
+    rate_limit_enabled: bool = True  # Disable only for controlled perf tests
 
     class Config:
         env_file = ".env"

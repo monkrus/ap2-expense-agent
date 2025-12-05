@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from pydantic import BaseModel, validator
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
@@ -81,8 +82,9 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 # Add security middleware
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestIDMiddleware)
-# HTTPS redirect (enable in production)
-# app.add_middleware(HTTPSRedirectMiddleware, enabled=(settings.environment == "production"))
+# HTTPS redirect (enable in production/staging)
+if settings.environment in ("production", "staging"):
+    app.add_middleware(HTTPSRedirectMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

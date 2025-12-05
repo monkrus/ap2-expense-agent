@@ -4,17 +4,19 @@ Rate limiting configuration and utilities
 
 import os
 
-from fastapi import HTTPException, Request, status
+from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-# Initialize rate limiter (disabled during testing)
+from .config import settings
+
+# Initialize rate limiter
 TESTING = os.getenv("TESTING", "false").lower() == "true"
 limiter = Limiter(
     key_func=get_remote_address,
-    enabled=not TESTING,  # Disable rate limiting during tests
+    enabled=(not TESTING) and settings.rate_limit_enabled,
 )
 
 
