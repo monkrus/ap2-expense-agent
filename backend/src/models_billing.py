@@ -4,7 +4,17 @@ Billing and usage tracking models for Google Cloud Marketplace integration
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, Float, Index, Integer, String
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.sql import func
 
 from .models import Base
@@ -159,3 +169,96 @@ class BillingEvent(Base):
 
     # Additional event data
     event_metadata = Column(JSON, nullable=True)
+
+
+class MarketplaceAccount(Base):
+    """
+    Links a GCP Consumer Procurement account/consumer to an organization.
+
+    Stores linkage state to support re-linking and account ownership checks.
+    """
+
+    __tablename__ = "marketplace_accounts"
+
+    id = Column(String(255), primary_key=True)
+    organization_id = Column(String(255), nullable=False, index=True)
+
+    account_id = Column(String(255), nullable=False, unique=True, index=True)
+    consumer_id = Column(String(255), nullable=True, unique=True, index=True)
+
+    status = Column(
+        String(50), nullable=False, default="linked"
+    )  # linked, pending, unlinked
+    linked_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    account_metadata = Column(JSON, nullable=True)  # Renamed from 'metadata' (SQLAlchemy reserved)
+
+    __table_args__ = (
+        Index("ix_marketplace_accounts_org", "organization_id"),
+    )
+
+
+class MarketplaceEntitlement(Base):
+    """
+    Tracks Consumer Procurement entitlements and their lifecycle state.
+    """
+
+    __tablename__ = "marketplace_entitlements"
+
+    id = Column(String(255), primary_key=True)
+    entitlement_id = Column(String(255), nullable=False, unique=True, index=True)
+    account_id = Column(String(255), nullable=True, index=True)
+    consumer_id = Column(String(255), nullable=True, index=True)
+    organization_id = Column(String(255), nullable=False, index=True)
+
+    plan = Column(String(100), nullable=False)
+    state = Column(
+        String(50), nullable=False, default="ACTIVE"
+    )  # ACTIVE, CANCELLED, SUSPENDED, PENDING
+
+    current_period_end = Column(DateTime, nullable=True)
+    trial_start = Column(DateTime, nullable=True)
+    trial_end = Column(DateTime, nullable=True)
+    grace_start = Column(DateTime, nullable=True)
+    grace_end = Column(DateTime, nullable=True)
+    last_event_at = Column(DateTime, nullable=True)
+
+    entitlement_metadata = Column(JSON, nullable=True)  # Renamed from 'metadata' (SQLAlchemy reserved)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        Index("ix_marketplace_entitlements_org", "organization_id"),
+        Index("ix_marketplace_entitlements_state", "state"),
+    )
+
+
+class MarketplaceWebhookEvent(Base):
+    """
+    Idempotency log for webhook/event handling to ensure at-least-once delivery safety.
+    """
+
+    __tablename__ = "marketplace_webhook_events"
+
+    id = Column(String(255), primary_key=True)  # requestId or generated uuid
+    handler = Column(String(100), nullable=False)
+    dedupe_key = Column(String(255), nullable=False)
+
+    status = Column(
+        String(50), nullable=False, default="pending"
+    )  # pending, success, failed
+    error_message = Column(String(1000), nullable=True)
+    payload = Column(JSON, nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    processed_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("handler", "dedupe_key", name="uq_marketplace_event_dedupe"),
+        Index("ix_marketplace_webhook_handler_status", "handler", "status"),
+    )

@@ -4,7 +4,7 @@ Handles tier changes and cancellations from Google Cloud Marketplace
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict
 
 from sqlalchemy.orm import Session
@@ -12,7 +12,12 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..email_service import EmailService
 from ..models import Organization
-from ..models_billing import BillingEvent, OrganizationSubscription
+from ..models_billing import (
+    BillingEvent,
+    MarketplaceEntitlement,
+    OrganizationSubscription,
+)
+from .idempotency import mark_failure, mark_success, record_event
 
 
 def _event_already_processed(db: Session, event_type: str, dedupe_key: str) -> bool:
@@ -76,7 +81,10 @@ async def handle_entitlement_update(webhook_data: Dict, db: Session) -> Dict:
 
         # Idempotency key based on entitlement + new_plan + effective_at if provided
         dedupe_key = f"{entitlement_id}|{new_plan}|{webhook_data.get('effective_at','')}"
-        if _event_already_processed(db, "gcp_tier_changed", dedupe_key):
+        event, created = record_event(
+            db, handler="gcp_tier_changed", dedupe_key=dedupe_key, payload=webhook_data
+        )
+        if not created and event.status == "success":
             return {
                 "status": "already_processed",
                 "message": "Duplicate tier change ignored",
@@ -103,7 +111,7 @@ async def handle_entitlement_update(webhook_data: Dict, db: Session) -> Dict:
         subscription.updated_at = datetime.utcnow()
 
         # Update metadata
-        metadata = subscription.metadata or {}
+        metadata = subscription.additional_metadata or {}
         if not isinstance(metadata, dict):
             import json
 
@@ -118,7 +126,17 @@ async def handle_entitlement_update(webhook_data: Dict, db: Session) -> Dict:
                 "source": "gcp_marketplace",
             }
         )
-        subscription.metadata = metadata
+        subscription.additional_metadata = metadata
+
+        # Update entitlement record
+        entitlement = (
+            db.query(MarketplaceEntitlement)
+            .filter_by(entitlement_id=entitlement_id)
+            .first()
+        )
+        if entitlement:
+            entitlement.plan = new_plan
+            entitlement.last_event_at = datetime.utcnow()
 
         # === Step 3: Update organization limits ===
         organization = db.query(Organization).filter_by(id=organization_id).first()
@@ -144,6 +162,7 @@ async def handle_entitlement_update(webhook_data: Dict, db: Session) -> Dict:
         db.add(billing_event)
 
         db.commit()
+        mark_success(db, event)
 
         # === Step 5: Send notification email ===
         try:
@@ -186,6 +205,11 @@ async def handle_entitlement_update(webhook_data: Dict, db: Session) -> Dict:
         except:
             pass
 
+        try:
+            mark_failure(db, event, str(e))
+        except Exception:
+            pass
+
         raise
 
 
@@ -226,9 +250,14 @@ async def handle_entitlement_cancellation(webhook_data: Dict, db: Session) -> Di
         if not entitlement_id:
             raise ValueError("Missing required field: entitlement_id")
 
-        # Idempotency key based on entitlement + cancellation effective
         dedupe_key = f"{entitlement_id}|cancel|{webhook_data.get('effective_at','')}"
-        if _event_already_processed(db, "gcp_subscription_cancelled", dedupe_key):
+        event, created = record_event(
+            db,
+            handler="gcp_subscription_cancelled",
+            dedupe_key=dedupe_key,
+            payload=webhook_data,
+        )
+        if not created and event.status == "success":
             return {
                 "status": "already_processed",
                 "message": "Duplicate cancellation ignored",
@@ -264,7 +293,7 @@ async def handle_entitlement_cancellation(webhook_data: Dict, db: Session) -> Di
             cancellation_date = datetime.utcnow()
 
         # Update metadata
-        metadata = subscription.metadata or {}
+        metadata = subscription.additional_metadata or {}
         if not isinstance(metadata, dict):
             import json
 
@@ -276,7 +305,21 @@ async def handle_entitlement_cancellation(webhook_data: Dict, db: Session) -> Di
             "reason": cancellation_reason,
             "source": "gcp_marketplace",
         }
-        subscription.metadata = metadata
+        subscription.additional_metadata = metadata
+
+        # Update entitlement record
+        entitlement = (
+            db.query(MarketplaceEntitlement)
+            .filter_by(entitlement_id=entitlement_id)
+            .first()
+        )
+        now = datetime.utcnow()
+        grace_days = settings.gcp_grace_period_days or 0
+        if entitlement:
+            entitlement.state = "CANCELLED"
+            entitlement.last_event_at = now
+            entitlement.grace_start = now
+            entitlement.grace_end = now + timedelta(days=grace_days) if grace_days > 0 else None
 
         # === Step 3: Deactivate organization (soft delete) ===
         # Keep data for 7 days grace period
@@ -302,6 +345,7 @@ async def handle_entitlement_cancellation(webhook_data: Dict, db: Session) -> Di
         db.add(billing_event)
 
         db.commit()
+        mark_success(db, event)
 
         # === Step 5: Send cancellation email ===
         try:
@@ -341,6 +385,11 @@ async def handle_entitlement_cancellation(webhook_data: Dict, db: Session) -> Di
             db.add(error_event)
             db.commit()
         except:
+            pass
+
+        try:
+            mark_failure(db, event, str(e))
+        except Exception:
             pass
 
         raise

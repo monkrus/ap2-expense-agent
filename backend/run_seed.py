@@ -1,15 +1,14 @@
 #!/usr/bin/env python
-"""Run database seed script"""
+"""Wrapper to run seed_screenshot_data.py with proper UTF-8 encoding on Windows"""
 import sys
-sys.path.insert(0, '/home/user/ap2-expense-agent/backend')
+import os
 
-from src.database import SessionLocal
-from src.seed_data import seed_default_users
+# Set UTF-8 encoding for stdout/stderr on Windows
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
 
+# Import and run the seed module
 if __name__ == "__main__":
-    db = SessionLocal()
-    try:
-        stats = seed_default_users(db)
-        print(f"✅ Seed completed: {stats}")
-    finally:
-        db.close()
+    exec(open('seed_screenshot_data.py', encoding='utf-8').read())

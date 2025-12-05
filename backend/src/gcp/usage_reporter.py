@@ -4,6 +4,7 @@ Aggregates and reports usage metrics to Google Cloud Marketplace
 Runs hourly via Cloud Scheduler
 """
 
+import asyncio
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List
@@ -11,8 +12,9 @@ from typing import Dict, List
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..models import OrganizationMember, User
-from ..models_billing import BillingEvent, OrganizationSubscription, UsageMetric
+from ..models_billing import BillingEvent, MarketplaceEntitlement, UsageMetric
 from .marketplace_client import get_gcp_marketplace_client
 
 
@@ -42,57 +44,54 @@ class GCPUsageReporter:
         """
         print(f"[{datetime.utcnow()}] Starting GCP usage reporting...")
 
-        # Get all active subscriptions with GCP entitlements
-        subscriptions = (
-            self.db.query(OrganizationSubscription)
-            .filter(
-                OrganizationSubscription.status == "active",
-                OrganizationSubscription.gcp_entitlement_id.isnot(None),
-            )
+        # Get all active entitlements
+        entitlements = (
+            self.db.query(MarketplaceEntitlement)
+            .filter(MarketplaceEntitlement.state == "ACTIVE")
             .all()
         )
 
-        print(f"Found {len(subscriptions)} active GCP subscriptions")
+        print(f"Found {len(entitlements)} active GCP entitlements")
 
         results = {
             "timestamp": datetime.utcnow().isoformat(),
-            "total_subscriptions": len(subscriptions),
+            "total_entitlements": len(entitlements),
             "successful": [],
             "failed": [],
             "skipped": [],
         }
 
-        for subscription in subscriptions:
+        for entitlement in entitlements:
             try:
-                result = await self.report_organization_usage(subscription)
+                result = await self.report_organization_usage(entitlement)
 
                 if result["status"] == "success":
                     results["successful"].append(
                         {
-                            "organization_id": subscription.organization_id,
-                            "entitlement_id": subscription.gcp_entitlement_id,
+                            "organization_id": entitlement.organization_id,
+                            "entitlement_id": entitlement.entitlement_id,
                             "metrics_reported": result.get("metrics_reported", 0),
                         }
                     )
                 elif result["status"] == "skipped":
                     results["skipped"].append(
                         {
-                            "organization_id": subscription.organization_id,
+                            "organization_id": entitlement.organization_id,
                             "reason": result.get("reason"),
                         }
                     )
                 else:
                     results["failed"].append(
                         {
-                            "organization_id": subscription.organization_id,
+                            "organization_id": entitlement.organization_id,
                             "error": result.get("error"),
                         }
                     )
 
             except Exception as e:
-                print(f"Error reporting for org {subscription.organization_id}: {e}")
+                print(f"Error reporting for org {entitlement.organization_id}: {e}")
                 results["failed"].append(
-                    {"organization_id": subscription.organization_id, "error": str(e)}
+                    {"organization_id": entitlement.organization_id, "error": str(e)}
                 )
 
         print(
@@ -103,7 +102,7 @@ class GCPUsageReporter:
         return results
 
     async def report_organization_usage(
-        self, subscription: OrganizationSubscription
+        self, entitlement: MarketplaceEntitlement
     ) -> Dict:
         """
         Report usage for a single organization
@@ -114,8 +113,8 @@ class GCPUsageReporter:
         Returns:
             Dict with status and details
         """
-        organization_id = subscription.organization_id
-        entitlement_id = subscription.gcp_entitlement_id
+        organization_id = entitlement.organization_id
+        entitlement_id = entitlement.entitlement_id
 
         # Define time window (last hour)
         end_time = datetime.utcnow()
@@ -132,43 +131,53 @@ class GCPUsageReporter:
                 "organization_id": organization_id,
             }
 
-        # Report to GCP Marketplace
-        try:
-            response = await self.gcp_client.report_usage(
-                entitlement_id=entitlement_id,
-                metrics=usage_data,
-                timestamp=end_time.isoformat() + "Z",
-            )
+        attempts = max(settings.gcp_metering_retry_max_attempts or 1, 1)
+        backoff = max(settings.gcp_metering_retry_backoff_seconds or 1, 1)
+        last_error = None
 
-            # Log the reporting event
-            self.log_usage_report(
-                organization_id,
-                entitlement_id,
-                usage_data,
-                response,
-                start_time,
-                end_time,
-            )
+        for attempt in range(attempts):
+            try:
+                response = await self.gcp_client.report_usage(
+                    entitlement_id=entitlement_id,
+                    metrics=usage_data,
+                    timestamp=end_time.isoformat() + "Z",
+                )
 
-            return {
-                "status": response.get("status", "success"),
-                "organization_id": organization_id,
-                "entitlement_id": entitlement_id,
-                "metrics_reported": len(usage_data),
-                "usage_data": usage_data,
-            }
+                # Log the reporting event
+                self.log_usage_report(
+                    organization_id,
+                    entitlement_id,
+                    usage_data,
+                    response,
+                    start_time,
+                    end_time,
+                )
 
-        except Exception as e:
-            # Log error
-            self.log_usage_report_error(
-                organization_id, entitlement_id, str(e), start_time, end_time
-            )
+                return {
+                    "status": response.get("status", "success"),
+                    "organization_id": organization_id,
+                    "entitlement_id": entitlement_id,
+                    "metrics_reported": len(usage_data),
+                    "usage_data": usage_data,
+                    "attempts": attempt + 1,
+                }
+            except Exception as e:
+                last_error = str(e)
+                if attempt < attempts - 1:
+                    await asyncio.sleep(backoff * (2**attempt))
+                else:
+                    break
 
-            return {
-                "status": "error",
-                "organization_id": organization_id,
-                "error": str(e),
-            }
+        # Log error after retries
+        self.log_usage_report_error(
+            organization_id, entitlement_id, last_error or "unknown_error", start_time, end_time
+        )
+
+        return {
+            "status": "error",
+            "organization_id": organization_id,
+            "error": last_error or "unknown_error",
+        }
 
     def aggregate_usage(
         self, organization_id: str, start_time: datetime, end_time: datetime

@@ -18,6 +18,8 @@ from ..gcp import (
 )
 from ..gcp.marketplace_client import GCPMarketplaceClient
 from ..gcp.usage_reporter import run_hourly_usage_reporting
+from ..gcp.events import decode_pubsub_envelope, normalize_entitlement_event, EventParseError
+from ..gcp.idempotency import record_event, mark_success
 from ..services.trial_service import TrialService
 
 router = APIRouter(prefix="/api/webhooks/gcp", tags=["gcp-webhooks"])
@@ -96,10 +98,214 @@ def verify_google_oidc_token(authorization: Optional[str], expected_audience: st
         return False
 
 
+def require_oidc_or_dev_hmac(
+    raw_body: bytes, x_signature: Optional[str], authorization: Optional[str], request_url: str
+) -> None:
+    """
+    Enforce Google-signed OIDC for webhook callers; allow HMAC only in development.
+    """
+    audience = settings.gcp_webhook_audience or request_url
+    oidc_ok = verify_google_oidc_token(authorization, audience)
+    hmac_ok = settings.environment == "development" and verify_gcp_signature(raw_body, x_signature)
+
+    if settings.environment != "development" and not oidc_ok:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unauthorized webhook request (OIDC required)",
+        )
+
+    if not (oidc_ok or hmac_ok):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unauthorized webhook request",
+        )
+
+
 @router.get("/health")
 async def gcp_webhook_health():
     """Lightweight health endpoint for deployment verification."""
-    return {"status": "ok"}
+    from datetime import datetime
+    return {
+        "status": "healthy",
+        "service": "gcp-marketplace-webhooks",
+        "timestamp": datetime.utcnow().isoformat(),
+        "jwt_verification": "enabled",
+    }
+
+
+@router.post("/procurement-simple")
+async def handle_procurement_simple(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Simple GCP Marketplace webhook handler for testing
+
+    This is a simplified version for local testing and development.
+    Uses JWT verification without complex entitlement lookup.
+
+    For production, use /procurement endpoint with full Consumer Procurement API.
+    """
+    import logging
+    from datetime import datetime
+    import uuid
+    import secrets
+    import string
+    from ..gcp.jwt_verification import verify_gcp_jwt
+    from ..models import Organization, User, OrganizationMember, OrganizationRole, UserRole
+    from ..models_billing import OrganizationSubscription
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Step 1: Extract JWT from Authorization header
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(401, "Missing Bearer token")
+
+        token = auth_header.replace("Bearer ", "")
+
+        # Step 2: Verify JWT (skip audience check for local testing)
+        claims = verify_gcp_jwt(token, audience=None)
+
+        logger.info(
+            "GCP webhook received",
+            extra={
+                "email": claims.get("email"),
+                "sub": claims.get("sub"),
+            }
+        )
+
+        # Step 3: Parse webhook body
+        body = await request.json()
+        event_type = body.get("eventType")
+        entitlement_data = body.get("entitlement", {})
+
+        logger.info(f"Event type: {event_type}")
+
+        # Step 4: Handle different event types
+        if event_type == "ENTITLEMENT_CREATION_REQUESTED":
+            # Extract data
+            entitlement_id = entitlement_data.get("name")
+            account_id = entitlement_data.get("account")
+            plan = entitlement_data.get("plan", "professional")
+            user_email = entitlement_data.get("usageReportingId") or claims.get("email")
+            company_name = entitlement_data.get("metadata", {}).get("companyName", "New Organization")
+
+            if not entitlement_id or not user_email:
+                raise HTTPException(400, "Missing entitlement_id or user_email")
+
+            # Check if already created
+            existing = (
+                db.query(OrganizationSubscription)
+                .filter_by(gcp_entitlement_id=entitlement_id)
+                .first()
+            )
+
+            if existing:
+                return {
+                    "status": "already_exists",
+                    "organization_id": existing.organization_id,
+                }
+
+            # Generate secure password (alphanumeric only, bcrypt has 72-byte limit)
+            alphabet = string.ascii_letters + string.digits
+            temp_password = "".join(secrets.choice(alphabet) for _ in range(16))
+            # Ensure password is within bcrypt's 72-byte limit
+            temp_password = temp_password[:72]
+
+            # Create organization
+            org_id = str(uuid.uuid4())
+            slug = company_name.lower().replace(" ", "-") + f"-{secrets.token_hex(4)}"
+
+            org = Organization(
+                id=org_id,
+                name=company_name,
+                slug=slug,
+                created_at=datetime.utcnow(),
+                is_active=True,
+            )
+            db.add(org)
+
+            # Check if user exists
+            user = db.query(User).filter_by(email=user_email).first()
+
+            if not user:
+                # Create new user
+                from passlib.context import CryptContext
+                pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+                user = User(
+                    id=str(uuid.uuid4()),
+                    username=user_email.split("@")[0],
+                    email=user_email,
+                    hashed_password=pwd_context.hash(temp_password),
+                    full_name=user_email.split("@")[0].title(),
+                    role=UserRole.EMPLOYEE,
+                    is_active=True,
+                    created_at=datetime.utcnow(),
+                )
+                db.add(user)
+
+            # Add user as organization owner
+            membership = OrganizationMember(
+                id=str(uuid.uuid4()),
+                organization_id=org_id,
+                user_id=user.id,
+                role=OrganizationRole.OWNER,
+                joined_at=datetime.utcnow(),
+                is_active=True,
+            )
+            db.add(membership)
+
+            # Create subscription
+            subscription = OrganizationSubscription(
+                id=str(uuid.uuid4()),
+                organization_id=org_id,
+                tier_id=f"gcp-{plan.lower()}",
+                tier_name=plan.upper(),
+                gcp_entitlement_id=entitlement_id,
+                gcp_account_id=account_id,
+                status="active",
+                created_at=datetime.utcnow(),
+            )
+            db.add(subscription)
+
+            # Commit transaction
+            db.commit()
+
+            logger.info(
+                f"Created organization {org_id} for entitlement {entitlement_id}",
+                extra={
+                    "organization_id": org_id,
+                    "user_email": user_email,
+                    "plan": plan,
+                }
+            )
+
+            return {
+                "status": "created",
+                "organization_id": org_id,
+                "user_id": user.id,
+                "temporary_password": temp_password,
+                "message": "Organization created successfully",
+            }
+
+        elif event_type == "ENTITLEMENT_ACTIVE":
+            return {"status": "success", "message": "Entitlement activated"}
+
+        elif event_type == "ENTITLEMENT_CANCELLATION_REQUESTED":
+            return {"status": "success", "message": "Cancellation handled"}
+
+        else:
+            logger.warning(f"Unknown event type: {event_type}")
+            return {"status": "ignored", "message": f"Unknown event: {event_type}"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Webhook failed: {e}", exc_info=True)
+        raise HTTPException(500, f"Webhook processing failed: {e}")
 
 
 @router.post("/procurement")
@@ -137,12 +343,8 @@ async def gcp_procurement_webhook(
     # Get raw body for signature verification
     body = await request.body()
 
-    # Verify request authenticity (prefer OIDC, fallback to HMAC in dev)
-    audience = settings.gcp_webhook_audience or str(request.url)
-    oidc_ok = verify_google_oidc_token(authorization, audience)
-    hmac_ok = settings.environment == "development" and verify_gcp_signature(body, x_goog_signature)
-    if not (oidc_ok or hmac_ok):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request")
+    # Verify request authenticity (OIDC required outside dev)
+    require_oidc_or_dev_hmac(body, x_goog_signature, authorization, str(request.url))
 
     # Parse payload
     try:
@@ -181,15 +383,7 @@ async def gcp_events_webhook(
     normalizes Consumer Procurement entitlement events and routes to handlers.
     """
     raw_body = await request.body()
-    audience = settings.gcp_webhook_audience or str(request.url)
-    oidc_ok = verify_google_oidc_token(authorization, audience)
-    hmac_ok = settings.environment == "development" and verify_gcp_signature(
-        raw_body, x_goog_signature
-    )
-    if not (oidc_ok or hmac_ok):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request"
-        )
+    require_oidc_or_dev_hmac(raw_body, x_goog_signature, authorization, str(request.url))
 
     # Parse JSON body
     try:
@@ -200,14 +394,10 @@ async def gcp_events_webhook(
         )
 
     # Decode Pub/Sub envelope if present, then normalize
-    from ..gcp.events import (
-        decode_pubsub_envelope,
-        normalize_entitlement_event,
-        EventParseError,
-    )
-
     try:
-        payload = decode_pubsub_envelope(body) if isinstance(body, dict) and "message" in body else body
+        envelope = body if isinstance(body, dict) else {}
+        message_id = (envelope.get("message") or {}).get("messageId")
+        payload = decode_pubsub_envelope(envelope) if "message" in envelope else body
         event_type, normalized = normalize_entitlement_event(payload)
     except EventParseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -216,27 +406,36 @@ async def gcp_events_webhook(
             status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid event payload: {e}"
         )
 
+    dedupe_key = message_id or f"{normalized.get('entitlement_id','')}|{event_type}"
+    idempotency_row, created = record_event(
+        db,
+        handler=f"gcp_events:{event_type}",
+        dedupe_key=dedupe_key,
+        payload=normalized,
+    )
+    if not created and idempotency_row.status == "success":
+        return {"status": "ok", "deduped": True}
+
     # Route to appropriate handler
     if event_type == "entitlement_plan_change":
         result = await handle_entitlement_update(normalized, db)
-        return {"status": result.get("status", "updated"), "detail": result}
     elif event_type == "entitlement_cancelled":
         result = await handle_entitlement_cancellation(normalized, db)
-        return {"status": result.get("status", "cancelled"), "detail": result}
     elif event_type == "entitlement_created":
-        # If we have admin/company info, provision via procurement handler
         if normalized.get("user_email") and normalized.get("company_name"):
             result = await handle_procurement_webhook(normalized, db)
-            return {"status": result.get("status", "created"), "detail": result}
-        # Otherwise acknowledge; full provisioning will occur via onboarding flow
-        return {
-            "status": "acknowledged",
-            "entitlement_id": normalized.get("entitlement_id"),
-        }
+        else:
+            result = {
+                "status": "acknowledged",
+                "entitlement_id": normalized.get("entitlement_id"),
+            }
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported event type"
+        )
 
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported event type"
-    )
+    mark_success(db, idempotency_row)
+    return {"status": result.get("status", "ok"), "detail": result}
 
 @router.post("/entitlement-updated")
 async def gcp_entitlement_update_webhook(
@@ -332,11 +531,7 @@ async def gcp_entitlement_cancel_webhook(
     # Get raw body for signature verification
     body = await request.body()
 
-    audience = settings.gcp_webhook_audience or str(request.url)
-    oidc_ok = verify_google_oidc_token(authorization, audience)
-    hmac_ok = settings.environment == "development" and verify_gcp_signature(body, x_goog_signature)
-    if not (oidc_ok or hmac_ok):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request")
+    require_oidc_or_dev_hmac(body, x_goog_signature, authorization, str(request.url))
 
     # Parse payload
     try:

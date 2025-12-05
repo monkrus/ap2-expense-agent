@@ -33,6 +33,7 @@ from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
 from .logging_config import setup_logging, RequestLogger
 from .startup_checks import validate_settings
 from .tenant_context import tenant_middleware
+from .marketplace_enforcement import MarketplaceEnforcementMiddleware
 
 # Try to import database-integrated agent, fallback to in-memory agent
 try:
@@ -100,6 +101,8 @@ app.add_middleware(
 
 # Add tenant middleware for multi-tenancy support
 app.middleware("http")(tenant_middleware)
+# Enforce Marketplace entitlement state/limits
+app.add_middleware(MarketplaceEnforcementMiddleware)
 
 
 # Basic request metrics middleware

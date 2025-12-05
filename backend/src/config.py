@@ -1,5 +1,6 @@
 from typing import Optional
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -69,11 +70,24 @@ class Settings(BaseSettings):
 
     # Google Cloud Marketplace Configuration
     gcp_project_id: Optional[str] = None  # GCP Project ID
+    gcp_provider_id: Optional[str] = None  # Provider ID for Consumer Procurement (defaults to project_id when unset)
     gcp_service_account_path: Optional[str] = None  # Path to service account JSON file
     gcp_webhook_secret: Optional[str] = None  # Webhook secret from GCP Marketplace
     gcp_webhook_audience: Optional[str] = None  # Expected OIDC audience for Pub/Sub push
     enable_gcp_marketplace: bool = False  # Enable/disable GCP Marketplace integration
     gcp_usage_reporting_enabled: bool = True  # Enable hourly usage reporting to GCP
+    gcp_trial_period_days: int = 14  # Free trial length for Marketplace signups
+    gcp_grace_period_days: int = 7  # Grace after cancellation/suspension
+    gcp_metering_retry_max_attempts: int = 5  # Usage report retry attempts
+    gcp_metering_retry_backoff_seconds: int = 60  # Base backoff for retries
+    gcp_marketplace_sku_map: dict = Field(
+        default_factory=lambda: {
+            # Logical feature -> SKU/unit mapping (populate with real SKUs in env)
+            "expenses": {"unit": "expense", "sku": None},
+            "ai_categorizations": {"unit": "ai_categorization", "sku": None},
+            "ap2_transactions": {"unit": "ap2_transaction", "sku": None},
+        }
+    )
 
     # Frontend URL (for emails and redirects)
     frontend_url: Optional[str] = "http://localhost:5173"

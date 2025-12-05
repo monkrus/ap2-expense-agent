@@ -15,7 +15,13 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..email_service import EmailService
 from ..models import Organization, OrganizationMember, OrganizationRole, User, UserRole
-from ..models_billing import BillingEvent, OrganizationSubscription
+from ..models_billing import (
+    BillingEvent,
+    MarketplaceAccount,
+    MarketplaceEntitlement,
+    OrganizationSubscription,
+)
+from .idempotency import mark_failure, mark_success, record_event
 
 
 def generate_secure_password(length: int = 16) -> str:
@@ -78,6 +84,24 @@ async def handle_procurement_webhook(webhook_data: Dict, db: Session) -> Dict:
         # Validate required fields
         if not entitlement_id or not admin_email:
             raise ValueError("Missing required fields: entitlement_id or user_email")
+
+        dedupe_key = f"{entitlement_id}|{account_id or ''}|{plan}"
+        event, created = record_event(
+            db, handler="gcp_procurement", dedupe_key=dedupe_key, payload=webhook_data
+        )
+        if not created and event.status == "success":
+            existing_sub = (
+                db.query(OrganizationSubscription)
+                .filter_by(gcp_entitlement_id=entitlement_id)
+                .first()
+            )
+            return {
+                "status": "already_processed",
+                "organization_id": existing_sub.organization_id
+                if existing_sub
+                else None,
+                "message": "Procurement already processed",
+            }
 
         # Check if organization already exists for this entitlement
         existing_sub = (
@@ -157,7 +181,7 @@ async def handle_procurement_webhook(webhook_data: Dict, db: Session) -> Dict:
             billing_period_end=datetime.utcnow() + timedelta(days=30),
             next_billing_date=datetime.utcnow() + timedelta(days=30),
             is_trial=False,  # GCP handles trials
-            metadata={
+            additional_metadata={
                 "source": "gcp_marketplace",
                 "provisioned_at": datetime.utcnow().isoformat(),
                 "initial_plan": plan,
@@ -166,7 +190,48 @@ async def handle_procurement_webhook(webhook_data: Dict, db: Session) -> Dict:
         )
         db.add(subscription)
 
-        # === Step 5: Log billing event ===
+        # === Step 5: Marketplace linkage ===
+        marketplace_account = (
+            db.query(MarketplaceAccount).filter_by(account_id=account_id).first()
+        )
+        if not marketplace_account:
+            marketplace_account = MarketplaceAccount(
+                id=str(uuid.uuid4()),
+                organization_id=org_id,
+                account_id=account_id,
+                consumer_id=webhook_data.get("consumer_id"),
+                status="linked",
+                account_metadata={"source": "gcp_marketplace"},
+            )
+            db.add(marketplace_account)
+
+        ent_row = (
+            db.query(MarketplaceEntitlement)
+            .filter_by(entitlement_id=entitlement_id)
+            .first()
+        )
+        now = datetime.utcnow()
+        if not ent_row:
+            trial_days = settings.gcp_trial_period_days or 0
+            grace_days = settings.gcp_grace_period_days or 0
+            ent_row = MarketplaceEntitlement(
+                id=str(uuid.uuid4()),
+                entitlement_id=entitlement_id,
+                account_id=account_id,
+                consumer_id=webhook_data.get("consumer_id"),
+                organization_id=org_id,
+                plan=plan,
+                state=webhook_data.get("state", "ACTIVE"),
+                trial_start=now if trial_days > 0 else None,
+                trial_end=now + timedelta(days=trial_days) if trial_days > 0 else None,
+                grace_start=None,
+                grace_end=None if grace_days <= 0 else now + timedelta(days=grace_days),
+                last_event_at=now,
+                entitlement_metadata={"source": "gcp_marketplace"},
+            )
+            db.add(ent_row)
+
+        # === Step 6: Log billing event ===
         billing_event = BillingEvent(
             id=str(uuid.uuid4()),
             organization_id=org_id,
@@ -188,7 +253,7 @@ async def handle_procurement_webhook(webhook_data: Dict, db: Session) -> Dict:
         db.refresh(organization)
         db.refresh(admin_user)
 
-        # === Step 6: Send welcome email ===
+        # === Step 7: Send welcome email ===
         try:
             email_service = EmailService()
             await send_gcp_welcome_email(
@@ -201,6 +266,8 @@ async def handle_procurement_webhook(webhook_data: Dict, db: Session) -> Dict:
         except Exception as email_error:
             # Log but don't fail the entire process
             print(f"Failed to send welcome email: {email_error}")
+
+        mark_success(db, event)
 
         return {
             "status": "created",
@@ -217,6 +284,7 @@ async def handle_procurement_webhook(webhook_data: Dict, db: Session) -> Dict:
     except IntegrityError as e:
         db.rollback()
         # Handle unique constraint violations
+        mark_failure(db, event, str(e))
         raise ValueError(f"Database integrity error: {str(e)}")
 
     except Exception as e:
@@ -235,6 +303,11 @@ async def handle_procurement_webhook(webhook_data: Dict, db: Session) -> Dict:
             db.add(error_event)
             db.commit()
         except:
+            pass
+
+        try:
+            mark_failure(db, event, str(e))
+        except Exception:
             pass
 
         raise
