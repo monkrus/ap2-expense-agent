@@ -16,6 +16,7 @@ from ..config import settings
 from ..models import OrganizationMember, User
 from ..models_billing import BillingEvent, MarketplaceEntitlement, UsageMetric
 from .marketplace_client import get_gcp_marketplace_client
+from .retry_logic import with_usage_report_retry, RetryableError
 
 
 class GCPUsageReporter:
@@ -32,6 +33,38 @@ class GCPUsageReporter:
     def __init__(self, db: Session):
         self.db = db
         self.gcp_client = get_gcp_marketplace_client()
+
+    @with_usage_report_retry
+    async def report_usage_with_retry(
+        self, entitlement_id: str, metrics: Dict, timestamp: str
+    ) -> Dict:
+        """
+        Report usage to GCP with automatic retry logic
+
+        This method is wrapped with retry decorator for exponential backoff.
+
+        Args:
+            entitlement_id: GCP entitlement ID
+            metrics: Usage metrics dict
+            timestamp: ISO timestamp
+
+        Returns:
+            API response dict
+
+        Raises:
+            RetryableError: If all retries fail
+        """
+        response = await self.gcp_client.report_usage(
+            entitlement_id=entitlement_id,
+            metrics=metrics,
+            timestamp=timestamp,
+        )
+
+        # Check if response indicates failure
+        if response.get("status") == "error":
+            raise RetryableError(f"Usage reporting failed: {response.get('error')}")
+
+        return response
 
     async def report_all_organizations(self) -> Dict:
         """
@@ -131,53 +164,44 @@ class GCPUsageReporter:
                 "organization_id": organization_id,
             }
 
-        attempts = max(settings.gcp_metering_retry_max_attempts or 1, 1)
-        backoff = max(settings.gcp_metering_retry_backoff_seconds or 1, 1)
-        last_error = None
+        # Use retry-enabled method with exponential backoff
+        try:
+            response = await self.report_usage_with_retry(
+                entitlement_id=entitlement_id,
+                metrics=usage_data,
+                timestamp=end_time.isoformat() + "Z",
+            )
 
-        for attempt in range(attempts):
-            try:
-                response = await self.gcp_client.report_usage(
-                    entitlement_id=entitlement_id,
-                    metrics=usage_data,
-                    timestamp=end_time.isoformat() + "Z",
-                )
+            # Log the reporting event
+            self.log_usage_report(
+                organization_id,
+                entitlement_id,
+                usage_data,
+                response,
+                start_time,
+                end_time,
+            )
 
-                # Log the reporting event
-                self.log_usage_report(
-                    organization_id,
-                    entitlement_id,
-                    usage_data,
-                    response,
-                    start_time,
-                    end_time,
-                )
+            return {
+                "status": response.get("status", "success"),
+                "organization_id": organization_id,
+                "entitlement_id": entitlement_id,
+                "metrics_reported": len(usage_data),
+                "usage_data": usage_data,
+            }
 
-                return {
-                    "status": response.get("status", "success"),
-                    "organization_id": organization_id,
-                    "entitlement_id": entitlement_id,
-                    "metrics_reported": len(usage_data),
-                    "usage_data": usage_data,
-                    "attempts": attempt + 1,
-                }
-            except Exception as e:
-                last_error = str(e)
-                if attempt < attempts - 1:
-                    await asyncio.sleep(backoff * (2**attempt))
-                else:
-                    break
+        except Exception as e:
+            # Log error after all retries exhausted
+            error_message = str(e)
+            self.log_usage_report_error(
+                organization_id, entitlement_id, error_message, start_time, end_time
+            )
 
-        # Log error after retries
-        self.log_usage_report_error(
-            organization_id, entitlement_id, last_error or "unknown_error", start_time, end_time
-        )
-
-        return {
-            "status": "error",
-            "organization_id": organization_id,
-            "error": last_error or "unknown_error",
-        }
+            return {
+                "status": "error",
+                "organization_id": organization_id,
+                "error": error_message,
+            }
 
     def aggregate_usage(
         self, organization_id: str, start_time: datetime, end_time: datetime
