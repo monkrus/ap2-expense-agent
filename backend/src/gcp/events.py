@@ -25,6 +25,15 @@ def decode_pubsub_envelope(envelope: Dict[str, Any]) -> Dict[str, Any]:
         raise EventParseError(f"Failed to decode Pub/Sub envelope: {e}")
 
 
+def _normalize_entitlement_name(name: str) -> str:
+    """Strip provider prefix to return bare entitlement id."""
+    if not name:
+        return name
+    # Expected format: providers/{project}/entitlements/{id}
+    parts = name.split("/")
+    return parts[-1] if parts else name
+
+
 def normalize_entitlement_event(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
     """
     Normalize Consumer Procurement entitlement events to internal handler payloads.
@@ -40,12 +49,13 @@ def normalize_entitlement_event(payload: Dict[str, Any]) -> Tuple[str, Dict[str,
     event_type = payload.get("eventType") or payload.get("type") or ""
 
     entitlement = payload.get("entitlement") or {}
-    entitlement_id = (
+    entitlement_id_raw = (
         payload.get("entitlementId")
         or entitlement.get("id")
         or entitlement.get("name")
         or ""
     )
+    entitlement_id = _normalize_entitlement_name(entitlement_id_raw)
     account_id = payload.get("accountId") or entitlement.get("accountId")
     state = payload.get("state") or entitlement.get("state")
     old_plan = payload.get("oldPlan") or payload.get("previousPlan")

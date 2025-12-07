@@ -15,6 +15,8 @@ from ..database import get_db
 from ..models import OrganizationMember, OrganizationRole, User, UserRole
 from ..models_approval import ApprovalPolicy
 from ..services.approval_policy_service import ApprovalPolicyService
+from ..middleware.entitlement_gating import ensure_feature_access
+from ..models_billing import OrganizationSubscription
 
 router = APIRouter(prefix="/api/v1/approval-policies", tags=["approval-policies"])
 
@@ -526,6 +528,16 @@ def get_policy_analytics(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only organization owners and admins can view analytics",
         )
+
+    # Feature gate: advanced analytics requires pro/enterprise
+    subscription = (
+        db.query(OrganizationSubscription)
+        .filter_by(organization_id=org_id)
+        .order_by(OrganizationSubscription.created_at.desc())
+        .first()
+    )
+    if subscription:
+        ensure_feature_access(subscription, "advanced_analytics")
 
     from datetime import datetime, timedelta
 

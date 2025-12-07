@@ -23,6 +23,14 @@ steps:
       - 'build'
       - '-t'
       - 'gcr.io/$PROJECT_ID/ap2-expense-backend:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/ap2-expense-backend:${TAG_NAME:-latest}'
+      - '--build-arg'
+      - 'VERSION=${TAG_NAME:-$COMMIT_SHA}'
+      - '--build-arg'
+      - 'COMMIT_SHA=$COMMIT_SHA'
+      - '--build-arg'
+      - 'BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")'
       - '-f'
       - 'Dockerfile.backend'
       - '.'
@@ -30,31 +38,43 @@ steps:
 
   # Build frontend image
   - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-frontend'
     args:
       - 'build'
       - '-t'
       - 'gcr.io/$PROJECT_ID/ap2-expense-frontend:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/ap2-expense-frontend:${TAG_NAME:-latest}'
+      - '--build-arg'
+      - 'VERSION=${TAG_NAME:-$COMMIT_SHA}'
+      - '--build-arg'
+      - 'COMMIT_SHA=$COMMIT_SHA'
+      - '--build-arg'
+      - 'BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")'
       - '-f'
       - 'Dockerfile.frontend'
       - '.'
 
-  # Push backend image
+  # Push backend images (both tags)
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/ap2-expense-backend:$COMMIT_SHA']
+    args: ['push', '--all-tags', 'gcr.io/$PROJECT_ID/ap2-expense-backend']
+    waitFor: ['build-backend']
 
-  # Push frontend image
+  # Push frontend images (both tags)
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/ap2-expense-frontend:$COMMIT_SHA']
+    args: ['push', '--all-tags', 'gcr.io/$PROJECT_ID/ap2-expense-frontend']
+    waitFor: ['build-frontend']
 
-  # Deploy backend to Cloud Run
+  # Deploy backend to Cloud Run (initial deployment)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-backend-initial'
     entrypoint: gcloud
     args:
       - 'run'
       - 'deploy'
       - 'ap2-expense-backend'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/ap2-expense-backend:$COMMIT_SHA'
+      - 'gcr.io/$PROJECT_ID/ap2-expense-backend:${TAG_NAME:-$COMMIT_SHA}'
       - '--region'
       - 'us-central1'
       - '--platform'
@@ -68,6 +88,10 @@ steps:
       - '2Gi'
       - '--cpu'
       - '2'
+      - '--timeout'
+      - '300s'
+      - '--concurrency'
+      - '80'
       - '--service-account'
       - 'ap2-expense-sa@$PROJECT_ID.iam.gserviceaccount.com'
       - '--add-cloudsql-instances'
@@ -80,23 +104,51 @@ steps:
         GOOGLE_CLOUD_PROJECT=$PROJECT_ID,
         GCP_KMS_LOCATION=us-central1,
         GCP_KMS_KEYRING=ap2-expense-keyring,
-        GCP_KMS_SIGNING_KEY=ap2-mandate-signing-key
+        GCP_KMS_SIGNING_KEY=ap2-mandate-signing-key,
+        ENABLE_GCP_MARKETPLACE=true,
+        GCP_USAGE_REPORTING_ENABLED=true
       - '--set-secrets'
       - |
         DATABASE_URL=database-connection-string:latest,
-        JWT_SECRET_KEY=jwt-secret-key:latest,
-        JWT_REFRESH_SECRET_KEY=jwt-refresh-secret-key:latest,
-        STRIPE_SECRET_KEY=stripe-secret-key:latest
+        JWT_SECRET=jwt-secret-key:latest,
+        JWT_REFRESH_SECRET=jwt-refresh-secret-key:latest,
+        STRIPE_SECRET_KEY=stripe-secret-key:latest,
+        GCP_WEBHOOK_SECRET=gcp-webhook-secret:latest,
+        GCP_SERVICE_ACCOUNT_PATH=gcp-service-account-key:latest,
+        SMTP_PASSWORD=smtp-password:latest
+
+  # Get backend URL and update GCP_WEBHOOK_AUDIENCE
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'update-backend-webhook-audience'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Get the deployed backend URL
+        BACKEND_URL=$(gcloud run services describe ap2-expense-backend \
+          --region=us-central1 \
+          --project=$PROJECT_ID \
+          --format="value(status.url)")
+
+        echo "Backend URL: $BACKEND_URL"
+
+        # Update the service with the correct webhook audience
+        gcloud run services update ap2-expense-backend \
+          --region=us-central1 \
+          --project=$PROJECT_ID \
+          --update-env-vars=GCP_WEBHOOK_AUDIENCE=$BACKEND_URL
+    waitFor: ['deploy-backend-initial']
 
   # Deploy frontend to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-frontend'
     entrypoint: gcloud
     args:
       - 'run'
       - 'deploy'
       - 'ap2-expense-frontend'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/ap2-expense-frontend:$COMMIT_SHA'
+      - 'gcr.io/$PROJECT_ID/ap2-expense-frontend:${TAG_NAME:-$COMMIT_SHA}'
       - '--region'
       - 'us-central1'
       - '--platform'
@@ -110,9 +162,84 @@ steps:
       - '512Mi'
       - '--cpu'
       - '1'
+      - '--timeout'
+      - '60s'
+      - '--concurrency'
+      - '100'
+
+  # Run smoke tests to verify deployment
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'smoke-tests'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+
+        # Get service URLs
+        BACKEND_URL=$(gcloud run services describe ap2-expense-backend \
+          --region=us-central1 \
+          --project=$PROJECT_ID \
+          --format="value(status.url)")
+
+        FRONTEND_URL=$(gcloud run services describe ap2-expense-frontend \
+          --region=us-central1 \
+          --project=$PROJECT_ID \
+          --format="value(status.url)")
+
+        echo "Running smoke tests..."
+        echo "Backend URL: $BACKEND_URL"
+        echo "Frontend URL: $FRONTEND_URL"
+
+        # Test 1: Backend health endpoint
+        echo "Testing backend health endpoint..."
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BACKEND_URL/health")
+        if [ "$HTTP_CODE" != "200" ]; then
+          echo "ERROR: Backend health check failed (HTTP $HTTP_CODE)"
+          exit 1
+        fi
+        echo "✓ Backend health check passed (HTTP 200)"
+
+        # Test 2: Backend API docs accessible
+        echo "Testing backend API docs..."
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BACKEND_URL/docs")
+        if [ "$HTTP_CODE" != "200" ]; then
+          echo "ERROR: Backend API docs failed (HTTP $HTTP_CODE)"
+          exit 1
+        fi
+        echo "✓ Backend API docs accessible (HTTP 200)"
+
+        # Test 3: GCP webhook health endpoint
+        echo "Testing GCP webhook health endpoint..."
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BACKEND_URL/api/webhooks/gcp/health")
+        if [ "$HTTP_CODE" != "200" ]; then
+          echo "ERROR: GCP webhook health check failed (HTTP $HTTP_CODE)"
+          exit 1
+        fi
+        echo "✓ GCP webhook health check passed (HTTP 200)"
+
+        # Test 4: Frontend accessible
+        echo "Testing frontend..."
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL")
+        if [ "$HTTP_CODE" != "200" ]; then
+          echo "ERROR: Frontend failed (HTTP $HTTP_CODE)"
+          exit 1
+        fi
+        echo "✓ Frontend accessible (HTTP 200)"
+
+        echo ""
+        echo "================================"
+        echo "✓ All smoke tests passed!"
+        echo "================================"
+        echo "Backend: $BACKEND_URL"
+        echo "Frontend: $FRONTEND_URL"
+        echo "================================"
+    waitFor: ['update-backend-webhook-audience', 'deploy-frontend']
 
 images:
   - 'gcr.io/$PROJECT_ID/ap2-expense-backend:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/ap2-expense-backend:${TAG_NAME:-latest}'
   - 'gcr.io/$PROJECT_ID/ap2-expense-frontend:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/ap2-expense-frontend:${TAG_NAME:-latest}'
 
 timeout: 1800s

@@ -13,6 +13,8 @@ from ..auth import get_current_user
 from ..billing import UsageTracker
 from ..database import get_db
 from ..models import User
+from ..models_billing import OrganizationSubscription
+from ..middleware.entitlement_gating import ensure_feature_access
 from ..payments import AP2PaymentService
 from ..rate_limit import limiter
 
@@ -76,6 +78,15 @@ async def create_intent_mandate(
     """
     ap2_service = AP2PaymentService(db)
 
+    subscription = (
+        db.query(OrganizationSubscription)
+        .filter_by(organization_id=current_user.organization_id)
+        .order_by(OrganizationSubscription.created_at.desc())
+        .first()
+    )
+    if subscription:
+        ensure_feature_access(subscription, "ap2_payments")
+
     intent_mandate = await ap2_service.create_intent_mandate(
         user_id=current_user.id,
         constraints=request.constraints,
@@ -113,6 +124,15 @@ async def create_cart_mandate(
     """
     ap2_service = AP2PaymentService(db)
 
+    subscription = (
+        db.query(OrganizationSubscription)
+        .filter_by(organization_id=current_user.organization_id)
+        .order_by(OrganizationSubscription.created_at.desc())
+        .first()
+    )
+    if subscription:
+        ensure_feature_access(subscription, "ap2_payments")
+
     cart_mandate = await ap2_service.create_cart_mandate(
         intent_mandate_id=request.intent_mandate_id,
         items=request.items,
@@ -143,6 +163,15 @@ async def create_payment_mandate(
     Create Payment Mandate - Prepare for payment execution
     """
     ap2_service = AP2PaymentService(db)
+
+    subscription = (
+        db.query(OrganizationSubscription)
+        .filter_by(organization_id=current_user.organization_id)
+        .order_by(OrganizationSubscription.created_at.desc())
+        .first()
+    )
+    if subscription:
+        ensure_feature_access(subscription, "ap2_payments")
 
     payment_mandate = await ap2_service.create_payment_mandate(
         cart_mandate_id=request.cart_mandate_id, payment_method=request.payment_method
@@ -178,6 +207,7 @@ async def execute_payment(
     from datetime import datetime
 
     from ..security.nonce_service import get_nonce_service
+    from ..middleware.entitlement_gating import ensure_feature_access
 
     # Validate nonce and timestamp (replay attack protection)
     nonce_service = get_nonce_service(db)
@@ -211,6 +241,15 @@ async def execute_payment(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     ap2_service = AP2PaymentService(db)
+
+    subscription = (
+        db.query(OrganizationSubscription)
+        .filter_by(organization_id=current_user.organization_id)
+        .order_by(OrganizationSubscription.created_at.desc())
+        .first()
+    )
+    if subscription:
+        ensure_feature_access(subscription, "ap2_payments")
 
     # Track AP2 transaction usage
     tracker = UsageTracker(db)
@@ -247,6 +286,15 @@ async def complete_ap2_flow(
     use individual endpoints.
     """
     ap2_service = AP2PaymentService(db)
+
+    subscription = (
+        db.query(OrganizationSubscription)
+        .filter_by(organization_id=current_user.organization_id)
+        .order_by(OrganizationSubscription.created_at.desc())
+        .first()
+    )
+    if subscription:
+        ensure_feature_access(subscription, "ap2_payments")
 
     # Track AP2 transaction usage
     tracker = UsageTracker(db)

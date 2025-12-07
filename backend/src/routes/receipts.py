@@ -20,6 +20,8 @@ from ..models import Expense, Receipt, User, OrganizationMember
 from ..services.receipt_ai_service import get_receipt_ai_service
 from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
 from ..billing.usage_tracker import UsageTracker
+from ..middleware.entitlement_gating import ensure_feature_access
+from ..models_billing import OrganizationSubscription
 
 router = APIRouter(prefix="/api/v1/receipts", tags=["Receipts"])
 
@@ -242,6 +244,18 @@ async def batch_upload_receipts(
         successful_files = [r for r in results if r.get("success")]
 
         if successful_files:
+            # Feature gating: ensure plan allows receipt AI
+            subscription = None
+            if membership:
+                subscription = (
+                    db.query(OrganizationSubscription)
+                    .filter_by(organization_id=membership.organization_id)
+                    .order_by(OrganizationSubscription.created_at.desc())
+                    .first()
+                )
+            if subscription:
+                ensure_feature_access(subscription, "receipt_ai")
+
             file_paths = [r["file_path"] for r in successful_files]
 
             # Run extraction

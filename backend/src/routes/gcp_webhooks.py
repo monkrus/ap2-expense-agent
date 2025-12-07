@@ -16,16 +16,47 @@ from ..gcp import (
     handle_entitlement_update,
     handle_procurement_webhook,
 )
-from ..gcp.marketplace_client import GCPMarketplaceClient
+from ..gcp.jwt_verifier import verify_google_signed_jwt
+from ..gcp.dead_letter import record_dead_letter
+from ..gcp.marketplace_client import GCPMarketplaceClient, get_gcp_marketplace_client
 from ..gcp.usage_reporter import run_hourly_usage_reporting
 from ..services.trial_service import TrialService
 
 router = APIRouter(prefix="/api/webhooks/gcp", tags=["gcp-webhooks"])
+_gcp_client: Optional[GCPMarketplaceClient] = None
+
+
+def _hmac_fallback_enabled() -> bool:
+    """Return True only when legacy HMAC verification is explicitly allowed for dev/test."""
+    return settings.gcp_allow_legacy_hmac_webhooks and settings.environment in (
+        "development",
+        "test",
+        "local",
+    )
+
+
+def _client() -> GCPMarketplaceClient:
+    """Lazy singleton client accessor."""
+    global _gcp_client
+    if _gcp_client is None:
+        _gcp_client = get_gcp_marketplace_client()
+    return _gcp_client
+
+
+def verify_google_oidc_token(
+    authorization: Optional[str], expected_audience: str
+) -> bool:
+    """
+    Backwards-compatible wrapper to verify Google-signed JWTs from Authorization header.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        return False
+    return verify_google_signed_jwt(authorization.split(" ", 1)[1], expected_audience)
 
 
 def verify_gcp_signature(request_body: bytes, signature: Optional[str]) -> bool:
     """
-    Verify that webhook request came from Google
+    Verify legacy HMAC signature for dev/test.
 
     Args:
         request_body: Raw request body
@@ -35,10 +66,12 @@ def verify_gcp_signature(request_body: bytes, signature: Optional[str]) -> bool:
         True if valid, False otherwise
 
     Security:
-    - NEVER bypasses signature verification in any environment
-    - Use test webhook secret for development/testing
+    - Only used when gcp_allow_legacy_hmac_webhooks is enabled
     - Fails closed if secret not configured
     """
+    if not _hmac_fallback_enabled():
+        return False
+
     if not settings.gcp_webhook_secret:
         # SECURITY: Fail closed - never allow unsigned webhooks
         print("ERROR: GCP webhook secret not configured. Rejecting webhook.")
@@ -64,38 +97,6 @@ def verify_gcp_signature(request_body: bytes, signature: Optional[str]) -> bool:
     return is_valid
 
 
-def verify_google_oidc_token(authorization: Optional[str], expected_audience: str) -> bool:
-    """
-    Verify Google-signed OIDC token (e.g., Pub/Sub push) in Authorization header.
-
-    Args:
-        authorization: Header value 'Bearer <token>'
-        expected_audience: Audience to validate (endpoint URL or configured value)
-
-    Returns:
-        True if token is valid and audience matches, else False
-    """
-    try:
-        if not authorization or not authorization.startswith("Bearer "):
-            return False
-
-        token = authorization.split(" ", 1)[1]
-
-        from google.oauth2 import id_token
-        from google.auth.transport import requests as grequests
-
-        req = grequests.Request()
-        claims = id_token.verify_oauth2_token(token, req, audience=expected_audience)
-
-        issuer = claims.get("iss")
-        if issuer not in ("https://accounts.google.com", "accounts.google.com"):
-            return False
-        return True
-    except Exception as e:
-        print(f"OIDC token verification failed: {e}")
-        return False
-
-
 @router.get("/health")
 async def gcp_webhook_health():
     """Lightweight health endpoint for deployment verification."""
@@ -106,8 +107,8 @@ async def gcp_webhook_health():
 async def gcp_procurement_webhook(
     request: Request,
     db: Session = Depends(get_db),
-    x_goog_signature: Optional[str] = Header(None),
     authorization: Optional[str] = Header(None),
+    x_goog_signature: Optional[str] = Header(None),
 ):
     """
     Handle new customer signup from GCP Marketplace
@@ -137,12 +138,24 @@ async def gcp_procurement_webhook(
     # Get raw body for signature verification
     body = await request.body()
 
-    # Verify request authenticity (prefer OIDC, fallback to HMAC in dev)
+    # Verify request authenticity (JWT required; optional HMAC only if explicitly allowed for dev)
     audience = settings.gcp_webhook_audience or str(request.url)
     oidc_ok = verify_google_oidc_token(authorization, audience)
-    hmac_ok = settings.environment == "development" and verify_gcp_signature(body, x_goog_signature)
-    if not (oidc_ok or hmac_ok):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request")
+    hmac_ok = verify_gcp_signature(body, x_goog_signature)
+
+    # In production/staging, REQUIRE JWT verification (no HMAC fallback)
+    if settings.environment in ("production", "staging"):
+        if not oidc_ok:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Production requires valid Google-signed JWT token",
+            )
+    else:
+        if not (oidc_ok or hmac_ok):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Unauthorized webhook request (JWT required; enable gcp_allow_legacy_hmac_webhooks to use HMAC in dev)",
+            )
 
     # Parse payload
     try:
@@ -152,15 +165,40 @@ async def gcp_procurement_webhook(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload"
         )
 
+    # If key fields are missing, try to enrich from Consumer Procurement API
+    if webhook_data.get("entitlement_id") and (
+        not webhook_data.get("account_id") or not webhook_data.get("plan")
+    ):
+        try:
+            entitlement = await _client().get_entitlement(webhook_data["entitlement_id"])
+            webhook_data.setdefault("account_id", entitlement.get("accountId"))
+            webhook_data.setdefault("plan", entitlement.get("plan"))
+        except Exception as exc:
+            print(f"Warning: failed to enrich entitlement data: {exc}")
+
     # Process procurement
     try:
         result = await handle_procurement_webhook(webhook_data, db)
         return result
 
     except ValueError as e:
+        record_dead_letter(
+            db,
+            "gcp_webhook_procurement_dlq",
+            webhook_data,
+            str(e),
+            {"endpoint": "procurement"},
+        )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     except Exception as e:
+        record_dead_letter(
+            db,
+            "gcp_webhook_procurement_dlq",
+            webhook_data,
+            str(e),
+            {"endpoint": "procurement"},
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process procurement: {str(e)}",
@@ -171,8 +209,8 @@ async def gcp_procurement_webhook(
 async def gcp_events_webhook(
     request: Request,
     db: Session = Depends(get_db),
-    x_goog_signature: Optional[str] = Header(None),
     authorization: Optional[str] = Header(None),
+    x_goog_signature: Optional[str] = Header(None),
 ):
     """
     Generic Pub/Sub push endpoint for GCP Marketplace events.
@@ -183,13 +221,21 @@ async def gcp_events_webhook(
     raw_body = await request.body()
     audience = settings.gcp_webhook_audience or str(request.url)
     oidc_ok = verify_google_oidc_token(authorization, audience)
-    hmac_ok = settings.environment == "development" and verify_gcp_signature(
-        raw_body, x_goog_signature
-    )
-    if not (oidc_ok or hmac_ok):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request"
-        )
+    hmac_ok = verify_gcp_signature(raw_body, x_goog_signature)
+
+    # In production/staging, REQUIRE JWT verification (no HMAC fallback)
+    if settings.environment in ("production", "staging"):
+        if not oidc_ok:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Production requires valid Google-signed JWT token",
+            )
+    else:
+        if not (oidc_ok or hmac_ok):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Unauthorized webhook request (JWT required; enable gcp_allow_legacy_hmac_webhooks to use HMAC in dev)",
+            )
 
     # Parse JSON body
     try:
@@ -212,6 +258,13 @@ async def gcp_events_webhook(
     except EventParseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
+        record_dead_letter(
+            db,
+            "gcp_webhook_events_dlq",
+            body if isinstance(body, dict) else {"raw": str(body)},
+            str(e),
+            {"endpoint": "events"},
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid event payload: {e}"
         )
@@ -242,8 +295,8 @@ async def gcp_events_webhook(
 async def gcp_entitlement_update_webhook(
     request: Request,
     db: Session = Depends(get_db),
-    x_goog_signature: Optional[str] = Header(None),
     authorization: Optional[str] = Header(None),
+    x_goog_signature: Optional[str] = Header(None),
 ):
     """
     Handle tier upgrade/downgrade from GCP Marketplace
@@ -273,9 +326,21 @@ async def gcp_entitlement_update_webhook(
 
     audience = settings.gcp_webhook_audience or str(request.url)
     oidc_ok = verify_google_oidc_token(authorization, audience)
-    hmac_ok = settings.environment == "development" and verify_gcp_signature(body, x_goog_signature)
-    if not (oidc_ok or hmac_ok):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request")
+    hmac_ok = verify_gcp_signature(body, x_goog_signature)
+
+    # In production/staging, REQUIRE JWT verification (no HMAC fallback)
+    if settings.environment in ("production", "staging"):
+        if not oidc_ok:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Production requires valid Google-signed JWT token",
+            )
+    else:
+        if not (oidc_ok or hmac_ok):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Unauthorized webhook request (JWT required; enable gcp_allow_legacy_hmac_webhooks to use HMAC in dev)",
+            )
 
     # Parse payload
     try:
@@ -291,9 +356,23 @@ async def gcp_entitlement_update_webhook(
         return result
 
     except ValueError as e:
+        record_dead_letter(
+            db,
+            "gcp_webhook_entitlement_update_dlq",
+            webhook_data,
+            str(e),
+            {"endpoint": "entitlement-updated"},
+        )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     except Exception as e:
+        record_dead_letter(
+            db,
+            "gcp_webhook_entitlement_update_dlq",
+            webhook_data,
+            str(e),
+            {"endpoint": "entitlement-updated"},
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process entitlement update: {str(e)}",
@@ -304,8 +383,8 @@ async def gcp_entitlement_update_webhook(
 async def gcp_entitlement_cancel_webhook(
     request: Request,
     db: Session = Depends(get_db),
-    x_goog_signature: Optional[str] = Header(None),
     authorization: Optional[str] = Header(None),
+    x_goog_signature: Optional[str] = Header(None),
 ):
     """
     Handle subscription cancellation from GCP Marketplace
@@ -334,9 +413,18 @@ async def gcp_entitlement_cancel_webhook(
 
     audience = settings.gcp_webhook_audience or str(request.url)
     oidc_ok = verify_google_oidc_token(authorization, audience)
-    hmac_ok = settings.environment == "development" and verify_gcp_signature(body, x_goog_signature)
-    if not (oidc_ok or hmac_ok):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request")
+    hmac_ok = verify_gcp_signature(body, x_goog_signature)
+
+    # In production/staging, REQUIRE JWT verification (no HMAC fallback)
+    if settings.environment in ("production", "staging"):
+        if not oidc_ok:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Production requires valid Google-signed JWT token",
+            )
+    else:
+        if not (oidc_ok or hmac_ok):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request (JWT required; enable gcp_allow_legacy_hmac_webhooks to use HMAC in dev)")
 
     # Parse payload
     try:
@@ -352,9 +440,23 @@ async def gcp_entitlement_cancel_webhook(
         return result
 
     except ValueError as e:
+        record_dead_letter(
+            db,
+            "gcp_webhook_entitlement_cancel_dlq",
+            webhook_data,
+            str(e),
+            {"endpoint": "entitlement-cancelled"},
+        )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     except Exception as e:
+        record_dead_letter(
+            db,
+            "gcp_webhook_entitlement_cancel_dlq",
+            webhook_data,
+            str(e),
+            {"endpoint": "entitlement-cancelled"},
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process cancellation: {str(e)}",

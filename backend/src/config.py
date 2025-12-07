@@ -72,6 +72,7 @@ class Settings(BaseSettings):
     gcp_service_account_path: Optional[str] = None  # Path to service account JSON file
     gcp_webhook_secret: Optional[str] = None  # Webhook secret from GCP Marketplace
     gcp_webhook_audience: Optional[str] = None  # Expected OIDC audience for Pub/Sub push
+    gcp_allow_legacy_hmac_webhooks: bool = False  # Allow HMAC-only webhooks (dev/test opt-in)
     enable_gcp_marketplace: bool = False  # Enable/disable GCP Marketplace integration
     gcp_usage_reporting_enabled: bool = True  # Enable hourly usage reporting to GCP
 

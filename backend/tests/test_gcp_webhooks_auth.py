@@ -1,22 +1,16 @@
-from unittest.mock import patch, Mock
-
-import pytest
+from unittest.mock import patch
 
 from src.routes.gcp_webhooks import verify_google_oidc_token
 
 
-@patch("google.oauth2.id_token.verify_oauth2_token")
-@patch("google.auth.transport.requests.Request")
-def test_verify_google_oidc_token_valid(mock_request, mock_verify):
-    mock_verify.return_value = {"iss": "https://accounts.google.com", "aud": "aud"}
-    assert verify_google_oidc_token("Bearer token123", "aud") is True
+def test_verify_google_oidc_token_valid():
+    with patch("src.routes.gcp_webhooks.verify_google_signed_jwt", return_value=True):
+        assert verify_google_oidc_token("Bearer token123", "aud") is True
 
 
-@patch("google.oauth2.id_token.verify_oauth2_token")
-@patch("google.auth.transport.requests.Request")
-def test_verify_google_oidc_token_invalid_issuer(mock_request, mock_verify):
-    mock_verify.return_value = {"iss": "https://example.com", "aud": "aud"}
-    assert verify_google_oidc_token("Bearer token123", "aud") is False
+def test_verify_google_oidc_token_invalid():
+    with patch("src.routes.gcp_webhooks.verify_google_signed_jwt", return_value=False):
+        assert verify_google_oidc_token("Bearer token123", "aud") is False
 
 
 def test_verify_google_oidc_token_missing_header():

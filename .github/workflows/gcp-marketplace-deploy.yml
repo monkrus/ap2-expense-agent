@@ -1,0 +1,356 @@
+name: Deploy to GCP Marketplace
+
+on:
+  push:
+    branches:
+      - main
+      - production
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: us-central1
+  REGISTRY: gcr.io
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio httpx
+
+      - name: Run backend tests
+        env:
+          TESTING: true
+          DATABASE_URL: sqlite:///./test.db
+          JWT_SECRET: test-secret-key-for-ci
+          ENVIRONMENT: test
+        run: |
+          cd backend
+          pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          export_default_credentials: true
+
+      - name: Configure Docker for GCR
+        run: |
+          gcloud auth configure-docker
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=$(echo $GITHUB_SHA | cut -c1-8)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Build backend image
+        run: |
+          docker build \
+            -f Dockerfile.backend \
+            -t ${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/ap2-expense-backend:${{ steps.version.outputs.version }} \
+            -t ${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/ap2-expense-backend:latest \
+            --build-arg VERSION=${{ steps.version.outputs.version }} \
+            --build-arg COMMIT_SHA=${{ github.sha }} \
+            --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+            .
+
+      - name: Build frontend image
+        run: |
+          docker build \
+            -f Dockerfile.frontend \
+            -t ${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/ap2-expense-frontend:${{ steps.version.outputs.version }} \
+            -t ${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/ap2-expense-frontend:latest \
+            --build-arg VERSION=${{ steps.version.outputs.version }} \
+            --build-arg COMMIT_SHA=${{ github.sha }} \
+            --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+            .
+
+      - name: Push images to GCR
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/ap2-expense-backend:${{ steps.version.outputs.version }}
+          docker push ${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/ap2-expense-backend:latest
+          docker push ${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/ap2-expense-frontend:${{ steps.version.outputs.version }}
+          docker push ${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/ap2-expense-frontend:latest
+
+      - name: Output image tags
+        id: images
+        run: |
+          echo "backend_image=${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/ap2-expense-backend:${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "frontend_image=${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/ap2-expense-frontend:${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      backend_image: ${{ steps.images.outputs.backend_image }}
+      frontend_image: ${{ steps.images.outputs.frontend_image }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging.ap2expense.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy backend to Cloud Run
+        run: |
+          gcloud run deploy ap2-expense-backend-staging \
+            --image=${{ needs.build.outputs.backend_image }} \
+            --region=${{ env.GCP_REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --service-account=ap2-expense-sa@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
+            --min-instances=0 \
+            --max-instances=5 \
+            --memory=2Gi \
+            --cpu=2 \
+            --set-env-vars=ENVIRONMENT=staging
+
+      - name: Deploy frontend to Cloud Run
+        run: |
+          BACKEND_URL=$(gcloud run services describe ap2-expense-backend-staging \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+
+          gcloud run deploy ap2-expense-frontend-staging \
+            --image=${{ needs.build.outputs.frontend_image }} \
+            --region=${{ env.GCP_REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --min-instances=0 \
+            --max-instances=3 \
+            --memory=512Mi \
+            --cpu=1 \
+            --set-env-vars=VITE_API_BASE_URL=$BACKEND_URL
+
+      - name: Run smoke tests
+        run: |
+          BACKEND_URL=$(gcloud run services describe ap2-expense-backend-staging \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+
+          # Test health endpoint
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BACKEND_URL/health")
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Health check failed: HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "✓ Staging deployment successful"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment:
+      name: production
+      url: https://app.ap2expense.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy backend to Cloud Run
+        run: |
+          gcloud run deploy ap2-expense-backend \
+            --image=${{ needs.build.outputs.backend_image }} \
+            --region=${{ env.GCP_REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --service-account=ap2-expense-sa@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
+            --add-cloudsql-instances=${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:ap2-expense-db \
+            --min-instances=1 \
+            --max-instances=10 \
+            --memory=2Gi \
+            --cpu=2 \
+            --timeout=300s \
+            --concurrency=80 \
+            --set-env-vars="ENVIRONMENT=production,\
+GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
+ENABLE_GCP_MARKETPLACE=true,\
+GCP_USAGE_REPORTING_ENABLED=true" \
+            --set-secrets="DATABASE_URL=database-connection-string:latest,\
+JWT_SECRET=jwt-secret-key:latest,\
+JWT_REFRESH_SECRET=jwt-refresh-secret-key:latest,\
+GCP_WEBHOOK_SECRET=gcp-webhook-secret:latest,\
+GCP_SERVICE_ACCOUNT_PATH=gcp-service-account-key:latest"
+
+      - name: Update webhook audience
+        run: |
+          BACKEND_URL=$(gcloud run services describe ap2-expense-backend \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+
+          gcloud run services update ap2-expense-backend \
+            --region=${{ env.GCP_REGION }} \
+            --update-env-vars=GCP_WEBHOOK_AUDIENCE=$BACKEND_URL
+
+      - name: Deploy frontend to Cloud Run
+        run: |
+          BACKEND_URL=$(gcloud run services describe ap2-expense-backend \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+
+          gcloud run deploy ap2-expense-frontend \
+            --image=${{ needs.build.outputs.frontend_image }} \
+            --region=${{ env.GCP_REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --min-instances=1 \
+            --max-instances=5 \
+            --memory=512Mi \
+            --cpu=1 \
+            --timeout=60s \
+            --concurrency=100 \
+            --set-env-vars=VITE_API_BASE_URL=$BACKEND_URL
+
+      - name: Run production smoke tests
+        run: |
+          BACKEND_URL=$(gcloud run services describe ap2-expense-backend \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+
+          FRONTEND_URL=$(gcloud run services describe ap2-expense-frontend \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+
+          # Test backend health
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BACKEND_URL/health")
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Backend health check failed: HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+          # Test GCP webhook health
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BACKEND_URL/api/webhooks/gcp/health")
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Webhook health check failed: HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+          # Test frontend
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL")
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Frontend health check failed: HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "✓ Production deployment successful"
+          echo "Backend: $BACKEND_URL"
+          echo "Frontend: $FRONTEND_URL"
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ needs.build.outputs.version }}
+          body: |
+            ## AP2 Expense Agent ${{ needs.build.outputs.version }}
+
+            ### Deployed Images
+            - Backend: `${{ needs.build.outputs.backend_image }}`
+            - Frontend: `${{ needs.build.outputs.frontend_image }}`
+
+            ### Changes
+            See commit history for details.
+          draft: false
+          prerelease: false
+
+  notify:
+    name: Send Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+
+    steps:
+      - name: Send Slack notification
+        if: env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          STATUS="${{ needs.deploy-production.result || needs.deploy-staging.result }}"
+          COLOR="good"
+          if [ "$STATUS" != "success" ]; then
+            COLOR="danger"
+          fi
+
+          curl -X POST $SLACK_WEBHOOK_URL \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"attachments\": [{
+                \"color\": \"$COLOR\",
+                \"title\": \"AP2 Expense Agent Deployment\",
+                \"text\": \"Status: $STATUS\",
+                \"fields\": [
+                  {\"title\": \"Environment\", \"value\": \"${{ github.event.inputs.environment || 'auto' }}\", \"short\": true},
+                  {\"title\": \"Version\", \"value\": \"${{ needs.build.outputs.version }}\", \"short\": true}
+                ]
+              }]
+            }"

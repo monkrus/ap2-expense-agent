@@ -4,6 +4,7 @@ Aggregates and reports usage metrics to Google Cloud Marketplace
 Runs hourly via Cloud Scheduler
 """
 
+import asyncio
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List
@@ -13,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from ..models import OrganizationMember, User
 from ..models_billing import BillingEvent, OrganizationSubscription, UsageMetric
+from .dead_letter import record_dead_letter
 from .marketplace_client import get_gcp_marketplace_client
 
 
@@ -132,43 +134,61 @@ class GCPUsageReporter:
                 "organization_id": organization_id,
             }
 
-        # Report to GCP Marketplace
-        try:
-            response = await self.gcp_client.report_usage(
-                entitlement_id=entitlement_id,
-                metrics=usage_data,
-                timestamp=end_time.isoformat() + "Z",
-            )
+        # Report to GCP Marketplace with simple retry/backoff
+        last_error = None
+        for attempt in range(1, 4):
+            try:
+                response = await self.gcp_client.report_usage(
+                    entitlement_id=entitlement_id,
+                    metrics=usage_data,
+                    timestamp=end_time.isoformat() + "Z",
+                )
 
-            # Log the reporting event
-            self.log_usage_report(
-                organization_id,
-                entitlement_id,
-                usage_data,
-                response,
-                start_time,
-                end_time,
-            )
+                if response.get("status") == "error":
+                    last_error = response.get("error") or "unknown_error"
+                    if response.get("status_code", 500) >= 500 and attempt < 3:
+                        await asyncio.sleep(2 ** (attempt - 1))
+                        continue
+                # Log the reporting event
+                self.log_usage_report(
+                    organization_id,
+                    entitlement_id,
+                    usage_data,
+                    response,
+                    start_time,
+                    end_time,
+                )
 
-            return {
-                "status": response.get("status", "success"),
-                "organization_id": organization_id,
-                "entitlement_id": entitlement_id,
-                "metrics_reported": len(usage_data),
-                "usage_data": usage_data,
-            }
+                return {
+                    "status": response.get("status", "success"),
+                    "organization_id": organization_id,
+                    "entitlement_id": entitlement_id,
+                    "metrics_reported": len(usage_data),
+                    "usage_data": usage_data,
+                }
 
-        except Exception as e:
-            # Log error
-            self.log_usage_report_error(
-                organization_id, entitlement_id, str(e), start_time, end_time
-            )
+            except Exception as e:
+                last_error = str(e)
+                if attempt < 3:
+                    await asyncio.sleep(2 ** (attempt - 1))
+                    continue
 
-            return {
-                "status": "error",
-                "organization_id": organization_id,
-                "error": str(e),
-            }
+        # After retries exhausted, log to DLQ and return error
+        self.log_usage_report_error(
+            organization_id, entitlement_id, last_error or "unknown_error", start_time, end_time
+        )
+        record_dead_letter(
+            self.db,
+            "gcp_usage_report_dlq",
+            {"entitlement_id": entitlement_id, "usage_data": usage_data},
+            last_error or "unknown_error",
+            {"attempts": 3},
+        )
+        return {
+            "status": "error",
+            "organization_id": organization_id,
+            "error": last_error or "unknown_error",
+        }
 
     def aggregate_usage(
         self, organization_id: str, start_time: datetime, end_time: datetime

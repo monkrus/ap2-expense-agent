@@ -10,6 +10,8 @@ from ..auth import AuthService, require_admin, require_manager
 from ..database import get_db
 from ..maintenance import DataRetentionService
 from ..models import Organization, User, UserRole
+from ..models_billing import OrganizationSubscription
+from ..middleware.entitlement_gating import ensure_feature_access
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 
@@ -433,6 +435,16 @@ async def get_usage_analytics(
     db: Session = Depends(get_db),
 ):
     """Get platform usage analytics"""
+
+    # Advanced analytics gating (admin only view)
+    subscription = (
+        db.query(OrganizationSubscription)
+        .filter_by(organization_id=current_user.organization_id)
+        .order_by(OrganizationSubscription.created_at.desc())
+        .first()
+    )
+    if subscription:
+        ensure_feature_access(subscription, "advanced_analytics")
 
     start_date = datetime.utcnow() - timedelta(days=days)
 

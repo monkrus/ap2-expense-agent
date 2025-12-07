@@ -5,12 +5,11 @@ Handles authentication and API calls to Google Cloud Marketplace
 
 import hashlib
 import hmac
-import json
 from datetime import datetime
 from typing import Dict, Optional
 
 import requests
-from google.auth.transport.requests import Request
+from google.auth.transport.requests import AuthorizedSession
 from google.oauth2 import service_account
 
 from ..config import settings
@@ -31,6 +30,7 @@ class GCPMarketplaceClient:
         self.project_id = settings.gcp_project_id
         self.service_account_path = settings.gcp_service_account_path
         self.api_base_url = "https://cloudcommerceprocurement.googleapis.com/v1"
+        self.session: Optional[AuthorizedSession] = None
 
         # Initialize credentials
         self.credentials = None
@@ -42,27 +42,10 @@ class GCPMarketplaceClient:
                         scopes=["https://www.googleapis.com/auth/cloud-platform"],
                     )
                 )
+                self.session = AuthorizedSession(self.credentials)
             except Exception as e:
                 print(f"Warning: Failed to load GCP service account: {e}")
                 print("GCP Marketplace integration will be disabled")
-
-    def _get_access_token(self) -> str:
-        """Get OAuth2 access token for GCP API"""
-        if not self.credentials:
-            raise ValueError("GCP service account credentials not configured")
-
-        # Refresh token if needed
-        if not self.credentials.valid:
-            self.credentials.refresh(Request())
-
-        return self.credentials.token
-
-    def _get_headers(self) -> Dict[str, str]:
-        """Get HTTP headers with authentication"""
-        return {
-            "Authorization": f"Bearer {self._get_access_token()}",
-            "Content-Type": "application/json",
-        }
 
     async def report_usage(
         self,
@@ -94,7 +77,7 @@ class GCPMarketplaceClient:
                 {"ai_categorization": 1234, "ap2_transaction": 56}
             )
         """
-        if not self.credentials:
+        if not self.session:
             # GCP not configured - log but don't fail
             print(f"Warning: GCP usage reporting disabled (no credentials)")
             return {"status": "skipped", "reason": "no_credentials"}
@@ -124,9 +107,7 @@ class GCPMarketplaceClient:
                 f"{self.api_base_url}/providers/{self.project_id}/"
                 f"entitlements/{entitlement_id}:reportUsage"
             )
-            response = requests.post(
-                url, headers=self._get_headers(), json=usage_report, timeout=30
-            )
+            response = self.session.post(url, json=usage_report, timeout=30)
 
             if response.status_code == 200:
                 return {
@@ -160,12 +141,12 @@ class GCPMarketplaceClient:
         Returns:
             Entitlement details dict
         """
-        if not self.credentials:
+        if not self.session:
             raise ValueError("GCP credentials not configured")
 
         try:
             url = f"{self.api_base_url}/providers/{self.project_id}/entitlements/{entitlement_id}"
-            response = requests.get(url, headers=self._get_headers(), timeout=30)
+            response = self.session.get(url, timeout=30)
 
             if response.status_code == 200:
                 return response.json()
@@ -196,7 +177,7 @@ class GCPMarketplaceClient:
         request_body: bytes, signature_header: str, webhook_secret: str
     ) -> bool:
         """
-        Verify webhook signature from Google Cloud Marketplace
+        Verify legacy HMAC webhook signature (development-only)
 
         Args:
             request_body: Raw request body bytes
@@ -205,14 +186,16 @@ class GCPMarketplaceClient:
 
         Returns:
             True if signature is valid, False otherwise
+        Notes:
+            Google Marketplace now signs webhook deliveries with Google-issued JWTs.
+            HMAC verification remains only for legacy/dev flows.
         """
         if not webhook_secret:
-            # If no secret configured, skip verification (dev mode)
-            print("Warning: Webhook signature verification disabled")
-            return True
+            # Fail closed to avoid silently accepting unsigned payloads
+            return False
 
         try:
-            # Google uses HMAC-SHA256
+            # Google uses HMAC-SHA256 for legacy signature flow
             expected_signature = hmac.new(
                 webhook_secret.encode(), request_body, hashlib.sha256
             ).hexdigest()
