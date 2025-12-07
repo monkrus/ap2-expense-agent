@@ -20,15 +20,8 @@ from src.api import app
 from src.auth import AuthService
 from src.cache import cache
 from src.database import get_db
-from src.models import (
-    Base,
-    Expense,
-    Organization,
-    OrganizationMember,
-    OrganizationRole,
-    User,
-    UserRole,
-)
+from src.models import (Base, Expense, Organization, OrganizationMember,
+                        OrganizationRole, User, UserRole)
 
 # Test database setup (in-memory SQLite)
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"

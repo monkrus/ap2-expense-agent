@@ -12,11 +12,8 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..email_service import EmailService
 from ..models import Organization
-from ..models_billing import (
-    BillingEvent,
-    MarketplaceEntitlement,
-    OrganizationSubscription,
-)
+from ..models_billing import (BillingEvent, MarketplaceEntitlement,
+                              OrganizationSubscription)
 from .idempotency import mark_failure, mark_success, record_event
 
 
@@ -80,7 +77,9 @@ async def handle_entitlement_update(webhook_data: Dict, db: Session) -> Dict:
             raise ValueError("Missing required fields: entitlement_id or new_plan")
 
         # Idempotency key based on entitlement + new_plan + effective_at if provided
-        dedupe_key = f"{entitlement_id}|{new_plan}|{webhook_data.get('effective_at','')}"
+        dedupe_key = (
+            f"{entitlement_id}|{new_plan}|{webhook_data.get('effective_at','')}"
+        )
         event, created = record_event(
             db, handler="gcp_tier_changed", dedupe_key=dedupe_key, payload=webhook_data
         )
@@ -319,7 +318,9 @@ async def handle_entitlement_cancellation(webhook_data: Dict, db: Session) -> Di
             entitlement.state = "CANCELLED"
             entitlement.last_event_at = now
             entitlement.grace_start = now
-            entitlement.grace_end = now + timedelta(days=grace_days) if grace_days > 0 else None
+            entitlement.grace_end = (
+                now + timedelta(days=grace_days) if grace_days > 0 else None
+            )
 
         # === Step 3: Deactivate organization (soft delete) ===
         # Keep data for 7 days grace period

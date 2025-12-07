@@ -6,17 +6,10 @@ import time
 
 import pytest
 
-from src.cache import (
-    QueryCache,
-    RateLimitCache,
-    SessionCache,
-    cache,
-    cache_user_organizations,
-    cached,
-    get_cached_user_organizations,
-    invalidate_organization_cache,
-    invalidate_user_cache,
-)
+from src.cache import (QueryCache, RateLimitCache, SessionCache, cache,
+                       cache_user_organizations, cached,
+                       get_cached_user_organizations,
+                       invalidate_organization_cache, invalidate_user_cache)
 
 
 class TestCacheService:

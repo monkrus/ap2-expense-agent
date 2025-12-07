@@ -16,7 +16,7 @@ from ..config import settings
 from ..models import OrganizationMember, User
 from ..models_billing import BillingEvent, MarketplaceEntitlement, UsageMetric
 from .marketplace_client import get_gcp_marketplace_client
-from .retry_logic import with_usage_report_retry, RetryableError
+from .retry_logic import RetryableError, with_usage_report_retry
 
 
 class GCPUsageReporter:

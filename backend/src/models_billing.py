@@ -4,17 +4,8 @@ Billing and usage tracking models for Google Cloud Marketplace integration
 
 from datetime import datetime
 
-from sqlalchemy import (
-    JSON,
-    Boolean,
-    Column,
-    DateTime,
-    Float,
-    Index,
-    Integer,
-    String,
-    UniqueConstraint,
-)
+from sqlalchemy import (JSON, Boolean, Column, DateTime, Float, Index, Integer,
+                        String, UniqueConstraint)
 from sqlalchemy.sql import func
 
 from .models import Base
@@ -194,11 +185,11 @@ class MarketplaceAccount(Base):
         DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    account_metadata = Column(JSON, nullable=True)  # Renamed from 'metadata' (SQLAlchemy reserved)
+    account_metadata = Column(
+        JSON, nullable=True
+    )  # Renamed from 'metadata' (SQLAlchemy reserved)
 
-    __table_args__ = (
-        Index("ix_marketplace_accounts_org", "organization_id"),
-    )
+    __table_args__ = (Index("ix_marketplace_accounts_org", "organization_id"),)
 
 
 class MarketplaceEntitlement(Base):
@@ -226,7 +217,9 @@ class MarketplaceEntitlement(Base):
     grace_end = Column(DateTime, nullable=True)
     last_event_at = Column(DateTime, nullable=True)
 
-    entitlement_metadata = Column(JSON, nullable=True)  # Renamed from 'metadata' (SQLAlchemy reserved)
+    entitlement_metadata = Column(
+        JSON, nullable=True
+    )  # Renamed from 'metadata' (SQLAlchemy reserved)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime, server_default=func.now(), onupdate=func.now(), nullable=False

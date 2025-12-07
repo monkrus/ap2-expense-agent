@@ -21,15 +21,27 @@ PLAN_FEATURES: Dict[str, Dict] = {
         "retention_days": 30,
     },
     "professional": {
-        "limits": {"users": 100, "expenses_per_month": None, "ai_categorizations": 5000},
+        "limits": {
+            "users": 100,
+            "expenses_per_month": None,
+            "ai_categorizations": 5000,
+        },
         "retention_days": 90,
     },
     "enterprise": {
-        "limits": {"users": 500, "expenses_per_month": None, "ai_categorizations": None},
+        "limits": {
+            "users": 500,
+            "expenses_per_month": None,
+            "ai_categorizations": None,
+        },
         "retention_days": 365,
     },
     "enterprise_plus": {
-        "limits": {"users": None, "expenses_per_month": None, "ai_categorizations": None},
+        "limits": {
+            "users": None,
+            "expenses_per_month": None,
+            "ai_categorizations": None,
+        },
         "retention_days": 365,
     },
 }
@@ -63,14 +75,20 @@ class MarketplaceEnforcementMiddleware(BaseHTTPMiddleware):
         entitlement = _fetch_entitlement(org_id)
         if entitlement:
             plan_key = (entitlement.plan or "").lower()
-            plan_features = PLAN_FEATURES.get(plan_key, PLAN_FEATURES.get("starter", {}))
+            plan_features = PLAN_FEATURES.get(
+                plan_key, PLAN_FEATURES.get("starter", {})
+            )
             request.state.entitlement = {
                 "plan": entitlement.plan,
                 "state": entitlement.state,
                 "limits": plan_features.get("limits", {}),
                 "retention_days": plan_features.get("retention_days"),
-                "trial_end": entitlement.trial_end.isoformat() if entitlement.trial_end else None,
-                "grace_end": entitlement.grace_end.isoformat() if entitlement.grace_end else None,
+                "trial_end": (
+                    entitlement.trial_end.isoformat() if entitlement.trial_end else None
+                ),
+                "grace_end": (
+                    entitlement.grace_end.isoformat() if entitlement.grace_end else None
+                ),
                 "entitlement_id": entitlement.entitlement_id,
             }
 

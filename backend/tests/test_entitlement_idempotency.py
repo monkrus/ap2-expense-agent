@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
 
-from src.gcp.entitlement_handler import handle_entitlement_update, handle_entitlement_cancellation
+from src.gcp.entitlement_handler import (handle_entitlement_cancellation,
+                                         handle_entitlement_update)
 from src.models_billing import BillingEvent, OrganizationSubscription
 
 
@@ -42,7 +43,9 @@ async def test_tier_change_idempotency(db_session):
     assert res1["status"] in ("updated", "already_processed")
     assert res2["status"] == "already_processed"
 
-    events = db_session.query(BillingEvent).filter_by(event_type="gcp_tier_changed").all()
+    events = (
+        db_session.query(BillingEvent).filter_by(event_type="gcp_tier_changed").all()
+    )
     assert len(events) == 1
 
 

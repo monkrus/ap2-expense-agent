@@ -14,13 +14,10 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..email_service import EmailService
-from ..models import Organization, OrganizationMember, OrganizationRole, User, UserRole
-from ..models_billing import (
-    BillingEvent,
-    MarketplaceAccount,
-    MarketplaceEntitlement,
-    OrganizationSubscription,
-)
+from ..models import (Organization, OrganizationMember, OrganizationRole, User,
+                      UserRole)
+from ..models_billing import (BillingEvent, MarketplaceAccount,
+                              MarketplaceEntitlement, OrganizationSubscription)
 from .idempotency import mark_failure, mark_success, record_event
 
 
@@ -97,9 +94,9 @@ async def handle_procurement_webhook(webhook_data: Dict, db: Session) -> Dict:
             )
             return {
                 "status": "already_processed",
-                "organization_id": existing_sub.organization_id
-                if existing_sub
-                else None,
+                "organization_id": (
+                    existing_sub.organization_id if existing_sub else None
+                ),
                 "message": "Procurement already processed",
             }
 

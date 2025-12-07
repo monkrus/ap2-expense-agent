@@ -18,19 +18,9 @@ os.environ["TESTING"] = "true"
 from src.auth import AuthService
 from src.billing.limit_enforcer import LimitEnforcer, LimitExceededError
 from src.billing.tier_limits import TIER_CONFIGS, get_tier_limits
-from src.models import (
-    Expense,
-    ExpenseCategory,
-    ExpenseStatus,
-    Organization,
-    OrganizationMember,
-    OrganizationRole,
-    Subscription,
-    SubscriptionTier,
-    User,
-    UserRole,
-)
-
+from src.models import (Expense, ExpenseCategory, ExpenseStatus, Organization,
+                        OrganizationMember, OrganizationRole, Subscription,
+                        SubscriptionTier, User, UserRole)
 
 # ============================================================================
 # Tier Configuration Tests
@@ -51,7 +41,9 @@ class TestTierConfiguration:
         free_limits = get_tier_limits(SubscriptionTier.FREE)
 
         assert free_limits.max_users == 1, "Free tier should only allow 1 user"
-        assert free_limits.max_expenses_per_month == 20, "Free tier should allow 20 expenses/month"
+        assert (
+            free_limits.max_expenses_per_month == 20
+        ), "Free tier should allow 20 expenses/month"
         assert free_limits.max_ai_categorizations == 0, "Free tier should NOT have AI"
         assert free_limits.max_ap2_transactions == 0, "Free tier should NOT have AP2"
         assert free_limits.ocr_scans_included == 5, "Free tier should have 5 OCR scans"
@@ -74,8 +66,12 @@ class TestTierConfiguration:
         starter_limits = get_tier_limits(SubscriptionTier.STARTER)
 
         assert starter_limits.max_users > free_limits.max_users
-        assert starter_limits.max_expenses_per_month > free_limits.max_expenses_per_month
-        assert starter_limits.max_ai_categorizations > free_limits.max_ai_categorizations
+        assert (
+            starter_limits.max_expenses_per_month > free_limits.max_expenses_per_month
+        )
+        assert (
+            starter_limits.max_ai_categorizations > free_limits.max_ai_categorizations
+        )
         assert starter_limits.ocr_scans_included > free_limits.ocr_scans_included
 
 
@@ -208,14 +204,18 @@ class TestLimitEnforcer:
         with pytest.raises(LimitExceededError) as exc_info:
             enforcer.check_feature_access(org.id, "api_access", raise_error=True)
 
-        assert "Professional" in exc_info.value.upgrade_message or "API" in str(exc_info.value)
+        assert "Professional" in exc_info.value.upgrade_message or "API" in str(
+            exc_info.value
+        )
 
     def test_check_feature_access_sso(self, db_session):
         """Should block SSO for Free tier"""
         org = self._create_org_with_owner(db_session, "no-sso-org")
 
         enforcer = LimitEnforcer(db_session)
-        can_use, message = enforcer.check_feature_access(org.id, "sso_enabled", raise_error=False)
+        can_use, message = enforcer.check_feature_access(
+            org.id, "sso_enabled", raise_error=False
+        )
 
         assert can_use == False
         assert "Enterprise" in message

@@ -5,6 +5,7 @@ Endpoints for managing failed webhook events
 
 from datetime import datetime
 from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -61,11 +62,15 @@ async def list_failed_webhooks(
                 "dedupe_key": event.dedupe_key,
                 "status": event.status,
                 "error_message": event.error_message,
-                "created_at": event.created_at.isoformat() if event.created_at else None,
-                "processed_at": event.processed_at.isoformat() if event.processed_at else None,
-                "payload_preview": str(event.payload)[:200] + "..."
-                if event.payload
-                else None,
+                "created_at": (
+                    event.created_at.isoformat() if event.created_at else None
+                ),
+                "processed_at": (
+                    event.processed_at.isoformat() if event.processed_at else None
+                ),
+                "payload_preview": (
+                    str(event.payload)[:200] + "..." if event.payload else None
+                ),
             }
             for event in events
         ],
@@ -89,13 +94,19 @@ async def retry_webhook(event_id: str, db: Session = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=400, detail=error or "Retry failed")
 
-    return {"status": "success", "event_id": event_id, "message": "Webhook retried successfully"}
+    return {
+        "status": "success",
+        "event_id": event_id,
+        "message": "Webhook retried successfully",
+    }
 
 
 @router.post("/retry-all")
 async def retry_all_failed(
     handler: Optional[str] = Query(None, description="Filter by handler name"),
-    max_age_hours: int = Query(24, description="Only retry failures within last N hours"),
+    max_age_hours: int = Query(
+        24, description="Only retry failures within last N hours"
+    ),
     batch_size: int = Query(10, le=100, description="Number to retry in one batch"),
     db: Session = Depends(get_db),
 ):

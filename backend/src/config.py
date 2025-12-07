@@ -70,10 +70,14 @@ class Settings(BaseSettings):
 
     # Google Cloud Marketplace Configuration
     gcp_project_id: Optional[str] = None  # GCP Project ID
-    gcp_provider_id: Optional[str] = None  # Provider ID for Consumer Procurement (defaults to project_id when unset)
+    gcp_provider_id: Optional[str] = (
+        None  # Provider ID for Consumer Procurement (defaults to project_id when unset)
+    )
     gcp_service_account_path: Optional[str] = None  # Path to service account JSON file
     gcp_webhook_secret: Optional[str] = None  # Webhook secret from GCP Marketplace
-    gcp_webhook_audience: Optional[str] = None  # Expected OIDC audience for Pub/Sub push
+    gcp_webhook_audience: Optional[str] = (
+        None  # Expected OIDC audience for Pub/Sub push
+    )
     enable_gcp_marketplace: bool = False  # Enable/disable GCP Marketplace integration
     gcp_usage_reporting_enabled: bool = True  # Enable hourly usage reporting to GCP
     gcp_trial_period_days: int = 14  # Free trial length for Marketplace signups
@@ -99,7 +103,9 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
     # Security toggles
-    allow_dev_kms_fallback: bool = False  # Only enable dev signing fallback explicitly (tests/dev)
+    allow_dev_kms_fallback: bool = (
+        False  # Only enable dev signing fallback explicitly (tests/dev)
+    )
     rate_limit_enabled: bool = True  # Disable only for controlled perf tests
 
     class Config:

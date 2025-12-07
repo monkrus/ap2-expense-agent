@@ -16,36 +16,22 @@ from sqlalchemy.orm import Session
 logger = logging.getLogger(__name__)
 
 from ..auth import get_current_active_user
+from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
+from ..billing.tier_limits import get_tier_limits
 from ..cache import invalidate_user_cache
 from ..database import get_db
 from ..email_service import EmailService
-from ..models import (
-    Organization,
-    OrganizationInvitation,
-    OrganizationMember,
-    OrganizationRole,
-    User,
-    Subscription,
-    SubscriptionTier,
-)
-from ..billing.tier_limits import get_tier_limits
-from ..schemas import (
-    OrganizationCreate,
-    OrganizationInvitationCreate,
-    OrganizationInvitationResponse,
-    OrganizationMemberResponse,
-    OrganizationResponse,
-    OrganizationUpdate,
-)
-from ..tenant_context import (
-    TenantAwareQuery,
-    TenantContext,
-    get_organization_or_404,
-    get_user_organization_role,
-    get_user_organizations,
-    verify_organization_access,
-)
-from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
+from ..models import (Organization, OrganizationInvitation, OrganizationMember,
+                      OrganizationRole, Subscription, SubscriptionTier, User)
+from ..schemas import (OrganizationCreate, OrganizationInvitationCreate,
+                       OrganizationInvitationResponse,
+                       OrganizationMemberResponse, OrganizationResponse,
+                       OrganizationUpdate)
+from ..tenant_context import (TenantAwareQuery, TenantContext,
+                              get_organization_or_404,
+                              get_user_organization_role,
+                              get_user_organizations,
+                              verify_organization_access)
 
 router = APIRouter(prefix="/api/v1/organizations", tags=["Organizations"])
 
@@ -85,7 +71,7 @@ async def check_name_availability(
             "available": False,
             "message": f"The name '{name}' is already in use",
             "suggestions": suggestions,
-            "hint": "Names are case-insensitive"
+            "hint": "Names are case-insensitive",
         }
 
     return {"available": True, "message": "Name is available"}
@@ -119,7 +105,7 @@ async def check_slug_availability(
         return {
             "available": False,
             "message": f"The slug '{slug}' is already in use",
-            "suggestions": suggestions
+            "suggestions": suggestions,
         }
 
     return {"available": True, "message": "Slug is available"}

@@ -5,13 +5,13 @@ Implements exponential backoff for failed webhook operations
 
 import asyncio
 import logging
-from typing import Callable, TypeVar, Optional, Any
-from functools import wraps
 import random
+from functools import wraps
+from typing import Any, Callable, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class RetryConfig:
@@ -52,7 +52,7 @@ class RetryConfig:
             Delay in seconds
         """
         # Exponential backoff: delay = initial_delay * (base ^ attempt)
-        delay = self.initial_delay * (self.exponential_base ** attempt)
+        delay = self.initial_delay * (self.exponential_base**attempt)
 
         # Cap at max_delay
         delay = min(delay, self.max_delay)
@@ -94,6 +94,7 @@ class RetryableError(Exception):
     """
     Exception that indicates an operation should be retried
     """
+
     pass
 
 
@@ -101,6 +102,7 @@ class NonRetryableError(Exception):
     """
     Exception that indicates an operation should NOT be retried
     """
+
     pass
 
 
@@ -110,7 +112,7 @@ async def retry_async(
     config: Optional[RetryConfig] = None,
     retry_on: tuple = (Exception,),
     dont_retry_on: tuple = (NonRetryableError,),
-    **kwargs
+    **kwargs,
 ) -> Any:
     """
     Retry an async function with exponential backoff
@@ -149,17 +151,14 @@ async def retry_async(
 
             # Success! Log if we had previous failures
             if attempt > 0:
-                logger.info(
-                    f"{func.__name__} succeeded after {attempt + 1} attempts"
-                )
+                logger.info(f"{func.__name__} succeeded after {attempt + 1} attempts")
 
             return result
 
         except dont_retry_on as e:
             # Non-retryable error - fail immediately
             logger.error(
-                f"{func.__name__} failed with non-retryable error: {e}",
-                exc_info=True
+                f"{func.__name__} failed with non-retryable error: {e}", exc_info=True
             )
             raise
 
@@ -182,7 +181,7 @@ async def retry_async(
                 # Last attempt failed
                 logger.error(
                     f"{func.__name__} failed after {config.max_attempts} attempts: {e}",
-                    exc_info=True
+                    exc_info=True,
                 )
 
     # All retries exhausted
@@ -208,6 +207,7 @@ def with_retry(
             # This function will be retried on failure
             return await some_operation(data)
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -217,9 +217,11 @@ def with_retry(
                 config=config,
                 retry_on=retry_on,
                 dont_retry_on=dont_retry_on,
-                **kwargs
+                **kwargs,
             )
+
         return wrapper
+
     return decorator
 
 
@@ -275,14 +277,18 @@ class CircuitBreaker:
         """
         Decorator to apply circuit breaker
         """
+
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Check circuit state
             if self.state == "OPEN":
                 # Check if recovery timeout has passed
                 import time
+
                 if time.time() - self.last_failure_time >= self.recovery_timeout:
-                    logger.info(f"Circuit breaker for {func.__name__} entering HALF_OPEN state")
+                    logger.info(
+                        f"Circuit breaker for {func.__name__} entering HALF_OPEN state"
+                    )
                     self.state = "HALF_OPEN"
                 else:
                     # Still in open state - fail fast
@@ -297,7 +303,9 @@ class CircuitBreaker:
 
                 # Success! Reset circuit if it was half-open
                 if self.state == "HALF_OPEN":
-                    logger.info(f"Circuit breaker for {func.__name__} closing (recovered)")
+                    logger.info(
+                        f"Circuit breaker for {func.__name__} closing (recovered)"
+                    )
                     self.state = "CLOSED"
                     self.failure_count = 0
 
@@ -307,6 +315,7 @@ class CircuitBreaker:
                 # Operation failed
                 self.failure_count += 1
                 import time
+
                 self.last_failure_time = time.time()
 
                 logger.warning(

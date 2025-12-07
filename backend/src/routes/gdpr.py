@@ -12,15 +12,8 @@ from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import (
-    AuditLog,
-    CartMandate,
-    Expense,
-    IntentMandate,
-    Organization,
-    PaymentMandate,
-    User,
-)
+from ..models import (AuditLog, CartMandate, Expense, IntentMandate,
+                      Organization, PaymentMandate, User)
 
 router = APIRouter(prefix="/api/gdpr", tags=["gdpr"])
 

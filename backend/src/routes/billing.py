@@ -13,7 +13,7 @@ from ..auth import get_current_user
 from ..billing import SubscriptionService, UsageTracker, get_tier_limits
 from ..billing.limit_enforcer import LimitEnforcer
 from ..database import get_db
-from ..models import SubscriptionTier, User, OrganizationMember
+from ..models import OrganizationMember, SubscriptionTier, User
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 
@@ -369,7 +369,7 @@ def get_usage_summary(
         if not has_access:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have access to this organization"
+                detail="You do not have access to this organization",
             )
 
     if not membership:
@@ -380,11 +380,41 @@ def get_usage_summary(
             "tier_name": "Free",
             "is_free_tier": True,
             "usage": {
-                "expenses": {"current": 0, "limit": 20, "percentage": 0, "warning": False, "blocked": False},
-                "users": {"current": 0, "limit": 1, "percentage": 0, "warning": False, "blocked": False},
-                "ai_categorizations": {"current": 0, "limit": 0, "percentage": 0, "warning": True, "blocked": True},
-                "ocr_scans": {"current": 0, "limit": 5, "percentage": 0, "warning": False, "blocked": False},
-                "ap2_transactions": {"current": 0, "limit": 0, "percentage": 0, "warning": True, "blocked": True},
+                "expenses": {
+                    "current": 0,
+                    "limit": 20,
+                    "percentage": 0,
+                    "warning": False,
+                    "blocked": False,
+                },
+                "users": {
+                    "current": 0,
+                    "limit": 1,
+                    "percentage": 0,
+                    "warning": False,
+                    "blocked": False,
+                },
+                "ai_categorizations": {
+                    "current": 0,
+                    "limit": 0,
+                    "percentage": 0,
+                    "warning": True,
+                    "blocked": True,
+                },
+                "ocr_scans": {
+                    "current": 0,
+                    "limit": 5,
+                    "percentage": 0,
+                    "warning": False,
+                    "blocked": False,
+                },
+                "ap2_transactions": {
+                    "current": 0,
+                    "limit": 0,
+                    "percentage": 0,
+                    "warning": True,
+                    "blocked": True,
+                },
             },
             "features": {
                 "api_access": False,

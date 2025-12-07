@@ -13,7 +13,8 @@ from ..auth import AuthService, get_current_active_user
 from ..config import settings
 from ..database import get_db
 from ..models import User, UserRole
-from ..schemas import OAuth2AuthorizeRequest, OAuth2TokenRequest, OAuth2TokenResponse
+from ..schemas import (OAuth2AuthorizeRequest, OAuth2TokenRequest,
+                       OAuth2TokenResponse)
 
 router = APIRouter(prefix="/api/v1/oauth2", tags=["OAuth2"])
 

@@ -32,9 +32,15 @@ def validate_settings() -> None:
 
     # CORS must not allow localhost or wildcards in production/staging
     origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
-    insecure_origins = [o for o in origins if "localhost" in o or "127.0.0.1" in o or o == "*" or o == "0.0.0.0"]
+    insecure_origins = [
+        o
+        for o in origins
+        if "localhost" in o or "127.0.0.1" in o or o == "*" or o == "0.0.0.0"
+    ]
     if insecure_origins:
-        errors.append("CORS origins include development or wildcard entries; set CORS_ORIGINS to your production domains.")
+        errors.append(
+            "CORS origins include development or wildcard entries; set CORS_ORIGINS to your production domains."
+        )
 
     if errors:
         joined = "; ".join(errors)

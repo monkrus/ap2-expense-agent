@@ -1,25 +1,24 @@
 """Receipt upload and management routes"""
 
 import asyncio
+import logging
 import os
 import shutil
 import uuid
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi import (APIRouter, BackgroundTasks, Depends, File, HTTPException,
+                     UploadFile)
+from fastapi import status as http_status
 from sqlalchemy.orm import Session
 
-from fastapi import status as http_status
-
-import logging
-
 from ..auth import get_current_active_user
-from ..database import get_db
-from ..models import Expense, Receipt, User, OrganizationMember
-from ..services.receipt_ai_service import get_receipt_ai_service
 from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
 from ..billing.usage_tracker import UsageTracker
+from ..database import get_db
+from ..models import Expense, OrganizationMember, Receipt, User
+from ..services.receipt_ai_service import get_receipt_ai_service
 
 router = APIRouter(prefix="/api/v1/receipts", tags=["Receipts"])
 
@@ -143,7 +142,9 @@ async def batch_upload_receipts(
 ):
     """Upload multiple receipts and extract data using AI"""
 
-    logger.warning(f"[OCR DEBUG] batch-upload called with {len(files)} files for user {current_user.username}")
+    logger.warning(
+        f"[OCR DEBUG] batch-upload called with {len(files)} files for user {current_user.username}"
+    )
 
     if len(files) > 10:
         raise HTTPException(status_code=400, detail="Maximum 10 files per batch")
@@ -253,19 +254,25 @@ async def batch_upload_receipts(
                     result["extracted_data"] = extractions[idx]
 
         # Track OCR usage for successful extractions
-        logger.warning(f"[OCR DEBUG] membership={membership}, successful_files count={len(successful_files) if successful_files else 0}")
+        logger.warning(
+            f"[OCR DEBUG] membership={membership}, successful_files count={len(successful_files) if successful_files else 0}"
+        )
         if membership and successful_files:
-            logger.warning(f"[OCR DEBUG] Tracking {len(successful_files)} OCR scans for user {current_user.id}")
+            logger.warning(
+                f"[OCR DEBUG] Tracking {len(successful_files)} OCR scans for user {current_user.id}"
+            )
             tracker = UsageTracker(db)
             record = tracker.track_usage(
                 user_id=current_user.id,
                 usage_type="ocr_scan",
                 quantity=len(successful_files),
-                organization_id=membership.organization_id
+                organization_id=membership.organization_id,
             )
             logger.warning(f"[OCR DEBUG] Created UsageRecord: {record.id}")
         else:
-            logger.warning(f"[OCR DEBUG] NOT tracking - membership={membership is not None}, successful_files={len(successful_files) if successful_files else 0}")
+            logger.warning(
+                f"[OCR DEBUG] NOT tracking - membership={membership is not None}, successful_files={len(successful_files) if successful_files else 0}"
+            )
 
         return {"success": True, "total_files": len(files), "results": results}
 

@@ -8,8 +8,9 @@ Prevents data loss when webhook processing fails repeatedly.
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from sqlalchemy.orm import Session
+
 from sqlalchemy import and_, func
+from sqlalchemy.orm import Session
 
 from ..models_billing import MarketplaceWebhookEvent
 
@@ -111,9 +112,7 @@ class WebhookDLQ:
 
         return query.all()
 
-    def retry_failed_webhook(
-        self, event_id: str
-    ) -> tuple[bool, Optional[str]]:
+    def retry_failed_webhook(self, event_id: str) -> tuple[bool, Optional[str]]:
         """
         Retry a failed webhook from the DLQ
 
@@ -133,11 +132,9 @@ class WebhookDLQ:
 
         try:
             # Import handler dynamically to avoid circular imports
-            from ..routes.gcp_webhooks import (
-                handle_procurement_webhook,
-                handle_entitlement_update,
-                handle_entitlement_cancellation,
-            )
+            from ..routes.gcp_webhooks import (handle_entitlement_cancellation,
+                                               handle_entitlement_update,
+                                               handle_procurement_webhook)
 
             # Determine which handler to use
             handler_map = {

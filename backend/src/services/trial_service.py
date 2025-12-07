@@ -13,7 +13,8 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from ..models import Organization, OrganizationMember, User
-from ..models_billing import BillingEvent, BillingTier, OrganizationSubscription
+from ..models_billing import (BillingEvent, BillingTier,
+                              OrganizationSubscription)
 
 logger = logging.getLogger(__name__)
 

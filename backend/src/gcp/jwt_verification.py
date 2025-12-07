@@ -3,11 +3,12 @@ Google JWT Verification for GCP Marketplace Webhooks
 Verifies JWT tokens signed by Google for webhook security
 """
 
-import jwt
-import requests
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Optional
+
+import jwt
+import requests
 from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
@@ -71,8 +72,11 @@ class GoogleJWTVerifier:
         try:
             # Check for test mode (for local development only!)
             import os
+
             if os.getenv("GCP_JWT_TEST_MODE") == "true":
-                logger.warning("JWT_TEST_MODE enabled - skipping signature verification (DEVELOPMENT ONLY)")
+                logger.warning(
+                    "JWT_TEST_MODE enabled - skipping signature verification (DEVELOPMENT ONLY)"
+                )
                 # Decode without verification for testing
                 claims = jwt.decode(token, options={"verify_signature": False})
                 logger.info(f"Test token decoded: email={claims.get('email')}")
@@ -116,7 +120,7 @@ class GoogleJWTVerifier:
                 algorithms=["RS256"],
                 audience=audience,
                 issuer="https://accounts.google.com",
-                options=options
+                options=options,
             )
 
             logger.info(
@@ -124,7 +128,7 @@ class GoogleJWTVerifier:
                 extra={
                     "email": claims.get("email", "unknown"),
                     "sub": claims.get("sub"),
-                }
+                },
             )
 
             return claims

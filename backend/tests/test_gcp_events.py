@@ -3,7 +3,8 @@ import json
 
 import pytest
 
-from src.gcp.events import decode_pubsub_envelope, normalize_entitlement_event, EventParseError
+from src.gcp.events import (EventParseError, decode_pubsub_envelope,
+                            normalize_entitlement_event)
 
 
 def make_envelope(payload: dict) -> dict:
@@ -18,7 +19,13 @@ def test_decode_pubsub_envelope_roundtrip():
 
 
 def test_normalize_plan_change_by_fields():
-    payload = {"eventType": "ENTITLEMENT_PLAN_CHANGE", "entitlementId": "ent_1", "oldPlan": "starter", "newPlan": "pro", "effectiveTime": "2025-11-30T00:00:00Z"}
+    payload = {
+        "eventType": "ENTITLEMENT_PLAN_CHANGE",
+        "entitlementId": "ent_1",
+        "oldPlan": "starter",
+        "newPlan": "pro",
+        "effectiveTime": "2025-11-30T00:00:00Z",
+    }
     et, normalized = normalize_entitlement_event(payload)
     assert et == "entitlement_plan_change"
     assert normalized["entitlement_id"] == "ent_1"
@@ -27,7 +34,11 @@ def test_normalize_plan_change_by_fields():
 
 
 def test_normalize_cancel_by_state():
-    payload = {"eventType": "ENTITLEMENT_UPDATE", "entitlement": {"id": "ent_2", "state": "CANCELLED"}, "reason": "customer_requested"}
+    payload = {
+        "eventType": "ENTITLEMENT_UPDATE",
+        "entitlement": {"id": "ent_2", "state": "CANCELLED"},
+        "reason": "customer_requested",
+    }
     et, normalized = normalize_entitlement_event(payload)
     assert et == "entitlement_cancelled"
     assert normalized["entitlement_id"] == "ent_2"
@@ -35,7 +46,10 @@ def test_normalize_cancel_by_state():
 
 
 def test_normalize_created_active_state():
-    payload = {"type": "ENTITLEMENT_UPDATE", "entitlement": {"id": "ent_3", "state": "ACTIVE", "plan": "professional"}}
+    payload = {
+        "type": "ENTITLEMENT_UPDATE",
+        "entitlement": {"id": "ent_3", "state": "ACTIVE", "plan": "professional"},
+    }
     et, normalized = normalize_entitlement_event(payload)
     assert et == "entitlement_created"
     assert normalized["entitlement_id"] == "ent_3"

@@ -6,21 +6,15 @@ Enforces hard limits for Free tier and soft limits (with overage fees) for paid 
 - Paid tiers: SOFT LIMIT with overage fees (they have payment method)
 """
 
-from typing import Optional, Tuple
 from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from typing import Optional, Tuple
 
-from ..models import (
-    SubscriptionTier,
-    Subscription,
-    Organization,
-    OrganizationMember,
-    Expense,
-    User,
-    UsageRecord,
-)
-from .tier_limits import get_tier_limits, TierLimits
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from ..models import (Expense, Organization, OrganizationMember, Subscription,
+                      SubscriptionTier, UsageRecord, User)
+from .tier_limits import TierLimits, get_tier_limits
 
 
 class LimitExceededError(Exception):
@@ -151,7 +145,9 @@ class LimitEnforcer:
             .first()
         )
 
-    def check_user_limit(self, org_id: str, raise_error: bool = True) -> Tuple[bool, str]:
+    def check_user_limit(
+        self, org_id: str, raise_error: bool = True
+    ) -> Tuple[bool, str]:
         """
         Check if organization can add more users.
 
@@ -186,7 +182,9 @@ class LimitEnforcer:
 
         return True, f"Can add users ({current_members}/{max_users})"
 
-    def check_expense_limit(self, org_id: str, raise_error: bool = True) -> Tuple[bool, str]:
+    def check_expense_limit(
+        self, org_id: str, raise_error: bool = True
+    ) -> Tuple[bool, str]:
         """
         Check if organization can add more expenses this month.
 
@@ -211,7 +209,9 @@ class LimitEnforcer:
             return True, "Unlimited expenses allowed"
 
         if current_expenses >= max_expenses:
-            message = f"Monthly expense limit reached ({current_expenses}/{max_expenses})"
+            message = (
+                f"Monthly expense limit reached ({current_expenses}/{max_expenses})"
+            )
 
             if tier == SubscriptionTier.FREE and raise_error:
                 raise LimitExceededError(
@@ -292,7 +292,9 @@ class LimitEnforcer:
         current_ocr = usage.get("ocr_scans", 0)
 
         if current_ocr + count > max_ocr:
-            message = f"OCR scan limit would be exceeded ({current_ocr + count}/{max_ocr})"
+            message = (
+                f"OCR scan limit would be exceeded ({current_ocr + count}/{max_ocr})"
+            )
 
             if tier == SubscriptionTier.FREE and raise_error:
                 raise LimitExceededError(

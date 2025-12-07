@@ -6,27 +6,18 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from ..auth import AuthService, TOTPService, get_current_active_user, require_admin
+from ..auth import (AuthService, TOTPService, get_current_active_user,
+                    require_admin)
+from ..billing import SubscriptionService
 from ..database import get_db
 from ..email_service import EmailService
-from ..models import PasswordResetToken, User, UserRole, SubscriptionTier
+from ..models import PasswordResetToken, SubscriptionTier, User, UserRole
 from ..rate_limit import RateLimits, limiter
-from ..billing import SubscriptionService
-from ..schemas import (
-    LoginRequest,
-    LoginResponse,
-    PasswordChange,
-    PasswordResetConfirm,
-    PasswordResetRequest,
-    RefreshTokenRequest,
-    TokenResponse,
-    TOTPDisableRequest,
-    TOTPEnableRequest,
-    TOTPSetupResponse,
-    TOTPVerifyRequest,
-    UserCreate,
-    UserResponse,
-)
+from ..schemas import (LoginRequest, LoginResponse, PasswordChange,
+                       PasswordResetConfirm, PasswordResetRequest,
+                       RefreshTokenRequest, TokenResponse, TOTPDisableRequest,
+                       TOTPEnableRequest, TOTPSetupResponse, TOTPVerifyRequest,
+                       UserCreate, UserResponse)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
@@ -96,7 +87,7 @@ async def register(
         subscription_service.create_subscription(
             user_id=user.id,
             tier=SubscriptionTier.FREE,
-            trial_days=0  # No trial for Free tier
+            trial_days=0,  # No trial for Free tier
         )
     except Exception as e:
         # Log but don't fail registration if subscription creation fails

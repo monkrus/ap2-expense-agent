@@ -13,16 +13,9 @@ from sqlalchemy.orm import Session
 
 from src.auth import get_current_user
 from src.database import get_db
-from src.models import (
-    ExpenseCategory,
-    ExpenseNotification,
-    Organization,
-    OrganizationMember,
-    RecurringExpenseTemplate,
-    RecurringFrequency,
-    ScheduledExpense,
-    User,
-)
+from src.models import (ExpenseCategory, ExpenseNotification, Organization,
+                        OrganizationMember, RecurringExpenseTemplate,
+                        RecurringFrequency, ScheduledExpense, User)
 
 router = APIRouter(prefix="/api/recurring-expenses", tags=["recurring-expenses"])
 notification_router = APIRouter(prefix="/api/notifications", tags=["notifications"])

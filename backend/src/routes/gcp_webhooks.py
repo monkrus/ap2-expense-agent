@@ -11,15 +11,13 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..database import get_db
-from ..gcp import (
-    handle_entitlement_cancellation,
-    handle_entitlement_update,
-    handle_procurement_webhook,
-)
+from ..gcp import (handle_entitlement_cancellation, handle_entitlement_update,
+                   handle_procurement_webhook)
+from ..gcp.events import (EventParseError, decode_pubsub_envelope,
+                          normalize_entitlement_event)
+from ..gcp.idempotency import mark_success, record_event
 from ..gcp.marketplace_client import GCPMarketplaceClient
 from ..gcp.usage_reporter import run_hourly_usage_reporting
-from ..gcp.events import decode_pubsub_envelope, normalize_entitlement_event, EventParseError
-from ..gcp.idempotency import record_event, mark_success
 from ..services.trial_service import TrialService
 
 router = APIRouter(prefix="/api/webhooks/gcp", tags=["gcp-webhooks"])
@@ -66,7 +64,9 @@ def verify_gcp_signature(request_body: bytes, signature: Optional[str]) -> bool:
     return is_valid
 
 
-def verify_google_oidc_token(authorization: Optional[str], expected_audience: str) -> bool:
+def verify_google_oidc_token(
+    authorization: Optional[str], expected_audience: str
+) -> bool:
     """
     Verify Google-signed OIDC token (e.g., Pub/Sub push) in Authorization header.
 
@@ -83,8 +83,8 @@ def verify_google_oidc_token(authorization: Optional[str], expected_audience: st
 
         token = authorization.split(" ", 1)[1]
 
-        from google.oauth2 import id_token
         from google.auth.transport import requests as grequests
+        from google.oauth2 import id_token
 
         req = grequests.Request()
         claims = id_token.verify_oauth2_token(token, req, audience=expected_audience)
@@ -99,14 +99,19 @@ def verify_google_oidc_token(authorization: Optional[str], expected_audience: st
 
 
 def require_oidc_or_dev_hmac(
-    raw_body: bytes, x_signature: Optional[str], authorization: Optional[str], request_url: str
+    raw_body: bytes,
+    x_signature: Optional[str],
+    authorization: Optional[str],
+    request_url: str,
 ) -> None:
     """
     Enforce Google-signed OIDC for webhook callers; allow HMAC only in development.
     """
     audience = settings.gcp_webhook_audience or request_url
     oidc_ok = verify_google_oidc_token(authorization, audience)
-    hmac_ok = settings.environment == "development" and verify_gcp_signature(raw_body, x_signature)
+    hmac_ok = settings.environment == "development" and verify_gcp_signature(
+        raw_body, x_signature
+    )
 
     if settings.environment != "development" and not oidc_ok:
         raise HTTPException(
@@ -125,6 +130,7 @@ def require_oidc_or_dev_hmac(
 async def gcp_webhook_health():
     """Lightweight health endpoint for deployment verification."""
     from datetime import datetime
+
     return {
         "status": "healthy",
         "service": "gcp-marketplace-webhooks",
@@ -134,10 +140,7 @@ async def gcp_webhook_health():
 
 
 @router.post("/procurement-simple")
-async def handle_procurement_simple(
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def handle_procurement_simple(request: Request, db: Session = Depends(get_db)):
     """
     Simple GCP Marketplace webhook handler for testing
 
@@ -147,12 +150,14 @@ async def handle_procurement_simple(
     For production, use /procurement endpoint with full Consumer Procurement API.
     """
     import logging
-    from datetime import datetime
-    import uuid
     import secrets
     import string
+    import uuid
+    from datetime import datetime
+
     from ..gcp.jwt_verification import verify_gcp_jwt
-    from ..models import Organization, User, OrganizationMember, OrganizationRole, UserRole
+    from ..models import (Organization, OrganizationMember, OrganizationRole,
+                          User, UserRole)
     from ..models_billing import OrganizationSubscription
 
     logger = logging.getLogger(__name__)
@@ -173,7 +178,7 @@ async def handle_procurement_simple(
             extra={
                 "email": claims.get("email"),
                 "sub": claims.get("sub"),
-            }
+            },
         )
 
         # Step 3: Parse webhook body
@@ -190,7 +195,9 @@ async def handle_procurement_simple(
             account_id = entitlement_data.get("account")
             plan = entitlement_data.get("plan", "professional")
             user_email = entitlement_data.get("usageReportingId") or claims.get("email")
-            company_name = entitlement_data.get("metadata", {}).get("companyName", "New Organization")
+            company_name = entitlement_data.get("metadata", {}).get(
+                "companyName", "New Organization"
+            )
 
             if not entitlement_id or not user_email:
                 raise HTTPException(400, "Missing entitlement_id or user_email")
@@ -233,6 +240,7 @@ async def handle_procurement_simple(
             if not user:
                 # Create new user
                 from passlib.context import CryptContext
+
                 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
                 user = User(
@@ -280,7 +288,7 @@ async def handle_procurement_simple(
                     "organization_id": org_id,
                     "user_email": user_email,
                     "plan": plan,
-                }
+                },
             )
 
             return {
@@ -383,7 +391,9 @@ async def gcp_events_webhook(
     normalizes Consumer Procurement entitlement events and routes to handlers.
     """
     raw_body = await request.body()
-    require_oidc_or_dev_hmac(raw_body, x_goog_signature, authorization, str(request.url))
+    require_oidc_or_dev_hmac(
+        raw_body, x_goog_signature, authorization, str(request.url)
+    )
 
     # Parse JSON body
     try:
@@ -403,7 +413,8 @@ async def gcp_events_webhook(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid event payload: {e}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid event payload: {e}",
         )
 
     dedupe_key = message_id or f"{normalized.get('entitlement_id','')}|{event_type}"
@@ -436,6 +447,7 @@ async def gcp_events_webhook(
 
     mark_success(db, idempotency_row)
     return {"status": result.get("status", "ok"), "detail": result}
+
 
 @router.post("/entitlement-updated")
 async def gcp_entitlement_update_webhook(
@@ -472,9 +484,13 @@ async def gcp_entitlement_update_webhook(
 
     audience = settings.gcp_webhook_audience or str(request.url)
     oidc_ok = verify_google_oidc_token(authorization, audience)
-    hmac_ok = settings.environment == "development" and verify_gcp_signature(body, x_goog_signature)
+    hmac_ok = settings.environment == "development" and verify_gcp_signature(
+        body, x_goog_signature
+    )
     if not (oidc_ok or hmac_ok):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized webhook request"
+        )
 
     # Parse payload
     try:

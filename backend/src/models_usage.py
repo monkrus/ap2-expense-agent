@@ -3,18 +3,9 @@ Usage Tracking Models for GCP Marketplace Metering
 """
 
 from datetime import datetime
-from sqlalchemy import (
-    Boolean,
-    Column,
-    Date,
-    DateTime,
-    ForeignKey,
-    Integer,
-    Numeric,
-    String,
-    Text,
-    UniqueConstraint,
-)
+
+from sqlalchemy import (Boolean, Column, Date, DateTime, ForeignKey, Integer,
+                        Numeric, String, Text, UniqueConstraint)
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import relationship
 
@@ -38,7 +29,7 @@ class UsageEvent(Base):
         String(36),
         ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     event_type = Column(String(50), nullable=False, index=True)
     quantity = Column(Integer, nullable=False, default=1)
@@ -84,7 +75,7 @@ class BillingEvent(Base):
         String(36),
         ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     event_type = Column(String(50), nullable=False)  # 'usage_overage', 'credit', etc.
     amount = Column(Numeric(10, 2), nullable=False)  # Dollar amount
@@ -114,7 +105,9 @@ class BillingEvent(Base):
             "metadata": self.metadata,
             "occurred_at": self.occurred_at.isoformat() if self.occurred_at else None,
             "processed": self.processed,
-            "processed_at": self.processed_at.isoformat() if self.processed_at else None,
+            "processed_at": (
+                self.processed_at.isoformat() if self.processed_at else None
+            ),
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -134,19 +127,21 @@ class UsageReportingLog(Base):
         String(36),
         ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     report_date = Column(Date, nullable=False, index=True)
     usage_data = Column(JSON, nullable=False)  # What was reported
     reported_at = Column(DateTime, nullable=False)
-    status = Column(String(20), nullable=False, index=True)  # 'success', 'failed', 'pending'
+    status = Column(
+        String(20), nullable=False, index=True
+    )  # 'success', 'failed', 'pending'
     error_message = Column(Text, nullable=True)
     retry_count = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     # Ensure we don't report the same data twice
     __table_args__ = (
-        UniqueConstraint('organization_id', 'report_date', name='uq_usage_report'),
+        UniqueConstraint("organization_id", "report_date", name="uq_usage_report"),
     )
 
     # Relationship

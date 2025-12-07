@@ -153,10 +153,8 @@ class ApprovalPolicyService:
         ):
             # Check if expense would exceed budget
             from ..models import Budget
-            from ..routes.budgets import (
-                calculate_budget_spending,
-                get_budget_period_dates,
-            )
+            from ..routes.budgets import (calculate_budget_spending,
+                                          get_budget_period_dates)
 
             budgets = (
                 self.db.query(Budget)

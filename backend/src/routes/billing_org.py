@@ -74,11 +74,14 @@ def get_organization_subscription(
     cancel_at = None
     if subscription.stripe_subscription_id:
         try:
-            import stripe
             import os
 
+            import stripe
+
             stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-            stripe_sub = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
+            stripe_sub = stripe.Subscription.retrieve(
+                subscription.stripe_subscription_id
+            )
 
             # Check if subscription is scheduled to be canceled
             if stripe_sub.get("cancel_at"):

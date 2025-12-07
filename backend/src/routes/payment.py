@@ -17,7 +17,8 @@ from ..config import settings
 from ..database import get_db
 from ..integrations.stripe_integration import StripeIntegration
 from ..models import Organization, OrganizationMember, User
-from ..models_billing import BillingEvent, BillingTier, OrganizationSubscription
+from ..models_billing import (BillingEvent, BillingTier,
+                              OrganizationSubscription)
 from ..rate_limit import RateLimits, limiter
 
 logger = logging.getLogger(__name__)
@@ -321,15 +322,19 @@ async def create_checkout_session(
         if organization.stripe_subscription_id:
             try:
                 # Verify the subscription still exists and is active in Stripe
-                existing_sub = stripe.Subscription.retrieve(organization.stripe_subscription_id)
-                if existing_sub.status in ['active', 'trialing', 'past_due']:
+                existing_sub = stripe.Subscription.retrieve(
+                    organization.stripe_subscription_id
+                )
+                if existing_sub.status in ["active", "trialing", "past_due"]:
                     raise HTTPException(
                         status_code=400,
-                        detail=f"Organization already has an active subscription. Please cancel your current subscription before subscribing to a new plan, or use the billing portal to change your plan."
+                        detail=f"Organization already has an active subscription. Please cancel your current subscription before subscribing to a new plan, or use the billing portal to change your plan.",
                     )
             except stripe.error.InvalidRequestError:
                 # Subscription doesn't exist in Stripe anymore, safe to continue
-                logger.warning(f"Stripe subscription {organization.stripe_subscription_id} not found, allowing new checkout")
+                logger.warning(
+                    f"Stripe subscription {organization.stripe_subscription_id} not found, allowing new checkout"
+                )
                 pass
 
         # SAFEGUARD 2: Check for existing active subscription in database
@@ -337,14 +342,14 @@ async def create_checkout_session(
             db.query(OrganizationSubscription)
             .filter(
                 OrganizationSubscription.organization_id == organization.id,
-                OrganizationSubscription.status.in_(['active', 'trialing'])
+                OrganizationSubscription.status.in_(["active", "trialing"]),
             )
             .first()
         )
         if existing_db_sub:
             raise HTTPException(
                 status_code=400,
-                detail="Organization already has an active subscription. Please manage your subscription through the billing dashboard."
+                detail="Organization already has an active subscription. Please manage your subscription through the billing dashboard.",
             )
 
         # Get Stripe price ID based on tier and billing cycle
@@ -383,6 +388,7 @@ async def create_checkout_session(
         # Generate idempotency key based on org + tier + billing cycle
         # This ensures the same request can't create multiple checkout sessions
         import hashlib
+
         idempotency_data = f"{organization.id}:{tier_name}:{billing_cycle}:{datetime.utcnow().strftime('%Y-%m-%d-%H')}"
         idempotency_key = hashlib.sha256(idempotency_data.encode()).hexdigest()[:32]
 
@@ -392,12 +398,22 @@ async def create_checkout_session(
             mode="subscription",
             success_url=f"{frontend_url}/billing?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{frontend_url}/pricing",
-            metadata={"organization_id": organization.id, "tier_name": tier_name, "billing_cycle": billing_cycle},
+            metadata={
+                "organization_id": organization.id,
+                "tier_name": tier_name,
+                "billing_cycle": billing_cycle,
+            },
             idempotency_key=idempotency_key,
         )
-        logger.info(f"Created checkout session {session.id} with idempotency key {idempotency_key}")
+        logger.info(
+            f"Created checkout session {session.id} with idempotency key {idempotency_key}"
+        )
 
-        return {"session_id": session.id, "url": session.url, "billing_cycle": billing_cycle}
+        return {
+            "session_id": session.id,
+            "url": session.url,
+            "billing_cycle": billing_cycle,
+        }
 
     except stripe.StripeError as e:
         logger.error(f"Stripe error creating checkout session: {e}")
@@ -550,18 +566,20 @@ async def handle_checkout_completed(session, db: Session):
         billing_cycle = metadata.get("billing_cycle", "monthly")
 
         if not organization_id or not tier_name:
-            logger.error(f"Missing metadata in checkout session {session.id}: org_id={organization_id}, tier={tier_name}")
+            logger.error(
+                f"Missing metadata in checkout session {session.id}: org_id={organization_id}, tier={tier_name}"
+            )
             return
 
         # Find organization
         organization = (
-            db.query(Organization)
-            .filter(Organization.id == organization_id)
-            .first()
+            db.query(Organization).filter(Organization.id == organization_id).first()
         )
 
         if not organization:
-            logger.error(f"Organization {organization_id} not found for checkout session {session.id}")
+            logger.error(
+                f"Organization {organization_id} not found for checkout session {session.id}"
+            )
             return
 
         # Update organization with Stripe IDs
@@ -657,14 +675,18 @@ async def handle_checkout_completed(session, db: Session):
                 "stripe_subscription_id": session.subscription,
                 "is_trial": is_trial,
                 "trial_end": trial_end.isoformat() if trial_end else None,
-                "amount_total": session.amount_total / 100 if session.amount_total else 0,
+                "amount_total": (
+                    session.amount_total / 100 if session.amount_total else 0
+                ),
             },
             status="success",
         )
         db.add(event)
 
         db.commit()
-        logger.info(f"Successfully processed checkout for org {organization_id}: tier={tier_name}, status={org_sub.status}")
+        logger.info(
+            f"Successfully processed checkout for org {organization_id}: tier={tier_name}, status={org_sub.status}"
+        )
 
     except Exception as e:
         logger.error(f"Error handling checkout.session.completed: {e}", exc_info=True)

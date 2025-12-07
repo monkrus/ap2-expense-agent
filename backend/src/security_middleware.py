@@ -25,7 +25,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # HSTS (HTTP Strict Transport Security) - enabled in production
         if os.getenv("ENVIRONMENT") == "production":
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
 
         # Content Security Policy
         csp_directives = [

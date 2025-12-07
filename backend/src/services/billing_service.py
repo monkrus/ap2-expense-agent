@@ -15,12 +15,8 @@ from sqlalchemy.orm import Session
 
 from ..gcp.marketplace_client import GCPMarketplaceClient
 from ..models import Expense, Organization, User
-from ..models_billing import (
-    BillingEvent,
-    BillingTier,
-    OrganizationSubscription,
-    UsageMetric,
-)
+from ..models_billing import (BillingEvent, BillingTier,
+                              OrganizationSubscription, UsageMetric)
 
 logger = logging.getLogger(__name__)
 
