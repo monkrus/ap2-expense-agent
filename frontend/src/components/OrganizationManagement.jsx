@@ -199,13 +199,28 @@ const OrganizationManagement = () => {
       if (err.status === 402) {
         const errorData = err.data || {};
 
-        // Store tier info for upgrade prompt
+        //console.log("402 Error Data:", errorData); // Debug log
+       // console.log("Message field:", errorData.message); // Debug message field
+
+        // Extract just the message string, ensure it's not the entire object
+       // const messageText = typeof errorData.message === 'string'
+       //   ? errorData.message
+       //   : "You have reached your organization limit.You've reached your plan's limit of 1 organization. Upgrade to Starter ($29/month) to create up to 3 organizations";
+
+      const messageText =
+      typeof errorData.message === "string"
+       ? errorData.message
+       : "You have reached your plan's organization limit. Upgrade to create more organizations.";
+
+      console.log("Extracted message:", messageText); // Debug extracted message
+
+        // Store tier info for upgrade prompt with new backend format
         setUpgradeTierInfo({
-          currentTier: errorData.current_tier || "free",
+          currentTier: errorData.current_tier || "Free",
           currentLimit: errorData.current_limit || 1,
           currentCount: errorData.current_count || 1,
-          message:
-            errorData.message || "You have reached your organization limit.",
+          message: messageText,
+          upgradeOptions: errorData.upgrade_options || null,
         });
 
         // Close create modal
@@ -213,6 +228,7 @@ const OrganizationManagement = () => {
 
         // Show upgrade prompt modal
         setShowUpgradePrompt(true);
+        return
       }
       // Handle validation errors with suggestions (400 Bad Request)
       else if (err.status === 400 && err.data) {
@@ -1491,7 +1507,9 @@ const OrganizationManagement = () => {
           upgradeTierInfo?.message ||
           "Upgrade to create more organizations and unlock additional features."
         }
-        recommendedPlan="Starter"
+        recommendedPlan={
+          upgradeTierInfo?.upgradeOptions?.next_tier || "Starter"
+        }
       />
     </div>
   );

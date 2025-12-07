@@ -140,6 +140,23 @@ async def create_organization(
 ):
     """Create a new organization"""
 
+    # Clean up any soft-deleted organizations with the same slug
+    # This prevents UNIQUE constraint violations while allowing slug reuse
+    soft_deleted_with_slug = (
+        db.query(Organization)
+        .filter(Organization.slug == org_data.slug)
+        .filter(Organization.is_active == False)
+        .all()
+    )
+    if soft_deleted_with_slug:
+        logger.info(
+            f"Hard-deleting {len(soft_deleted_with_slug)} soft-deleted "
+            f"organization(s) with slug '{org_data.slug}' to free up the slug"
+        )
+        for org in soft_deleted_with_slug:
+            db.delete(org)
+        db.flush()  # Ensure deletions are committed before checking active orgs
+
     # Check if slug is already taken (only check ACTIVE organizations)
     existing_slug = (
         db.query(Organization)
@@ -226,15 +243,53 @@ async def create_organization(
                 f"Organization limit reached: user={current_user.username}, "
                 f"count={owned_orgs_count}, limit={tier_limits.max_organizations}"
             )
+
+            # Get next tier suggestion based on current tier
+            upgrade_suggestions = {
+                SubscriptionTier.FREE: {
+                    "next_tier": "Starter",
+                    "next_tier_orgs": 3,
+                    "price": "$29/month",
+                },
+                SubscriptionTier.STARTER: {
+                    "next_tier": "Pro",
+                    "next_tier_orgs": 10,
+                    "price": "$99/month",
+                },
+                SubscriptionTier.PROFESSIONAL: {
+                    "next_tier": "Enterprise",
+                    "next_tier_orgs": 25,
+                    "price": "$399/month",
+                },
+            }
+
+            suggestion = upgrade_suggestions.get(user_tier)
+
+            # Build user-friendly message
+            if suggestion:
+                friendly_message = (
+                    f"You've reached your plan's limit of {tier_limits.max_organizations} "
+                    f"organization{'s' if tier_limits.max_organizations != 1 else ''}. "
+                    f"Upgrade to {suggestion['next_tier']} ({suggestion['price']}) "
+                    f"to create up to {suggestion['next_tier_orgs']} organizations."
+                )
+            else:
+                # Enterprise users hitting limit
+                friendly_message = (
+                    f"You've reached your plan's limit of {tier_limits.max_organizations} organizations. "
+                    f"Please contact support for custom enterprise solutions."
+                )
+
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail={
-                    "error": "Organization limit reached",
-                    "message": f"You have reached the maximum of {tier_limits.max_organizations} organization(s) for your {tier_limits.name} plan.",
+                    "error": "organization_limit_reached",
+                    "message": friendly_message,
                     "upgrade_required": True,
-                    "current_tier": user_tier.value,
+                    "current_tier": tier_limits.name,
                     "current_limit": tier_limits.max_organizations,
                     "current_count": owned_orgs_count,
+                    "upgrade_options": suggestion if suggestion else None,
                 },
             )
 
