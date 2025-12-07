@@ -30,8 +30,8 @@ from .routes.gcp_webhooks import router as gcp_webhooks_router
 from .routes.notifications import router as notifications_router
 from .routes.organizations import router as organizations_router
 from .routes.payment import (
-    router as payment_router,
-)  # Payment endpoints - reload trigger
+    router as payment_router,  # Payment endpoints - reload trigger
+)
 from .routes.receipts import router as receipts_router
 from .routes.webhooks import router as webhooks_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
