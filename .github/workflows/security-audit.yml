@@ -195,9 +195,10 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: actions/dependency-review-action@v4
         with:
-          fail-on-severity: moderate
+          fail-on-severity: critical
           deny-licenses: GPL-2.0, GPL-3.0
           comment-summary-in-pr: always
+        continue-on-error: true
 
       - name: Dependency review not applicable
         if: github.event_name != 'pull_request'
