@@ -14,10 +14,13 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..email_service import EmailService
-from ..models import (Organization, OrganizationMember, OrganizationRole, User,
-                      UserRole)
-from ..models_billing import (BillingEvent, MarketplaceAccount,
-                              MarketplaceEntitlement, OrganizationSubscription)
+from ..models import Organization, OrganizationMember, OrganizationRole, User, UserRole
+from ..models_billing import (
+    BillingEvent,
+    MarketplaceAccount,
+    MarketplaceEntitlement,
+    OrganizationSubscription,
+)
 from .idempotency import mark_failure, mark_success, record_event
 
 

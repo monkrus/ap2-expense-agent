@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
-import { CreditCard, Lock, AlertCircle } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
+import React, { useState } from "react";
+import { CreditCard, Lock, AlertCircle } from "lucide-react";
+import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
   CardElement,
   useStripe,
-  useElements
-} from '@stripe/react-stripe-js';
-import { useToast } from '../hooks/useToast';
-import paymentAPI from '../services/paymentAPI';
+  useElements,
+} from "@stripe/react-stripe-js";
+import { useToast } from "../hooks/useToast";
+import paymentAPI from "../services/paymentAPI";
 
 // Load Stripe publishable key from environment
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder",
+);
 
 /**
  * Card Input Component
@@ -48,7 +50,7 @@ const CardInputForm = ({ onSuccess, tierName, isLoading: parentLoading }) => {
           payment_method: {
             card: elements.getElement(CardElement),
           },
-        }
+        },
       );
 
       if (stripeError) {
@@ -60,15 +62,15 @@ const CardInputForm = ({ onSuccess, tierName, isLoading: parentLoading }) => {
 
       // Create subscription with payment method
       await paymentAPI.createSubscription(tierName, setupIntent.payment_method);
-      success('Payment method added and subscription created!');
+      success("Payment method added and subscription created!");
 
       if (onSuccess) {
         onSuccess();
       }
     } catch (err) {
-      console.error('Payment error:', err);
-      setCardError(err.response?.data?.detail || 'Failed to process payment');
-      showError(err.response?.data?.detail || 'Failed to process payment');
+      console.error("Payment error:", err);
+      setCardError(err.response?.data?.detail || "Failed to process payment");
+      showError(err.response?.data?.detail || "Failed to process payment");
     } finally {
       setLoading(false);
     }
@@ -77,15 +79,15 @@ const CardInputForm = ({ onSuccess, tierName, isLoading: parentLoading }) => {
   const cardStyle = {
     style: {
       base: {
-        fontSize: '16px',
-        color: '#1f2937',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        '::placeholder': {
-          color: '#9ca3af',
+        fontSize: "16px",
+        color: "#1f2937",
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        "::placeholder": {
+          color: "#9ca3af",
         },
       },
       invalid: {
-        color: '#ef4444',
+        color: "#ef4444",
       },
     },
   };

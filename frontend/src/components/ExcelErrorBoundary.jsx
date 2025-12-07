@@ -1,6 +1,6 @@
-import React from 'react';
-import { AlertTriangle } from 'lucide-react';
-import { logSecurityEvent } from '../utils/excelSecurity';
+import React from "react";
+import { AlertTriangle } from "lucide-react";
+import { logSecurityEvent } from "../utils/excelSecurity";
 
 /**
  * Error Boundary for Excel/File Operations
@@ -29,18 +29,18 @@ class ExcelErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     // Log error details
-    console.error('Excel Error Boundary caught error:', error, errorInfo);
+    console.error("Excel Error Boundary caught error:", error, errorInfo);
 
     // Log security event
-    logSecurityEvent('excel_error_boundary_triggered', {
-      error: error?.message || 'Unknown error',
+    logSecurityEvent("excel_error_boundary_triggered", {
+      error: error?.message || "Unknown error",
       errorStack: error?.stack,
       componentStack: errorInfo?.componentStack,
       errorCount: this.state.errorCount + 1,
     });
 
     // Update state with error info
-    this.setState(prevState => ({
+    this.setState((prevState) => ({
       errorInfo: errorInfo,
       errorCount: prevState.errorCount + 1,
     }));
@@ -82,9 +82,7 @@ class ExcelErrorBoundary extends React.Component {
               <div className="p-3 bg-red-100 rounded-full">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
               </div>
-              <h2 className="text-xl font-bold text-gray-800">
-                Export Error
-              </h2>
+              <h2 className="text-xl font-bold text-gray-800">Export Error</h2>
             </div>
 
             <div className="mb-6">
@@ -98,7 +96,7 @@ class ExcelErrorBoundary extends React.Component {
                     Error Details:
                   </p>
                   <p className="text-sm text-red-700 font-mono break-words">
-                    {this.state.error.message || 'Unknown error'}
+                    {this.state.error.message || "Unknown error"}
                   </p>
                 </div>
               )}
@@ -136,7 +134,7 @@ class ExcelErrorBoundary extends React.Component {
               )}
             </div>
 
-            {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
+            {process.env.NODE_ENV === "development" && this.state.errorInfo && (
               <details className="mt-4">
                 <summary className="text-sm text-gray-600 cursor-pointer hover:text-gray-800">
                   Developer Info (Dev Only)

@@ -1,9 +1,9 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1";
 
 class APIError extends Error {
   constructor(message, status, data, errorCode = null) {
     super(message);
-    this.name = 'APIError';
+    this.name = "APIError";
     this.status = status;
     this.data = data;
     this.errorCode = errorCode;
@@ -18,49 +18,49 @@ class APIError extends Error {
   getUserMessage() {
     // Use specific error messages for common scenarios
     if (this.status === 401) {
-      return 'Your session has expired. Please log in again.';
+      return "Your session has expired. Please log in again.";
     }
     if (this.status === 403) {
-      return 'You do not have permission to perform this action.';
+      return "You do not have permission to perform this action.";
     }
     if (this.status === 404) {
-      return 'The requested resource was not found.';
+      return "The requested resource was not found.";
     }
     if (this.status === 409) {
-      return 'This resource already exists or conflicts with an existing resource.';
+      return "This resource already exists or conflicts with an existing resource.";
     }
     if (this.status === 422) {
-      return 'Please check your input and try again.';
+      return "Please check your input and try again.";
     }
     if (this.status === 429) {
-      return 'Too many requests. Please slow down and try again.';
+      return "Too many requests. Please slow down and try again.";
     }
     if (this.status >= 500) {
-      return 'A server error occurred. Please try again later.';
+      return "A server error occurred. Please try again later.";
     }
     if (this.status === 0) {
-      return 'Network error. Please check your internet connection.';
+      return "Network error. Please check your internet connection.";
     }
 
     // Return the actual error message if available
-    return this.message || 'An error occurred. Please try again.';
+    return this.message || "An error occurred. Please try again.";
   }
 }
 
 const getAuthToken = () => {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem("access_token");
   return token;
 };
 
 const handleResponse = async (response) => {
-  const contentType = response.headers.get('content-type');
-  const isJson = contentType && contentType.includes('application/json');
+  const contentType = response.headers.get("content-type");
+  const isJson = contentType && contentType.includes("application/json");
 
   const data = isJson ? await response.json() : await response.text();
 
   if (!response.ok) {
     // Handle new error format from backend
-    let errorMessage = 'Request failed';
+    let errorMessage = "Request failed";
     let errorCode = null;
 
     if (isJson && data.error) {
@@ -75,40 +75,54 @@ const handleResponse = async (response) => {
     // Handle authentication errors (401)
     if (response.status === 401) {
       // Clear auth data
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("user");
 
       // Reload page to force re-authentication
       setTimeout(() => {
-        window.location.href = '/login';
+        window.location.href = "/login";
       }, 100);
 
       // Throw a special error with a user-friendly message
-      throw new APIError('Your session has expired. Please log in again.', response.status, data, errorCode);
+      throw new APIError(
+        "Your session has expired. Please log in again.",
+        response.status,
+        data,
+        errorCode,
+      );
     }
 
     // Check if user account is suspended/inactive (403 with specific message)
-    if (response.status === 403 && (
-      errorMessage === 'User account is inactive' ||
-      errorMessage === 'Your account has been suspended. Please contact your administrator.' ||
-      errorMessage === 'Inactive user'
-    )) {
+    if (
+      response.status === 403 &&
+      (errorMessage === "User account is inactive" ||
+        errorMessage ===
+          "Your account has been suspended. Please contact your administrator." ||
+        errorMessage === "Inactive user")
+    ) {
       // Clear auth data
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("user");
 
       // Show alert to user
-      alert('Your account has been suspended. Please contact your administrator.');
+      alert(
+        "Your account has been suspended. Please contact your administrator.",
+      );
 
       // Redirect to login page
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = "/";
       }, 100);
 
       // Throw a special error with a user-friendly message
-      throw new APIError('Your account has been suspended. Please contact your administrator.', response.status, data, errorCode);
+      throw new APIError(
+        "Your account has been suspended. Please contact your administrator.",
+        response.status,
+        data,
+        errorCode,
+      );
     }
 
     throw new APIError(errorMessage, response.status, data, errorCode);
@@ -117,19 +131,19 @@ const handleResponse = async (response) => {
   return data;
 };
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const request = async (endpoint, options = {}) => {
   const { retries = 0, retryDelay = 1000, ...fetchOptions } = options;
   const token = getAuthToken();
 
   const headers = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...fetchOptions.headers,
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const config = {
@@ -158,7 +172,9 @@ const request = async (endpoint, options = {}) => {
       if (attempt < retries) {
         // Exponential backoff
         const delay = retryDelay * Math.pow(2, attempt);
-        console.log(`Request failed, retrying in ${delay}ms... (Attempt ${attempt + 1}/${retries + 1})`);
+        console.log(
+          `Request failed, retrying in ${delay}ms... (Attempt ${attempt + 1}/${retries + 1})`,
+        );
         await sleep(delay);
       }
     }
@@ -168,15 +184,15 @@ const request = async (endpoint, options = {}) => {
   if (lastError instanceof APIError) {
     throw lastError;
   }
-  throw new APIError('Network error. Please check your connection.', 0, null);
+  throw new APIError("Network error. Please check your connection.", 0, null);
 };
 
 // Expense API
 export const expenseAPI = {
   // Submit a new expense
   submitExpense: async (expenseData) => {
-    return request('/expenses', {
-      method: 'POST',
+    return request("/expenses", {
+      method: "POST",
       body: JSON.stringify({
         user_id: expenseData.user_id,
         amount: parseFloat(expenseData.amount),
@@ -190,8 +206,8 @@ export const expenseAPI = {
 
   // Approve an expense
   approveExpense: async (expenseId, approverId) => {
-    return request('/expenses/approve', {
-      method: 'POST',
+    return request("/expenses/approve", {
+      method: "POST",
       body: JSON.stringify({
         expense_id: expenseId,
         approver_id: approverId,
@@ -201,8 +217,8 @@ export const expenseAPI = {
 
   // Reject an expense
   rejectExpense: async (expenseId, approverId, rejectionReason = null) => {
-    return request('/expenses/reject', {
-      method: 'POST',
+    return request("/expenses/reject", {
+      method: "POST",
       body: JSON.stringify({
         expense_id: expenseId,
         approver_id: approverId,
@@ -213,10 +229,10 @@ export const expenseAPI = {
 
   // Update an expense (employee only, pending expenses)
   updateExpense: async (expenseId, expenseData) => {
-    console.log('Updating expense:', expenseId, expenseData); // Debug log
-    
+    console.log("Updating expense:", expenseId, expenseData); // Debug log
+
     return request(`/expenses/${expenseId}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify({
         user_id: expenseData.user_id, // Backend requires user_id
         amount: parseFloat(expenseData.amount),
@@ -230,79 +246,79 @@ export const expenseAPI = {
   // Withdraw an expense (employee only, pending expenses)
   withdrawExpense: async (expenseId) => {
     return request(`/expenses/${expenseId}/withdraw`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   },
 
   // Get expense report
   getExpenseReport: async (userId = null) => {
-    const queryParam = userId ? `?user_id=${userId}` : '';
+    const queryParam = userId ? `?user_id=${userId}` : "";
     return request(`/expenses/report${queryParam}`, {
-      method: 'GET',
+      method: "GET",
     });
   },
 
   // Get all pending expenses (admin only)
   getAllPendingExpenses: async () => {
-    return request('/expenses/all-pending', {
-      method: 'GET',
+    return request("/expenses/all-pending", {
+      method: "GET",
     });
   },
 
   // Get all expenses with optional status filter (admin only)
   getAllExpenses: async (status = null) => {
-    const queryParam = status ? `?status=${status}` : '';
+    const queryParam = status ? `?status=${status}` : "";
     return request(`/admin/expenses${queryParam}`, {
-      method: 'GET',
+      method: "GET",
     });
   },
 
   // Get audit trail
   getAuditTrail: async (transactionId) => {
     return request(`/audit/${transactionId}`, {
-      method: 'GET',
+      method: "GET",
     });
   },
 
   // Clear all expense history (admin only) - DEPRECATED
   clearExpenseHistory: async () => {
-    return request('/admin/expenses/clear', {
-      method: 'DELETE',
+    return request("/admin/expenses/clear", {
+      method: "DELETE",
     });
   },
 
   // Archive all non-pending expenses (admin only)
   archiveAllExpenses: async () => {
-    return request('/admin/expenses/archive-all', {
-      method: 'POST',
+    return request("/admin/expenses/archive-all", {
+      method: "POST",
     });
   },
 
   // Archive a single expense (admin only)
   archiveExpense: async (expenseId) => {
     return request(`/admin/expenses/${expenseId}/archive`, {
-      method: 'POST',
+      method: "POST",
     });
   },
 
   // Unarchive a single expense (admin only)
   unarchiveExpense: async (expenseId) => {
     return request(`/admin/expenses/${expenseId}/unarchive`, {
-      method: 'POST',
+      method: "POST",
     });
   },
 
   // Unarchive all archived expenses (admin only)
   unarchiveAllExpenses: async () => {
-    return request('/admin/expenses/unarchive-all', {
-      method: 'POST',
+    return request("/admin/expenses/unarchive-all", {
+      method: "POST",
     });
   },
 
   // Get archived expenses (admin only)
   getArchivedExpenses: async () => {
-    return request('/admin/expenses/archived', {
-      method: 'GET',
+    return request("/admin/expenses/archived", {
+      method: "GET",
     });
   },
 };
@@ -320,25 +336,25 @@ export const chatAPI = {
 export const authAPI = {
   login: async (email, password) => {
     const formData = new FormData();
-    formData.append('username', email);
-    formData.append('password', password);
+    formData.append("username", email);
+    formData.append("password", password);
 
-    return fetch('/api/auth/login', {
-      method: 'POST',
+    return fetch("/api/auth/login", {
+      method: "POST",
       body: formData,
     }).then(handleResponse);
   },
 
   register: async (userData) => {
-    return request('/users/register', {
-      method: 'POST',
+    return request("/users/register", {
+      method: "POST",
       body: JSON.stringify(userData),
     });
   },
 
   getCurrentUser: async () => {
-    return request('/auth/me', {
-      method: 'GET',
+    return request("/auth/me", {
+      method: "GET",
     });
   },
 };

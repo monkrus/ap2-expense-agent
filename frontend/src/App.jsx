@@ -1,12 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Send, DollarSign, CheckCircle, XCircle, Clock, Receipt, TrendingUp, Users, Shield, Zap, Key } from 'lucide-react';
-import { expenseAPI, APIError } from './services/api';
-import { useToast } from './hooks/useToast';
-import { ToastContainer } from './components/Toast';
-import { useAuth } from './contexts/AuthContext';
-import ChangePassword from './components/ChangePassword';
-import EmployeeDashboard from './components/EmployeeDashboard';
-import AdminDashboard from './components/AdminDashboard';
+import React, { useState, useEffect } from "react";
+import {
+  Send,
+  DollarSign,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Receipt,
+  TrendingUp,
+  Users,
+  Shield,
+  Zap,
+  Key,
+} from "lucide-react";
+import { expenseAPI, APIError } from "./services/api";
+import { useToast } from "./hooks/useToast";
+import { ToastContainer } from "./components/Toast";
+import { useAuth } from "./contexts/AuthContext";
+import ChangePassword from "./components/ChangePassword";
+import EmployeeDashboard from "./components/EmployeeDashboard";
+import AdminDashboard from "./components/AdminDashboard";
 
 const ExpenseManagementAgent = () => {
   const { user } = useAuth();
@@ -14,7 +26,11 @@ const ExpenseManagementAgent = () => {
 
   // Route to correct dashboard based on user role
   if (user) {
-    if (user.role === 'admin' || user.role === 'manager' || user.role === 'accountant') {
+    if (
+      user.role === "admin" ||
+      user.role === "manager" ||
+      user.role === "accountant"
+    ) {
       return (
         <>
           <ToastContainer toasts={toasts} onClose={removeToast} />
@@ -32,20 +48,24 @@ const ExpenseManagementAgent = () => {
   }
 
   // Legacy dashboard code below (kept for fallback)
-  const legacyUser = { role: 'legacy' };
+  const legacyUser = { role: "legacy" };
 
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello! I\'m your AI Expense Management Agent. I can help you submit, review, and approve business expenses automatically. Use the quick action buttons below or type your request.' }
+    {
+      role: "assistant",
+      content:
+        "Hello! I'm your AI Expense Management Agent. I can help you submit, review, and approve business expenses automatically. Use the quick action buttons below or type your request.",
+    },
   ]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [expenses, setExpenses] = useState([]);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [newExpense, setNewExpense] = useState({
-    amount: '',
-    category: 'Travel',
-    vendor: '',
-    description: ''
+    amount: "",
+    category: "Travel",
+    vendor: "",
+    description: "",
   });
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [fetchingReport, setFetchingReport] = useState(true);
@@ -61,11 +81,11 @@ const ExpenseManagementAgent = () => {
           setExpenses(report.expenses);
         }
       } catch (err) {
-        console.error('Error fetching expenses:', err);
+        console.error("Error fetching expenses:", err);
         if (err instanceof APIError && err.status === 401) {
-          showError('Session expired. Please login again.');
+          showError("Session expired. Please login again.");
         } else {
-          showError('Failed to load expenses. Using offline mode.');
+          showError("Failed to load expenses. Using offline mode.");
         }
       } finally {
         setFetchingReport(false);
@@ -81,18 +101,22 @@ const ExpenseManagementAgent = () => {
     setPaymentProcessing(true);
 
     try {
-      const result = await expenseAPI.approveExpense(expense.id, user?.id || 'current_user');
+      const result = await expenseAPI.approveExpense(
+        expense.id,
+        user?.id || "current_user",
+      );
 
       setPaymentProcessing(false);
 
       return {
         success: true,
-        transactionId: result.result?.mandates?.payment?.id || `payment_${Date.now()}`,
+        transactionId:
+          result.result?.mandates?.payment?.id || `payment_${Date.now()}`,
         mandates: result.result?.mandates || {
           intent: { id: `intent_${Date.now()}` },
           cart: { id: `cart_${Date.now()}` },
-          payment: { id: `payment_${Date.now()}` }
-        }
+          payment: { id: `payment_${Date.now()}` },
+        },
       };
     } catch (err) {
       setPaymentProcessing(false);
@@ -103,152 +127,212 @@ const ExpenseManagementAgent = () => {
   const handleSubmit = async () => {
     if (!input.trim()) return;
 
-    const userMessage = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]);
+    const userMessage = { role: "user", content: input };
+    setMessages((prev) => [...prev, userMessage]);
     const currentInput = input;
-    setInput('');
+    setInput("");
     setLoading(true);
 
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-    let response = '';
+    let response = "";
     const lowerInput = currentInput.toLowerCase();
 
-    if (lowerInput.includes('submit') || lowerInput.includes('new expense')) {
-      response = 'I will help you submit a new expense. Please fill out the form below with the expense details.';
+    if (lowerInput.includes("submit") || lowerInput.includes("new expense")) {
+      response =
+        "I will help you submit a new expense. Please fill out the form below with the expense details.";
       setShowExpenseForm(true);
-    } else if (lowerInput.includes('review') || lowerInput.includes('pending')) {
-      const pendingExpenses = expenses.filter(e => e.status === 'pending');
+    } else if (
+      lowerInput.includes("review") ||
+      lowerInput.includes("pending")
+    ) {
+      const pendingExpenses = expenses.filter((e) => e.status === "pending");
       response = `You have ${pendingExpenses.length} pending expenses totaling $${pendingExpenses.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}. Click "Approve" on any expense card or use the quick action button to process them via AP2.`;
-    } else if (lowerInput.includes('approve') || lowerInput.includes('process')) {
-      const expenseToApprove = expenses.find(e => e.status === 'pending');
+    } else if (
+      lowerInput.includes("approve") ||
+      lowerInput.includes("process")
+    ) {
+      const expenseToApprove = expenses.find((e) => e.status === "pending");
       if (expenseToApprove) {
         response = `Processing ${expenseToApprove.id} for $${expenseToApprove.amount} using AP2 protocol with cryptographic mandates...`;
-        setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: response },
+        ]);
 
         try {
           const result = await processAP2Payment(expenseToApprove);
 
           if (result.success) {
             // Optimistic update
-            setExpenses(prev => prev.map(e =>
-              e.id === expenseToApprove.id
-                ? { ...e, status: 'approved', transaction_id: result.transactionId }
-                : e
-            ));
+            setExpenses((prev) =>
+              prev.map((e) =>
+                e.id === expenseToApprove.id
+                  ? {
+                      ...e,
+                      status: "approved",
+                      transaction_id: result.transactionId,
+                    }
+                  : e,
+              ),
+            );
 
             response = `Payment completed successfully!\n\nTransaction ID: ${result.transactionId}\n\nAP2 Verification:\n• Intent Mandate: ${result.mandates.intent.id}\n• Cart Mandate: ${result.mandates.cart.id}\n• Payment Mandate: ${result.mandates.payment.id}\n\nFull cryptographic audit trail available for compliance.`;
-            success('Payment processed successfully!');
+            success("Payment processed successfully!");
           }
         } catch (err) {
-          const errorMsg = err instanceof APIError ? err.message : 'Failed to process payment';
+          const errorMsg =
+            err instanceof APIError ? err.message : "Failed to process payment";
           response = `Error: ${errorMsg}`;
           showError(errorMsg);
         }
       } else {
-        response = 'No pending expenses to process at the moment.';
+        response = "No pending expenses to process at the moment.";
       }
-    } else if (lowerInput.includes('analytics') || lowerInput.includes('report')) {
+    } else if (
+      lowerInput.includes("analytics") ||
+      lowerInput.includes("report")
+    ) {
       const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-      const approved = expenses.filter(e => e.status === 'approved').length;
-      response = `Expense Analytics:\n\n• Total Expenses: $${total.toFixed(2)}\n• Approved: ${approved}\n• Pending: ${expenses.length - approved}\n• Average: $${(total / expenses.length).toFixed(2)}\n\nTop Category: ${expenses[0]?.category || 'N/A'}`;
+      const approved = expenses.filter((e) => e.status === "approved").length;
+      response = `Expense Analytics:\n\n• Total Expenses: $${total.toFixed(2)}\n• Approved: ${approved}\n• Pending: ${expenses.length - approved}\n• Average: $${(total / expenses.length).toFixed(2)}\n\nTop Category: ${expenses[0]?.category || "N/A"}`;
     } else {
-      response = 'I can help you with:\n\n• Submit new expenses\n• Review pending expenses\n• Approve and process payments via AP2\n• Generate expense reports\n• View analytics\n\nUse the quick action buttons below for common tasks!';
+      response =
+        "I can help you with:\n\n• Submit new expenses\n• Review pending expenses\n• Approve and process payments via AP2\n• Generate expense reports\n• View analytics\n\nUse the quick action buttons below for common tasks!";
     }
 
-    setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+    setMessages((prev) => [...prev, { role: "assistant", content: response }]);
     setLoading(false);
   };
 
   const handleQuickAction = (action) => {
     // Don't rely on state update - directly submit with the action
-    const userMessage = { role: 'user', content: action };
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
+    const userMessage = { role: "user", content: action };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
     setLoading(true);
 
     // Process the action immediately
     setTimeout(async () => {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      let response = '';
+      let response = "";
       const lowerInput = action.toLowerCase();
 
-      if (lowerInput.includes('submit') || lowerInput.includes('new expense')) {
-        response = 'I will help you submit a new expense. Please fill out the form below with the expense details.';
+      if (lowerInput.includes("submit") || lowerInput.includes("new expense")) {
+        response =
+          "I will help you submit a new expense. Please fill out the form below with the expense details.";
         setShowExpenseForm(true);
-      } else if (lowerInput.includes('review') || lowerInput.includes('pending')) {
-        const pendingExpenses = expenses.filter(e => e.status === 'pending');
+      } else if (
+        lowerInput.includes("review") ||
+        lowerInput.includes("pending")
+      ) {
+        const pendingExpenses = expenses.filter((e) => e.status === "pending");
         response = `You have ${pendingExpenses.length} pending expenses totaling $${pendingExpenses.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}. Click "Approve" on any expense card or use the quick action button to process them via AP2.`;
-      } else if (lowerInput.includes('approve') || lowerInput.includes('process')) {
-        const expenseToApprove = expenses.find(e => e.status === 'pending');
+      } else if (
+        lowerInput.includes("approve") ||
+        lowerInput.includes("process")
+      ) {
+        const expenseToApprove = expenses.find((e) => e.status === "pending");
         if (expenseToApprove) {
           response = `Processing ${expenseToApprove.id} for $${expenseToApprove.amount} using AP2 protocol with cryptographic mandates...`;
-          setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", content: response },
+          ]);
 
           try {
             const result = await processAP2Payment(expenseToApprove);
 
             if (result.success) {
               // Optimistic update
-              setExpenses(prev => prev.map(e =>
-                e.id === expenseToApprove.id
-                  ? { ...e, status: 'approved', transaction_id: result.transactionId }
-                  : e
-              ));
+              setExpenses((prev) =>
+                prev.map((e) =>
+                  e.id === expenseToApprove.id
+                    ? {
+                        ...e,
+                        status: "approved",
+                        transaction_id: result.transactionId,
+                      }
+                    : e,
+                ),
+              );
 
               response = `Payment completed successfully!\n\nTransaction ID: ${result.transactionId}\n\nAP2 Verification:\n• Intent Mandate: ${result.mandates.intent.id}\n• Cart Mandate: ${result.mandates.cart.id}\n• Payment Mandate: ${result.mandates.payment.id}\n\nFull cryptographic audit trail available for compliance.`;
-              success('Payment processed successfully!');
+              success("Payment processed successfully!");
             }
           } catch (err) {
-            const errorMsg = err instanceof APIError ? err.message : 'Failed to process payment';
+            const errorMsg =
+              err instanceof APIError
+                ? err.message
+                : "Failed to process payment";
             response = `Error: ${errorMsg}`;
             showError(errorMsg);
           }
         } else {
-          response = 'No pending expenses to process at the moment.';
+          response = "No pending expenses to process at the moment.";
         }
-      } else if (lowerInput.includes('analytics') || lowerInput.includes('report')) {
+      } else if (
+        lowerInput.includes("analytics") ||
+        lowerInput.includes("report")
+      ) {
         const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-        const approved = expenses.filter(e => e.status === 'approved').length;
-        response = `Expense Analytics:\n\n• Total Expenses: $${total.toFixed(2)}\n• Approved: ${approved}\n• Pending: ${expenses.length - approved}\n• Average: $${(total / expenses.length).toFixed(2)}\n\nTop Category: ${expenses[0]?.category || 'N/A'}`;
+        const approved = expenses.filter((e) => e.status === "approved").length;
+        response = `Expense Analytics:\n\n• Total Expenses: $${total.toFixed(2)}\n• Approved: ${approved}\n• Pending: ${expenses.length - approved}\n• Average: $${(total / expenses.length).toFixed(2)}\n\nTop Category: ${expenses[0]?.category || "N/A"}`;
       } else {
-        response = 'I can help you with:\n\n• Submit new expenses\n• Review pending expenses\n• Approve and process payments via AP2\n• Generate expense reports\n• View analytics\n\nUse the quick action buttons below for common tasks!';
+        response =
+          "I can help you with:\n\n• Submit new expenses\n• Review pending expenses\n• Approve and process payments via AP2\n• Generate expense reports\n• View analytics\n\nUse the quick action buttons below for common tasks!";
       }
 
-      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: response },
+      ]);
       setLoading(false);
     }, 0);
   };
 
   const handleApproveExpense = async (expense) => {
-    const userMessage = { role: 'user', content: `Approve ${expense.id}` };
-    setMessages(prev => [...prev, userMessage]);
+    const userMessage = { role: "user", content: `Approve ${expense.id}` };
+    setMessages((prev) => [...prev, userMessage]);
     setLoading(true);
 
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     let response = `Processing ${expense.id} for $${expense.amount} using AP2 protocol...`;
-    setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+    setMessages((prev) => [...prev, { role: "assistant", content: response }]);
 
     try {
       const result = await processAP2Payment(expense);
 
       if (result.success) {
         // Optimistic update
-        setExpenses(prev => prev.map(e =>
-          e.id === expense.id
-            ? { ...e, status: 'approved', transaction_id: result.transactionId }
-            : e
-        ));
+        setExpenses((prev) =>
+          prev.map((e) =>
+            e.id === expense.id
+              ? {
+                  ...e,
+                  status: "approved",
+                  transaction_id: result.transactionId,
+                }
+              : e,
+          ),
+        );
 
         response = `Payment completed successfully!\n\nTransaction ID: ${result.transactionId}\n\nAP2 Verification:\n• Intent Mandate: ${result.mandates.intent.id}\n• Cart Mandate: ${result.mandates.cart.id}\n• Payment Mandate: ${result.mandates.payment.id}`;
-        setMessages(prev => [...prev, { role: 'assistant', content: response }]);
-        success('Payment processed successfully!');
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: response },
+        ]);
+        success("Payment processed successfully!");
       }
     } catch (err) {
-      const errorMsg = err instanceof APIError ? err.message : 'Failed to process payment';
-      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${errorMsg}` }]);
+      const errorMsg =
+        err instanceof APIError ? err.message : "Failed to process payment";
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: `Error: ${errorMsg}` },
+      ]);
       showError(errorMsg);
     }
 
@@ -257,7 +341,7 @@ const ExpenseManagementAgent = () => {
 
   const handleExpenseSubmit = async () => {
     if (!newExpense.amount || !newExpense.vendor || !newExpense.description) {
-      showError('Please fill in all required fields');
+      showError("Please fill in all required fields");
       return;
     }
 
@@ -267,63 +351,78 @@ const ExpenseManagementAgent = () => {
       amount: parseFloat(newExpense.amount),
       category: newExpense.category,
       vendor: newExpense.vendor,
-      status: 'pending',
-      date: new Date().toISOString().split('T')[0],
+      status: "pending",
+      date: new Date().toISOString().split("T")[0],
       description: newExpense.description,
-      _optimistic: true
+      _optimistic: true,
     };
 
     // Optimistic update
-    setExpenses(prev => [...prev, optimisticExpense]);
+    setExpenses((prev) => [...prev, optimisticExpense]);
     setShowExpenseForm(false);
 
     const expenseData = {
-      user_id: user?.id || 'current_user',
+      user_id: user?.id || "current_user",
       amount: parseFloat(newExpense.amount),
       category: newExpense.category,
       vendor: newExpense.vendor,
-      description: newExpense.description
+      description: newExpense.description,
     };
 
     try {
       const result = await expenseAPI.submitExpense(expenseData);
 
       // Update with real data from server
-      setExpenses(prev => prev.map(e =>
-        e.id === tempId ? { ...result.expense, _optimistic: false } : e
-      ));
+      setExpenses((prev) =>
+        prev.map((e) =>
+          e.id === tempId ? { ...result.expense, _optimistic: false } : e,
+        ),
+      );
 
-      setNewExpense({ amount: '', category: 'Travel', vendor: '', description: '' });
+      setNewExpense({
+        amount: "",
+        category: "Travel",
+        vendor: "",
+        description: "",
+      });
 
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: `Expense ${result.expense.id} submitted successfully!\n\nAmount: $${result.expense.amount}\nVendor: ${result.expense.vendor}\nCategory: ${result.expense.category}\n\nThis expense is now pending approval and can be processed via AP2 secure payment protocol.`
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `Expense ${result.expense.id} submitted successfully!\n\nAmount: $${result.expense.amount}\nVendor: ${result.expense.vendor}\nCategory: ${result.expense.category}\n\nThis expense is now pending approval and can be processed via AP2 secure payment protocol.`,
+        },
+      ]);
 
-      success('Expense submitted successfully!');
+      success("Expense submitted successfully!");
     } catch (err) {
       // Rollback optimistic update
-      setExpenses(prev => prev.filter(e => e.id !== tempId));
+      setExpenses((prev) => prev.filter((e) => e.id !== tempId));
 
-      const errorMsg = err instanceof APIError ? err.message : 'Failed to submit expense';
+      const errorMsg =
+        err instanceof APIError ? err.message : "Failed to submit expense";
       showError(errorMsg);
       setShowExpenseForm(true);
     }
   };
 
   const getStatusIcon = (status) => {
-    switch(status) {
-      case 'approved': return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'pending': return <Clock className="w-4 h-4 text-yellow-500" />;
-      case 'rejected': return <XCircle className="w-4 h-4 text-red-500" />;
-      default: return null;
+    switch (status) {
+      case "approved":
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case "pending":
+        return <Clock className="w-4 h-4 text-yellow-500" />;
+      case "rejected":
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      default:
+        return null;
     }
   };
 
   const stats = {
     total: expenses.reduce((sum, e) => sum + e.amount, 0),
-    pending: expenses.filter(e => e.status === 'pending').length,
-    approved: expenses.filter(e => e.status === 'approved').length
+    pending: expenses.filter((e) => e.status === "pending").length,
+    approved: expenses.filter((e) => e.status === "approved").length,
   };
 
   return (
@@ -338,7 +437,9 @@ const ExpenseManagementAgent = () => {
                 <Receipt className="w-8 h-8 text-indigo-600" />
                 AI Expense Management Agent
               </h1>
-              <p className="text-gray-600 mt-2">Powered by AP2 Protocol for Secure Agent Payments</p>
+              <p className="text-gray-600 mt-2">
+                Powered by AP2 Protocol for Secure Agent Payments
+              </p>
             </div>
             <div className="flex items-center gap-4">
               <button
@@ -358,7 +459,9 @@ const ExpenseManagementAgent = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Total Expenses</p>
-                <p className="text-2xl font-bold text-gray-800">${stats.total.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-gray-800">
+                  ${stats.total.toFixed(2)}
+                </p>
               </div>
               <DollarSign className="w-10 h-10 text-blue-500" />
             </div>
@@ -368,7 +471,9 @@ const ExpenseManagementAgent = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Pending Approval</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {stats.pending}
+                </p>
               </div>
               <Clock className="w-10 h-10 text-yellow-500" />
             </div>
@@ -378,7 +483,9 @@ const ExpenseManagementAgent = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Approved</p>
-                <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {stats.approved}
+                </p>
               </div>
               <CheckCircle className="w-10 h-10 text-green-500" />
             </div>
@@ -398,13 +505,13 @@ const ExpenseManagementAgent = () => {
               {messages.map((msg, idx) => (
                 <div
                   key={idx}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
                     className={`max-w-[80%] rounded-lg p-3 ${
-                      msg.role === 'user'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-100 text-gray-800'
+                      msg.role === "user"
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-100 text-gray-800"
                     }`}
                   >
                     <p className="whitespace-pre-line text-sm">{msg.content}</p>
@@ -416,8 +523,14 @@ const ExpenseManagementAgent = () => {
                   <div className="bg-gray-100 rounded-lg p-3">
                     <div className="flex space-x-2">
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      ></div>
                     </div>
                   </div>
                 </div>
@@ -426,8 +539,12 @@ const ExpenseManagementAgent = () => {
                 <div className="flex justify-center">
                   <div className="bg-blue-100 border border-blue-300 rounded-lg p-4 text-center">
                     <Shield className="w-8 h-8 text-blue-600 mx-auto mb-2 animate-pulse" />
-                    <p className="text-blue-800 font-semibold">Processing via AP2 Protocol</p>
-                    <p className="text-blue-600 text-sm">Creating cryptographic mandates...</p>
+                    <p className="text-blue-800 font-semibold">
+                      Processing via AP2 Protocol
+                    </p>
+                    <p className="text-blue-600 text-sm">
+                      Creating cryptographic mandates...
+                    </p>
                   </div>
                 </div>
               )}
@@ -436,7 +553,9 @@ const ExpenseManagementAgent = () => {
             <div className="border-t bg-gray-50 p-3">
               <div className="flex items-center gap-2 mb-3">
                 <Zap className="w-4 h-4 text-indigo-600" />
-                <p className="text-xs font-medium text-gray-700">Quick Actions:</p>
+                <p className="text-xs font-medium text-gray-700">
+                  Quick Actions:
+                </p>
               </div>
               <div className="flex flex-wrap gap-2 mb-3">
                 <button
@@ -476,7 +595,7 @@ const ExpenseManagementAgent = () => {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+                  onKeyPress={(e) => e.key === "Enter" && handleSubmit()}
                   placeholder="Or type your request here..."
                   className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                   disabled={loading}
@@ -503,28 +622,36 @@ const ExpenseManagementAgent = () => {
                 onClick={() => setShowExpenseForm(!showExpenseForm)}
                 className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700"
               >
-                {showExpenseForm ? 'Cancel' : '+ New Expense'}
+                {showExpenseForm ? "Cancel" : "+ New Expense"}
               </button>
             </div>
 
             {showExpenseForm && (
               <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Amount ($)
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     value={newExpense.amount}
-                    onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
+                    onChange={(e) =>
+                      setNewExpense({ ...newExpense, amount: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                     placeholder="0.00"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category
+                  </label>
                   <select
                     value={newExpense.category}
-                    onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
+                    onChange={(e) =>
+                      setNewExpense({ ...newExpense, category: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                   >
                     <option>Travel</option>
@@ -535,20 +662,31 @@ const ExpenseManagementAgent = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vendor</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vendor
+                  </label>
                   <input
                     type="text"
                     value={newExpense.vendor}
-                    onChange={(e) => setNewExpense({...newExpense, vendor: e.target.value})}
+                    onChange={(e) =>
+                      setNewExpense({ ...newExpense, vendor: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                     placeholder="Vendor name"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
                   <textarea
                     value={newExpense.description}
-                    onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
+                    onChange={(e) =>
+                      setNewExpense({
+                        ...newExpense,
+                        description: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                     rows="2"
                     placeholder="Expense description"
@@ -572,38 +710,59 @@ const ExpenseManagementAgent = () => {
               </div>
             ) : expenses.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-500">No expenses yet. Submit your first expense to get started!</p>
+                <p className="text-gray-500">
+                  No expenses yet. Submit your first expense to get started!
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
                 {expenses.map((expense) => (
-                  <div key={expense.id} className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${expense._optimistic ? 'opacity-60' : ''}`}>
+                  <div
+                    key={expense.id}
+                    className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${expense._optimistic ? "opacity-60" : ""}`}
+                  >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-gray-800">{expense.id}</span>
+                          <span className="font-semibold text-gray-800">
+                            {expense.id}
+                          </span>
                           {getStatusIcon(expense.status)}
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            expense.status === 'approved' ? 'bg-green-100 text-green-800' :
-                            expense.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
+                          <span
+                            className={`text-xs px-2 py-1 rounded ${
+                              expense.status === "approved"
+                                ? "bg-green-100 text-green-800"
+                                : expense.status === "pending"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
+                            }`}
+                          >
                             {expense.status.toUpperCase()}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600">{expense.description}</p>
-                        <p className="text-xs text-gray-500 mt-1">{expense.vendor} • {expense.date}</p>
+                        <p className="text-sm text-gray-600">
+                          {expense.description}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {expense.vendor} • {expense.date}
+                        </p>
                         {expense.transaction_id && (
-                          <p className="text-xs text-blue-600 mt-1 font-mono">TX: {expense.transaction_id}</p>
+                          <p className="text-xs text-blue-600 mt-1 font-mono">
+                            TX: {expense.transaction_id}
+                          </p>
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-gray-800">${expense.amount.toFixed(2)}</p>
-                        <p className="text-xs text-gray-500">{expense.category}</p>
+                        <p className="text-lg font-bold text-gray-800">
+                          ${expense.amount.toFixed(2)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {expense.category}
+                        </p>
                       </div>
                     </div>
 
-                    {expense.status === 'pending' && !expense._optimistic && (
+                    {expense.status === "pending" && !expense._optimistic && (
                       <button
                         onClick={() => handleApproveExpense(expense)}
                         disabled={loading || paymentProcessing}
@@ -627,16 +786,31 @@ const ExpenseManagementAgent = () => {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2">Authorization</h4>
-              <p className="text-sm text-blue-800">Cryptographic proof that users authorized each payment with Intent Mandates</p>
+              <h4 className="font-semibold text-blue-900 mb-2">
+                Authorization
+              </h4>
+              <p className="text-sm text-blue-800">
+                Cryptographic proof that users authorized each payment with
+                Intent Mandates
+              </p>
             </div>
             <div className="p-4 bg-green-50 rounded-lg">
-              <h4 className="font-semibold text-green-900 mb-2">Authenticity</h4>
-              <p className="text-sm text-green-800">Cart Mandates ensure merchants receive accurate transaction details</p>
+              <h4 className="font-semibold text-green-900 mb-2">
+                Authenticity
+              </h4>
+              <p className="text-sm text-green-800">
+                Cart Mandates ensure merchants receive accurate transaction
+                details
+              </p>
             </div>
             <div className="p-4 bg-purple-50 rounded-lg">
-              <h4 className="font-semibold text-purple-900 mb-2">Accountability</h4>
-              <p className="text-sm text-purple-800">Full audit trail with Payment Mandates for compliance and dispute resolution</p>
+              <h4 className="font-semibold text-purple-900 mb-2">
+                Accountability
+              </h4>
+              <p className="text-sm text-purple-800">
+                Full audit trail with Payment Mandates for compliance and
+                dispute resolution
+              </p>
             </div>
           </div>
         </div>
@@ -646,7 +820,7 @@ const ExpenseManagementAgent = () => {
         <ChangePassword
           onClose={() => setShowChangePassword(false)}
           onSuccess={() => {
-            success('Password changed successfully!');
+            success("Password changed successfully!");
             setShowChangePassword(false);
           }}
         />

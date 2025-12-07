@@ -1,5 +1,5 @@
-import React from 'react';
-import { AlertCircle } from 'lucide-react';
+import React from "react";
+import { AlertCircle } from "lucide-react";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -12,10 +12,10 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    console.error("Error caught by boundary:", error, errorInfo);
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     });
   }
 
@@ -26,14 +26,19 @@ class ErrorBoundary extends React.Component {
           <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full">
             <div className="flex items-center gap-3 mb-4">
               <AlertCircle className="w-10 h-10 text-red-600" />
-              <h1 className="text-2xl font-bold text-gray-800">Something went wrong</h1>
+              <h1 className="text-2xl font-bold text-gray-800">
+                Something went wrong
+              </h1>
             </div>
             <p className="text-gray-600 mb-4">
-              We're sorry, but something unexpected happened. Please try refreshing the page.
+              We're sorry, but something unexpected happened. Please try
+              refreshing the page.
             </p>
             {this.state.error && (
               <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
-                <p className="text-sm text-red-800 font-mono">{this.state.error.toString()}</p>
+                <p className="text-sm text-red-800 font-mono">
+                  {this.state.error.toString()}
+                </p>
               </div>
             )}
             <button

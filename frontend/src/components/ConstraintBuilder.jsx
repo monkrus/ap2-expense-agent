@@ -1,9 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
-  X, Plus, Trash2, DollarSign, Tag, Store, Clock,
-  CheckCircle, AlertCircle, Calendar, Sparkles
-} from 'lucide-react';
-import { useToast } from '../hooks/useToast';
+  X,
+  Plus,
+  Trash2,
+  DollarSign,
+  Tag,
+  Store,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Calendar,
+  Sparkles,
+} from "lucide-react";
+import { useToast } from "../hooks/useToast";
 
 const ConstraintBuilder = ({ onClose, onSuccess }) => {
   const { success, error: showError } = useToast();
@@ -11,37 +20,37 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
   const [step, setStep] = useState(1); // 1: Basic, 2: Advanced, 3: Review
 
   const [formData, setFormData] = useState({
-    maxAmount: '',
+    maxAmount: "",
     categories: [],
     merchants: [],
     approvalRequired: true,
-    recurring: '',
-    expirationHours: '720', // 30 days default
+    recurring: "",
+    expirationHours: "720", // 30 days default
   });
 
-  const [categoryInput, setCategoryInput] = useState('');
-  const [merchantInput, setMerchantInput] = useState('');
+  const [categoryInput, setCategoryInput] = useState("");
+  const [merchantInput, setMerchantInput] = useState("");
 
   // Predefined categories for quick selection
   const predefinedCategories = [
-    'Travel',
-    'Meals',
-    'Software',
-    'Office Supplies',
-    'Transportation',
-    'Entertainment',
-    'Equipment',
-    'Marketing',
-    'Training',
-    'Consulting'
+    "Travel",
+    "Meals",
+    "Software",
+    "Office Supplies",
+    "Transportation",
+    "Entertainment",
+    "Equipment",
+    "Marketing",
+    "Training",
+    "Consulting",
   ];
 
   const recurringOptions = [
-    { value: '', label: 'One-time' },
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'quarterly', label: 'Quarterly' }
+    { value: "", label: "One-time" },
+    { value: "daily", label: "Daily" },
+    { value: "weekly", label: "Weekly" },
+    { value: "monthly", label: "Monthly" },
+    { value: "quarterly", label: "Quarterly" },
   ];
 
   const handleSubmit = async (e) => {
@@ -61,32 +70,32 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
     }
 
     // Remove null values
-    Object.keys(constraints).forEach(key => {
+    Object.keys(constraints).forEach((key) => {
       if (constraints[key] === null) delete constraints[key];
     });
 
     try {
-      const response = await fetch('/api/ap2/intent-mandate', {
-        method: 'POST',
+      const response = await fetch("/api/ap2/intent-mandate", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
           constraints,
-          expiration_hours: parseInt(formData.expirationHours)
-        })
+          expiration_hours: parseInt(formData.expirationHours),
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create Intent Mandate');
+        throw new Error("Failed to create Intent Mandate");
       }
 
       const result = await response.json();
       onSuccess(result);
     } catch (err) {
       console.error(err);
-      showError('Failed to create Intent Mandate. Please try again.');
+      showError("Failed to create Intent Mandate. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -96,33 +105,36 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
     if (category && !formData.categories.includes(category)) {
       setFormData({
         ...formData,
-        categories: [...formData.categories, category]
+        categories: [...formData.categories, category],
       });
-      setCategoryInput('');
+      setCategoryInput("");
     }
   };
 
   const removeCategory = (category) => {
     setFormData({
       ...formData,
-      categories: formData.categories.filter(c => c !== category)
+      categories: formData.categories.filter((c) => c !== category),
     });
   };
 
   const addMerchant = () => {
-    if (merchantInput.trim() && !formData.merchants.includes(merchantInput.trim())) {
+    if (
+      merchantInput.trim() &&
+      !formData.merchants.includes(merchantInput.trim())
+    ) {
       setFormData({
         ...formData,
-        merchants: [...formData.merchants, merchantInput.trim()]
+        merchants: [...formData.merchants, merchantInput.trim()],
       });
-      setMerchantInput('');
+      setMerchantInput("");
     }
   };
 
   const removeMerchant = (merchant) => {
     setFormData({
       ...formData,
-      merchants: formData.merchants.filter(m => m !== merchant)
+      merchants: formData.merchants.filter((m) => m !== merchant),
     });
   };
 
@@ -152,29 +164,35 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             {[
-              { num: 1, label: 'Basic Settings' },
-              { num: 2, label: 'Advanced Rules' },
-              { num: 3, label: 'Review & Create' }
+              { num: 1, label: "Basic Settings" },
+              { num: 2, label: "Advanced Rules" },
+              { num: 3, label: "Review & Create" },
             ].map((s, idx) => (
               <React.Fragment key={s.num}>
                 <div className="flex items-center space-x-2">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-                    step >= s.num
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-200 text-gray-600'
-                  }`}>
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                      step >= s.num
+                        ? "bg-purple-600 text-white"
+                        : "bg-gray-200 text-gray-600"
+                    }`}
+                  >
                     {step > s.num ? <CheckCircle className="w-5 h-5" /> : s.num}
                   </div>
-                  <span className={`text-sm font-medium ${
-                    step >= s.num ? 'text-gray-900' : 'text-gray-500'
-                  }`}>
+                  <span
+                    className={`text-sm font-medium ${
+                      step >= s.num ? "text-gray-900" : "text-gray-500"
+                    }`}
+                  >
                     {s.label}
                   </span>
                 </div>
                 {idx < 2 && (
-                  <div className={`flex-1 h-1 mx-4 rounded ${
-                    step > s.num ? 'bg-purple-600' : 'bg-gray-200'
-                  }`} />
+                  <div
+                    className={`flex-1 h-1 mx-4 rounded ${
+                      step > s.num ? "bg-purple-600" : "bg-gray-200"
+                    }`}
+                  />
                 )}
               </React.Fragment>
             ))}
@@ -182,12 +200,17 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
         </div>
 
         {/* Form Content */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-240px)]">
+        <form
+          onSubmit={handleSubmit}
+          className="p-6 overflow-y-auto max-h-[calc(90vh-240px)]"
+        >
           {/* Step 1: Basic Settings */}
           {step === 1 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Settings</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Basic Settings
+                </h3>
                 <p className="text-sm text-gray-600 mb-6">
                   Set the fundamental constraints for what your AI agent can do.
                 </p>
@@ -204,12 +227,15 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                   step="0.01"
                   min="0"
                   value={formData.maxAmount}
-                  onChange={(e) => setFormData({ ...formData, maxAmount: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, maxAmount: e.target.value })
+                  }
                   placeholder="e.g., 1000.00"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Leave empty for no limit. Agent will not process expenses above this amount.
+                  Leave empty for no limit. Agent will not process expenses
+                  above this amount.
                 </p>
               </div>
 
@@ -221,7 +247,12 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                 </label>
                 <select
                   value={formData.expirationHours}
-                  onChange={(e) => setFormData({ ...formData, expirationHours: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      expirationHours: e.target.value,
+                    })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 >
                   <option value="24">24 hours (1 day)</option>
@@ -239,7 +270,12 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                   <input
                     type="checkbox"
                     checked={formData.approvalRequired}
-                    onChange={(e) => setFormData({ ...formData, approvalRequired: e.target.checked })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        approvalRequired: e.target.checked,
+                      })
+                    }
                     className="mt-1 w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                   />
                   <div className="flex-1">
@@ -247,7 +283,9 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                       Require Manual Approval
                     </span>
                     <span className="text-xs text-gray-600 block mt-1">
-                      When checked, all expenses will require your approval. Uncheck for full automation (not recommended for first mandate).
+                      When checked, all expenses will require your approval.
+                      Uncheck for full automation (not recommended for first
+                      mandate).
                     </span>
                   </div>
                 </label>
@@ -259,9 +297,12 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
           {step === 2 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Advanced Rules</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Advanced Rules
+                </h3>
                 <p className="text-sm text-gray-600 mb-6">
-                  Refine your agent's permissions with categories, merchants, and recurring options.
+                  Refine your agent's permissions with categories, merchants,
+                  and recurring options.
                 </p>
               </div>
 
@@ -282,11 +323,15 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                       disabled={formData.categories.includes(cat)}
                       className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                         formData.categories.includes(cat)
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       }`}
                     >
-                      {formData.categories.includes(cat) ? <CheckCircle className="w-3 h-3 inline mr-1" /> : <Plus className="w-3 h-3 inline mr-1" />}
+                      {formData.categories.includes(cat) ? (
+                        <CheckCircle className="w-3 h-3 inline mr-1" />
+                      ) : (
+                        <Plus className="w-3 h-3 inline mr-1" />
+                      )}
                       {cat}
                     </button>
                   ))}
@@ -298,7 +343,10 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                     type="text"
                     value={categoryInput}
                     onChange={(e) => setCategoryInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCategory(categoryInput))}
+                    onKeyPress={(e) =>
+                      e.key === "Enter" &&
+                      (e.preventDefault(), addCategory(categoryInput))
+                    }
                     placeholder="Or type custom category..."
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                   />
@@ -333,7 +381,8 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                 )}
 
                 <p className="text-xs text-gray-500 mt-2">
-                  Leave empty to allow all categories. Agent will only process expenses in selected categories.
+                  Leave empty to allow all categories. Agent will only process
+                  expenses in selected categories.
                 </p>
               </div>
 
@@ -349,7 +398,9 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                     type="text"
                     value={merchantInput}
                     onChange={(e) => setMerchantInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addMerchant())}
+                    onKeyPress={(e) =>
+                      e.key === "Enter" && (e.preventDefault(), addMerchant())
+                    }
                     placeholder="e.g., Amazon, Starbucks, Uber..."
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                   />
@@ -395,7 +446,9 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                 </label>
                 <select
                   value={formData.recurring}
-                  onChange={(e) => setFormData({ ...formData, recurring: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, recurring: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 >
                   {recurringOptions.map((option) => (
@@ -405,7 +458,8 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Set if this mandate should handle recurring expenses automatically.
+                  Set if this mandate should handle recurring expenses
+                  automatically.
                 </p>
               </div>
             </div>
@@ -415,7 +469,9 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
           {step === 3 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Review & Create</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Review & Create
+                </h3>
                 <p className="text-sm text-gray-600 mb-6">
                   Review your Intent Mandate settings before creating.
                 </p>
@@ -424,7 +480,11 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
               <div className="bg-gray-50 rounded-lg p-6 space-y-4">
                 <ReviewItem
                   label="Maximum Amount"
-                  value={formData.maxAmount ? `$${parseFloat(formData.maxAmount).toFixed(2)}` : 'No limit'}
+                  value={
+                    formData.maxAmount
+                      ? `$${parseFloat(formData.maxAmount).toFixed(2)}`
+                      : "No limit"
+                  }
                   icon={<DollarSign className="w-5 h-5 text-green-600" />}
                 />
 
@@ -436,14 +496,16 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
 
                 <ReviewItem
                   label="Approval Required"
-                  value={formData.approvalRequired ? 'Yes' : 'No (Auto-approve)'}
+                  value={
+                    formData.approvalRequired ? "Yes" : "No (Auto-approve)"
+                  }
                   icon={<CheckCircle className="w-5 h-5 text-yellow-600" />}
                 />
 
                 {formData.categories.length > 0 && (
                   <ReviewItem
                     label="Allowed Categories"
-                    value={formData.categories.join(', ')}
+                    value={formData.categories.join(", ")}
                     icon={<Tag className="w-5 h-5 text-purple-600" />}
                   />
                 )}
@@ -451,7 +513,7 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                 {formData.merchants.length > 0 && (
                   <ReviewItem
                     label="Allowed Merchants"
-                    value={formData.merchants.join(', ')}
+                    value={formData.merchants.join(", ")}
                     icon={<Store className="w-5 h-5 text-indigo-600" />}
                   />
                 )}
@@ -459,7 +521,11 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                 {formData.recurring && (
                   <ReviewItem
                     label="Recurring Schedule"
-                    value={recurringOptions.find(o => o.value === formData.recurring)?.label}
+                    value={
+                      recurringOptions.find(
+                        (o) => o.value === formData.recurring,
+                      )?.label
+                    }
                     icon={<Clock className="w-5 h-5 text-orange-600" />}
                   />
                 )}
@@ -470,7 +536,9 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                 <div className="text-sm text-blue-900">
                   <p className="font-medium mb-1">AP2 Protocol Security</p>
                   <p className="text-blue-800">
-                    Your Intent Mandate will be cryptographically signed and stored with a complete audit trail. All expenses processed under this mandate will be traceable and compliant.
+                    Your Intent Mandate will be cryptographically signed and
+                    stored with a complete audit trail. All expenses processed
+                    under this mandate will be traceable and compliant.
                   </p>
                 </div>
               </div>
@@ -540,9 +608,7 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
 const ReviewItem = ({ label, value, icon }) => {
   return (
     <div className="flex items-start space-x-3">
-      <div className="flex-shrink-0">
-        {icon}
-      </div>
+      <div className="flex-shrink-0">{icon}</div>
       <div className="flex-1">
         <p className="text-sm font-medium text-gray-900">{label}</p>
         <p className="text-sm text-gray-600 mt-0.5">{value}</p>

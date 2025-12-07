@@ -1,8 +1,10 @@
 import uuid
 from datetime import datetime
 
-from src.gcp.entitlement_handler import (handle_entitlement_cancellation,
-                                         handle_entitlement_update)
+from src.gcp.entitlement_handler import (
+    handle_entitlement_cancellation,
+    handle_entitlement_update,
+)
 from src.models_billing import BillingEvent, OrganizationSubscription
 
 

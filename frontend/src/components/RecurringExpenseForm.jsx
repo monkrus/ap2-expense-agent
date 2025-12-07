@@ -1,23 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, Repeat, Calendar, DollarSign, Tag, FileText, Clock, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Save,
+  Repeat,
+  Calendar,
+  DollarSign,
+  Tag,
+  FileText,
+  Clock,
+  CheckCircle,
+} from "lucide-react";
 
 const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
   const isEditing = !!template;
 
   const [formData, setFormData] = useState({
-    vendor: template?.vendor || '',
-    amount: template?.amount || '',
-    category: template?.category || 'Travel',
-    description: template?.description || '',
-    frequency: template?.frequency || 'monthly',
-    start_date: template?.start_date ? new Date(template.start_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-    end_date: template?.end_date ? new Date(template.end_date).toISOString().split('T')[0] : '',
+    vendor: template?.vendor || "",
+    amount: template?.amount || "",
+    category: template?.category || "Travel",
+    description: template?.description || "",
+    frequency: template?.frequency || "monthly",
+    start_date: template?.start_date
+      ? new Date(template.start_date).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0],
+    end_date: template?.end_date
+      ? new Date(template.end_date).toISOString().split("T")[0]
+      : "",
     auto_submit: template?.auto_submit ?? true,
-    intent_mandate_id: template?.intent_mandate_id || ''
+    intent_mandate_id: template?.intent_mandate_id || "",
   });
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [mandates, setMandates] = useState([]);
 
   useEffect(() => {
@@ -26,11 +40,11 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
 
   const fetchIntentMandates = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/ap2/user/mandates', {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("/api/ap2/user/mandates", {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.ok) {
@@ -38,37 +52,40 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
         setMandates(data.mandates || []);
       }
     } catch (err) {
-      console.error('Failed to fetch intent mandates:', err);
+      console.error("Failed to fetch intent mandates:", err);
     }
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const validateForm = () => {
     if (!formData.vendor.trim()) {
-      setError('Vendor is required');
+      setError("Vendor is required");
       return false;
     }
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      setError('Amount must be greater than 0');
+      setError("Amount must be greater than 0");
       return false;
     }
     if (!formData.description.trim()) {
-      setError('Description is required');
+      setError("Description is required");
       return false;
     }
     if (!formData.start_date) {
-      setError('Start date is required');
+      setError("Start date is required");
       return false;
     }
-    if (formData.end_date && new Date(formData.end_date) <= new Date(formData.start_date)) {
-      setError('End date must be after start date');
+    if (
+      formData.end_date &&
+      new Date(formData.end_date) <= new Date(formData.start_date)
+    ) {
+      setError("End date must be after start date");
       return false;
     }
     return true;
@@ -76,19 +93,19 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       const url = isEditing
         ? `/api/recurring-expenses/${template.id}`
-        : '/api/recurring-expenses';
+        : "/api/recurring-expenses";
 
-      const method = isEditing ? 'PATCH' : 'POST';
+      const method = isEditing ? "PATCH" : "POST";
 
       // Prepare data
       const submitData = {
@@ -97,7 +114,7 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
         category: formData.category,
         description: formData.description,
         frequency: formData.frequency,
-        auto_submit: formData.auto_submit
+        auto_submit: formData.auto_submit,
       };
 
       // Only include dates for POST (create), not PATCH (update)
@@ -121,15 +138,15 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
       const response = await fetch(url, {
         method,
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(submitData)
+        body: JSON.stringify(submitData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to save recurring expense');
+        throw new Error(errorData.detail || "Failed to save recurring expense");
       }
 
       onSuccess();
@@ -140,13 +157,19 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
     }
   };
 
-  const categories = ['Travel', 'Meals', 'Software', 'Office Supplies', 'Other'];
+  const categories = [
+    "Travel",
+    "Meals",
+    "Software",
+    "Office Supplies",
+    "Other",
+  ];
   const frequencies = [
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'biweekly', label: 'Bi-weekly' },
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'quarterly', label: 'Quarterly' },
-    { value: 'yearly', label: 'Yearly' }
+    { value: "weekly", label: "Weekly" },
+    { value: "biweekly", label: "Bi-weekly" },
+    { value: "monthly", label: "Monthly" },
+    { value: "quarterly", label: "Quarterly" },
+    { value: "yearly", label: "Yearly" },
   ];
 
   return (
@@ -157,7 +180,7 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
           <div className="flex items-center gap-3">
             <Repeat className="w-6 h-6 text-indigo-600" />
             <h2 className="text-xl font-bold text-gray-900">
-              {isEditing ? 'Edit Recurring Expense' : 'New Recurring Expense'}
+              {isEditing ? "Edit Recurring Expense" : "New Recurring Expense"}
             </h2>
           </div>
           <button
@@ -228,8 +251,10 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 required
               >
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
                 ))}
               </select>
             </div>
@@ -268,7 +293,7 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 required
               >
-                {frequencies.map(freq => (
+                {frequencies.map((freq) => (
                   <option key={freq.value} value={freq.value}>
                     {freq.label}
                   </option>
@@ -296,7 +321,9 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
                 />
               </div>
               {isEditing && (
-                <p className="text-xs text-gray-500 mt-1">Start date cannot be changed</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Start date cannot be changed
+                </p>
               )}
             </div>
 
@@ -315,7 +342,9 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Leave blank for no end date</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Leave blank for no end date
+              </p>
             </div>
           </div>
 
@@ -325,7 +354,9 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-indigo-600" />
                 <div>
-                  <p className="font-medium text-gray-900">Auto-submit expenses</p>
+                  <p className="font-medium text-gray-900">
+                    Auto-submit expenses
+                  </p>
                   <p className="text-sm text-gray-600">
                     Automatically submit expenses on schedule (recommended)
                   </p>
@@ -341,7 +372,8 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
             </label>
             {!formData.auto_submit && (
               <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-3 py-2 mt-2">
-                When disabled, you'll receive reminders but expenses won't be submitted automatically
+                When disabled, you'll receive reminders but expenses won't be
+                submitted automatically
               </p>
             )}
           </div>
@@ -350,7 +382,8 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
           {mandates.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Link to Intent Mandate <span className="text-gray-500">(Optional)</span>
+                Link to Intent Mandate{" "}
+                <span className="text-gray-500">(Optional)</span>
               </label>
               <select
                 name="intent_mandate_id"
@@ -359,9 +392,10 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               >
                 <option value="">No Intent Mandate</option>
-                {mandates.map(mandate => (
+                {mandates.map((mandate) => (
                   <option key={mandate.id} value={mandate.id}>
-                    {mandate.id} - Max ${mandate.constraints?.max_amount || 'unlimited'}
+                    {mandate.id} - Max $
+                    {mandate.constraints?.max_amount || "unlimited"}
                   </option>
                 ))}
               </select>
@@ -386,7 +420,7 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
               className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-5 h-5" />
-              {loading ? 'Saving...' : isEditing ? 'Update' : 'Create'}
+              {loading ? "Saving..." : isEditing ? "Update" : "Create"}
             </button>
           </div>
         </form>

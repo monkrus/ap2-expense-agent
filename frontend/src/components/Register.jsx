@@ -1,17 +1,26 @@
-import React, { useState } from 'react';
-import { UserPlus, Mail, Lock, User, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from "react";
+import {
+  UserPlus,
+  Mail,
+  Lock,
+  User,
+  AlertCircle,
+  CheckCircle,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 const Register = ({ onSuccess, onSwitchToLogin }) => {
   const { register } = useAuth();
   const [formData, setFormData] = useState({
-    email: '',
-    username: '',
-    password: '',
-    confirmPassword: '',
-    full_name: '',
+    email: "",
+    username: "",
+    password: "",
+    confirmPassword: "",
+    full_name: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -40,17 +49,17 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return;
     }
 
     // Validate password requirements
     if (!Object.values(passwordValidation).every(Boolean)) {
-      setError('Password does not meet all requirements');
+      setError("Password does not meet all requirements");
       return;
     }
 
@@ -62,7 +71,7 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
         username: formData.username,
         password: formData.password,
         full_name: formData.full_name || undefined,
-        role: 'employee',
+        role: "employee",
       });
 
       if (result.success) {
@@ -74,7 +83,7 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
         setError(result.error);
       }
     } catch (err) {
-      setError('An error occurred during registration');
+      setError("An error occurred during registration");
     } finally {
       setLoading(false);
     }
@@ -87,7 +96,9 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Registration Successful!</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            Registration Successful!
+          </h2>
           <p className="text-gray-600">Redirecting to login...</p>
         </div>
       </div>
@@ -122,7 +133,9 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Enter your email"
                 required
@@ -140,7 +153,9 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
               <input
                 type="text"
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Choose a username"
                 required
@@ -158,7 +173,9 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
               <input
                 type="text"
                 value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, full_name: e.target.value })
+                }
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Enter your full name"
                 disabled={loading}
@@ -187,7 +204,11 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 tabIndex={-1}
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
               </button>
             </div>
             <div className="mt-2 space-y-1">
@@ -215,7 +236,9 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, confirmPassword: e.target.value })
+                }
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Confirm your password"
                 required
@@ -227,7 +250,11 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 tabIndex={-1}
               >
-                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showConfirmPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
               </button>
             </div>
           </div>
@@ -237,13 +264,13 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
             disabled={loading}
             className="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? "Creating account..." : "Create Account"}
           </button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <button
               onClick={onSwitchToLogin}
               className="text-indigo-600 hover:text-indigo-700 font-medium"
@@ -264,7 +291,7 @@ const PasswordRequirement = ({ met, children }) => (
     ) : (
       <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
     )}
-    <span className={met ? 'text-green-600' : 'text-gray-500'}>{children}</span>
+    <span className={met ? "text-green-600" : "text-gray-500"}>{children}</span>
   </div>
 );
 

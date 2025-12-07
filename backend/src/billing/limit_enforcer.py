@@ -12,8 +12,15 @@ from typing import Optional, Tuple
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from ..models import (Expense, Organization, OrganizationMember, Subscription,
-                      SubscriptionTier, UsageRecord, User)
+from ..models import (
+    Expense,
+    Organization,
+    OrganizationMember,
+    Subscription,
+    SubscriptionTier,
+    UsageRecord,
+    User,
+)
 from .tier_limits import TierLimits, get_tier_limits
 
 

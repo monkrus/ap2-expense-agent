@@ -12,10 +12,13 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.agent_db import (CartMandateData, ExpenseManagementAgent,
-                          IntentMandateData, PaymentMandateData)
-from src.models import (Base, Expense, ExpenseCategory, ExpenseStatus, User,
-                        UserRole)
+from src.agent_db import (
+    CartMandateData,
+    ExpenseManagementAgent,
+    IntentMandateData,
+    PaymentMandateData,
+)
+from src.models import Base, Expense, ExpenseCategory, ExpenseStatus, User, UserRole
 from src.repository import AP2Repository
 
 

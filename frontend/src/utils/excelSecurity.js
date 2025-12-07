@@ -9,9 +9,9 @@
 // Security constants
 export const EXCEL_SECURITY = {
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
-  MAX_FILE_SIZE_LABEL: '10MB',
+  MAX_FILE_SIZE_LABEL: "10MB",
   PARSING_TIMEOUT: 5000, // 5 seconds
-  PARSING_TIMEOUT_LABEL: '5 seconds',
+  PARSING_TIMEOUT_LABEL: "5 seconds",
   MAX_ROWS: 50000, // Safety limit for row count
   MAX_COLUMNS: 100, // Safety limit for column count
 };
@@ -23,13 +23,13 @@ export const EXCEL_SECURITY = {
  */
 export function validateFileSize(file) {
   if (!file) {
-    throw new Error('No file provided');
+    throw new Error("No file provided");
   }
 
   if (file.size > EXCEL_SECURITY.MAX_FILE_SIZE) {
     throw new Error(
       `File too large. Maximum size: ${EXCEL_SECURITY.MAX_FILE_SIZE_LABEL}. ` +
-      `Your file: ${(file.size / 1024 / 1024).toFixed(2)}MB`
+        `Your file: ${(file.size / 1024 / 1024).toFixed(2)}MB`,
     );
   }
 
@@ -42,18 +42,21 @@ export function validateFileSize(file) {
  * @param {string[]} allowedTypes - Allowed MIME types
  * @throws {Error} If file type is not allowed
  */
-export function validateFileType(file, allowedTypes = [
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-  'application/vnd.ms-excel', // .xls
-  'text/csv', // .csv
-]) {
+export function validateFileType(
+  file,
+  allowedTypes = [
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+    "application/vnd.ms-excel", // .xls
+    "text/csv", // .csv
+  ],
+) {
   if (!file) {
-    throw new Error('No file provided');
+    throw new Error("No file provided");
   }
 
   if (!allowedTypes.includes(file.type)) {
     throw new Error(
-      `Invalid file type. Allowed types: ${allowedTypes.join(', ')}`
+      `Invalid file type. Allowed types: ${allowedTypes.join(", ")}`,
     );
   }
 
@@ -66,17 +69,23 @@ export function validateFileType(file, allowedTypes = [
  * @param {number} timeoutMs - Timeout in milliseconds
  * @returns {Promise} Promise that resolves or rejects based on timeout
  */
-export function withTimeout(promise, timeoutMs = EXCEL_SECURITY.PARSING_TIMEOUT) {
+export function withTimeout(
+  promise,
+  timeoutMs = EXCEL_SECURITY.PARSING_TIMEOUT,
+) {
   return Promise.race([
     promise,
     new Promise((_, reject) =>
       setTimeout(
-        () => reject(new Error(
-          `Operation timed out after ${timeoutMs / 1000} seconds. ` +
-          `This may indicate a malformed or overly complex file.`
-        )),
-        timeoutMs
-      )
+        () =>
+          reject(
+            new Error(
+              `Operation timed out after ${timeoutMs / 1000} seconds. ` +
+                `This may indicate a malformed or overly complex file.`,
+            ),
+          ),
+        timeoutMs,
+      ),
     ),
   ]);
 }
@@ -88,14 +97,15 @@ export function withTimeout(promise, timeoutMs = EXCEL_SECURITY.PARSING_TIMEOUT)
  * @param {number} timeout - Timeout in milliseconds
  * @returns {Promise} Parsed data or error
  */
-export async function safeExcelParse(parseFunction, args, timeout = EXCEL_SECURITY.PARSING_TIMEOUT) {
+export async function safeExcelParse(
+  parseFunction,
+  args,
+  timeout = EXCEL_SECURITY.PARSING_TIMEOUT,
+) {
   try {
-    return await withTimeout(
-      Promise.resolve(parseFunction(args)),
-      timeout
-    );
+    return await withTimeout(Promise.resolve(parseFunction(args)), timeout);
   } catch (error) {
-    console.error('Excel parsing error:', error);
+    console.error("Excel parsing error:", error);
     throw error;
   }
 }
@@ -107,54 +117,54 @@ export async function safeExcelParse(parseFunction, args, timeout = EXCEL_SECURI
  */
 export function validateWorkbookStructure(workbook) {
   if (!workbook) {
-    throw new Error('Invalid workbook structure');
+    throw new Error("Invalid workbook structure");
   }
 
   const sheets =
     workbook.worksheets ||
     (workbook.SheetNames
-      ? workbook.SheetNames.map(name => workbook.Sheets?.[name]).filter(Boolean)
+      ? workbook.SheetNames.map((name) => workbook.Sheets?.[name]).filter(
+          Boolean,
+        )
       : []);
 
   if (!sheets.length) {
-    throw new Error('Invalid workbook structure');
+    throw new Error("Invalid workbook structure");
   }
 
   if (sheets.length > 50) {
-    throw new Error(
-      `Too many sheets. Maximum: 50. Found: ${sheets.length}`
-    );
+    throw new Error(`Too many sheets. Maximum: 50. Found: ${sheets.length}`);
   }
 
   // Validate each sheet
   for (const sheet of sheets) {
     // ExcelJS exposes rowCount/columnCount; fall back to xlsx-style ranges
     const rowCount =
-      typeof sheet.rowCount === 'number'
+      typeof sheet.rowCount === "number"
         ? sheet.rowCount
-        : sheet['!ref']
-          ? parseRange(sheet['!ref'])?.rows
+        : sheet["!ref"]
+          ? parseRange(sheet["!ref"])?.rows
           : 0;
     const colCount =
-      typeof sheet.columnCount === 'number'
+      typeof sheet.columnCount === "number"
         ? sheet.columnCount
-        : sheet['!ref']
-          ? parseRange(sheet['!ref'])?.cols
+        : sheet["!ref"]
+          ? parseRange(sheet["!ref"])?.cols
           : 0;
 
-    const sheetName = sheet.name || 'Sheet';
+    const sheetName = sheet.name || "Sheet";
 
     if (rowCount > EXCEL_SECURITY.MAX_ROWS) {
       throw new Error(
         `Sheet "${sheetName}" has too many rows. ` +
-        `Maximum: ${EXCEL_SECURITY.MAX_ROWS}. Found: ${rowCount}`
+          `Maximum: ${EXCEL_SECURITY.MAX_ROWS}. Found: ${rowCount}`,
       );
     }
 
     if (colCount > EXCEL_SECURITY.MAX_COLUMNS) {
       throw new Error(
         `Sheet "${sheetName}" has too many columns. ` +
-        `Maximum: ${EXCEL_SECURITY.MAX_COLUMNS}. Found: ${colCount}`
+          `Maximum: ${EXCEL_SECURITY.MAX_COLUMNS}. Found: ${colCount}`,
       );
     }
   }
@@ -168,12 +178,12 @@ export function validateWorkbookStructure(workbook) {
  * @returns {Object|null} Parsed range object
  */
 function parseRange(range) {
-  if (!range || typeof range !== 'string') {
+  if (!range || typeof range !== "string") {
     return null;
   }
 
   try {
-    const parts = range.split(':');
+    const parts = range.split(":");
     if (parts.length !== 2) {
       return null;
     }
@@ -187,12 +197,12 @@ function parseRange(range) {
 
     return {
       s: start, // start
-      e: end,   // end
+      e: end, // end
       rows: end.r - start.r + 1,
       cols: end.c - start.c + 1,
     };
   } catch (error) {
-    console.error('Range parsing error:', error);
+    console.error("Range parsing error:", error);
     return null;
   }
 }
@@ -203,7 +213,7 @@ function parseRange(range) {
  * @returns {Object|null} Parsed cell object with row and column
  */
 function parseCell(cell) {
-  if (!cell || typeof cell !== 'string') {
+  if (!cell || typeof cell !== "string") {
     return null;
   }
 
@@ -240,7 +250,7 @@ function columnToIndex(col) {
  * @returns {Object} Sanitized data
  */
 export function sanitizeWorkbookData(data) {
-  if (!data || typeof data !== 'object') {
+  if (!data || typeof data !== "object") {
     return data;
   }
 
@@ -249,13 +259,13 @@ export function sanitizeWorkbookData(data) {
 
   for (const key of Object.keys(data)) {
     // Skip dangerous keys
-    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+    if (key === "__proto__" || key === "constructor" || key === "prototype") {
       console.warn(`Skipping dangerous key: ${key}`);
       continue;
     }
 
     // Recursively sanitize nested objects
-    if (data[key] && typeof data[key] === 'object') {
+    if (data[key] && typeof data[key] === "object") {
       sanitized[key] = sanitizeWorkbookData(data[key]);
     } else {
       sanitized[key] = data[key];
@@ -271,20 +281,20 @@ export function sanitizeWorkbookData(data) {
  * @param {string} context - Context of the error
  * @returns {string} User-friendly error message
  */
-export function createSecureErrorMessage(error, context = 'Excel operation') {
+export function createSecureErrorMessage(error, context = "Excel operation") {
   // Don't expose internal error details
-  const message = error.message || 'Unknown error';
+  const message = error.message || "Unknown error";
 
   // Check for known security-related errors
-  if (message.includes('timeout')) {
-    return 'File processing timed out. The file may be too complex or corrupted.';
+  if (message.includes("timeout")) {
+    return "File processing timed out. The file may be too complex or corrupted.";
   }
 
-  if (message.includes('too large') || message.includes('size')) {
+  if (message.includes("too large") || message.includes("size")) {
     return message; // Size errors are safe to show
   }
 
-  if (message.includes('too many')) {
+  if (message.includes("too many")) {
     return message; // Validation errors are safe to show
   }
 
@@ -308,8 +318,8 @@ export function logSecurityEvent(event, details = {}) {
   };
 
   // In development, log to console
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('[Security Event]', logEntry);
+  if (process.env.NODE_ENV === "development") {
+    console.warn("[Security Event]", logEntry);
   }
 
   // In production, send to monitoring service
@@ -326,7 +336,7 @@ export function validateExcelImport(file) {
     validateFileSize(file);
     validateFileType(file);
 
-    logSecurityEvent('excel_import_validation_passed', {
+    logSecurityEvent("excel_import_validation_passed", {
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
@@ -334,7 +344,7 @@ export function validateExcelImport(file) {
 
     return true;
   } catch (error) {
-    logSecurityEvent('excel_import_validation_failed', {
+    logSecurityEvent("excel_import_validation_failed", {
       fileName: file?.name,
       fileSize: file?.size,
       fileType: file?.type,

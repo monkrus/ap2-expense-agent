@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
-import { Download, FileText, Table } from 'lucide-react';
-import { expenseAPI } from '../services/api';
-import { useToast } from '../hooks/useToast';
-import ExcelJS from 'exceljs';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { withTimeout, logSecurityEvent } from '../utils/excelSecurity';
+import React, { useState } from "react";
+import { Download, FileText, Table } from "lucide-react";
+import { expenseAPI } from "../services/api";
+import { useToast } from "../hooks/useToast";
+import ExcelJS from "exceljs";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import { withTimeout, logSecurityEvent } from "../utils/excelSecurity";
 
 const ExpenseExport = ({ expenses, onClose }) => {
   const { success, error: showError } = useToast();
   const [exporting, setExporting] = useState(false);
-  const [format, setFormat] = useState('excel');
+  const [format, setFormat] = useState("excel");
 
   const handleExport = async () => {
     setExporting(true);
 
     try {
-      if (format === 'excel') {
+      if (format === "excel") {
         exportExcel();
-      } else if (format === 'csv') {
+      } else if (format === "csv") {
         exportCSV();
       } else {
         exportPDF();
@@ -27,7 +27,7 @@ const ExpenseExport = ({ expenses, onClose }) => {
       success(`Expenses exported as ${format.toUpperCase()} successfully`);
       setTimeout(() => onClose(), 1000);
     } catch (err) {
-      console.error('Export error:', err);
+      console.error("Export error:", err);
       showError(`Failed to export expenses: ${err.message || err}`);
     } finally {
       setExporting(false);
@@ -36,26 +36,26 @@ const ExpenseExport = ({ expenses, onClose }) => {
 
   const formatDate = (dateString) => {
     try {
-      if (!dateString) return 'N/A';
+      if (!dateString) return "N/A";
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
+      if (isNaN(date.getTime())) return "Invalid Date";
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       });
     } catch (err) {
-      console.error('Date formatting error:', err);
-      return 'Invalid Date';
+      console.error("Date formatting error:", err);
+      return "Invalid Date";
     }
   };
 
   const exportExcel = async () => {
     try {
       // Log export operation start
-      logSecurityEvent('excel_export_started', {
+      logSecurityEvent("excel_export_started", {
         expenseCount: expenses.length,
-        format: 'xlsx'
+        format: "xlsx",
       });
 
       // Wrap Excel operations in timeout protection
@@ -63,67 +63,70 @@ const ExpenseExport = ({ expenses, onClose }) => {
       await withTimeout(
         (async () => {
           const workbook = new ExcelJS.Workbook();
-          const worksheet = workbook.addWorksheet('Expenses');
+          const worksheet = workbook.addWorksheet("Expenses");
 
           worksheet.columns = [
-            { header: '#', key: 'rowNumber', width: 5 },
-            { header: 'Date', key: 'date', width: 12 },
-            { header: 'Category', key: 'category', width: 15 },
-            { header: 'Vendor', key: 'vendor', width: 25 },
-            { header: 'Description', key: 'description', width: 40 },
-            { header: 'Amount', key: 'amount', width: 12 },
-            { header: 'Status', key: 'status', width: 10 },
-            { header: 'Expense ID', key: 'expenseId', width: 12 },
+            { header: "#", key: "rowNumber", width: 5 },
+            { header: "Date", key: "date", width: 12 },
+            { header: "Category", key: "category", width: 15 },
+            { header: "Vendor", key: "vendor", width: 25 },
+            { header: "Description", key: "description", width: 40 },
+            { header: "Amount", key: "amount", width: 12 },
+            { header: "Status", key: "status", width: 10 },
+            { header: "Expense ID", key: "expenseId", width: 12 },
           ];
 
           expenses.forEach((expense, index) => {
             worksheet.addRow({
               rowNumber: index + 1,
               date: formatDate(expense.date),
-              category: expense.category || '',
-              vendor: expense.vendor || '',
-              description: expense.description || '',
+              category: expense.category || "",
+              vendor: expense.vendor || "",
+              description: expense.description || "",
               amount: Number(expense.amount ?? 0),
               status: expense.status
-                ? expense.status.charAt(0).toUpperCase() + expense.status.slice(1)
-                : '',
-              expenseId: (expense.id || '').substring(0, 8),
+                ? expense.status.charAt(0).toUpperCase() +
+                  expense.status.slice(1)
+                : "",
+              expenseId: (expense.id || "").substring(0, 8),
             });
           });
 
           // Currency formatting for Amount column
-          worksheet.getColumn('amount').numFmt = '$#,##0.00';
+          worksheet.getColumn("amount").numFmt = "$#,##0.00";
 
-          const filename = `expenses_${new Date().toISOString().split('T')[0]}.xlsx`;
+          const filename = `expenses_${new Date().toISOString().split("T")[0]}.xlsx`;
           const buffer = await workbook.xlsx.writeBuffer();
           const blob = new Blob([buffer], {
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           });
 
           const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
+          const link = document.createElement("a");
           link.href = url;
           link.download = filename;
           link.click();
           window.URL.revokeObjectURL(url);
         })(),
-        5000 // 5 second timeout
+        5000, // 5 second timeout
       );
 
-      logSecurityEvent('excel_export_completed', {
+      logSecurityEvent("excel_export_completed", {
         expenseCount: expenses.length,
-        format: 'xlsx'
+        format: "xlsx",
       });
     } catch (error) {
-      logSecurityEvent('excel_export_failed', {
+      logSecurityEvent("excel_export_failed", {
         expenseCount: expenses.length,
-        format: 'xlsx',
-        error: error.message
+        format: "xlsx",
+        error: error.message,
       });
 
       // Re-throw with user-friendly message
-      if (error.message?.includes('timeout')) {
-        throw new Error('Excel export timed out. Please try exporting fewer expenses or use CSV format.');
+      if (error.message?.includes("timeout")) {
+        throw new Error(
+          "Excel export timed out. Please try exporting fewer expenses or use CSV format.",
+        );
       }
       throw error;
     }
@@ -132,42 +135,56 @@ const ExpenseExport = ({ expenses, onClose }) => {
   const exportCSV = () => {
     // Helper function to properly escape CSV cells
     const escapeCSVCell = (cell) => {
-      if (cell === null || cell === undefined) return '';
+      if (cell === null || cell === undefined) return "";
       const str = String(cell);
       // Only quote if the cell contains comma, quote, or newline
-      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      if (str.includes(",") || str.includes('"') || str.includes("\n")) {
         return `"${str.replace(/"/g, '""')}"`;
       }
       return str;
     };
 
     // Create CSV content with proper headers
-    const headers = ['#', 'Date', 'Category', 'Vendor', 'Description', 'Amount', 'Status', 'Expense ID'];
+    const headers = [
+      "#",
+      "Date",
+      "Category",
+      "Vendor",
+      "Description",
+      "Amount",
+      "Status",
+      "Expense ID",
+    ];
     const rows = expenses.map((expense, index) => [
       index + 1,
       formatDate(expense.date),
-      expense.category || '',
-      expense.vendor || '',
-      expense.description || '',
+      expense.category || "",
+      expense.vendor || "",
+      expense.description || "",
       expense.amount.toFixed(2),
-      expense.status || '',
-      expense.id.substring(0, 8)
+      expense.status || "",
+      expense.id.substring(0, 8),
     ]);
 
     const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(escapeCSVCell).join(','))
-    ].join('\n');
+      headers.join(","),
+      ...rows.map((row) => row.map(escapeCSVCell).join(",")),
+    ].join("\n");
 
     // Create download with BOM for Excel compatibility
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
 
-    link.setAttribute('href', url);
-    link.setAttribute('download', `expenses_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `expenses_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
 
     document.body.appendChild(link);
     link.click();
@@ -182,7 +199,7 @@ const ExpenseExport = ({ expenses, onClose }) => {
       // Add header
       doc.setFontSize(20);
       doc.setTextColor(79, 70, 229); // Indigo color
-      doc.text('Expense Report', 105, 20, { align: 'center' });
+      doc.text("Expense Report", 105, 20, { align: "center" });
 
       // Add generation info
       doc.setFontSize(10);
@@ -191,99 +208,116 @@ const ExpenseExport = ({ expenses, onClose }) => {
       doc.text(`Total Expenses: ${expenses.length}`, 14, 41);
 
       // Calculate total amount safely
-      const totalAmount = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+      const totalAmount = expenses.reduce(
+        (sum, e) => sum + (parseFloat(e.amount) || 0),
+        0,
+      );
       doc.text(`Total Amount: $${totalAmount.toFixed(2)}`, 14, 47);
 
       // Calculate summary stats
-      const pending = expenses.filter(e => e.status === 'pending').length;
-      const approved = expenses.filter(e => e.status === 'approved').length;
-      const rejected = expenses.filter(e => e.status === 'rejected').length;
+      const pending = expenses.filter((e) => e.status === "pending").length;
+      const approved = expenses.filter((e) => e.status === "approved").length;
+      const rejected = expenses.filter((e) => e.status === "rejected").length;
 
-      doc.text(`Pending: ${pending} | Approved: ${approved} | Rejected: ${rejected}`, 14, 53);
+      doc.text(
+        `Pending: ${pending} | Approved: ${approved} | Rejected: ${rejected}`,
+        14,
+        53,
+      );
 
       // Prepare table data safely
       const tableData = expenses.map((expense, index) => [
         index + 1,
         formatDate(expense.date),
-        expense.category || '',
-        expense.vendor || '',
-        expense.description || '',
+        expense.category || "",
+        expense.vendor || "",
+        expense.description || "",
         `$${(parseFloat(expense.amount) || 0).toFixed(2)}`,
-        (expense.status || '').toUpperCase()
+        (expense.status || "").toUpperCase(),
       ]);
 
       // Add table with autoTable (using new API for jsPDF 3.x)
       autoTable(doc, {
-        head: [['#', 'Date', 'Category', 'Vendor', 'Description', 'Amount', 'Status']],
+        head: [
+          [
+            "#",
+            "Date",
+            "Category",
+            "Vendor",
+            "Description",
+            "Amount",
+            "Status",
+          ],
+        ],
         body: tableData,
         startY: 60,
-        theme: 'striped',
+        theme: "striped",
         headStyles: {
           fillColor: [79, 70, 229], // Indigo
           textColor: 255,
-          fontStyle: 'bold',
-          halign: 'left'
+          fontStyle: "bold",
+          halign: "left",
         },
         styles: {
           fontSize: 9,
           cellPadding: 3,
-          overflow: 'linebreak',
-          halign: 'left'
+          overflow: "linebreak",
+          halign: "left",
         },
         columnStyles: {
-          0: { cellWidth: 10, halign: 'center' },  // #
-          1: { cellWidth: 22 },                     // Date
-          2: { cellWidth: 22 },                     // Category
-          3: { cellWidth: 30 },                     // Vendor
-          4: { cellWidth: 50 },                     // Description
-          5: { cellWidth: 22, halign: 'right' },    // Amount
-          6: { cellWidth: 22, halign: 'center' }    // Status
+          0: { cellWidth: 10, halign: "center" }, // #
+          1: { cellWidth: 22 }, // Date
+          2: { cellWidth: 22 }, // Category
+          3: { cellWidth: 30 }, // Vendor
+          4: { cellWidth: 50 }, // Description
+          5: { cellWidth: 22, halign: "right" }, // Amount
+          6: { cellWidth: 22, halign: "center" }, // Status
         },
-        didParseCell: function(data) {
+        didParseCell: function (data) {
           // Color code status cells
-          if (data.column.index === 6 && data.section === 'body') {
+          if (data.column.index === 6 && data.section === "body") {
             const status = data.cell.raw.toLowerCase();
-            if (status === 'pending') {
+            if (status === "pending") {
               data.cell.styles.textColor = [245, 158, 11]; // Yellow
-              data.cell.styles.fontStyle = 'bold';
-            } else if (status === 'approved') {
+              data.cell.styles.fontStyle = "bold";
+            } else if (status === "approved") {
               data.cell.styles.textColor = [16, 185, 129]; // Green
-              data.cell.styles.fontStyle = 'bold';
-            } else if (status === 'rejected') {
+              data.cell.styles.fontStyle = "bold";
+            } else if (status === "rejected") {
               data.cell.styles.textColor = [239, 68, 68]; // Red
-              data.cell.styles.fontStyle = 'bold';
+              data.cell.styles.fontStyle = "bold";
             }
           }
         },
-        margin: { top: 60, left: 14, right: 14 }
+        margin: { top: 60, left: 14, right: 14 },
       });
 
-    // Add footer
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setTextColor(150);
-      doc.text(
-        'AP2 Expense Management System',
-        105,
-        doc.internal.pageSize.height - 15,
-        { align: 'center' }
-      );
-      doc.text(
-        `Page ${i} of ${pageCount}`,
-        105,
-        doc.internal.pageSize.height - 10,
-        { align: 'center' }
-      );
-    }
+      // Add footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(
+          "AP2 Expense Management System",
+          105,
+          doc.internal.pageSize.height - 15,
+          { align: "center" },
+        );
+        doc.text(
+          `Page ${i} of ${pageCount}`,
+          105,
+          doc.internal.pageSize.height - 10,
+          { align: "center" },
+        );
+      }
 
       // Save the PDF
-      const filename = `expenses_${new Date().toISOString().split('T')[0]}.pdf`;
+      const filename = `expenses_${new Date().toISOString().split("T")[0]}.pdf`;
       doc.save(filename);
     } catch (err) {
-      console.error('PDF Export Error:', err);
-      throw new Error(`PDF export failed: ${err.message || 'Unknown error'}`);
+      console.error("PDF Export Error:", err);
+      throw new Error(`PDF export failed: ${err.message || "Unknown error"}`);
     }
   };
 
@@ -295,16 +329,14 @@ const ExpenseExport = ({ expenses, onClose }) => {
             <Download className="w-6 h-6 text-indigo-600" />
             Export Expenses
           </h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded"
-          >
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <span className="text-2xl text-gray-600">&times;</span>
           </button>
         </div>
 
         <p className="text-sm text-gray-600 mb-6">
-          Export {expenses.length} expense{expenses.length !== 1 ? 's' : ''} to a file format of your choice.
+          Export {expenses.length} expense{expenses.length !== 1 ? "s" : ""} to
+          a file format of your choice.
         </p>
 
         {/* Summary */}
@@ -318,19 +350,25 @@ const ExpenseExport = ({ expenses, onClose }) => {
             <div>
               <span className="text-gray-600">Total Amount:</span>
               <span className="font-semibold ml-2">
-                ${expenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                $
+                {expenses
+                  .reduce((sum, e) => sum + e.amount, 0)
+                  .toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
               </span>
             </div>
             <div>
               <span className="text-gray-600">Pending:</span>
               <span className="font-semibold ml-2 text-yellow-600">
-                {expenses.filter(e => e.status === 'pending').length}
+                {expenses.filter((e) => e.status === "pending").length}
               </span>
             </div>
             <div>
               <span className="text-gray-600">Approved:</span>
               <span className="font-semibold ml-2 text-green-600">
-                {expenses.filter(e => e.status === 'approved').length}
+                {expenses.filter((e) => e.status === "approved").length}
               </span>
             </div>
           </div>
@@ -343,14 +381,16 @@ const ExpenseExport = ({ expenses, onClose }) => {
               type="radio"
               name="format"
               value="excel"
-              checked={format === 'excel'}
+              checked={format === "excel"}
               onChange={(e) => setFormat(e.target.value)}
               className="w-4 h-4 text-indigo-600"
             />
             <Table className="w-8 h-8 text-green-600" />
             <div className="flex-1">
               <div className="font-medium text-gray-800">Excel (.xlsx)</div>
-              <div className="text-xs text-gray-600">Properly formatted with auto-fit columns - Recommended</div>
+              <div className="text-xs text-gray-600">
+                Properly formatted with auto-fit columns - Recommended
+              </div>
             </div>
           </label>
 
@@ -359,14 +399,17 @@ const ExpenseExport = ({ expenses, onClose }) => {
               type="radio"
               name="format"
               value="csv"
-              checked={format === 'csv'}
+              checked={format === "csv"}
               onChange={(e) => setFormat(e.target.value)}
               className="w-4 h-4 text-indigo-600"
             />
             <Table className="w-8 h-8 text-blue-600" />
             <div className="flex-1">
               <div className="font-medium text-gray-800">CSV (Plain Text)</div>
-              <div className="text-xs text-gray-600">Simple format - may need to auto-resize columns in Excel (Select All → Format → AutoFit)</div>
+              <div className="text-xs text-gray-600">
+                Simple format - may need to auto-resize columns in Excel (Select
+                All → Format → AutoFit)
+              </div>
             </div>
           </label>
 
@@ -375,14 +418,16 @@ const ExpenseExport = ({ expenses, onClose }) => {
               type="radio"
               name="format"
               value="pdf"
-              checked={format === 'pdf'}
+              checked={format === "pdf"}
               onChange={(e) => setFormat(e.target.value)}
               className="w-4 h-4 text-indigo-600"
             />
             <FileText className="w-8 h-8 text-red-600" />
             <div className="flex-1">
               <div className="font-medium text-gray-800">PDF Document</div>
-              <div className="text-xs text-gray-600">Professional report with color-coded status</div>
+              <div className="text-xs text-gray-600">
+                Professional report with color-coded status
+              </div>
             </div>
           </label>
         </div>

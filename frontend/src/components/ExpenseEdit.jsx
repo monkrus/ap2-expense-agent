@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Edit2, X, Save } from 'lucide-react';
-import { expenseAPI, APIError } from '../services/api';
-import { useToast } from '../hooks/useToast';
+import React, { useState } from "react";
+import { Edit2, X, Save } from "lucide-react";
+import { expenseAPI, APIError } from "../services/api";
+import { useToast } from "../hooks/useToast";
 
 const ExpenseEdit = ({ expense, onSuccess, onCancel, currentUser }) => {
   const { success, error: showError } = useToast();
@@ -9,7 +9,7 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel, currentUser }) => {
     amount: expense.amount.toString(),
     category: expense.category,
     vendor: expense.vendor,
-    description: expense.description
+    description: expense.description,
   });
   const [saving, setSaving] = useState(false);
 
@@ -18,13 +18,18 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel, currentUser }) => {
 
   const handleSubmit = async () => {
     if (!formData.amount || !formData.vendor || !formData.description) {
-      showError('Please fill in all required fields');
+      showError("Please fill in all required fields");
       return;
     }
 
     if (!userId) {
-      showError('User ID is missing. Please try refreshing the page.');
-      console.error('Missing user_id - expense:', expense, 'currentUser:', currentUser);
+      showError("User ID is missing. Please try refreshing the page.");
+      console.error(
+        "Missing user_id - expense:",
+        expense,
+        "currentUser:",
+        currentUser,
+      );
       return;
     }
 
@@ -36,25 +41,28 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel, currentUser }) => {
         amount: parseFloat(formData.amount),
         category: formData.category,
         vendor: formData.vendor,
-        description: formData.description
+        description: formData.description,
       };
 
-      console.log('Submitting update:', updatedData); // Debug log
+      console.log("Submitting update:", updatedData); // Debug log
 
       const result = await expenseAPI.updateExpense(expense.id, updatedData);
 
-      success('Expense updated successfully');
+      success("Expense updated successfully");
       onSuccess(result.expense);
     } catch (err) {
-      console.error('Update error:', err); // Debug log
-      console.error('Full error data:', err.data); // Log full error response
-      
-      const errorMsg = err instanceof APIError ? err.getUserMessage() : 'Failed to update expense';
+      console.error("Update error:", err); // Debug log
+      console.error("Full error data:", err.data); // Log full error response
+
+      const errorMsg =
+        err instanceof APIError
+          ? err.getUserMessage()
+          : "Failed to update expense";
       showError(errorMsg);
-      
+
       // Log validation errors if present
       if (err.validationErrors) {
-        console.error('Validation errors:', err.validationErrors);
+        console.error("Validation errors:", err.validationErrors);
         // Log each validation error detail
         err.validationErrors.forEach((error, index) => {
           console.error(`Validation error ${index + 1}:`, error);
@@ -73,16 +81,14 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel, currentUser }) => {
             <Edit2 className="w-6 h-6 text-indigo-600" />
             Edit Expense
           </h2>
-          <button
-            onClick={onCancel}
-            className="p-1 hover:bg-gray-100 rounded"
-          >
+          <button onClick={onCancel} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-6 h-6 text-gray-600" />
           </button>
         </div>
 
         <p className="text-sm text-gray-600 mb-4">
-          Editing expense <span className="font-mono font-semibold">{expense.id}</span>
+          Editing expense{" "}
+          <span className="font-mono font-semibold">{expense.id}</span>
         </p>
 
         <div className="space-y-4">
@@ -94,7 +100,9 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel, currentUser }) => {
               type="number"
               step="1"
               value={formData.amount}
-              onChange={(e) => setFormData({...formData, amount: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, amount: e.target.value })
+              }
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
               placeholder="0.00"
               required
@@ -102,10 +110,14 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel, currentUser }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category
+            </label>
             <select
               value={formData.category}
-              onChange={(e) => setFormData({...formData, category: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, category: e.target.value })
+              }
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
               required
             >
@@ -124,7 +136,9 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel, currentUser }) => {
             <input
               type="text"
               value={formData.vendor}
-              onChange={(e) => setFormData({...formData, vendor: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, vendor: e.target.value })
+              }
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
               placeholder="Vendor name"
               required
@@ -137,7 +151,9 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel, currentUser }) => {
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
               rows="3"
               placeholder="Expense description"

@@ -1,59 +1,59 @@
-import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import React, { useState } from "react";
+import { Lock, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 
 const ChangePassword = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
   const [showPasswords, setShowPasswords] = useState({
     old: false,
     new: false,
-    confirm: false
+    confirm: false,
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setSuccess(false);
 
     // Validate passwords match
     if (formData.newPassword !== formData.confirmPassword) {
-      setError('New passwords do not match');
+      setError("New passwords do not match");
       return;
     }
 
     // Validate password strength
     if (formData.newPassword.length < 8) {
-      setError('Password must be at least 8 characters long');
+      setError("Password must be at least 8 characters long");
       return;
     }
 
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('access_token');
-      const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+      const token = localStorage.getItem("access_token");
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1";
       const response = await fetch(`${API_BASE_URL}/users/me/change-password`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           old_password: formData.oldPassword,
-          new_password: formData.newPassword
-        })
+          new_password: formData.newPassword,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || 'Failed to change password');
+        throw new Error(data.detail || "Failed to change password");
       }
 
       setSuccess(true);
@@ -69,9 +69,9 @@ const ChangePassword = ({ onClose, onSuccess }) => {
   };
 
   const togglePasswordVisibility = (field) => {
-    setShowPasswords(prev => ({
+    setShowPasswords((prev) => ({
       ...prev,
-      [field]: !prev[field]
+      [field]: !prev[field],
     }));
   };
 
@@ -96,7 +96,9 @@ const ChangePassword = ({ onClose, onSuccess }) => {
         {success && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
             <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-green-800">Password changed successfully!</p>
+            <p className="text-sm text-green-800">
+              Password changed successfully!
+            </p>
           </div>
         )}
 
@@ -110,7 +112,9 @@ const ChangePassword = ({ onClose, onSuccess }) => {
               <input
                 type={showPasswords.old ? "text" : "password"}
                 value={formData.oldPassword}
-                onChange={(e) => setFormData({ ...formData, oldPassword: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, oldPassword: e.target.value })
+                }
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter current password"
                 required
@@ -118,11 +122,15 @@ const ChangePassword = ({ onClose, onSuccess }) => {
               />
               <button
                 type="button"
-                onClick={() => togglePasswordVisibility('old')}
+                onClick={() => togglePasswordVisibility("old")}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                 tabIndex={-1}
               >
-                {showPasswords.old ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPasswords.old ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
               </button>
             </div>
           </div>
@@ -136,7 +144,9 @@ const ChangePassword = ({ onClose, onSuccess }) => {
               <input
                 type={showPasswords.new ? "text" : "password"}
                 value={formData.newPassword}
-                onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, newPassword: e.target.value })
+                }
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter new password"
                 required
@@ -145,14 +155,20 @@ const ChangePassword = ({ onClose, onSuccess }) => {
               />
               <button
                 type="button"
-                onClick={() => togglePasswordVisibility('new')}
+                onClick={() => togglePasswordVisibility("new")}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                 tabIndex={-1}
               >
-                {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPasswords.new ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Must be at least 8 characters
+            </p>
           </div>
 
           <div>
@@ -164,7 +180,9 @@ const ChangePassword = ({ onClose, onSuccess }) => {
               <input
                 type={showPasswords.confirm ? "text" : "password"}
                 value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, confirmPassword: e.target.value })
+                }
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Confirm new password"
                 required
@@ -173,11 +191,15 @@ const ChangePassword = ({ onClose, onSuccess }) => {
               />
               <button
                 type="button"
-                onClick={() => togglePasswordVisibility('confirm')}
+                onClick={() => togglePasswordVisibility("confirm")}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                 tabIndex={-1}
               >
-                {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPasswords.confirm ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
               </button>
             </div>
           </div>
@@ -196,7 +218,11 @@ const ChangePassword = ({ onClose, onSuccess }) => {
               disabled={loading || success}
               className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Changing...' : success ? 'Changed!' : 'Change Password'}
+              {loading
+                ? "Changing..."
+                : success
+                  ? "Changed!"
+                  : "Change Password"}
             </button>
           </div>
         </form>

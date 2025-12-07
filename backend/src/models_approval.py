@@ -6,8 +6,17 @@ Defines rules for automated expense approval
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from sqlalchemy import (JSON, Boolean, Column, DateTime, ForeignKey, Integer,
-                        Numeric, String, Text)
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
 from sqlalchemy.orm import relationship
 
 from .database import Base

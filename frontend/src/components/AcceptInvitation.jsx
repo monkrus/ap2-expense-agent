@@ -1,16 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Mail, CheckCircle, XCircle, AlertCircle, Loader, Building2, ArrowRight } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../hooks/useToast';
-import organizationAPI from '../services/organizationAPI';
+import React, { useState, useEffect } from "react";
+import {
+  Mail,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Loader,
+  Building2,
+  ArrowRight,
+} from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../hooks/useToast";
+import organizationAPI from "../services/organizationAPI";
 
 const AcceptInvitation = ({ token }) => {
   const { user } = useAuth();
   const { success, error: showError } = useToast();
 
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState('idle'); // idle, accepting, success, error
-  const [errorMessage, setErrorMessage] = useState('');
+  const [status, setStatus] = useState("idle"); // idle, accepting, success, error
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     // If user is not logged in, show message
@@ -21,28 +29,28 @@ const AcceptInvitation = ({ token }) => {
 
   const handleAccept = async () => {
     setLoading(true);
-    setStatus('accepting');
+    setStatus("accepting");
 
     try {
       await organizationAPI.acceptInvitation(token);
-      setStatus('success');
-      success('Invitation accepted! Redirecting to organization...');
+      setStatus("success");
+      success("Invitation accepted! Redirecting to organization...");
 
       // Redirect to organizations page after 2 seconds
       setTimeout(() => {
-        navigate('/organizations');
+        navigate("/organizations");
       }, 2000);
     } catch (err) {
-      setStatus('error');
-      setErrorMessage(err.message || 'Failed to accept invitation');
-      showError(err.message || 'Failed to accept invitation');
+      setStatus("error");
+      setErrorMessage(err.message || "Failed to accept invitation");
+      showError(err.message || "Failed to accept invitation");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDecline = () => {
-    navigate('/');
+    navigate("/");
   };
 
   if (!user) {
@@ -59,7 +67,7 @@ const AcceptInvitation = ({ token }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-8">
-        {status === 'idle' && (
+        {status === "idle" && (
           <>
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -82,7 +90,10 @@ const AcceptInvitation = ({ token }) => {
                 </div>
               </div>
               <div className="text-sm text-gray-600">
-                <p>By accepting this invitation, you will be added to the organization as a team member.</p>
+                <p>
+                  By accepting this invitation, you will be added to the
+                  organization as a team member.
+                </p>
               </div>
             </div>
 
@@ -116,7 +127,7 @@ const AcceptInvitation = ({ token }) => {
           </>
         )}
 
-        {status === 'accepting' && (
+        {status === "accepting" && (
           <div className="text-center py-8">
             <Loader className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
@@ -128,7 +139,7 @@ const AcceptInvitation = ({ token }) => {
           </div>
         )}
 
-        {status === 'success' && (
+        {status === "success" && (
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
@@ -146,7 +157,7 @@ const AcceptInvitation = ({ token }) => {
           </div>
         )}
 
-        {status === 'error' && (
+        {status === "error" && (
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <XCircle className="w-8 h-8 text-red-600" />
@@ -171,7 +182,7 @@ const AcceptInvitation = ({ token }) => {
                 Try Again
               </button>
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate("/")}
                 className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Go to Dashboard

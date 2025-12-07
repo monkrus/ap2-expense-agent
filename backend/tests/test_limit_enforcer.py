@@ -18,9 +18,18 @@ os.environ["TESTING"] = "true"
 from src.auth import AuthService
 from src.billing.limit_enforcer import LimitEnforcer, LimitExceededError
 from src.billing.tier_limits import TIER_CONFIGS, get_tier_limits
-from src.models import (Expense, ExpenseCategory, ExpenseStatus, Organization,
-                        OrganizationMember, OrganizationRole, Subscription,
-                        SubscriptionTier, User, UserRole)
+from src.models import (
+    Expense,
+    ExpenseCategory,
+    ExpenseStatus,
+    Organization,
+    OrganizationMember,
+    OrganizationRole,
+    Subscription,
+    SubscriptionTier,
+    User,
+    UserRole,
+)
 
 # ============================================================================
 # Tier Configuration Tests

@@ -9,8 +9,12 @@ from datetime import datetime, timedelta
 import pytest
 
 from src.models import CartMandate, Expense, IntentMandate, PaymentMandate
-from src.repository import (CartMandateRepository, ExpenseRepository,
-                            IntentMandateRepository, PaymentMandateRepository)
+from src.repository import (
+    CartMandateRepository,
+    ExpenseRepository,
+    IntentMandateRepository,
+    PaymentMandateRepository,
+)
 
 
 class TestExpenseRepository:

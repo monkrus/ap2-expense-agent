@@ -61,7 +61,15 @@
  * ```
  */
 
-export { default as UpgradePrompt } from './UpgradePrompt';
-export { default as UsageLimitWarning, UsageMeter } from './UsageLimitWarning';
-export { default as FeatureGate, FeatureBadge, LockedFeatureButton } from './FeatureGate';
-export { default as UpgradeBanner, SidebarUpgradeCard, InlineUpgradePrompt } from './UpgradeBanner';
+export { default as UpgradePrompt } from "./UpgradePrompt";
+export { default as UsageLimitWarning, UsageMeter } from "./UsageLimitWarning";
+export {
+  default as FeatureGate,
+  FeatureBadge,
+  LockedFeatureButton,
+} from "./FeatureGate";
+export {
+  default as UpgradeBanner,
+  SidebarUpgradeCard,
+  InlineUpgradePrompt,
+} from "./UpgradeBanner";

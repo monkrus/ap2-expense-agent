@@ -3,16 +3,16 @@
  * Handles billing, usage tracking, and subscription management
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 /**
  * Get authentication headers
  */
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem("access_token");
   return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
   };
 };
 
@@ -28,18 +28,18 @@ const getAuthHeaders = () => {
  */
 export const trackUsage = async (usageType, quantity = 1, metadata = null) => {
   const response = await fetch(`${API_BASE_URL}/api/billing/usage/track`, {
-    method: 'POST',
+    method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
       usage_type: usageType,
       quantity,
-      metadata
-    })
+      metadata,
+    }),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to track usage');
+    throw new Error(error.detail || "Failed to track usage");
   }
 
   return response.json();
@@ -54,12 +54,12 @@ export const getMonthlyUsage = async (usageType = null) => {
   const url = `${API_BASE_URL}/api/billing/org/usage/monthly`;
 
   const response = await fetch(url, {
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch usage statistics');
+    throw new Error(error.detail || "Failed to fetch usage statistics");
   }
 
   return response.json();
@@ -70,13 +70,16 @@ export const getMonthlyUsage = async (usageType = null) => {
  * @param {string} usageType - Usage type to check
  */
 export const checkUsageLimit = async (usageType) => {
-  const response = await fetch(`${API_BASE_URL}/api/billing/usage/check-limit/${usageType}`, {
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/billing/usage/check-limit/${usageType}`,
+    {
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to check usage limit');
+    throw new Error(error.detail || "Failed to check usage limit");
   }
 
   return response.json();
@@ -92,12 +95,12 @@ export const checkUsageLimit = async (usageType) => {
 export const getSubscription = async () => {
   // Use organization-based endpoint
   const response = await fetch(`${API_BASE_URL}/api/billing/org/subscription`, {
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch subscription');
+    throw new Error(error.detail || "Failed to fetch subscription");
   }
 
   return response.json();
@@ -111,17 +114,17 @@ export const getSubscription = async () => {
 export const createSubscription = async (tier, trialDays = 14) => {
   // Use organization-based endpoint
   const response = await fetch(`${API_BASE_URL}/api/billing/org/subscription`, {
-    method: 'POST',
+    method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
       tier,
-      trial_days: trialDays
-    })
+      trial_days: trialDays,
+    }),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to create subscription');
+    throw new Error(error.detail || "Failed to create subscription");
   }
 
   return response.json();
@@ -134,14 +137,17 @@ export const createSubscription = async (tier, trialDays = 14) => {
  */
 export const upgradeSubscription = async (subscriptionId, newTier) => {
   // Use organization-based endpoint (doesn't need subscriptionId)
-  const response = await fetch(`${API_BASE_URL}/api/billing/org/subscription/upgrade?new_tier=${newTier}`, {
-    method: 'PUT',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/billing/org/subscription/upgrade?new_tier=${newTier}`,
+    {
+      method: "PUT",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || 'Failed to upgrade subscription');
+    throw new Error(errorData.detail || "Failed to upgrade subscription");
   }
 
   return response.json();
@@ -153,14 +159,17 @@ export const upgradeSubscription = async (subscriptionId, newTier) => {
  * @param {boolean} immediate - Cancel immediately vs at period end
  */
 export const cancelSubscription = async (subscriptionId, immediate = false) => {
-  const response = await fetch(`${API_BASE_URL}/api/billing/subscription/${subscriptionId}?immediate=${immediate}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/billing/subscription/${subscriptionId}?immediate=${immediate}`,
+    {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to cancel subscription');
+    throw new Error(error.detail || "Failed to cancel subscription");
   }
 
   return response.json();
@@ -171,14 +180,17 @@ export const cancelSubscription = async (subscriptionId, immediate = false) => {
  * @param {string} subscriptionId - Subscription ID
  */
 export const reactivateSubscription = async (subscriptionId) => {
-  const response = await fetch(`${API_BASE_URL}/api/billing/subscription/${subscriptionId}/reactivate`, {
-    method: 'POST',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/billing/subscription/${subscriptionId}/reactivate`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to reactivate subscription');
+    throw new Error(error.detail || "Failed to reactivate subscription");
   }
 
   return response.json();
@@ -194,12 +206,12 @@ export const reactivateSubscription = async (subscriptionId) => {
 export const getAllTiers = async () => {
   // Use organization-based endpoint
   const response = await fetch(`${API_BASE_URL}/api/billing/org/tiers`, {
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch tiers');
+    throw new Error(error.detail || "Failed to fetch tiers");
   }
 
   return response.json();
@@ -211,12 +223,12 @@ export const getAllTiers = async () => {
  */
 export const getTierInfo = async (tier) => {
   const response = await fetch(`${API_BASE_URL}/api/billing/tiers/${tier}`, {
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch tier info');
+    throw new Error(error.detail || "Failed to fetch tier info");
   }
 
   return response.json();
@@ -237,5 +249,5 @@ export default {
 
   // Tiers
   getAllTiers,
-  getTierInfo
+  getTierInfo,
 };

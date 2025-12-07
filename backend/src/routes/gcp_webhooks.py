@@ -11,10 +11,16 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..database import get_db
-from ..gcp import (handle_entitlement_cancellation, handle_entitlement_update,
-                   handle_procurement_webhook)
-from ..gcp.events import (EventParseError, decode_pubsub_envelope,
-                          normalize_entitlement_event)
+from ..gcp import (
+    handle_entitlement_cancellation,
+    handle_entitlement_update,
+    handle_procurement_webhook,
+)
+from ..gcp.events import (
+    EventParseError,
+    decode_pubsub_envelope,
+    normalize_entitlement_event,
+)
 from ..gcp.idempotency import mark_success, record_event
 from ..gcp.marketplace_client import GCPMarketplaceClient
 from ..gcp.usage_reporter import run_hourly_usage_reporting
@@ -156,8 +162,13 @@ async def handle_procurement_simple(request: Request, db: Session = Depends(get_
     from datetime import datetime
 
     from ..gcp.jwt_verification import verify_gcp_jwt
-    from ..models import (Organization, OrganizationMember, OrganizationRole,
-                          User, UserRole)
+    from ..models import (
+        Organization,
+        OrganizationMember,
+        OrganizationRole,
+        User,
+        UserRole,
+    )
     from ..models_billing import OrganizationSubscription
 
     logger = logging.getLogger(__name__)

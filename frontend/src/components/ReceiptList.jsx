@@ -1,5 +1,5 @@
-import React from 'react';
-import { FileText, Image as ImageIcon, X, Download } from 'lucide-react';
+import React from "react";
+import { FileText, Image as ImageIcon, X, Download } from "lucide-react";
 
 const ReceiptList = ({ receipts, onClose }) => {
   const formatFileSize = (bytes) => {
@@ -9,19 +9,19 @@ const ReceiptList = ({ receipts, onClose }) => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return '';
+    if (!dateString) return "";
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
     });
   };
 
   const getFileIcon = (contentType) => {
-    if (contentType.startsWith('image/')) {
+    if (contentType.startsWith("image/")) {
       return <ImageIcon className="w-5 h-5 text-blue-600" />;
     }
     return <FileText className="w-5 h-5 text-green-600" />;
@@ -83,21 +83,24 @@ const ReceiptList = ({ receipts, onClose }) => {
                     <button
                       onClick={async () => {
                         try {
-                          const token = localStorage.getItem('access_token');
-                          const response = await fetch(`/api/v1/receipts/download/${receipt.id}`, {
-                            headers: {
-                              'Authorization': `Bearer ${token}`
-                            }
-                          });
+                          const token = localStorage.getItem("access_token");
+                          const response = await fetch(
+                            `/api/v1/receipts/download/${receipt.id}`,
+                            {
+                              headers: {
+                                Authorization: `Bearer ${token}`,
+                              },
+                            },
+                          );
 
                           if (!response.ok) {
-                            throw new Error('Failed to download receipt');
+                            throw new Error("Failed to download receipt");
                           }
 
                           // Get the blob and create download link
                           const blob = await response.blob();
                           const url = window.URL.createObjectURL(blob);
-                          const a = document.createElement('a');
+                          const a = document.createElement("a");
                           a.href = url;
                           a.download = receipt.filename;
                           document.body.appendChild(a);
@@ -105,8 +108,10 @@ const ReceiptList = ({ receipts, onClose }) => {
                           window.URL.revokeObjectURL(url);
                           document.body.removeChild(a);
                         } catch (error) {
-                          console.error('Download error:', error);
-                          alert('Failed to download receipt. Please try again.');
+                          console.error("Download error:", error);
+                          alert(
+                            "Failed to download receipt. Please try again.",
+                          );
                         }
                       }}
                       className="flex-shrink-0 p-2 text-indigo-600 hover:bg-indigo-50 rounded transition-colors"

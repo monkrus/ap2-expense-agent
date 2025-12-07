@@ -132,9 +132,11 @@ class WebhookDLQ:
 
         try:
             # Import handler dynamically to avoid circular imports
-            from ..routes.gcp_webhooks import (handle_entitlement_cancellation,
-                                               handle_entitlement_update,
-                                               handle_procurement_webhook)
+            from ..routes.gcp_webhooks import (
+                handle_entitlement_cancellation,
+                handle_entitlement_update,
+                handle_procurement_webhook,
+            )
 
             # Determine which handler to use
             handler_map = {

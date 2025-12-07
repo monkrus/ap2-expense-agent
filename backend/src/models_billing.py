@@ -4,8 +4,17 @@ Billing and usage tracking models for Google Cloud Marketplace integration
 
 from datetime import datetime
 
-from sqlalchemy import (JSON, Boolean, Column, DateTime, Float, Index, Integer,
-                        String, UniqueConstraint)
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.sql import func
 
 from .models import Base

@@ -15,8 +15,14 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_active_user
 from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
 from ..database import get_db
-from ..models import (Expense, ExpenseStatus, Organization, OrganizationMember,
-                      User, UserRole)
+from ..models import (
+    Expense,
+    ExpenseStatus,
+    Organization,
+    OrganizationMember,
+    User,
+    UserRole,
+)
 from ..schemas import ExpenseSubmission
 from ..services.approval_policy_service import ApprovalPolicyService
 from ..services.audit_service import AuditService

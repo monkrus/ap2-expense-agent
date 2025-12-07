@@ -1,13 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
-  CreditCard, TrendingUp, Users, Zap, AlertCircle, ExternalLink,
-  Calendar, DollarSign, BarChart3, Download, ArrowLeft, RefreshCw
-} from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../hooks/useToast';
-import billingAPI from '../services/billingAPI';
-import organizationAPI from '../services/organizationAPI';
-import paymentAPI from '../services/paymentAPI';
+  CreditCard,
+  TrendingUp,
+  Users,
+  Zap,
+  AlertCircle,
+  ExternalLink,
+  Calendar,
+  DollarSign,
+  BarChart3,
+  Download,
+  ArrowLeft,
+  RefreshCw,
+} from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../hooks/useToast";
+import billingAPI from "../services/billingAPI";
+import organizationAPI from "../services/organizationAPI";
+import paymentAPI from "../services/paymentAPI";
 
 /**
  * Billing Dashboard
@@ -34,25 +44,27 @@ const BillingDashboard = () => {
 
     // Listen for organization changes from other components
     const handleStorageChange = (e) => {
-      if (e.key === 'currentOrganizationId' && e.newValue !== e.oldValue) {
-        console.log('Organization changed, reloading billing data');
+      if (e.key === "currentOrganizationId" && e.newValue !== e.oldValue) {
+        console.log("Organization changed, reloading billing data");
         loadBillingData();
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
 
     // Also listen for custom events (for same-tab changes)
     const handleOrgChange = () => {
-      console.log('Organization changed (custom event), reloading billing data');
+      console.log(
+        "Organization changed (custom event), reloading billing data",
+      );
       loadBillingData();
     };
 
-    window.addEventListener('organizationChanged', handleOrgChange);
+    window.addEventListener("organizationChanged", handleOrgChange);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('organizationChanged', handleOrgChange);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("organizationChanged", handleOrgChange);
     };
   }, []);
 
@@ -72,7 +84,9 @@ const BillingDashboard = () => {
             setOrganization(org);
           } catch (err) {
             // Stored org ID is invalid (deleted or no access), clear it
-            console.warn('Stored organization not accessible, fetching new one');
+            console.warn(
+              "Stored organization not accessible, fetching new one",
+            );
             organizationAPI.setCurrentOrganizationId(null);
             orgId = null;
           }
@@ -85,14 +99,16 @@ const BillingDashboard = () => {
             organizationAPI.setCurrentOrganizationId(orgs[0].id);
             setOrganization(orgs[0]);
           } else {
-            showError('No organizations found. Please create an organization first.');
+            showError(
+              "No organizations found. Please create an organization first.",
+            );
             setLoading(false);
             return;
           }
         }
       } catch (orgErr) {
-        console.error('Failed to fetch organizations:', orgErr);
-        showError('Failed to load organization data');
+        console.error("Failed to fetch organizations:", orgErr);
+        showError("Failed to load organization data");
         // Continue loading billing data even if org fetch fails
       }
 
@@ -107,9 +123,8 @@ const BillingDashboard = () => {
       // Load available tiers
       const tiersData = await billingAPI.getAllTiers();
       setTiers(tiersData.tiers || []);
-
     } catch (err) {
-      showError('Failed to load billing information');
+      showError("Failed to load billing information");
       console.error(err);
     } finally {
       setLoading(false);
@@ -121,11 +136,11 @@ const BillingDashboard = () => {
       // GCP customer - redirect to GCP Console
       window.open(
         `https://console.cloud.google.com/marketplace/product/google/${subscription.gcp_entitlement_id}`,
-        '_blank'
+        "_blank",
       );
     } else {
       // Direct customer - navigate to pricing page
-      window.location.href = '/pricing';
+      window.location.href = "/pricing";
     }
   };
 
@@ -135,7 +150,7 @@ const BillingDashboard = () => {
       const { url } = await paymentAPI.createPortalSession();
       window.location.href = url;
     } catch (err) {
-      showError('Failed to open payment portal');
+      showError("Failed to open payment portal");
       console.error(err);
     } finally {
       setLoading(false);
@@ -148,18 +163,26 @@ const BillingDashboard = () => {
   };
 
   const getUsageColor = (percentage) => {
-    if (percentage >= 90) return 'text-red-600 bg-red-100 border-red-200';
-    if (percentage >= 75) return 'text-orange-600 bg-orange-100 border-orange-200';
-    return 'text-green-600 bg-green-100 border-green-200';
+    if (percentage >= 90) return "text-red-600 bg-red-100 border-red-200";
+    if (percentage >= 75)
+      return "text-orange-600 bg-orange-100 border-orange-200";
+    return "text-green-600 bg-green-100 border-green-200";
   };
 
   const getProgressBarColor = (percentage) => {
-    if (percentage >= 90) return 'bg-red-500';
-    if (percentage >= 75) return 'bg-orange-500';
-    return 'bg-green-500';
+    if (percentage >= 90) return "bg-red-500";
+    if (percentage >= 75) return "bg-orange-500";
+    return "bg-green-500";
   };
 
-  const UsageProgressBar = ({ label, current, limit, overage, overageFee, unit = '' }) => {
+  const UsageProgressBar = ({
+    label,
+    current,
+    limit,
+    overage,
+    overageFee,
+    unit = "",
+  }) => {
     const percentage = getUsagePercentage(current, limit);
     const isUnlimited = limit === null || limit === undefined;
 
@@ -171,7 +194,7 @@ const BillingDashboard = () => {
             <p className="text-sm text-gray-500 mt-1">
               {current?.toLocaleString() || 0} {unit}
               {!isUnlimited && ` / ${limit?.toLocaleString()} ${unit}`}
-              {isUnlimited && ' (Unlimited)'}
+              {isUnlimited && " (Unlimited)"}
             </p>
           </div>
           {overage > 0 && (
@@ -192,7 +215,7 @@ const BillingDashboard = () => {
 
         <div className="flex justify-between items-center text-sm">
           <span className="text-gray-600">
-            {isUnlimited ? '∞ Unlimited' : `${percentage.toFixed(1)}% used`}
+            {isUnlimited ? "∞ Unlimited" : `${percentage.toFixed(1)}% used`}
           </span>
           {overageFee > 0 && (
             <span className="text-orange-600 font-medium">
@@ -229,7 +252,7 @@ const BillingDashboard = () => {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => window.location.href = '/dashboard'}
+                onClick={() => (window.location.href = "/dashboard")}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -237,7 +260,9 @@ const BillingDashboard = () => {
               </button>
               <div className="border-l h-8"></div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Billing Dashboard</h1>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Billing Dashboard
+                </h1>
                 {organization && (
                   <p className="text-gray-600 mt-1">{organization.name}</p>
                 )}
@@ -251,7 +276,9 @@ const BillingDashboard = () => {
                   alt="GCP"
                   className="w-5 h-5"
                 />
-                <span className="text-sm font-medium">Managed via GCP Marketplace</span>
+                <span className="text-sm font-medium">
+                  Managed via GCP Marketplace
+                </span>
               </div>
             )}
           </div>
@@ -263,30 +290,45 @@ const BillingDashboard = () => {
         <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-8 text-white mb-8">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-purple-200 text-sm font-medium mb-2">Current Plan</p>
+              <p className="text-purple-200 text-sm font-medium mb-2">
+                Current Plan
+              </p>
               <h2 className="text-4xl font-bold mb-2">
                 {(() => {
-                  const tierName = subscription?.tier_display_name || subscription?.tier || 'Free';
+                  const tierName =
+                    subscription?.tier_display_name ||
+                    subscription?.tier ||
+                    "Free";
                   // Map enterprise_plus to enterprise +
-                  if (tierName.toLowerCase() === 'enterprise_plus') return 'enterprise +';
+                  if (tierName.toLowerCase() === "enterprise_plus")
+                    return "enterprise +";
                   return tierName.toLowerCase();
                 })()}
               </h2>
               <p className="text-2xl font-semibold mb-4">
-                ${estimatedBill.toFixed(2)} <span className="text-lg font-normal text-indigo-200">/month</span>
+                ${estimatedBill.toFixed(2)}{" "}
+                <span className="text-lg font-normal text-indigo-200">
+                  /month
+                </span>
               </p>
               {subscription?.cancel_at ? (
                 <div className="bg-orange-500/20 border border-orange-300/30 rounded-lg px-4 py-3 mb-2">
                   <div className="flex items-center gap-2 text-white">
                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                     <div>
-                      <p className="font-semibold text-sm">Subscription Scheduled to Cancel</p>
+                      <p className="font-semibold text-sm">
+                        Subscription Scheduled to Cancel
+                      </p>
                       <p className="text-sm text-purple-100">
-                        Expires on {new Date(subscription.cancel_at).toLocaleDateString('en-US', {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
+                        Expires on{" "}
+                        {new Date(subscription.cancel_at).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          },
+                        )}
                       </p>
                     </div>
                   </div>
@@ -295,7 +337,11 @@ const BillingDashboard = () => {
                 <div className="flex items-center gap-2 text-purple-100">
                   <Calendar className="w-4 h-4" />
                   <span className="text-sm">
-                    Billing period: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    Billing period:{" "}
+                    {new Date().toLocaleDateString("en-US", {
+                      month: "long",
+                      year: "numeric",
+                    })}
                   </span>
                 </div>
               )}
@@ -310,7 +356,7 @@ const BillingDashboard = () => {
                   Manage Payment
                 </button>
                 <button
-                  onClick={() => window.location.href = '/pricing'}
+                  onClick={() => (window.location.href = "/pricing")}
                   className="px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
                 >
                   Upgrade Plan
@@ -346,7 +392,7 @@ const BillingDashboard = () => {
               {usage?.usage?.active_users?.quantity || 0}
             </p>
             <p className="text-xs text-gray-500 mt-2">
-              Limit: {subscription?.limits?.max_users || 'Unlimited'}
+              Limit: {subscription?.limits?.max_users || "Unlimited"}
             </p>
           </div>
 
@@ -361,9 +407,7 @@ const BillingDashboard = () => {
             <p className="text-3xl font-bold text-gray-900">
               {usage?.usage?.ai_categorization?.quantity || 0}
             </p>
-            <p className="text-xs text-gray-500 mt-2">
-              This month
-            </p>
+            <p className="text-xs text-gray-500 mt-2">This month</p>
           </div>
 
           <div className="bg-white p-6 rounded-lg border border-gray-200">
@@ -377,21 +421,25 @@ const BillingDashboard = () => {
             <p className="text-3xl font-bold text-gray-900">
               {usage?.usage?.ap2_transaction?.quantity || 0}
             </p>
-            <p className="text-xs text-gray-500 mt-2">
-              This month
-            </p>
+            <p className="text-xs text-gray-500 mt-2">This month</p>
           </div>
         </div>
 
         {/* Usage Metrics */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Usage This Month</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            Usage This Month
+          </h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <UsageProgressBar
               label="AI Categorizations"
               current={usage?.usage?.ai_categorization?.quantity || 0}
               limit={subscription?.limits?.max_ai_categorizations}
-              overage={Math.max(0, (usage?.usage?.ai_categorization?.quantity || 0) - (subscription?.limits?.max_ai_categorizations || Infinity))}
+              overage={Math.max(
+                0,
+                (usage?.usage?.ai_categorization?.quantity || 0) -
+                  (subscription?.limits?.max_ai_categorizations || Infinity),
+              )}
               overageFee={usage?.usage?.ai_categorization?.fees || 0}
               unit="categorizations"
             />
@@ -400,7 +448,11 @@ const BillingDashboard = () => {
               label="AP2 Transactions"
               current={usage?.usage?.ap2_transaction?.quantity || 0}
               limit={subscription?.limits?.max_ap2_transactions}
-              overage={Math.max(0, (usage?.usage?.ap2_transaction?.quantity || 0) - (subscription?.limits?.max_ap2_transactions || Infinity))}
+              overage={Math.max(
+                0,
+                (usage?.usage?.ap2_transaction?.quantity || 0) -
+                  (subscription?.limits?.max_ap2_transactions || Infinity),
+              )}
               overageFee={usage?.usage?.ap2_transaction?.fees || 0}
               unit="transactions"
             />
@@ -409,7 +461,11 @@ const BillingDashboard = () => {
               label="OCR Scans"
               current={usage?.usage?.ocr_scan?.quantity || 0}
               limit={subscription?.limits?.ocr_scans_included}
-              overage={Math.max(0, (usage?.usage?.ocr_scan?.quantity || 0) - (subscription?.limits?.ocr_scans_included || Infinity))}
+              overage={Math.max(
+                0,
+                (usage?.usage?.ocr_scan?.quantity || 0) -
+                  (subscription?.limits?.ocr_scans_included || Infinity),
+              )}
               overageFee={usage?.usage?.ocr_scan?.fees || 0}
               unit="scans"
             />
@@ -425,7 +481,9 @@ const BillingDashboard = () => {
 
         {/* Estimated Bill */}
         <div className="bg-white rounded-lg border border-gray-200 p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Estimated Monthly Bill</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            Estimated Monthly Bill
+          </h2>
 
           <div className="space-y-4">
             <div className="flex justify-between items-center pb-4 border-b">
@@ -452,7 +510,8 @@ const BillingDashboard = () => {
                         You're currently over your plan limits
                       </p>
                       <p className="text-xs text-orange-700">
-                        Consider upgrading to eliminate overage charges and save money
+                        Consider upgrading to eliminate overage charges and save
+                        money
                       </p>
                     </div>
                   </div>
@@ -461,7 +520,9 @@ const BillingDashboard = () => {
             )}
 
             <div className="flex justify-between items-center pt-4 border-t border-gray-300">
-              <span className="text-xl font-bold text-gray-900">Total Estimated</span>
+              <span className="text-xl font-bold text-gray-900">
+                Total Estimated
+              </span>
               <span className="text-3xl font-bold text-purple-600">
                 ${totalEstimated.toFixed(2)}
               </span>
@@ -470,8 +531,9 @@ const BillingDashboard = () => {
             {subscription?.gcp_entitlement_id && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
                 <p className="text-sm text-blue-900">
-                  <strong>Note:</strong> This bill will be charged to your Google Cloud billing account.
-                  You can view detailed invoices in the{' '}
+                  <strong>Note:</strong> This bill will be charged to your
+                  Google Cloud billing account. You can view detailed invoices
+                  in the{" "}
                   <a
                     href="https://console.cloud.google.com/billing"
                     target="_blank"
@@ -490,7 +552,9 @@ const BillingDashboard = () => {
         {/* Available Plans (if direct customer) */}
         {!subscription?.gcp_entitlement_id && tiers.length > 0 && (
           <div className="bg-white rounded-lg border border-gray-200 p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Upgrade Your Plan</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Upgrade Your Plan
+            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {tiers.map((tier) => {
@@ -502,33 +566,40 @@ const BillingDashboard = () => {
                     key={tier.tier}
                     className={`p-6 rounded-lg border-2 ${
                       isCurrent
-                        ? 'border-purple-600 bg-purple-50'
-                        : 'border-gray-200 hover:border-purple-300'
+                        ? "border-purple-600 bg-purple-50"
+                        : "border-gray-200 hover:border-purple-300"
                     }`}
                   >
-                    <h3 className="text-xl font-bold mb-2">{tier.display_name || tier.tier}</h3>
+                    <h3 className="text-xl font-bold mb-2">
+                      {tier.display_name || tier.tier}
+                    </h3>
                     <p className="text-3xl font-bold text-gray-900 mb-4">
                       ${tier.price_monthly}
-                      <span className="text-lg font-normal text-gray-600">/mo</span>
+                      <span className="text-lg font-normal text-gray-600">
+                        /mo
+                      </span>
                     </p>
 
                     <ul className="space-y-2 mb-6 text-sm">
                       <li className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-green-500" />
-                        {tier.limits?.max_users == null ? 'Unlimited' : tier.limits.max_users} users
+                        {tier.limits?.max_users == null
+                          ? "Unlimited"
+                          : tier.limits.max_users}{" "}
+                        users
                       </li>
                       <li className="flex items-center gap-2">
                         <Zap className="w-4 h-4 text-green-500" />
                         {tier.limits?.max_ai_categorizations == null
-                          ? 'Unlimited'
-                          : tier.limits.max_ai_categorizations.toLocaleString()}{' '}
+                          ? "Unlimited"
+                          : tier.limits.max_ai_categorizations.toLocaleString()}{" "}
                         AI categorizations
                       </li>
                       <li className="flex items-center gap-2">
                         <CreditCard className="w-4 h-4 text-green-500" />
                         {tier.limits?.max_ap2_transactions == null
-                          ? 'Unlimited'
-                          : tier.limits.max_ap2_transactions}{' '}
+                          ? "Unlimited"
+                          : tier.limits.max_ap2_transactions}{" "}
                         AP2 transactions
                       </li>
                     </ul>
@@ -545,11 +616,11 @@ const BillingDashboard = () => {
                         onClick={() => handleUpgrade(tier.tier)}
                         className={`w-full py-2 rounded-lg font-semibold ${
                           isHigher
-                            ? 'bg-purple-600 text-white hover:bg-purple-700'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? "bg-purple-600 text-white hover:bg-purple-700"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}
                       >
-                        {isHigher ? 'Upgrade' : 'Downgrade'}
+                        {isHigher ? "Upgrade" : "Downgrade"}
                       </button>
                     )}
                   </div>
@@ -565,46 +636,66 @@ const BillingDashboard = () => {
             onClick={() => {
               // Generate billing report as CSV
               const reportData = [
-                ['AP2 Expense Agent - Billing Report'],
-                ['Generated', new Date().toLocaleString()],
-                ['Organization', organization?.name || 'N/A'],
-                [''],
-                ['Current Plan'],
-                ['Tier', subscription?.tier_display_name || subscription?.tier || 'N/A'],
-                ['Monthly Price', `$${estimatedBill.toFixed(2)}`],
-                ['Billing Period', new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })],
-                [''],
-                ['Usage This Month'],
-                ['Active Users', usage?.usage?.active_users?.quantity || 0],
-                ['AI Categorizations', usage?.usage?.ai_categorization?.quantity || 0],
-                ['AP2 Transactions', usage?.usage?.ap2_transaction?.quantity || 0],
-                ['OCR Scans', usage?.usage?.ocr_scan?.quantity || 0],
-                ['Expenses Submitted', usage?.usage?.expense?.quantity || 0],
-                [''],
-                ['Estimated Bill'],
-                ['Base Subscription', `$${estimatedBill.toFixed(2)}`],
-                ['Usage Overages', `$${totalOverage.toFixed(2)}`],
-                ['Total Estimated', `$${totalEstimated.toFixed(2)}`],
+                ["AP2 Expense Agent - Billing Report"],
+                ["Generated", new Date().toLocaleString()],
+                ["Organization", organization?.name || "N/A"],
+                [""],
+                ["Current Plan"],
+                [
+                  "Tier",
+                  subscription?.tier_display_name ||
+                    subscription?.tier ||
+                    "N/A",
+                ],
+                ["Monthly Price", `$${estimatedBill.toFixed(2)}`],
+                [
+                  "Billing Period",
+                  new Date().toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  }),
+                ],
+                [""],
+                ["Usage This Month"],
+                ["Active Users", usage?.usage?.active_users?.quantity || 0],
+                [
+                  "AI Categorizations",
+                  usage?.usage?.ai_categorization?.quantity || 0,
+                ],
+                [
+                  "AP2 Transactions",
+                  usage?.usage?.ap2_transaction?.quantity || 0,
+                ],
+                ["OCR Scans", usage?.usage?.ocr_scan?.quantity || 0],
+                ["Expenses Submitted", usage?.usage?.expense?.quantity || 0],
+                [""],
+                ["Estimated Bill"],
+                ["Base Subscription", `$${estimatedBill.toFixed(2)}`],
+                ["Usage Overages", `$${totalOverage.toFixed(2)}`],
+                ["Total Estimated", `$${totalEstimated.toFixed(2)}`],
               ];
 
-              const csvContent = reportData.map(row => row.join(',')).join('\n');
-              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+              const csvContent = reportData
+                .map((row) => row.join(","))
+                .join("\n");
+              const blob = new Blob([csvContent], {
+                type: "text/csv;charset=utf-8;",
+              });
               const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
+              const link = document.createElement("a");
               link.href = url;
-              link.download = `billing-report-${new Date().toISOString().split('T')[0]}.csv`;
+              link.download = `billing-report-${new Date().toISOString().split("T")[0]}.csv`;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
               URL.revokeObjectURL(url);
-              success('Billing report exported successfully');
+              success("Billing report exported successfully");
             }}
             className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             <Download className="w-4 h-4" />
             Export Report
           </button>
-
         </div>
       </div>
     </div>

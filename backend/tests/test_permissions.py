@@ -14,10 +14,17 @@ import pytest
 from fastapi import HTTPException
 
 from src.models import UserRole
-from src.permissions import (ROLE_PERMISSIONS, Permission, can_approve_expense,
-                             check_expense_access, check_permission,
-                             get_user_permissions, has_all_permissions,
-                             has_any_permission, has_permission)
+from src.permissions import (
+    ROLE_PERMISSIONS,
+    Permission,
+    can_approve_expense,
+    check_expense_access,
+    check_permission,
+    get_user_permissions,
+    has_all_permissions,
+    has_any_permission,
+    has_permission,
+)
 
 
 class TestBasicPermissionChecks:

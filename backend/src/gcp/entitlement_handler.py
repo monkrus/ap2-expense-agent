@@ -12,8 +12,11 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..email_service import EmailService
 from ..models import Organization
-from ..models_billing import (BillingEvent, MarketplaceEntitlement,
-                              OrganizationSubscription)
+from ..models_billing import (
+    BillingEvent,
+    MarketplaceEntitlement,
+    OrganizationSubscription,
+)
 from .idempotency import mark_failure, mark_success, record_event
 
 

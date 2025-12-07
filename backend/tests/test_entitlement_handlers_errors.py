@@ -1,8 +1,10 @@
 import pytest
 from sqlalchemy.orm import Session
 
-from src.gcp.entitlement_handler import (handle_entitlement_cancellation,
-                                         handle_entitlement_update)
+from src.gcp.entitlement_handler import (
+    handle_entitlement_cancellation,
+    handle_entitlement_update,
+)
 
 
 @pytest.mark.asyncio

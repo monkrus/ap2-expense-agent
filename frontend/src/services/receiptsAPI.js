@@ -3,15 +3,15 @@
  * Handles receipt upload, OCR, and management
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 /**
  * Get authentication headers
  */
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem("access_token");
   return {
-    'Authorization': `Bearer ${token}`
+    Authorization: `Bearer ${token}`,
   };
 };
 
@@ -19,9 +19,9 @@ const getAuthHeaders = () => {
  * Get authentication headers for multipart form data
  */
 const getMultipartAuthHeaders = () => {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem("access_token");
   return {
-    'Authorization': `Bearer ${token}`
+    Authorization: `Bearer ${token}`,
     // Don't set Content-Type for multipart/form-data - browser will set it with boundary
   };
 };
@@ -38,20 +38,20 @@ const getMultipartAuthHeaders = () => {
  */
 export const uploadReceipt = async (file, expenseId = null) => {
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append("file", file);
   if (expenseId) {
-    formData.append('expense_id', expenseId);
+    formData.append("expense_id", expenseId);
   }
 
   const response = await fetch(`${API_BASE_URL}/api/v1/receipts/upload`, {
-    method: 'POST',
+    method: "POST",
     headers: getMultipartAuthHeaders(),
-    body: formData
+    body: formData,
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to upload receipt');
+    throw new Error(error.detail || "Failed to upload receipt");
   }
 
   return response.json();
@@ -64,12 +64,12 @@ export const uploadReceipt = async (file, expenseId = null) => {
  */
 export const getReceipt = async (receiptId) => {
   const response = await fetch(`${API_BASE_URL}/api/v1/receipts/${receiptId}`, {
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch receipt');
+    throw new Error(error.detail || "Failed to fetch receipt");
   }
 
   return response.json();
@@ -82,13 +82,13 @@ export const getReceipt = async (receiptId) => {
  */
 export const deleteReceipt = async (receiptId) => {
   const response = await fetch(`${API_BASE_URL}/api/v1/receipts/${receiptId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders()
+    method: "DELETE",
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to delete receipt');
+    throw new Error(error.detail || "Failed to delete receipt");
   }
 
   return true;
@@ -100,14 +100,17 @@ export const deleteReceipt = async (receiptId) => {
  * @returns {Promise<Object>} OCR extracted data
  */
 export const triggerOCR = async (receiptId) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/receipts/${receiptId}/ocr`, {
-    method: 'POST',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/receipts/${receiptId}/ocr`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to process receipt with OCR');
+    throw new Error(error.detail || "Failed to process receipt with OCR");
   }
 
   return response.json();
@@ -129,7 +132,7 @@ export const uploadAndProcessReceipt = async (file, expenseId = null) => {
 
     return {
       receipt,
-      ocrData: ocrResult
+      ocrData: ocrResult,
     };
   } catch (error) {
     throw new Error(`Failed to upload and process receipt: ${error.message}`);
@@ -141,5 +144,5 @@ export default {
   getReceipt,
   deleteReceipt,
   triggerOCR,
-  uploadAndProcessReceipt
+  uploadAndProcessReceipt,
 };

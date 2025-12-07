@@ -1,21 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
-  Bot, Zap, Shield, TrendingUp, Plus, Settings,
-  CheckCircle, XCircle, Clock, AlertTriangle,
-  ChevronRight, Sparkles, Activity, Target
-} from 'lucide-react';
-import { expenseAPI, APIError } from '../services/api';
-import { useToast } from '../hooks/useToast';
-import { useAuth } from '../contexts/AuthContext';
-import IntentMandateManager from '../components/IntentMandateManager';
-import AgentActivityMonitor from '../components/AgentActivityMonitor';
-import ConstraintBuilder from '../components/ConstraintBuilder';
+  Bot,
+  Zap,
+  Shield,
+  TrendingUp,
+  Plus,
+  Settings,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  ChevronRight,
+  Sparkles,
+  Activity,
+  Target,
+} from "lucide-react";
+import { expenseAPI, APIError } from "../services/api";
+import { useToast } from "../hooks/useToast";
+import { useAuth } from "../contexts/AuthContext";
+import IntentMandateManager from "../components/IntentMandateManager";
+import AgentActivityMonitor from "../components/AgentActivityMonitor";
+import ConstraintBuilder from "../components/ConstraintBuilder";
 
 const AIAssistant = () => {
   const { user } = useAuth();
   const { success, error: showError } = useToast();
 
-  const [activeView, setActiveView] = useState('overview'); // 'overview', 'mandates', 'activity', 'settings'
+  const [activeView, setActiveView] = useState("overview"); // 'overview', 'mandates', 'activity', 'settings'
   const [mandates, setMandates] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,10 +42,10 @@ const AIAssistant = () => {
       setLoading(true);
 
       // Fetch AP2 stats
-      const statsResponse = await fetch('/api/ap2/stats', {
+      const statsResponse = await fetch("/api/ap2/stats", {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
@@ -42,26 +53,26 @@ const AIAssistant = () => {
       }
 
       // Fetch user's mandates
-      const mandatesResponse = await fetch('/api/ap2/user/mandates?limit=50', {
+      const mandatesResponse = await fetch("/api/ap2/user/mandates?limit=50", {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
       if (mandatesResponse.ok) {
         const mandatesData = await mandatesResponse.json();
         setMandates(mandatesData.mandates || []);
       }
     } catch (err) {
-      console.error('Error fetching AP2 data:', err);
-      showError('Failed to load AI Assistant data');
+      console.error("Error fetching AP2 data:", err);
+      showError("Failed to load AI Assistant data");
     } finally {
       setLoading(false);
     }
   };
 
   // Calculate active mandates count
-  const activeMandatesCount = mandates.filter(m =>
-    m.type === 'intent' && m.status === 'active'
+  const activeMandatesCount = mandates.filter(
+    (m) => m.type === "intent" && m.status === "active",
   ).length;
 
   // Calculate total processed amount
@@ -90,7 +101,9 @@ const AIAssistant = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-sm">Active Mandates</p>
-                  <p className="text-2xl font-bold mt-1">{activeMandatesCount}</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {activeMandatesCount}
+                  </p>
                 </div>
                 <Target className="w-8 h-8 text-purple-200" />
               </div>
@@ -101,7 +114,11 @@ const AIAssistant = () => {
                 <div>
                   <p className="text-purple-100 text-sm">Total Processed</p>
                   <p className="text-2xl font-bold mt-1">
-                    ${totalProcessed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    $
+                    {totalProcessed.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-purple-200" />
@@ -125,7 +142,10 @@ const AIAssistant = () => {
                 <div>
                   <p className="text-purple-100 text-sm">Time Saved</p>
                   <p className="text-2xl font-bold mt-1">
-                    {Math.round((stats?.payment_mandates?.completed || 0) * 2.5)} min
+                    {Math.round(
+                      (stats?.payment_mandates?.completed || 0) * 2.5,
+                    )}{" "}
+                    min
                   </p>
                 </div>
                 <Zap className="w-8 h-8 text-yellow-300" />
@@ -136,31 +156,31 @@ const AIAssistant = () => {
           {/* Navigation Tabs */}
           <div className="flex space-x-4 mt-8 border-b border-white/20">
             <button
-              onClick={() => setActiveView('overview')}
+              onClick={() => setActiveView("overview")}
               className={`px-4 py-3 font-medium transition-colors ${
-                activeView === 'overview'
-                  ? 'text-white border-b-2 border-white'
-                  : 'text-purple-200 hover:text-white'
+                activeView === "overview"
+                  ? "text-white border-b-2 border-white"
+                  : "text-purple-200 hover:text-white"
               }`}
             >
               Overview
             </button>
             <button
-              onClick={() => setActiveView('mandates')}
+              onClick={() => setActiveView("mandates")}
               className={`px-4 py-3 font-medium transition-colors ${
-                activeView === 'mandates'
-                  ? 'text-white border-b-2 border-white'
-                  : 'text-purple-200 hover:text-white'
+                activeView === "mandates"
+                  ? "text-white border-b-2 border-white"
+                  : "text-purple-200 hover:text-white"
               }`}
             >
               Intent Mandates
             </button>
             <button
-              onClick={() => setActiveView('activity')}
+              onClick={() => setActiveView("activity")}
               className={`px-4 py-3 font-medium transition-colors ${
-                activeView === 'activity'
-                  ? 'text-white border-b-2 border-white'
-                  : 'text-purple-200 hover:text-white'
+                activeView === "activity"
+                  ? "text-white border-b-2 border-white"
+                  : "text-purple-200 hover:text-white"
               }`}
             >
               Activity
@@ -177,7 +197,7 @@ const AIAssistant = () => {
           </div>
         ) : (
           <>
-            {activeView === 'overview' && (
+            {activeView === "overview" && (
               <OverviewView
                 mandates={mandates}
                 stats={stats}
@@ -185,7 +205,7 @@ const AIAssistant = () => {
               />
             )}
 
-            {activeView === 'mandates' && (
+            {activeView === "mandates" && (
               <IntentMandateManager
                 mandates={mandates}
                 onRefresh={fetchData}
@@ -193,11 +213,8 @@ const AIAssistant = () => {
               />
             )}
 
-            {activeView === 'activity' && (
-              <AgentActivityMonitor
-                mandates={mandates}
-                stats={stats}
-              />
+            {activeView === "activity" && (
+              <AgentActivityMonitor mandates={mandates} stats={stats} />
             )}
           </>
         )}
@@ -210,7 +227,7 @@ const AIAssistant = () => {
           onSuccess={() => {
             setShowCreateMandate(false);
             fetchData();
-            success('Intent Mandate created successfully!');
+            success("Intent Mandate created successfully!");
           }}
         />
       )}
@@ -220,7 +237,9 @@ const AIAssistant = () => {
 
 // Overview View Component
 const OverviewView = ({ mandates, stats, onCreateMandate }) => {
-  const activeIntentMandates = mandates.filter(m => m.type === 'intent' && m.status === 'active');
+  const activeIntentMandates = mandates.filter(
+    (m) => m.type === "intent" && m.status === "active",
+  );
   const recentActivity = mandates.slice(0, 5);
 
   return (
@@ -231,11 +250,14 @@ const OverviewView = ({ mandates, stats, onCreateMandate }) => {
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-4">
               <Sparkles className="w-6 h-6" />
-              <h2 className="text-2xl font-bold">Welcome to Your AI Assistant</h2>
+              <h2 className="text-2xl font-bold">
+                Welcome to Your AI Assistant
+              </h2>
             </div>
             <p className="text-purple-100 mb-6 max-w-2xl">
-              Set up Intent Mandates to let your AI agent automatically manage expenses within your constraints.
-              Save hours every week with intelligent automation powered by the AP2 protocol.
+              Set up Intent Mandates to let your AI agent automatically manage
+              expenses within your constraints. Save hours every week with
+              intelligent automation powered by the AP2 protocol.
             </p>
             <button
               onClick={onCreateMandate}
@@ -277,8 +299,12 @@ const OverviewView = ({ mandates, stats, onCreateMandate }) => {
       {activeIntentMandates.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Active Intent Mandates</h3>
-            <span className="text-sm text-gray-500">{activeIntentMandates.length} active</span>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Active Intent Mandates
+            </h3>
+            <span className="text-sm text-gray-500">
+              {activeIntentMandates.length} active
+            </span>
           </div>
           <div className="divide-y divide-gray-200">
             {activeIntentMandates.map((mandate) => (
@@ -291,7 +317,9 @@ const OverviewView = ({ mandates, stats, onCreateMandate }) => {
       {/* Recent Activity */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Recent Activity
+          </h3>
         </div>
         <div className="divide-y divide-gray-200">
           {recentActivity.length > 0 ? (
@@ -313,15 +341,17 @@ const OverviewView = ({ mandates, stats, onCreateMandate }) => {
 // Feature Card Component
 const FeatureCard = ({ icon, title, description, color }) => {
   const colorClasses = {
-    blue: 'bg-blue-100 text-blue-600',
-    yellow: 'bg-yellow-100 text-yellow-600',
-    green: 'bg-green-100 text-green-600',
-    purple: 'bg-purple-100 text-purple-600'
+    blue: "bg-blue-100 text-blue-600",
+    yellow: "bg-yellow-100 text-yellow-600",
+    green: "bg-green-100 text-green-600",
+    purple: "bg-purple-100 text-purple-600",
   };
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-      <div className={`w-12 h-12 rounded-lg ${colorClasses[color]} flex items-center justify-center mb-4`}>
+      <div
+        className={`w-12 h-12 rounded-lg ${colorClasses[color]} flex items-center justify-center mb-4`}
+      >
         {icon}
       </div>
       <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
@@ -333,10 +363,10 @@ const FeatureCard = ({ icon, title, description, color }) => {
 // Mandate List Item Component
 const MandateListItem = ({ mandate }) => {
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
@@ -354,7 +384,8 @@ const MandateListItem = ({ mandate }) => {
             </span>
           </div>
           <p className="text-sm text-gray-600">
-            Created {formatDate(mandate.created_at)} • Expires {formatDate(mandate.expiration)}
+            Created {formatDate(mandate.created_at)} • Expires{" "}
+            {formatDate(mandate.expiration)}
           </p>
         </div>
         <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -367,12 +398,12 @@ const MandateListItem = ({ mandate }) => {
 const ActivityItem = ({ mandate }) => {
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'completed':
+      case "completed":
         return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'active':
-      case 'pending':
+      case "active":
+      case "pending":
         return <Clock className="w-5 h-5 text-yellow-500" />;
-      case 'failed':
+      case "failed":
         return <XCircle className="w-5 h-5 text-red-500" />;
       default:
         return <AlertTriangle className="w-5 h-5 text-gray-500" />;
@@ -381,23 +412,23 @@ const ActivityItem = ({ mandate }) => {
 
   const getMandateTypeLabel = (type) => {
     switch (type) {
-      case 'intent':
-        return 'Intent Mandate';
-      case 'cart':
-        return 'Cart Mandate';
-      case 'payment':
-        return 'Payment Mandate';
+      case "intent":
+        return "Intent Mandate";
+      case "cart":
+        return "Cart Mandate";
+      case "payment":
+        return "Payment Mandate";
       default:
         return type;
     }
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
     });
   };
 
@@ -421,12 +452,17 @@ const ActivityItem = ({ mandate }) => {
           </p>
         </div>
         <div className="flex-shrink-0">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            mandate.status === 'completed' ? 'bg-green-100 text-green-800' :
-            mandate.status === 'active' ? 'bg-yellow-100 text-yellow-800' :
-            mandate.status === 'pending' ? 'bg-blue-100 text-blue-800' :
-            'bg-red-100 text-red-800'
-          }`}>
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              mandate.status === "completed"
+                ? "bg-green-100 text-green-800"
+                : mandate.status === "active"
+                  ? "bg-yellow-100 text-yellow-800"
+                  : mandate.status === "pending"
+                    ? "bg-blue-100 text-blue-800"
+                    : "bg-red-100 text-red-800"
+            }`}
+          >
             {mandate.status}
           </span>
         </div>

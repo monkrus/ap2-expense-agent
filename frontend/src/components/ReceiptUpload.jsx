@@ -1,34 +1,40 @@
-import React, { useState } from 'react';
-import { Upload, X, Image, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState } from "react";
+import { Upload, X, Image, CheckCircle, AlertCircle } from "lucide-react";
 
 const ReceiptUpload = ({ expenseId, onSuccess, onCancel }) => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleFileSelect = (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
     // Validate file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+    const validTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "application/pdf",
+    ];
     if (!validTypes.includes(selectedFile.type)) {
-      setError('Please upload a valid image (JPEG, PNG, GIF) or PDF file');
+      setError("Please upload a valid image (JPEG, PNG, GIF) or PDF file");
       return;
     }
 
     // Validate file size (max 5MB)
     if (selectedFile.size > 5 * 1024 * 1024) {
-      setError('File size must be less than 5MB');
+      setError("File size must be less than 5MB");
       return;
     }
 
     setFile(selectedFile);
-    setError('');
+    setError("");
 
     // Create preview for images
-    if (selectedFile.type.startsWith('image/')) {
+    if (selectedFile.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result);
@@ -41,29 +47,29 @@ const ReceiptUpload = ({ expenseId, onSuccess, onCancel }) => {
 
   const handleUpload = async () => {
     if (!file) {
-      setError('Please select a file');
+      setError("Please select a file");
       return;
     }
 
     setUploading(true);
-    setError('');
+    setError("");
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       const response = await fetch(`/api/v1/receipts/upload/${expenseId}`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: formData
+        body: formData,
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.detail || 'Failed to upload receipt');
+        throw new Error(data.detail || "Failed to upload receipt");
       }
 
       const data = await response.json();
@@ -96,16 +102,14 @@ const ReceiptUpload = ({ expenseId, onSuccess, onCancel }) => {
             <Upload className="w-6 h-6 text-indigo-600" />
             Upload Receipt
           </h2>
-          <button
-            onClick={onCancel}
-            className="p-1 hover:bg-gray-100 rounded"
-          >
+          <button onClick={onCancel} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-6 h-6 text-gray-600" />
           </button>
         </div>
 
         <p className="text-sm text-gray-600 mb-4">
-          Upload a photo or scan of your receipt (JPEG, PNG, GIF, or PDF). Max size: 5MB.
+          Upload a photo or scan of your receipt (JPEG, PNG, GIF, or PDF). Max
+          size: 5MB.
         </p>
 
         {/* Upload Area */}
@@ -116,7 +120,11 @@ const ReceiptUpload = ({ expenseId, onSuccess, onCancel }) => {
         >
           {preview ? (
             <div className="relative">
-              <img src={preview} alt="Receipt preview" className="max-h-64 mx-auto rounded" />
+              <img
+                src={preview}
+                alt="Receipt preview"
+                className="max-h-64 mx-auto rounded"
+              />
               <button
                 onClick={() => {
                   setFile(null);
@@ -132,7 +140,9 @@ const ReceiptUpload = ({ expenseId, onSuccess, onCancel }) => {
               <Image className="w-12 h-12 text-green-500" />
               <div className="text-left">
                 <p className="text-sm font-medium text-gray-800">{file.name}</p>
-                <p className="text-xs text-green-600 font-medium">✓ Ready to upload • {(file.size / 1024).toFixed(1)} KB</p>
+                <p className="text-xs text-green-600 font-medium">
+                  ✓ Ready to upload • {(file.size / 1024).toFixed(1)} KB
+                </p>
               </div>
               <button
                 onClick={() => {
@@ -148,7 +158,9 @@ const ReceiptUpload = ({ expenseId, onSuccess, onCancel }) => {
           ) : (
             <>
               <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600 mb-2">Drag and drop your receipt here</p>
+              <p className="text-gray-600 mb-2">
+                Drag and drop your receipt here
+              </p>
               <p className="text-sm text-gray-500 mb-4">or</p>
               <label className="cursor-pointer">
                 <span className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 inline-block">

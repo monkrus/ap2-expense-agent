@@ -1,6 +1,14 @@
-import React, { useState, useRef } from 'react';
-import { Upload, X, Check, AlertCircle, Edit2, Save, Loader } from 'lucide-react';
-import { useToast } from '../hooks/useToast';
+import React, { useState, useRef } from "react";
+import {
+  Upload,
+  X,
+  Check,
+  AlertCircle,
+  Edit2,
+  Save,
+  Loader,
+} from "lucide-react";
+import { useToast } from "../hooks/useToast";
 
 const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
   const { success: showSuccess, error: showError } = useToast();
@@ -32,8 +40,16 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
 
   const handleFiles = (newFiles) => {
     // Validate file types
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'application/pdf'];
-    const validFiles = newFiles.filter(file => {
+    const validTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/bmp",
+      "image/webp",
+      "application/pdf",
+    ];
+    const validFiles = newFiles.filter((file) => {
       if (!validTypes.includes(file.type)) {
         showError(`Invalid file type: ${file.name}`);
         return false;
@@ -46,7 +62,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
     });
 
     if (files.length + validFiles.length > 10) {
-      showError('Maximum 10 files per batch');
+      showError("Maximum 10 files per batch");
       return;
     }
 
@@ -60,7 +76,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
 
   const handleUploadAndExtract = async () => {
     if (files.length === 0) {
-      showError('Please select at least one file');
+      showError("Please select at least one file");
       return;
     }
 
@@ -68,22 +84,22 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
 
     try {
       const formData = new FormData();
-      files.forEach(file => {
-        formData.append('files', file);
+      files.forEach((file) => {
+        formData.append("files", file);
       });
 
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/receipts/batch-upload', {
-        method: 'POST',
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/v1/receipts/batch-upload", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: formData
+        body: formData,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Upload failed');
+        throw new Error(errorData.detail || "Upload failed");
       }
 
       const data = await response.json();
@@ -96,18 +112,19 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
         success: result.success,
         error: result.error,
         extractedData: result.extracted_data || {},
-        vendor: result.extracted_data?.vendor || '',
-        amount: result.extracted_data?.amount || '',
-        category: result.extracted_data?.category || 'Other',
-        description: result.extracted_data?.description || '',
-        confidence: result.extracted_data?.confidence || 0
+        vendor: result.extracted_data?.vendor || "",
+        amount: result.extracted_data?.amount || "",
+        category: result.extracted_data?.category || "Other",
+        description: result.extracted_data?.description || "",
+        confidence: result.extracted_data?.confidence || 0,
       }));
 
       setExtractedData(extracted);
-      showSuccess(`Extracted data from ${extracted.filter(e => e.success).length}/${files.length} receipts`);
-
+      showSuccess(
+        `Extracted data from ${extracted.filter((e) => e.success).length}/${files.length} receipts`,
+      );
     } catch (err) {
-      showError(err.message || 'Failed to upload and extract receipts');
+      showError(err.message || "Failed to upload and extract receipts");
       console.error(err);
     } finally {
       setUploading(false);
@@ -136,17 +153,17 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
     const item = extractedData[index];
 
     if (!item.vendor || !item.amount) {
-      showError('Vendor and amount are required');
+      showError("Vendor and amount are required");
       return;
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/receipts/create-from-extraction', {
-        method: 'POST',
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/v1/receipts/create-from-extraction", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           vendor: item.vendor,
@@ -155,13 +172,13 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
           description: item.description,
           temp_filename: item.tempFilename,
           original_filename: item.originalFile,
-          content_type: item.contentType
-        })
+          content_type: item.contentType,
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create expense');
+        throw new Error(errorData.detail || "Failed to create expense");
       }
 
       const data = await response.json();
@@ -173,9 +190,8 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
       setExtractedData(updated);
 
       showSuccess(`Expense created: ${item.vendor}`);
-
     } catch (err) {
-      showError(err.message || 'Failed to create expense');
+      showError(err.message || "Failed to create expense");
       console.error(err);
     }
   };
@@ -208,7 +224,13 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
     }
   };
 
-  const categories = ['Travel', 'Meals', 'Software', 'Office Supplies', 'Other'];
+  const categories = [
+    "Travel",
+    "Meals",
+    "Software",
+    "Office Supplies",
+    "Other",
+  ];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -219,7 +241,9 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
             <div className="inline-flex items-center justify-center w-10 h-10 bg-teal-100 rounded-full">
               <Upload className="w-6 h-6 text-teal-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Batch Receipt Upload</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              Batch Receipt Upload
+            </h2>
           </div>
           <button
             onClick={onCancel}
@@ -245,7 +269,8 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                   Drop receipt images here or click to browse
                 </p>
                 <p className="text-sm text-gray-500">
-                  Supports JPG, PNG, GIF, PDF (max 10MB per file, up to 10 files)
+                  Supports JPG, PNG, GIF, PDF (max 10MB per file, up to 10
+                  files)
                 </p>
                 <input
                   ref={fileInputRef}
@@ -260,7 +285,9 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
               {/* Selected Files */}
               {files.length > 0 && (
                 <div className="mt-4 space-y-2">
-                  <h3 className="font-medium text-gray-900">Selected Files ({files.length})</h3>
+                  <h3 className="font-medium text-gray-900">
+                    Selected Files ({files.length})
+                  </h3>
                   <div className="space-y-2">
                     {files.map((file, index) => (
                       <div
@@ -270,7 +297,9 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                         <div className="flex items-center gap-3">
                           <Check className="w-5 h-5 text-green-600" />
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {file.name}
+                            </p>
                             <p className="text-xs text-gray-500">
                               {(file.size / 1024).toFixed(1)} KB
                             </p>
@@ -318,11 +347,15 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Review Extracted Data ({extractedData.filter(e => !e.created).length} pending)
+                  Review Extracted Data (
+                  {extractedData.filter((e) => !e.created).length} pending)
                 </h3>
                 <button
                   onClick={handleCreateAll}
-                  disabled={creating || extractedData.every(e => e.created || !e.success)}
+                  disabled={
+                    creating ||
+                    extractedData.every((e) => e.created || !e.success)
+                  }
                   className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {creating ? (
@@ -344,17 +377,19 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                   key={index}
                   className={`border rounded-lg p-4 ${
                     item.created
-                      ? 'bg-green-50 border-green-200'
+                      ? "bg-green-50 border-green-200"
                       : item.success
-                      ? 'bg-white'
-                      : 'bg-red-50 border-red-200'
+                        ? "bg-white"
+                        : "bg-red-50 border-red-200"
                   }`}
                 >
                   {!item.success ? (
                     <div className="flex items-center gap-3">
                       <AlertCircle className="w-5 h-5 text-red-600" />
                       <div>
-                        <p className="font-medium text-gray-900">{item.originalFile}</p>
+                        <p className="font-medium text-gray-900">
+                          {item.originalFile}
+                        </p>
                         <p className="text-sm text-red-600">{item.error}</p>
                       </div>
                     </div>
@@ -368,8 +403,13 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                           </label>
                           <input
                             type="text"
-                            value={editData.vendor || ''}
-                            onChange={(e) => setEditData({ ...editData, vendor: e.target.value })}
+                            value={editData.vendor || ""}
+                            onChange={(e) =>
+                              setEditData({
+                                ...editData,
+                                vendor: e.target.value,
+                              })
+                            }
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                           />
                         </div>
@@ -380,8 +420,13 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                           <input
                             type="number"
                             step="0.01"
-                            value={editData.amount || ''}
-                            onChange={(e) => setEditData({ ...editData, amount: e.target.value })}
+                            value={editData.amount || ""}
+                            onChange={(e) =>
+                              setEditData({
+                                ...editData,
+                                amount: e.target.value,
+                              })
+                            }
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                           />
                         </div>
@@ -392,12 +437,19 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                           Category
                         </label>
                         <select
-                          value={editData.category || 'Other'}
-                          onChange={(e) => setEditData({ ...editData, category: e.target.value })}
+                          value={editData.category || "Other"}
+                          onChange={(e) =>
+                            setEditData({
+                              ...editData,
+                              category: e.target.value,
+                            })
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         >
-                          {categories.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
+                          {categories.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -407,8 +459,13 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                           Description
                         </label>
                         <textarea
-                          value={editData.description || ''}
-                          onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                          value={editData.description || ""}
+                          onChange={(e) =>
+                            setEditData({
+                              ...editData,
+                              description: e.target.value,
+                            })
+                          }
                           rows="2"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         />
@@ -436,20 +493,24 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-semibold text-gray-900">{item.originalFile}</h4>
+                            <h4 className="font-semibold text-gray-900">
+                              {item.originalFile}
+                            </h4>
                             {item.created && (
                               <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
                                 Created
                               </span>
                             )}
                             {item.confidence > 0 && (
-                              <span className={`px-2 py-1 text-xs rounded ${
-                                item.confidence >= 0.8
-                                  ? 'bg-green-100 text-green-800'
-                                  : item.confidence >= 0.6
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}>
+                              <span
+                                className={`px-2 py-1 text-xs rounded ${
+                                  item.confidence >= 0.8
+                                    ? "bg-green-100 text-green-800"
+                                    : item.confidence >= 0.6
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-red-100 text-red-800"
+                                }`}
+                              >
                                 {Math.round(item.confidence * 100)}% confidence
                               </span>
                             )}
@@ -479,22 +540,29 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
                           <p className="text-gray-500">Vendor</p>
-                          <p className="font-medium text-gray-900">{item.vendor || 'N/A'}</p>
+                          <p className="font-medium text-gray-900">
+                            {item.vendor || "N/A"}
+                          </p>
                         </div>
                         <div>
                           <p className="text-gray-500">Amount</p>
                           <p className="font-medium text-gray-900">
-                            ${item.amount ? parseFloat(item.amount).toFixed(2) : '0.00'}
+                            $
+                            {item.amount
+                              ? parseFloat(item.amount).toFixed(2)
+                              : "0.00"}
                           </p>
                         </div>
                         <div>
                           <p className="text-gray-500">Category</p>
-                          <p className="font-medium text-gray-900">{item.category}</p>
+                          <p className="font-medium text-gray-900">
+                            {item.category}
+                          </p>
                         </div>
                         <div>
                           <p className="text-gray-500">Description</p>
                           <p className="font-medium text-gray-900 truncate">
-                            {item.description || 'N/A'}
+                            {item.description || "N/A"}
                           </p>
                         </div>
                       </div>

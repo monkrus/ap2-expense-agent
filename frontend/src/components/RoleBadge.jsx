@@ -1,19 +1,19 @@
-import React from 'react';
-import { getRoleTheme, getRoleCapabilities } from '../utils/roleThemes';
-import { Info } from 'lucide-react';
+import React from "react";
+import { getRoleTheme, getRoleCapabilities } from "../utils/roleThemes";
+import { Info } from "lucide-react";
 
 /**
  * Role Badge Component
  * Displays user's role with icon, color-coding, and optional capabilities tooltip
  */
-const RoleBadge = ({ role, size = 'default', showCapabilities = false }) => {
+const RoleBadge = ({ role, size = "default", showCapabilities = false }) => {
   const theme = getRoleTheme(role);
   const capabilities = getRoleCapabilities(role);
 
   const sizeClasses = {
-    small: 'px-2 py-1 text-xs',
-    default: 'px-3 py-1.5 text-sm',
-    large: 'px-4 py-2 text-base',
+    small: "px-2 py-1 text-xs",
+    default: "px-3 py-1.5 text-sm",
+    large: "px-4 py-2 text-base",
   };
 
   const [showTooltip, setShowTooltip] = React.useState(false);
@@ -27,9 +27,7 @@ const RoleBadge = ({ role, size = 'default', showCapabilities = false }) => {
       >
         <span className="text-lg">{theme.icon}</span>
         <span>{theme.name}</span>
-        {showCapabilities && (
-          <Info className="w-4 h-4 opacity-60" />
-        )}
+        {showCapabilities && <Info className="w-4 h-4 opacity-60" />}
       </div>
 
       {/* Capabilities Tooltip */}

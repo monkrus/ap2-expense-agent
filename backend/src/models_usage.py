@@ -4,8 +4,18 @@ Usage Tracking Models for GCP Marketplace Metering
 
 from datetime import datetime
 
-from sqlalchemy import (Boolean, Column, Date, DateTime, ForeignKey, Integer,
-                        Numeric, String, Text, UniqueConstraint)
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import relationship
 

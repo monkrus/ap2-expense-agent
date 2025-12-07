@@ -12,9 +12,17 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from src.agent_db import ExpenseManagementAgent
-from src.models import (Base, CartMandate, Expense, ExpenseCategory,
-                        ExpenseStatus, IntentMandate, PaymentMandate, User,
-                        UserRole)
+from src.models import (
+    Base,
+    CartMandate,
+    Expense,
+    ExpenseCategory,
+    ExpenseStatus,
+    IntentMandate,
+    PaymentMandate,
+    User,
+    UserRole,
+)
 from src.repository import AP2Repository, ExpenseRepository
 
 

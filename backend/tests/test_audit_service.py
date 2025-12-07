@@ -6,9 +6,17 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from src.models import (AuditLog, CartMandate, Expense, ExpenseCategory,
-                        ExpenseStatus, IntentMandate, PaymentMandate, User,
-                        UserRole)
+from src.models import (
+    AuditLog,
+    CartMandate,
+    Expense,
+    ExpenseCategory,
+    ExpenseStatus,
+    IntentMandate,
+    PaymentMandate,
+    User,
+    UserRole,
+)
 from src.services.audit_service import AuditService
 
 

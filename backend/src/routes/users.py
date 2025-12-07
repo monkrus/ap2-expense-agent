@@ -4,13 +4,17 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from ..auth import (AuthService, get_current_active_user, require_admin,
-                    require_manager)
+from ..auth import AuthService, get_current_active_user, require_admin, require_manager
 from ..database import get_db
 from ..models import Session as UserSession
 from ..models import User, UserRole
-from ..schemas import (PasswordChange, SessionResponse, UserCreate,
-                       UserResponse, UserUpdate)
+from ..schemas import (
+    PasswordChange,
+    SessionResponse,
+    UserCreate,
+    UserResponse,
+    UserUpdate,
+)
 
 router = APIRouter(prefix="/api/v1/users", tags=["User Management"])
 

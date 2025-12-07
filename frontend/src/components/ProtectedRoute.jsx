@@ -1,6 +1,6 @@
-import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import Login from './Login';
+import React from "react";
+import { useAuth } from "../contexts/AuthContext";
+import Login from "./Login";
 
 const ProtectedRoute = ({ children, requiredRole = null }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -14,14 +14,21 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
   }
 
   if (!isAuthenticated) {
-    return <Login onSuccess={() => window.location.reload()} onSwitchToRegister={() => {}} />;
+    return (
+      <Login
+        onSuccess={() => window.location.reload()}
+        onSwitchToRegister={() => {}}
+      />
+    );
   }
 
-  if (requiredRole && user?.role !== requiredRole && user?.role !== 'admin') {
+  if (requiredRole && user?.role !== requiredRole && user?.role !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="bg-white p-8 rounded-lg shadow-lg text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Access Denied
+          </h2>
           <p className="text-gray-600">
             You don't have permission to access this page.
           </p>

@@ -8,8 +8,7 @@ import uuid
 from pathlib import Path
 from typing import List
 
-from fastapi import (APIRouter, BackgroundTasks, Depends, File, HTTPException,
-                     UploadFile)
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from fastapi import status as http_status
 from sqlalchemy.orm import Session
 

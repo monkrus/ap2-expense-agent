@@ -8,9 +8,9 @@
  * - Checkout sessions
  */
 
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // Create axios instance with auth header
 const api = axios.create({
@@ -19,7 +19,7 @@ const api = axios.create({
 
 // Add auth token to all requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem("access_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -33,7 +33,7 @@ const paymentAPI = {
    * @returns {Promise<{client_secret: string, customer_id: string}>}
    */
   createSetupIntent: async () => {
-    const response = await api.post('/api/payment/setup-intent');
+    const response = await api.post("/api/payment/setup-intent");
     return response.data;
   },
 
@@ -45,7 +45,7 @@ const paymentAPI = {
    * @returns {Promise<{success: boolean, subscription_id: string, status: string, tier: string}>}
    */
   createSubscription: async (tierName, paymentMethodId) => {
-    const response = await api.post('/api/payment/subscribe', null, {
+    const response = await api.post("/api/payment/subscribe", null, {
       params: {
         tier_name: tierName,
         payment_method_id: paymentMethodId,
@@ -63,8 +63,8 @@ const paymentAPI = {
    * @param {string} billingCycle - Billing cycle ('monthly' or 'annual')
    * @returns {Promise<{session_id: string, url: string, billing_cycle: string}>}
    */
-  createCheckoutSession: async (tierName, billingCycle = 'monthly') => {
-    const response = await api.post('/api/payment/checkout-session', null, {
+  createCheckoutSession: async (tierName, billingCycle = "monthly") => {
+    const response = await api.post("/api/payment/checkout-session", null, {
       params: {
         tier_name: tierName,
         billing_cycle: billingCycle,
@@ -81,7 +81,7 @@ const paymentAPI = {
    * @returns {Promise<{url: string}>}
    */
   createPortalSession: async () => {
-    const response = await api.post('/api/payment/portal-session');
+    const response = await api.post("/api/payment/portal-session");
     return response.data;
   },
 };

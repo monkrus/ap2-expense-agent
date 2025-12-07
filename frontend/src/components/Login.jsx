@@ -1,43 +1,43 @@
-import React, { useState } from 'react';
-import { Lock, Mail, AlertCircle, Shield, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from "react";
+import { Lock, Mail, AlertCircle, Shield, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 const Login = ({ onSuccess, onSwitchToRegister }) => {
   const { login } = useAuth();
   const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    totpCode: '',
+    username: "",
+    password: "",
+    totpCode: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [requires2FA, setRequires2FA] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       const result = await login(
         formData.username,
         formData.password,
-        formData.totpCode || null
+        formData.totpCode || null,
       );
 
       if (result.success) {
         onSuccess();
       } else {
-        if (result.error.includes('2FA code required')) {
+        if (result.error.includes("2FA code required")) {
           setRequires2FA(true);
-          setError('Please enter your 2FA code');
+          setError("Please enter your 2FA code");
         } else {
           setError(result.error);
         }
       }
     } catch (err) {
-      setError('An error occurred during login');
+      setError("An error occurred during login");
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,9 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
             <Lock className="w-8 h-8 text-indigo-600" />
           </div>
           <h2 className="text-3xl font-bold text-gray-800">Welcome Back</h2>
-          <p className="text-gray-600 mt-2">Sign in to your AP2 Expense account</p>
+          <p className="text-gray-600 mt-2">
+            Sign in to your AP2 Expense account
+          </p>
         </div>
 
         {error && (
@@ -71,7 +73,9 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
               <input
                 type="text"
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Enter your username"
                 required
@@ -89,7 +93,9 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
               <input
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Enter your password"
                 required
@@ -119,7 +125,9 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
               <input
                 type="text"
                 value={formData.totpCode}
-                onChange={(e) => setFormData({ ...formData, totpCode: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, totpCode: e.target.value })
+                }
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Enter 6-digit code"
                 maxLength={6}
@@ -133,7 +141,7 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
             disabled={loading}
             className="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
@@ -143,13 +151,16 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              <span className="px-2 bg-white text-gray-500">
+                Or continue with
+              </span>
             </div>
           </div>
 
           <button
             onClick={() => {
-              const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+              const apiUrl =
+                import.meta.env.VITE_API_URL || "http://localhost:8000";
               window.location.href = `${apiUrl}/api/v1/oauth2/google/login`;
             }}
             disabled={loading}
@@ -179,7 +190,7 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <button
               onClick={onSwitchToRegister}
               className="text-indigo-600 hover:text-indigo-700 font-medium"

@@ -14,8 +14,16 @@ from sqlalchemy.orm import Session
 
 from src.auth import get_current_user
 from src.database import get_db
-from src.models import (Budget, BudgetAlert, BudgetPeriod, Expense,
-                        ExpenseCategory, OrganizationMember, User, UserRole)
+from src.models import (
+    Budget,
+    BudgetAlert,
+    BudgetPeriod,
+    Expense,
+    ExpenseCategory,
+    OrganizationMember,
+    User,
+    UserRole,
+)
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"])
 

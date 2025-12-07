@@ -1,6 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, CheckCheck, Clock, DollarSign, Repeat, AlertCircle, Info, X } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Bell,
+  Check,
+  CheckCheck,
+  Clock,
+  DollarSign,
+  Repeat,
+  AlertCircle,
+  Info,
+  X,
+} from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 const NotificationCenter = () => {
   const { user } = useAuth();
@@ -30,18 +40,18 @@ const NotificationCenter = () => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/notifications?limit=20', {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("/api/notifications?limit=20", {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.ok) {
@@ -49,7 +59,7 @@ const NotificationCenter = () => {
         setNotifications(data);
       }
     } catch (err) {
-      console.error('Failed to fetch notifications:', err);
+      console.error("Failed to fetch notifications:", err);
     } finally {
       setLoading(false);
     }
@@ -57,11 +67,11 @@ const NotificationCenter = () => {
 
   const fetchUnreadCount = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/notifications/unread-count', {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("/api/notifications/unread-count", {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.ok) {
@@ -69,49 +79,60 @@ const NotificationCenter = () => {
         setUnreadCount(data.unread_count || 0);
       }
     } catch (err) {
-      console.error('Failed to fetch unread count:', err);
+      console.error("Failed to fetch unread count:", err);
     }
   };
 
   const markAsRead = async (notificationId) => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(
+        `/api/notifications/${notificationId}/read`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (response.ok) {
-        setNotifications(prev =>
-          prev.map(n => n.id === notificationId ? { ...n, is_read: true, read_at: new Date().toISOString() } : n)
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notificationId
+              ? { ...n, is_read: true, read_at: new Date().toISOString() }
+              : n,
+          ),
         );
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        setUnreadCount((prev) => Math.max(0, prev - 1));
       }
     } catch (err) {
-      console.error('Failed to mark notification as read:', err);
+      console.error("Failed to mark notification as read:", err);
     }
   };
 
   const markAllAsRead = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/notifications/mark-all-read', {
-        method: 'POST',
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("/api/notifications/mark-all-read", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.ok) {
-        setNotifications(prev =>
-          prev.map(n => ({ ...n, is_read: true, read_at: new Date().toISOString() }))
+        setNotifications((prev) =>
+          prev.map((n) => ({
+            ...n,
+            is_read: true,
+            read_at: new Date().toISOString(),
+          })),
         );
         setUnreadCount(0);
       }
     } catch (err) {
-      console.error('Failed to mark all as read:', err);
+      console.error("Failed to mark all as read:", err);
     }
   };
 
@@ -124,13 +145,13 @@ const NotificationCenter = () => {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'recurring_submitted':
+      case "recurring_submitted":
         return <DollarSign className="w-5 h-5 text-green-600" />;
-      case 'recurring_reminder':
+      case "recurring_reminder":
         return <Clock className="w-5 h-5 text-yellow-600" />;
-      case 'expense_approved':
+      case "expense_approved":
         return <Check className="w-5 h-5 text-green-600" />;
-      case 'expense_rejected':
+      case "expense_rejected":
         return <X className="w-5 h-5 text-red-600" />;
       default:
         return <Info className="w-5 h-5 text-blue-600" />;
@@ -145,11 +166,11 @@ const NotificationCenter = () => {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return 'Just now';
+    if (minutes < 1) return "Just now";
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   const handleNotificationClick = (notification) => {
@@ -173,7 +194,7 @@ const NotificationCenter = () => {
         <Bell className="w-6 h-6 text-gray-600" />
         {unreadCount > 0 && (
           <span className="absolute top-0 right-0 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
@@ -208,12 +229,12 @@ const NotificationCenter = () => {
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {notifications.map(notification => (
+                {notifications.map((notification) => (
                   <div
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
                     className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
-                      !notification.is_read ? 'bg-blue-50' : ''
+                      !notification.is_read ? "bg-blue-50" : ""
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -221,9 +242,11 @@ const NotificationCenter = () => {
                         {getNotificationIcon(notification.notification_type)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium text-gray-900 ${
-                          !notification.is_read ? 'font-semibold' : ''
-                        }`}>
+                        <p
+                          className={`text-sm font-medium text-gray-900 ${
+                            !notification.is_read ? "font-semibold" : ""
+                          }`}
+                        >
                           {notification.title}
                         </p>
                         <p className="text-sm text-gray-600 mt-1 line-clamp-2">

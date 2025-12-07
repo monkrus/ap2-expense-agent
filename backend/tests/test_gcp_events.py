@@ -3,8 +3,11 @@ import json
 
 import pytest
 
-from src.gcp.events import (EventParseError, decode_pubsub_envelope,
-                            normalize_entitlement_event)
+from src.gcp.events import (
+    EventParseError,
+    decode_pubsub_envelope,
+    normalize_entitlement_event,
+)
 
 
 def make_envelope(payload: dict) -> dict:

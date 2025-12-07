@@ -1,12 +1,14 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import organizationAPI from '../services/organizationAPI';
+import React, { createContext, useState, useContext, useEffect } from "react";
+import organizationAPI from "../services/organizationAPI";
 
 const OrganizationContext = createContext(null);
 
 export const useOrganization = () => {
   const context = useContext(OrganizationContext);
   if (!context) {
-    throw new Error('useOrganization must be used within an OrganizationProvider');
+    throw new Error(
+      "useOrganization must be used within an OrganizationProvider",
+    );
   }
   return context;
 };
@@ -33,7 +35,7 @@ export const OrganizationProvider = ({ children }) => {
       // Set current organization from localStorage or first org
       const savedOrgId = organizationAPI.getCurrentOrganizationId();
       if (savedOrgId) {
-        const savedOrg = orgs.find(o => o.id === savedOrgId);
+        const savedOrg = orgs.find((o) => o.id === savedOrgId);
         if (savedOrg) {
           setCurrentOrganization(savedOrg);
         } else if (orgs.length > 0) {
@@ -45,7 +47,7 @@ export const OrganizationProvider = ({ children }) => {
         organizationAPI.setCurrentOrganizationId(orgs[0].id);
       }
     } catch (err) {
-      console.error('Failed to load organizations:', err);
+      console.error("Failed to load organizations:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -53,7 +55,7 @@ export const OrganizationProvider = ({ children }) => {
   };
 
   const switchOrganization = (orgId) => {
-    const org = organizations.find(o => o.id === orgId);
+    const org = organizations.find((o) => o.id === orgId);
     if (org) {
       setCurrentOrganization(org);
       organizationAPI.setCurrentOrganizationId(org.id);
@@ -63,24 +65,24 @@ export const OrganizationProvider = ({ children }) => {
   };
 
   const addOrganization = (org) => {
-    setOrganizations(prev => [...prev, org]);
+    setOrganizations((prev) => [...prev, org]);
     setCurrentOrganization(org);
     organizationAPI.setCurrentOrganizationId(org.id);
   };
 
   const updateOrganizationInList = (orgId, updates) => {
-    setOrganizations(prev =>
-      prev.map(org => org.id === orgId ? { ...org, ...updates } : org)
+    setOrganizations((prev) =>
+      prev.map((org) => (org.id === orgId ? { ...org, ...updates } : org)),
     );
     if (currentOrganization?.id === orgId) {
-      setCurrentOrganization(prev => ({ ...prev, ...updates }));
+      setCurrentOrganization((prev) => ({ ...prev, ...updates }));
     }
   };
 
   const removeOrganization = (orgId) => {
-    setOrganizations(prev => prev.filter(org => org.id !== orgId));
+    setOrganizations((prev) => prev.filter((org) => org.id !== orgId));
     if (currentOrganization?.id === orgId) {
-      const remaining = organizations.filter(org => org.id !== orgId);
+      const remaining = organizations.filter((org) => org.id !== orgId);
       if (remaining.length > 0) {
         setCurrentOrganization(remaining[0]);
         organizationAPI.setCurrentOrganizationId(remaining[0].id);
@@ -104,7 +106,7 @@ export const OrganizationProvider = ({ children }) => {
     addOrganization,
     updateOrganizationInList,
     removeOrganization,
-    refetchOrganizations
+    refetchOrganizations,
   };
 
   return (

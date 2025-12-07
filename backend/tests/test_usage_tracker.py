@@ -9,8 +9,7 @@ import pytest
 from freezegun import freeze_time
 
 from src.billing.usage_tracker import UsageTracker
-from src.models import (OrganizationMember, Subscription, SubscriptionTier,
-                        UsageRecord)
+from src.models import OrganizationMember, Subscription, SubscriptionTier, UsageRecord
 
 
 class TestUsageTracker:

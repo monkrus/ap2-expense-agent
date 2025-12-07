@@ -1503,10 +1503,20 @@ async def delete_user(
         # - refresh_tokens, password_reset_tokens, sessions (via cascade)
 
         # Delete records where user is referenced but without cascade delete
-        from ..models import (AuditLog, CartMandate, Expense, ExpenseComment,
-                              IntentMandate, Invoice, OrganizationInvitation,
-                              OrganizationMember, PaymentMandate, Receipt,
-                              Subscription, UsageRecord)
+        from ..models import (
+            AuditLog,
+            CartMandate,
+            Expense,
+            ExpenseComment,
+            IntentMandate,
+            Invoice,
+            OrganizationInvitation,
+            OrganizationMember,
+            PaymentMandate,
+            Receipt,
+            Subscription,
+            UsageRecord,
+        )
 
         # Step 1: Delete AP2 mandates (in correct order due to foreign keys)
         # PaymentMandate → CartMandate → IntentMandate

@@ -3,16 +3,16 @@
  * Handles admin-only operations: user management, system stats, maintenance
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 /**
  * Get authentication headers
  */
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem("access_token");
   return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
   };
 };
 
@@ -25,12 +25,12 @@ const getAuthHeaders = () => {
  */
 export const getDashboardStats = async () => {
   const response = await fetch(`${API_BASE_URL}/api/v1/admin/dashboard/stats`, {
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch dashboard stats');
+    throw new Error(error.detail || "Failed to fetch dashboard stats");
   }
 
   return response.json();
@@ -41,12 +41,12 @@ export const getDashboardStats = async () => {
  */
 export const getDatabaseStats = async () => {
   const response = await fetch(`${API_BASE_URL}/api/v1/admin/stats/database`, {
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch database stats');
+    throw new Error(error.detail || "Failed to fetch database stats");
   }
 
   return response.json();
@@ -57,13 +57,16 @@ export const getDatabaseStats = async () => {
  * @param {number} days - Number of days to fetch (default: 30)
  */
 export const getUsageAnalytics = async (days = 30) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/analytics/usage?days=${days}`, {
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/analytics/usage?days=${days}`,
+    {
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch usage analytics');
+    throw new Error(error.detail || "Failed to fetch usage analytics");
   }
 
   return response.json();
@@ -74,12 +77,12 @@ export const getUsageAnalytics = async (days = 30) => {
  */
 export const getSystemHealth = async () => {
   const response = await fetch(`${API_BASE_URL}/api/v1/admin/system/health`, {
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch system health');
+    throw new Error(error.detail || "Failed to fetch system health");
   }
 
   return response.json();
@@ -96,7 +99,12 @@ export const getSystemHealth = async () => {
  * @param {string} search - Search query
  * @param {string} role - Filter by role
  */
-export const listUsers = async (page = 1, perPage = 50, search = null, role = null) => {
+export const listUsers = async (
+  page = 1,
+  perPage = 50,
+  search = null,
+  role = null,
+) => {
   let url = `${API_BASE_URL}/api/v1/admin/users?page=${page}&per_page=${perPage}`;
 
   if (search) {
@@ -108,12 +116,12 @@ export const listUsers = async (page = 1, perPage = 50, search = null, role = nu
   }
 
   const response = await fetch(url, {
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch users');
+    throw new Error(error.detail || "Failed to fetch users");
   }
 
   return response.json();
@@ -125,12 +133,12 @@ export const listUsers = async (page = 1, perPage = 50, search = null, role = nu
  */
 export const getUserDetails = async (userId) => {
   const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}`, {
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch user details');
+    throw new Error(error.detail || "Failed to fetch user details");
   }
 
   return response.json();
@@ -142,14 +150,14 @@ export const getUserDetails = async (userId) => {
  */
 export const createUser = async (userData) => {
   const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/create`, {
-    method: 'POST',
+    method: "POST",
     headers: getAuthHeaders(),
-    body: JSON.stringify(userData)
+    body: JSON.stringify(userData),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to create user');
+    throw new Error(error.detail || "Failed to create user");
   }
 
   return response.json();
@@ -161,15 +169,18 @@ export const createUser = async (userData) => {
  * @param {string} role - New role (admin, manager, employee)
  */
 export const updateUserRole = async (userId, role) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}/role`, {
-    method: 'PATCH',
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ role })
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/users/${userId}/role`,
+    {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ role }),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to update user role');
+    throw new Error(error.detail || "Failed to update user role");
   }
 
   return response.json();
@@ -181,15 +192,18 @@ export const updateUserRole = async (userId, role) => {
  * @param {string} reason - Suspension reason
  */
 export const suspendUser = async (userId, reason) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}/suspend`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ reason })
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/users/${userId}/suspend`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason }),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to suspend user');
+    throw new Error(error.detail || "Failed to suspend user");
   }
 
   return response.json();
@@ -200,14 +214,17 @@ export const suspendUser = async (userId, reason) => {
  * @param {string} userId - User ID
  */
 export const activateUser = async (userId) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}/activate`, {
-    method: 'POST',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/users/${userId}/activate`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to activate user');
+    throw new Error(error.detail || "Failed to activate user");
   }
 
   return response.json();
@@ -218,14 +235,17 @@ export const activateUser = async (userId) => {
  * @param {string} userId - User ID
  */
 export const unlockUser = async (userId) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}/unlock`, {
-    method: 'POST',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/users/${userId}/unlock`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to unlock user');
+    throw new Error(error.detail || "Failed to unlock user");
   }
 
   return response.json();
@@ -237,13 +257,13 @@ export const unlockUser = async (userId) => {
  */
 export const deleteUser = async (userId) => {
   const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders()
+    method: "DELETE",
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to delete user');
+    throw new Error(error.detail || "Failed to delete user");
   }
 
   return response.json();
@@ -255,15 +275,18 @@ export const deleteUser = async (userId) => {
  * @param {object} profileData - Profile data to update
  */
 export const updateUserProfile = async (userId, profileData) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}/profile`, {
-    method: 'PATCH',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(profileData)
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/users/${userId}/profile`,
+    {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(profileData),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to update user profile');
+    throw new Error(error.detail || "Failed to update user profile");
   }
 
   return response.json();
@@ -275,15 +298,18 @@ export const updateUserProfile = async (userId, profileData) => {
  * @param {string} departmentId - Department ID
  */
 export const updateUserDepartment = async (userId, departmentId) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}/department`, {
-    method: 'PATCH',
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ department_id: departmentId })
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/users/${userId}/department`,
+    {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ department_id: departmentId }),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to update user department');
+    throw new Error(error.detail || "Failed to update user department");
   }
 
   return response.json();
@@ -295,15 +321,18 @@ export const updateUserDepartment = async (userId, departmentId) => {
  * @param {string} email - New email
  */
 export const updateUserEmail = async (userId, email) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}/email`, {
-    method: 'PATCH',
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ email })
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/users/${userId}/email`,
+    {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ email }),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to update user email');
+    throw new Error(error.detail || "Failed to update user email");
   }
 
   return response.json();
@@ -314,13 +343,16 @@ export const updateUserEmail = async (userId, email) => {
  * @param {string} userId - User ID
  */
 export const getUserPermissions = async (userId) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}/permissions`, {
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/users/${userId}/permissions`,
+    {
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch user permissions');
+    throw new Error(error.detail || "Failed to fetch user permissions");
   }
 
   return response.json();
@@ -331,12 +363,12 @@ export const getUserPermissions = async (userId) => {
  */
 export const getAllPermissions = async () => {
   const response = await fetch(`${API_BASE_URL}/api/v1/admin/permissions/all`, {
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch permissions');
+    throw new Error(error.detail || "Failed to fetch permissions");
   }
 
   return response.json();
@@ -356,12 +388,12 @@ export const getAllExpenses = async (status = null) => {
     : `${API_BASE_URL}/api/v1/admin/expenses`;
 
   const response = await fetch(url, {
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch expenses');
+    throw new Error(error.detail || "Failed to fetch expenses");
   }
 
   return response.json();
@@ -371,13 +403,16 @@ export const getAllExpenses = async (status = null) => {
  * Get archived expenses
  */
 export const getArchivedExpenses = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/expenses/archived`, {
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/expenses/archived`,
+    {
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to fetch archived expenses');
+    throw new Error(error.detail || "Failed to fetch archived expenses");
   }
 
   return response.json();
@@ -388,14 +423,17 @@ export const getArchivedExpenses = async () => {
  * @param {string} expenseId - Expense ID
  */
 export const archiveExpense = async (expenseId) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/expenses/${expenseId}/archive`, {
-    method: 'POST',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/expenses/${expenseId}/archive`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to archive expense');
+    throw new Error(error.detail || "Failed to archive expense");
   }
 
   return response.json();
@@ -406,14 +444,17 @@ export const archiveExpense = async (expenseId) => {
  * @param {string} expenseId - Expense ID
  */
 export const unarchiveExpense = async (expenseId) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/expenses/${expenseId}/unarchive`, {
-    method: 'POST',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/expenses/${expenseId}/unarchive`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to unarchive expense');
+    throw new Error(error.detail || "Failed to unarchive expense");
   }
 
   return response.json();
@@ -423,14 +464,17 @@ export const unarchiveExpense = async (expenseId) => {
  * Archive all expenses (non-pending)
  */
 export const archiveAllExpenses = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/expenses/archive-all`, {
-    method: 'POST',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/expenses/archive-all`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to archive all expenses');
+    throw new Error(error.detail || "Failed to archive all expenses");
   }
 
   return response.json();
@@ -440,14 +484,17 @@ export const archiveAllExpenses = async () => {
  * Unarchive all expenses
  */
 export const unarchiveAllExpenses = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/expenses/unarchive-all`, {
-    method: 'POST',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/expenses/unarchive-all`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to unarchive all expenses');
+    throw new Error(error.detail || "Failed to unarchive all expenses");
   }
 
   return response.json();
@@ -457,14 +504,17 @@ export const unarchiveAllExpenses = async () => {
  * Clear pending expenses only
  */
 export const clearPendingExpenses = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/expenses-pending/clear`, {
-    method: 'DELETE',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/expenses-pending/clear`,
+    {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to clear pending expenses');
+    throw new Error(error.detail || "Failed to clear pending expenses");
   }
 
   return response.json();
@@ -479,13 +529,13 @@ export const clearPendingExpenses = async () => {
  */
 export const runMaintenance = async () => {
   const response = await fetch(`${API_BASE_URL}/api/v1/admin/maintenance`, {
-    method: 'POST',
-    headers: getAuthHeaders()
+    method: "POST",
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to run maintenance');
+    throw new Error(error.detail || "Failed to run maintenance");
   }
 
   return response.json();
@@ -495,14 +545,17 @@ export const runMaintenance = async () => {
  * Cleanup audit logs
  */
 export const cleanupAuditLogs = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/maintenance/audit-logs`, {
-    method: 'POST',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/maintenance/audit-logs`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to cleanup audit logs');
+    throw new Error(error.detail || "Failed to cleanup audit logs");
   }
 
   return response.json();
@@ -512,14 +565,17 @@ export const cleanupAuditLogs = async () => {
  * Cleanup old sessions
  */
 export const cleanupSessions = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/maintenance/sessions`, {
-    method: 'POST',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/maintenance/sessions`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to cleanup sessions');
+    throw new Error(error.detail || "Failed to cleanup sessions");
   }
 
   return response.json();
@@ -529,14 +585,17 @@ export const cleanupSessions = async () => {
  * Cleanup expired tokens
  */
 export const cleanupTokens = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/admin/maintenance/tokens`, {
-    method: 'POST',
-    headers: getAuthHeaders()
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/admin/maintenance/tokens`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Failed to cleanup tokens');
+    throw new Error(error.detail || "Failed to cleanup tokens");
   }
 
   return response.json();
@@ -577,5 +636,5 @@ export default {
   runMaintenance,
   cleanupAuditLogs,
   cleanupSessions,
-  cleanupTokens
+  cleanupTokens,
 };

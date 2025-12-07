@@ -1,8 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Edit, Trash2, Shield, Lock, Unlock, Search, Filter, RefreshCw, Eye, Check, X, AlertCircle, EyeOff, UserCheck, UserX } from 'lucide-react';
-import { useToast } from '../hooks/useToast';
-import { useAuth } from '../contexts/AuthContext';
-import adminAPI from '../services/adminAPI';
+import React, { useState, useEffect } from "react";
+import {
+  Users,
+  UserPlus,
+  Edit,
+  Trash2,
+  Shield,
+  Lock,
+  Unlock,
+  Search,
+  Filter,
+  RefreshCw,
+  Eye,
+  Check,
+  X,
+  AlertCircle,
+  EyeOff,
+  UserCheck,
+  UserX,
+} from "lucide-react";
+import { useToast } from "../hooks/useToast";
+import { useAuth } from "../contexts/AuthContext";
+import adminAPI from "../services/adminAPI";
 
 const UserManagementDashboard = () => {
   const { user: currentUser, getAuthHeaders, fetchWithAuth } = useAuth();
@@ -10,8 +28,8 @@ const UserManagementDashboard = () => {
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -23,21 +41,21 @@ const UserManagementDashboard = () => {
 
   // Form states
   const [createForm, setCreateForm] = useState({
-    email: '',
-    username: '',
-    full_name: '',
-    password: '',
-    role: 'EMPLOYEE',
-    department_id: ''
+    email: "",
+    username: "",
+    full_name: "",
+    password: "",
+    role: "EMPLOYEE",
+    department_id: "",
   });
 
   const [editForm, setEditForm] = useState({
-    username: '',
-    full_name: '',
-    email: '',
-    role: '',
-    department_id: '',
-    is_active: true
+    username: "",
+    full_name: "",
+    email: "",
+    role: "",
+    department_id: "",
+    is_active: true,
   });
 
   useEffect(() => {
@@ -56,12 +74,12 @@ const UserManagementDashboard = () => {
         1, // page
         100, // per page
         searchTerm || null,
-        roleFilter !== 'all' ? roleFilter.toLowerCase() : null
+        roleFilter !== "all" ? roleFilter.toLowerCase() : null,
       );
       setUsers(data.users || []);
     } catch (err) {
-      console.error('Error fetching users:', err);
-      showError('Failed to load users');
+      console.error("Error fetching users:", err);
+      showError("Failed to load users");
     } finally {
       setLoading(false);
     }
@@ -75,17 +93,17 @@ const UserManagementDashboard = () => {
       const data = await adminAPI.createUser({
         ...createForm,
         role: createForm.role.toLowerCase(),
-        department_id: createForm.department_id || null
+        department_id: createForm.department_id || null,
       });
       success(`User ${data.username} created successfully!`);
       setShowCreateModal(false);
       setCreateForm({
-        email: '',
-        username: '',
-        full_name: '',
-        password: '',
-        role: 'EMPLOYEE',
-        department_id: ''
+        email: "",
+        username: "",
+        full_name: "",
+        password: "",
+        role: "EMPLOYEE",
+        department_id: "",
       });
       fetchUsers();
     } catch (err) {
@@ -121,63 +139,83 @@ const UserManagementDashboard = () => {
           profileData.email = editForm.email;
         }
 
-        const profileResponse = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/profile`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json'
+        const profileResponse = await fetchWithAuth(
+          `${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/profile`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(profileData),
           },
-          body: JSON.stringify(profileData)
-        });
+        );
 
         if (!profileResponse.ok) {
           const errorData = await profileResponse.json().catch(() => ({}));
-          const errorMessage = errorData.detail || errorData.message || `Failed to update profile (${profileResponse.status})`;
+          const errorMessage =
+            errorData.detail ||
+            errorData.message ||
+            `Failed to update profile (${profileResponse.status})`;
           throw new Error(errorMessage);
         }
       }
 
       // Update role (convert to lowercase for backend)
-      const roleResponse = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/role`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
+      const roleResponse = await fetchWithAuth(
+        `${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/role`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ role: editForm.role.toLowerCase() }),
         },
-        body: JSON.stringify({ role: editForm.role.toLowerCase() })
-      });
+      );
 
       if (!roleResponse.ok) {
         const errorData = await roleResponse.json().catch(() => ({}));
-        const errorMessage = errorData.detail || errorData.message || `Failed to update role (${roleResponse.status})`;
+        const errorMessage =
+          errorData.detail ||
+          errorData.message ||
+          `Failed to update role (${roleResponse.status})`;
         throw new Error(errorMessage);
       }
 
       // Update department
-      const deptResponse = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/department`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
+      const deptResponse = await fetchWithAuth(
+        `${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/department`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            department_id: editForm.department_id || null,
+          }),
         },
-        body: JSON.stringify({ department_id: editForm.department_id || null })
-      });
+      );
 
       if (!deptResponse.ok) {
-        throw new Error('Failed to update department');
+        throw new Error("Failed to update department");
       }
 
       // Update active status if changed
       if (editForm.is_active !== selectedUser.is_active) {
-        const endpoint = editForm.is_active ? 'activate' : 'suspend';
-        const action = editForm.is_active ? 'activated' : 'suspended';
+        const endpoint = editForm.is_active ? "activate" : "suspend";
+        const action = editForm.is_active ? "activated" : "suspended";
 
         const statusResponse = await fetchWithAuth(
           `${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/${endpoint}`,
           {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json'
+              "Content-Type": "application/json",
             },
-            body: endpoint === 'suspend' ? JSON.stringify({ reason: 'Admin action' }) : undefined
-          }
+            body:
+              endpoint === "suspend"
+                ? JSON.stringify({ reason: "Admin action" })
+                : undefined,
+          },
         );
 
         if (!statusResponse.ok) {
@@ -185,7 +223,9 @@ const UserManagementDashboard = () => {
         }
 
         // Show specific success message for status change
-        success(`User ${editForm.username} has been ${action}. ${endpoint === 'suspend' ? 'They will be logged out immediately and cannot log in until reactivated.' : 'They can now log in and access the system.'}`);
+        success(
+          `User ${editForm.username} has been ${action}. ${endpoint === "suspend" ? "They will be logged out immediately and cannot log in until reactivated." : "They can now log in and access the system."}`,
+        );
       } else {
         // Show generic success for other updates
         success(`User ${editForm.username} updated successfully!`);
@@ -196,9 +236,11 @@ const UserManagementDashboard = () => {
       fetchUsers();
     } catch (err) {
       // Show more descriptive error message
-      const errorMessage = err.message || 'Failed to update user';
-      showError(`Error updating user: ${errorMessage}. Please try again or contact support if the issue persists.`);
-      console.error('Error updating user:', err);
+      const errorMessage = err.message || "Failed to update user";
+      showError(
+        `Error updating user: ${errorMessage}. Please try again or contact support if the issue persists.`,
+      );
+      console.error("Error updating user:", err);
     } finally {
       setProcessing(false);
     }
@@ -210,13 +252,16 @@ const UserManagementDashboard = () => {
     setProcessing(true);
 
     try {
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}`, {
-        method: 'DELETE'
-      });
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || 'Failed to delete user');
+        throw new Error(error.detail || "Failed to delete user");
       }
 
       success(`User ${selectedUser.username} deleted successfully!`);
@@ -233,71 +278,75 @@ const UserManagementDashboard = () => {
   const getPermissionDescription = (permission) => {
     const descriptions = {
       // Expense permissions
-      'expense:submit': 'Submit new expenses',
-      'expense:view_own': 'View own expenses',
-      'expense:view_department': 'View department expenses',
-      'expense:view_all': 'View all expenses (company-wide)',
-      'expense:edit_own': 'Edit own pending expenses',
-      'expense:edit_department': 'Edit department expenses',
-      'expense:edit_all': 'Edit all expenses',
-      'expense:delete_own': 'Delete own pending expenses',
-      'expense:approve_department': 'Approve department expenses (up to $5,000)',
-      'expense:approve_all': 'Approve any expense (unlimited amount)',
-      'expense:reject': 'Reject expenses',
-      'expense:bulk_approve': 'Bulk approve multiple expenses',
-      'expense:bulk_reject': 'Bulk reject multiple expenses',
-      'expense:withdraw': 'Withdraw pending expenses',
+      "expense:submit": "Submit new expenses",
+      "expense:view_own": "View own expenses",
+      "expense:view_department": "View department expenses",
+      "expense:view_all": "View all expenses (company-wide)",
+      "expense:edit_own": "Edit own pending expenses",
+      "expense:edit_department": "Edit department expenses",
+      "expense:edit_all": "Edit all expenses",
+      "expense:delete_own": "Delete own pending expenses",
+      "expense:approve_department":
+        "Approve department expenses (up to $5,000)",
+      "expense:approve_all": "Approve any expense (unlimited amount)",
+      "expense:reject": "Reject expenses",
+      "expense:bulk_approve": "Bulk approve multiple expenses",
+      "expense:bulk_reject": "Bulk reject multiple expenses",
+      "expense:withdraw": "Withdraw pending expenses",
 
       // Receipt permissions
-      'receipt:upload': 'Upload receipt attachments',
-      'receipt:view_own': 'View own receipts',
-      'receipt:view_all': 'View all receipts',
-      'receipt:delete_own': 'Delete own receipts',
-      'receipt:delete_all': 'Delete any receipt',
-      'receipt:download': 'Download receipt files',
+      "receipt:upload": "Upload receipt attachments",
+      "receipt:view_own": "View own receipts",
+      "receipt:view_all": "View all receipts",
+      "receipt:delete_own": "Delete own receipts",
+      "receipt:delete_all": "Delete any receipt",
+      "receipt:download": "Download receipt files",
 
       // Comment permissions
-      'comment:add': 'Add comments to expenses',
-      'comment:view': 'View expense comments',
-      'comment:edit_own': 'Edit own comments',
-      'comment:delete_own': 'Delete own comments',
-      'comment:delete_any': 'Delete any comment',
+      "comment:add": "Add comments to expenses",
+      "comment:view": "View expense comments",
+      "comment:edit_own": "Edit own comments",
+      "comment:delete_own": "Delete own comments",
+      "comment:delete_any": "Delete any comment",
 
       // User permissions
-      'user:view_own': 'View own user profile',
-      'user:view_department': 'View department users',
-      'user:view_all': 'View all users',
-      'user:create': 'Create new user accounts',
-      'user:edit_own': 'Edit own profile',
-      'user:edit_all': 'Edit any user account',
-      'user:delete': 'Delete user accounts',
-      'user:change_role': 'Change user roles',
-      'user:suspend': 'Suspend/activate user accounts',
+      "user:view_own": "View own user profile",
+      "user:view_department": "View department users",
+      "user:view_all": "View all users",
+      "user:create": "Create new user accounts",
+      "user:edit_own": "Edit own profile",
+      "user:edit_all": "Edit any user account",
+      "user:delete": "Delete user accounts",
+      "user:change_role": "Change user roles",
+      "user:suspend": "Suspend/activate user accounts",
 
       // Report permissions
-      'report:view_own': 'View own expense reports',
-      'report:view_department': 'View department reports',
-      'report:view_all': 'View all company reports',
-      'report:export': 'Export reports to file',
-      'report:generate': 'Generate custom reports',
+      "report:view_own": "View own expense reports",
+      "report:view_department": "View department reports",
+      "report:view_all": "View all company reports",
+      "report:export": "Export reports to file",
+      "report:generate": "Generate custom reports",
 
       // System permissions
-      'system:configure': 'Configure system settings',
-      'system:maintenance': 'Perform database maintenance',
-      'system:health': 'View system health status',
-      'system:audit': 'Access audit logs',
+      "system:configure": "Configure system settings",
+      "system:maintenance": "Perform database maintenance",
+      "system:health": "View system health status",
+      "system:audit": "Access audit logs",
 
       // Billing permissions
-      'billing:view': 'View billing information',
-      'billing:manage': 'Manage billing and subscriptions',
+      "billing:view": "View billing information",
+      "billing:manage": "Manage billing and subscriptions",
 
       // AP2 Protocol permissions
-      'ap2:create_mandate': 'Create AP2 payment mandates',
-      'ap2:view_mandate': 'View AP2 payment mandates',
-      'ap2:execute_payment': 'Execute AP2 payments',
+      "ap2:create_mandate": "Create AP2 payment mandates",
+      "ap2:view_mandate": "View AP2 payment mandates",
+      "ap2:execute_payment": "Execute AP2 payments",
     };
 
-    return descriptions[permission] || permission.replace(/:/g, ': ').replace(/_/g, ' ');
+    return (
+      descriptions[permission] ||
+      permission.replace(/:/g, ": ").replace(/_/g, " ")
+    );
   };
 
   const handleViewPermissions = async (user) => {
@@ -305,16 +354,18 @@ const UserManagementDashboard = () => {
     setShowPermissionsModal(true);
 
     try {
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${user.id}/permissions`);
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/v1/admin/users/${user.id}/permissions`,
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch permissions');
+        throw new Error("Failed to fetch permissions");
       }
 
       const data = await response.json();
       setUserPermissions(data.permissions || []);
     } catch (err) {
-      showError('Failed to load user permissions');
+      showError("Failed to load user permissions");
       setUserPermissions([]);
     }
   };
@@ -322,12 +373,12 @@ const UserManagementDashboard = () => {
   const openEditModal = (user) => {
     setSelectedUser(user);
     setEditForm({
-      username: user.username || '',
-      full_name: user.full_name || '',
-      email: user.email || '',
-      role: user.role?.toUpperCase() || 'EMPLOYEE',
-      department_id: user.department_id || '',
-      is_active: Boolean(user.is_active) // Convert to proper boolean
+      username: user.username || "",
+      full_name: user.full_name || "",
+      email: user.email || "",
+      role: user.role?.toUpperCase() || "EMPLOYEE",
+      department_id: user.department_id || "",
+      is_active: Boolean(user.is_active), // Convert to proper boolean
     });
     setShowEditModal(true);
   };
@@ -342,19 +393,19 @@ const UserManagementDashboard = () => {
 
   const getRoleBadgeColor = (role) => {
     const colors = {
-      ADMIN: 'bg-red-100 text-red-800',
-      MANAGER: 'bg-yellow-100 text-yellow-800',
-      EMPLOYEE: 'bg-green-100 text-green-800'
+      ADMIN: "bg-red-100 text-red-800",
+      MANAGER: "bg-yellow-100 text-yellow-800",
+      EMPLOYEE: "bg-green-100 text-green-800",
     };
-    return colors[role] || 'bg-gray-100 text-gray-800';
+    return colors[role] || "bg-gray-100 text-gray-800";
   };
 
   const stats = {
     total: users.length,
-    active: users.filter(u => u.is_active).length,
-    admins: users.filter(u => u.role?.toLowerCase() === 'admin').length,
-    managers: users.filter(u => u.role?.toLowerCase() === 'manager').length,
-    employees: users.filter(u => u.role?.toLowerCase() === 'employee').length
+    active: users.filter((u) => u.is_active).length,
+    admins: users.filter((u) => u.role?.toLowerCase() === "admin").length,
+    managers: users.filter((u) => u.role?.toLowerCase() === "manager").length,
+    employees: users.filter((u) => u.role?.toLowerCase() === "employee").length,
   };
 
   return (
@@ -368,7 +419,9 @@ const UserManagementDashboard = () => {
                 <Users className="w-8 h-8 text-indigo-600" />
                 User Management
               </h1>
-              <p className="text-gray-600 mt-2">Manage user accounts, roles, and permissions</p>
+              <p className="text-gray-600 mt-2">
+                Manage user accounts, roles, and permissions
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -376,7 +429,9 @@ const UserManagementDashboard = () => {
                 disabled={loading}
                 className="flex items-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
               >
-                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`w-5 h-5 ${loading ? "animate-spin" : ""}`}
+                />
                 Refresh
               </button>
               <button
@@ -406,11 +461,15 @@ const UserManagementDashboard = () => {
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-gray-600 text-sm">Managers</p>
-            <p className="text-2xl font-bold text-yellow-600">{stats.managers}</p>
+            <p className="text-2xl font-bold text-yellow-600">
+              {stats.managers}
+            </p>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-gray-600 text-sm">Employees</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.employees}</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {stats.employees}
+            </p>
           </div>
         </div>
 
@@ -449,12 +508,24 @@ const UserManagementDashboard = () => {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Department
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Last Login
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -463,33 +534,51 @@ const UserManagementDashboard = () => {
                     <td colSpan="6" className="px-6 py-12 text-center">
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                        <span className="ml-3 text-gray-600">Loading users...</span>
+                        <span className="ml-3 text-gray-600">
+                          Loading users...
+                        </span>
                       </div>
                     </td>
                   </tr>
                 ) : filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                    <td
+                      colSpan="6"
+                      className="px-6 py-12 text-center text-gray-500"
+                    >
                       No users found
                     </td>
                   </tr>
                 ) : (
                   filteredUsers.map((user) => (
-                    <tr key={user.id} className={`hover:bg-gray-50 ${!user.is_active ? 'opacity-60 bg-gray-50' : ''}`}>
+                    <tr
+                      key={user.id}
+                      className={`hover:bg-gray-50 ${!user.is_active ? "opacity-60 bg-gray-50" : ""}`}
+                    >
                       <td className="px-6 py-4">
                         <div>
-                          <div className="font-medium text-gray-900">{user.full_name || user.username}</div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
-                          <div className="text-xs text-gray-400">@{user.username}</div>
+                          <div className="font-medium text-gray-900">
+                            {user.full_name || user.username}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {user.email}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            @{user.username}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}
+                        >
                           {user.role}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {user.department_id || <span className="text-gray-400">-</span>}
+                        {user.department_id || (
+                          <span className="text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         {user.is_active ? (
@@ -505,7 +594,9 @@ const UserManagementDashboard = () => {
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                        {user.last_login
+                          ? new Date(user.last_login).toLocaleDateString()
+                          : "Never"}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -527,7 +618,11 @@ const UserManagementDashboard = () => {
                             onClick={() => openDeleteModal(user)}
                             disabled={user.id === currentUser?.id}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={user.id === currentUser?.id ? "Can't delete yourself" : "Delete User"}
+                            title={
+                              user.id === currentUser?.id
+                                ? "Can't delete yourself"
+                                : "Delete User"
+                            }
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -550,56 +645,82 @@ const UserManagementDashboard = () => {
                   <UserPlus className="w-6 h-6 text-indigo-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800">Create New User</h3>
-                  <p className="text-sm text-gray-600">Add a new user to the system</p>
+                  <h3 className="text-xl font-bold text-gray-800">
+                    Create New User
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Add a new user to the system
+                  </p>
                 </div>
               </div>
 
               <form onSubmit={handleCreateUser} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email *
+                  </label>
                   <input
                     type="email"
                     required
                     value={createForm.email}
-                    onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, email: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="user@example.com"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Username *
+                  </label>
                   <input
                     type="text"
                     required
                     value={createForm.username}
-                    onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, username: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="username"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name *
+                  </label>
                   <input
                     type="text"
                     required
                     value={createForm.full_name}
-                    onChange={(e) => setCreateForm({ ...createForm, full_name: e.target.value })}
+                    onChange={(e) =>
+                      setCreateForm({
+                        ...createForm,
+                        full_name: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="John Doe"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Password *
+                  </label>
                   <div className="relative">
                     <input
                       type={showCreatePassword ? "text" : "password"}
                       required
                       value={createForm.password}
-                      onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                      onChange={(e) =>
+                        setCreateForm({
+                          ...createForm,
+                          password: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       placeholder="••••••••"
                     />
@@ -609,17 +730,25 @@ const UserManagementDashboard = () => {
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       tabIndex={-1}
                     >
-                      {showCreatePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showCreatePassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Role *
+                  </label>
                   <select
                     required
                     value={createForm.role}
-                    onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, role: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
                     <option value="EMPLOYEE">Employee</option>
@@ -629,11 +758,18 @@ const UserManagementDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Department (Optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Department (Optional)
+                  </label>
                   <input
                     type="text"
                     value={createForm.department_id}
-                    onChange={(e) => setCreateForm({ ...createForm, department_id: e.target.value })}
+                    onChange={(e) =>
+                      setCreateForm({
+                        ...createForm,
+                        department_id: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="sales, engineering, etc."
                   />
@@ -681,53 +817,71 @@ const UserManagementDashboard = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">Edit User</h3>
-                  <p className="text-sm text-gray-600">{selectedUser.username}</p>
+                  <p className="text-sm text-gray-600">
+                    {selectedUser.username}
+                  </p>
                 </div>
               </div>
 
               <form onSubmit={handleEditUser} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Username *
+                  </label>
                   <input
                     type="text"
                     required
                     value={editForm.username}
-                    onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, username: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="username"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name *
+                  </label>
                   <input
                     type="text"
                     required
                     value={editForm.full_name}
-                    onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, full_name: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="John Doe"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email *
+                  </label>
                   <input
                     type="email"
                     required
                     value={editForm.email}
-                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, email: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="user@example.com"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Role
+                  </label>
                   <select
                     required
                     value={editForm.role}
-                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, role: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
                     <option value="EMPLOYEE">Employee</option>
@@ -737,11 +891,18 @@ const UserManagementDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Department
+                  </label>
                   <input
                     type="text"
                     value={editForm.department_id}
-                    onChange={(e) => setEditForm({ ...editForm, department_id: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        department_id: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="sales, engineering, etc."
                   />
@@ -765,20 +926,27 @@ const UserManagementDashboard = () => {
                         </span>
                       )}
                       {selectedUser?.id === currentUser?.id && (
-                        <span className="text-xs text-orange-600">(Cannot modify own status)</span>
+                        <span className="text-xs text-orange-600">
+                          (Cannot modify own status)
+                        </span>
                       )}
                     </div>
                     <button
                       type="button"
-                      onClick={() => setEditForm({ ...editForm, is_active: !editForm.is_active })}
+                      onClick={() =>
+                        setEditForm({
+                          ...editForm,
+                          is_active: !editForm.is_active,
+                        })
+                      }
                       disabled={selectedUser?.id === currentUser?.id}
                       className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                        editForm.is_active ? 'bg-green-600' : 'bg-red-600'
+                        editForm.is_active ? "bg-green-600" : "bg-red-600"
                       }`}
                     >
                       <span
                         className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                          editForm.is_active ? 'translate-x-8' : 'translate-x-1'
+                          editForm.is_active ? "translate-x-8" : "translate-x-1"
                         }`}
                       />
                     </button>
@@ -788,15 +956,15 @@ const UserManagementDashboard = () => {
                       <p className="text-xs text-yellow-800 font-medium flex items-center gap-2">
                         <AlertCircle className="w-4 h-4 flex-shrink-0" />
                         {editForm.is_active
-                          ? 'Activating this user will allow them to log in immediately upon saving.'
-                          : 'Suspending this user will log them out immediately and block all access upon saving.'}
+                          ? "Activating this user will allow them to log in immediately upon saving."
+                          : "Suspending this user will log them out immediately and block all access upon saving."}
                       </p>
                     </div>
                   )}
                   <p className="text-xs text-gray-500 mt-2">
                     {editForm.is_active
-                      ? 'User can log in and access the system'
-                      : 'User account is suspended and cannot log in'}
+                      ? "User can log in and access the system"
+                      : "User account is suspended and cannot log in"}
                   </p>
                 </div>
 
@@ -817,7 +985,7 @@ const UserManagementDashboard = () => {
                     disabled={processing}
                     className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium"
                   >
-                    {processing ? 'Updating...' : 'Update User'}
+                    {processing ? "Updating..." : "Update User"}
                   </button>
                 </div>
               </form>
@@ -834,15 +1002,20 @@ const UserManagementDashboard = () => {
                   <AlertCircle className="w-6 h-6 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800">Delete User</h3>
-                  <p className="text-sm text-gray-600">This action cannot be undone</p>
+                  <h3 className="text-xl font-bold text-gray-800">
+                    Delete User
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    This action cannot be undone
+                  </p>
                 </div>
               </div>
 
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-800">
-                  Are you sure you want to delete <span className="font-semibold">{selectedUser.username}</span>?
-                  All their data will be permanently removed from the system.
+                  Are you sure you want to delete{" "}
+                  <span className="font-semibold">{selectedUser.username}</span>
+                  ? All their data will be permanently removed from the system.
                 </p>
               </div>
 
@@ -899,8 +1072,12 @@ const UserManagementDashboard = () => {
                     <Shield className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-800">User Permissions</h3>
-                    <p className="text-sm text-gray-600">{selectedUser.username} - {selectedUser.role}</p>
+                    <h3 className="text-xl font-bold text-gray-800">
+                      User Permissions
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {selectedUser.username} - {selectedUser.role}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -918,38 +1095,48 @@ const UserManagementDashboard = () => {
 
               <div className="space-y-4 mb-6">
                 {userPermissions.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">Loading permissions...</p>
+                  <p className="text-gray-500 text-center py-4">
+                    Loading permissions...
+                  </p>
                 ) : (
                   (() => {
                     const grouped = userPermissions.reduce((acc, perm) => {
-                      const category = perm.split(':')[0];
+                      const category = perm.split(":")[0];
                       if (!acc[category]) acc[category] = [];
                       acc[category].push(perm);
                       return acc;
                     }, {});
 
                     const categoryColors = {
-                      expense: 'bg-blue-50 border-blue-200',
-                      receipt: 'bg-green-50 border-green-200',
-                      comment: 'bg-purple-50 border-purple-200',
-                      user: 'bg-indigo-50 border-indigo-200',
-                      report: 'bg-yellow-50 border-yellow-200',
-                      system: 'bg-red-50 border-red-200',
-                      billing: 'bg-pink-50 border-pink-200',
-                      ap2: 'bg-teal-50 border-teal-200'
+                      expense: "bg-blue-50 border-blue-200",
+                      receipt: "bg-green-50 border-green-200",
+                      comment: "bg-purple-50 border-purple-200",
+                      user: "bg-indigo-50 border-indigo-200",
+                      report: "bg-yellow-50 border-yellow-200",
+                      system: "bg-red-50 border-red-200",
+                      billing: "bg-pink-50 border-pink-200",
+                      ap2: "bg-teal-50 border-teal-200",
                     };
 
                     return Object.entries(grouped).map(([category, perms]) => (
-                      <div key={category} className={`p-4 rounded-lg border ${categoryColors[category] || 'bg-gray-50 border-gray-200'}`}>
+                      <div
+                        key={category}
+                        className={`p-4 rounded-lg border ${categoryColors[category] || "bg-gray-50 border-gray-200"}`}
+                      >
                         <h4 className="text-sm font-bold text-gray-800 mb-2 capitalize flex items-center gap-2">
                           <Shield className="w-4 h-4" />
                           {category} Permissions ({perms.length})
                         </h4>
                         <div className="grid grid-cols-1 gap-1">
                           {perms.map((perm, idx) => (
-                            <div key={idx} className="flex items-start gap-2 text-xs">
+                            <div
+                              key={idx}
+                              className="flex items-start gap-2 text-xs"
+                            >
                               <Check className="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-gray-700">{getPermissionDescription(perm)}</span>
+                              <span className="text-gray-700">
+                                {getPermissionDescription(perm)}
+                              </span>
                             </div>
                           ))}
                         </div>
