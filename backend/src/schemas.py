@@ -213,3 +213,131 @@ class OrganizationInvitationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ============================================================================
+# Expense Schemas
+# ============================================================================
+
+
+class ExpenseSubmission(BaseModel):
+    amount: float
+    vendor: str
+    category: str  # Will be validated against ExpenseCategory enum values
+    description: str
+    date: Optional[str] = (
+        None  # ISO format date string (YYYY-MM-DD), defaults to today if not provided
+    )
+    # Note: user_id is derived from the authenticated user (current_user), not from the request
+
+    @validator("amount")
+    def validate_amount(cls, v):
+        if v <= 0:
+            raise ValueError("Amount must be positive")
+        # Security: Prevent unreasonably large amounts (max $1,000,000 per expense)
+        if v > 1000000:
+            raise ValueError("Amount cannot exceed $1,000,000 per expense")
+        return v
+
+    @validator("description")
+    def sanitize_description(cls, v):
+        """Sanitize description to prevent XSS attacks"""
+        import html
+
+        # HTML escape any dangerous characters
+        sanitized = html.escape(v)
+        # Also limit length
+        if len(sanitized) > 1000:
+            raise ValueError("Description cannot exceed 1000 characters")
+        return sanitized
+
+    @validator("vendor")
+    def sanitize_vendor(cls, v):
+        """Sanitize vendor name to prevent XSS attacks"""
+        import html
+
+        sanitized = html.escape(v)
+        if len(sanitized) > 200:
+            raise ValueError("Vendor name cannot exceed 200 characters")
+        return sanitized
+
+    @validator("category")
+    def validate_category(cls, v):
+        from .models import ExpenseCategory
+
+        # Check if the value matches any of the enum values
+        valid_categories = [e.value for e in ExpenseCategory]
+        if v not in valid_categories:
+            raise ValueError(f'Category must be one of: {", ".join(valid_categories)}')
+        return v
+
+    @validator("date")
+    def validate_date(cls, v):
+        if v is None:
+            return None
+        # Validate date format
+        from datetime import datetime
+
+        try:
+            datetime.fromisoformat(v)
+            return v
+        except ValueError:
+            raise ValueError("Date must be in YYYY-MM-DD format")
+
+
+class ExpenseUpdate(BaseModel):
+    """Schema for partial expense updates - all fields optional"""
+    amount: Optional[float] = None
+    vendor: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
+    date: Optional[str] = None
+
+    @validator("amount")
+    def validate_amount(cls, v):
+        if v is not None:
+            if v <= 0:
+                raise ValueError("Amount must be positive")
+            if v > 1000000:
+                raise ValueError("Amount cannot exceed $1,000,000 per expense")
+        return v
+
+    @validator("description")
+    def sanitize_description(cls, v):
+        if v is not None:
+            import html
+            sanitized = html.escape(v)
+            if len(sanitized) > 1000:
+                raise ValueError("Description cannot exceed 1000 characters")
+            return sanitized
+        return v
+
+    @validator("vendor")
+    def sanitize_vendor(cls, v):
+        if v is not None:
+            import html
+            sanitized = html.escape(v)
+            if len(sanitized) > 200:
+                raise ValueError("Vendor name cannot exceed 200 characters")
+            return sanitized
+        return v
+
+    @validator("category")
+    def validate_category(cls, v):
+        if v is not None:
+            from .models import ExpenseCategory
+            valid_categories = [e.value for e in ExpenseCategory]
+            if v not in valid_categories:
+                raise ValueError(f'Category must be one of: {", ".join(valid_categories)}')
+        return v
+
+    @validator("date")
+    def validate_date(cls, v):
+        if v is not None:
+            from datetime import datetime
+            try:
+                datetime.fromisoformat(v)
+                return v
+            except ValueError:
+                raise ValueError("Date must be in YYYY-MM-DD format")
+        return v

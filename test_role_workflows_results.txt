@@ -1,0 +1,12 @@
+
+================================================================================
+[94m[16:43:35] [INFO][0m ROLE-BASED WORKFLOW TEST SUITE
+[94m[16:43:35] [INFO][0m Testing typical daily workflows for each role
+================================================================================
+[94m[16:43:35] [INFO][0m 
+================================================================================
+[94m[16:43:35] [INFO][0m AUTHENTICATING TEST USERS
+================================================================================
+[94m[16:43:35] [INFO][0m Logging in as emptest (employee)...
+[91m[16:43:35] [ERROR][0m   FAIL Login failed: 429 - {"error":"rate_limit_exceeded","detail":"Too many requests. Please try again later.","retry_after":6
+[91m[16:43:35] [ERROR][0m Failed to login employee. Aborting tests.

@@ -1,0 +1,12 @@
+
+
+[94m[21:48:02] [INFO][0m ================================================================================
+[94m[21:48:02] [INFO][0m ROLE-BASED ACCESS CONTROL TEST SUITE
+[94m[21:48:02] [INFO][0m ================================================================================
+
+[94m[21:48:02] [INFO][0m ================================================================================
+[94m[21:48:02] [INFO][0m SETTING UP TEST USERS
+[94m[21:48:02] [INFO][0m ================================================================================
+[94m[21:48:02] [INFO][0m Logging in as admintest...
+[91m[21:48:04] [ERROR][0m Failed to login as admintest: {"error":"rate_limit_exceeded","detail":"Too many requests. Please try again later.","retry_after":60}
+[91m[21:48:04] [ERROR][0m User setup failed. Aborting tests.
