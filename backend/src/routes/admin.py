@@ -360,14 +360,14 @@ async def suspend_user(
     # Prevent admin from suspending themselves
     if user.id == current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Cannot suspend your own account",
         )
 
     # Check if user is already suspended
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="User account is already suspended",
         )
 
@@ -569,32 +569,33 @@ async def unlock_user_account(
 @router.get("/expenses")
 async def get_all_expenses(
     request: Request,
-    status: Optional[str] = Query(None),
+    status_filter: Optional[str] = Query(None, alias="status"),
     current_user: User = Depends(require_manager),
     db: Session = Depends(get_db),
 ):
     """Get all expenses from all users with optional status filter (admin and manager)"""
     import logging
+    from fastapi import status as http_status
 
     from ..models import Expense, ExpenseStatus
     from ..models import User as UserModel
     from ..tenant_context import verify_organization_access
 
     logger = logging.getLogger(__name__)
-    logger.info(f"[admin.get_all_expenses] Called with status filter: {status}")
+    logger.info(f"[admin.get_all_expenses] Called with status filter: {status_filter}")
 
     # SECURITY: Get and validate organization context
     org_id = request.headers.get("X-Organization-Id")
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Organization context required (X-Organization-Id header missing)"
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="You do not have access to this organization"
         )
 
@@ -606,15 +607,15 @@ async def get_all_expenses(
     )
 
     # Apply status filter if provided
-    if status and status != "all":
+    if status_filter and status_filter != "all":
         try:
-            status_enum = ExpenseStatus(status.lower())
+            status_enum = ExpenseStatus(status_filter.lower())
             logger.info(
                 f"[admin.get_all_expenses] Filtering by status enum: {status_enum}"
             )
             query = query.filter(Expense.status == status_enum)
         except ValueError:
-            logger.warning(f"[admin.get_all_expenses] Invalid status value: {status}")
+            logger.warning(f"[admin.get_all_expenses] Invalid status value: {status_filter}")
             pass  # Invalid status, ignore filter
 
     # Get all expenses ordered by creation date (newest first)
@@ -688,14 +689,14 @@ async def clear_pending_expenses(
     org_id = request.headers.get("X-Organization-Id")
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Organization context required (X-Organization-Id header missing)"
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="You do not have access to this organization"
         )
 
@@ -831,14 +832,14 @@ async def archive_all_expenses(
     org_id = request.headers.get("X-Organization-Id")
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Organization context required (X-Organization-Id header missing)"
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="You do not have access to this organization"
         )
 
@@ -915,14 +916,14 @@ async def get_archived_expenses(
     org_id = request.headers.get("X-Organization-Id")
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Organization context required (X-Organization-Id header missing)"
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="You do not have access to this organization"
         )
 
@@ -983,14 +984,14 @@ async def archive_expense(
     org_id = request.headers.get("X-Organization-Id")
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Organization context required (X-Organization-Id header missing)"
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="You do not have access to this organization"
         )
 
@@ -1005,13 +1006,13 @@ async def archive_expense(
 
     if expense.status == ExpenseStatus.PENDING:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Cannot archive pending expenses",
         )
 
     if expense.is_archived:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Expense is already archived",
         )
 
@@ -1059,14 +1060,14 @@ async def unarchive_expense(
     org_id = request.headers.get("X-Organization-Id")
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Organization context required (X-Organization-Id header missing)"
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="You do not have access to this organization"
         )
 
@@ -1081,7 +1082,7 @@ async def unarchive_expense(
 
     if not expense.is_archived:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Expense is not archived"
+            status_code=400, detail="Expense is not archived"
         )
 
     expense.is_archived = False
@@ -1130,14 +1131,14 @@ async def unarchive_all_expenses(
     org_id = request.headers.get("X-Organization-Id")
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Organization context required (X-Organization-Id header missing)"
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="You do not have access to this organization"
         )
 
@@ -1238,7 +1239,7 @@ async def create_user(
     existing_email = db.query(User).filter(User.email == user_data.email).first()
     if existing_email:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
+            status_code=400, detail="Email already registered"
         )
 
     # Check if username already exists
@@ -1247,7 +1248,7 @@ async def create_user(
     )
     if existing_username:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken"
+            status_code=400, detail="Username already taken"
         )
 
     # Hash the password
@@ -1401,7 +1402,7 @@ async def update_user_email(
 
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Email already in use by another user",
         )
 
@@ -1411,7 +1412,7 @@ async def update_user_email(
     email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     if not re.match(email_regex, email_data.email):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email format"
+            status_code=400, detail="Invalid email format"
         )
 
     old_email = user.email
@@ -1470,7 +1471,7 @@ async def update_user_profile(
 
         if existing_user:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=400,
                 detail="Username already taken by another user",
             )
 
@@ -1493,7 +1494,7 @@ async def update_user_profile(
 
         if existing_user:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=400,
                 detail="Email already in use by another user",
             )
 
@@ -1503,7 +1504,7 @@ async def update_user_profile(
         email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         if not re.match(email_regex, profile_data.email):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email format"
+                status_code=400, detail="Invalid email format"
             )
 
         changes["email"] = {"old": user.email, "new": profile_data.email}
@@ -1511,7 +1512,7 @@ async def update_user_profile(
 
     if not changes:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="No valid fields provided for update",
         )
 
@@ -1562,7 +1563,7 @@ async def activate_user(
     # Check if user is already active
     if user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="User account is already active",
         )
 
@@ -1613,7 +1614,7 @@ async def delete_user(
     # Prevent deleting yourself
     if user.id == current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Cannot delete your own account",
         )
 
@@ -1775,3 +1776,4 @@ async def get_all_permissions(
         role_mappings[role.value] = [p.value for p in perms]
 
     return {"categories": permissions_by_category, "role_mappings": role_mappings}
+
