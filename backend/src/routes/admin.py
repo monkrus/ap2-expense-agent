@@ -568,6 +568,7 @@ async def unlock_user_account(
 
 @router.get("/expenses")
 async def get_all_expenses(
+    request: Request,
     status: Optional[str] = Query(None),
     current_user: User = Depends(require_manager),
     db: Session = Depends(get_db),
@@ -577,13 +578,31 @@ async def get_all_expenses(
 
     from ..models import Expense, ExpenseStatus
     from ..models import User as UserModel
+    from ..tenant_context import verify_organization_access
 
     logger = logging.getLogger(__name__)
     logger.info(f"[admin.get_all_expenses] Called with status filter: {status}")
 
-    # Build query - exclude withdrawn and archived by default
+    # SECURITY: Get and validate organization context
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization context required (X-Organization-Id header missing)"
+        )
+
+    # SECURITY: Verify user has access to this organization
+    if not verify_organization_access(current_user.id, org_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this organization"
+        )
+
+    # Build query - exclude withdrawn and archived by default + filter by organization
     query = db.query(Expense).filter(
-        Expense.status != ExpenseStatus.WITHDRAWN, Expense.is_archived == False
+        Expense.organization_id == org_id,
+        Expense.status != ExpenseStatus.WITHDRAWN,
+        Expense.is_archived == False
     )
 
     # Apply status filter if provided
@@ -658,16 +677,37 @@ async def clear_pending_expenses(
     import os
 
     from ..models import Expense, ExpenseComment, ExpenseStatus, Receipt
+    from ..tenant_context import verify_organization_access
 
     logger = logging.getLogger(__name__)
     logger.info(
         f"[admin.clear_pending_expenses] Admin {current_user.username} initiating pending expenses clear"
     )
 
+    # SECURITY: Get and validate organization context
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization context required (X-Organization-Id header missing)"
+        )
+
+    # SECURITY: Verify user has access to this organization
+    if not verify_organization_access(current_user.id, org_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this organization"
+        )
+
     try:
-        # Get all pending expenses
+        # Get all pending expenses for THIS organization only
         pending_expenses = (
-            db.query(Expense).filter(Expense.status == ExpenseStatus.PENDING).all()
+            db.query(Expense)
+            .filter(
+                Expense.organization_id == org_id,
+                Expense.status == ExpenseStatus.PENDING
+            )
+            .all()
         )
         expense_count = len(pending_expenses)
 
@@ -780,18 +820,36 @@ async def archive_all_expenses(
     import logging
 
     from ..models import Expense, ExpenseStatus
+    from ..tenant_context import verify_organization_access
 
     logger = logging.getLogger(__name__)
     logger.info(
         f"[admin.archive_all_expenses] Admin {current_user.username} initiating bulk archive"
     )
 
+    # SECURITY: Get and validate organization context
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization context required (X-Organization-Id header missing)"
+        )
+
+    # SECURITY: Verify user has access to this organization
+    if not verify_organization_access(current_user.id, org_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this organization"
+        )
+
     try:
-        # Get all non-pending, non-archived expenses
+        # Get all non-pending, non-archived expenses for THIS organization only
         expenses_to_archive = (
             db.query(Expense)
             .filter(
-                Expense.status != ExpenseStatus.PENDING, Expense.is_archived == False
+                Expense.organization_id == org_id,
+                Expense.status != ExpenseStatus.PENDING,
+                Expense.is_archived == False
             )
             .all()
         )
@@ -844,15 +902,33 @@ async def archive_all_expenses(
 
 @router.get("/expenses/archived", response_model=dict)
 async def get_archived_expenses(
-    current_user: User = Depends(require_admin), db: Session = Depends(get_db)
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
 ):
     """Get all archived expenses (Admin only)"""
     from ..models import Expense
     from ..models import User as UserModel
+    from ..tenant_context import verify_organization_access
+
+    # SECURITY: Get and validate organization context
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization context required (X-Organization-Id header missing)"
+        )
+
+    # SECURITY: Verify user has access to this organization
+    if not verify_organization_access(current_user.id, org_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this organization"
+        )
 
     archived_expenses = (
         db.query(Expense)
-        .filter(Expense.is_archived == True)
+        .filter(Expense.organization_id == org_id, Expense.is_archived == True)
         .order_by(Expense.archived_at.desc())
         .all()
     )
@@ -899,10 +975,29 @@ async def archive_expense(
     import logging
 
     from ..models import Expense, ExpenseStatus
+    from ..tenant_context import verify_organization_access
 
     logger = logging.getLogger(__name__)
 
-    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+    # SECURITY: Get and validate organization context
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization context required (X-Organization-Id header missing)"
+        )
+
+    # SECURITY: Verify user has access to this organization
+    if not verify_organization_access(current_user.id, org_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this organization"
+        )
+
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.organization_id == org_id
+    ).first()
     if not expense:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found"
@@ -956,10 +1051,29 @@ async def unarchive_expense(
     import logging
 
     from ..models import Expense
+    from ..tenant_context import verify_organization_access
 
     logger = logging.getLogger(__name__)
 
-    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+    # SECURITY: Get and validate organization context
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization context required (X-Organization-Id header missing)"
+        )
+
+    # SECURITY: Verify user has access to this organization
+    if not verify_organization_access(current_user.id, org_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this organization"
+        )
+
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.organization_id == org_id
+    ).first()
     if not expense:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found"
@@ -1005,15 +1119,34 @@ async def unarchive_all_expenses(
     import logging
 
     from ..models import Expense
+    from ..tenant_context import verify_organization_access
 
     logger = logging.getLogger(__name__)
     logger.info(
         f"[admin.unarchive_all_expenses] Admin {current_user.username} initiating bulk unarchive"
     )
 
+    # SECURITY: Get and validate organization context
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization context required (X-Organization-Id header missing)"
+        )
+
+    # SECURITY: Verify user has access to this organization
+    if not verify_organization_access(current_user.id, org_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this organization"
+        )
+
     try:
-        # Get all archived expenses
-        archived_expenses = db.query(Expense).filter(Expense.is_archived == True).all()
+        # Get all archived expenses for THIS organization only
+        archived_expenses = db.query(Expense).filter(
+            Expense.organization_id == org_id,
+            Expense.is_archived == True
+        ).all()
 
         unarchive_count = len(archived_expenses)
 

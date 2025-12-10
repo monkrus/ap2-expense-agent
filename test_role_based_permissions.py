@@ -289,7 +289,7 @@ class RoleBasedTestRunner:
         expense_data = {
             "amount": 150.00,
             "vendor": "Office Depot",
-            "category": "Office Supplies",
+            "category": "OFFICE_SUPPLIES",
             "description": "Admin submitted expense for testing",
             "date": datetime.now().isoformat()
         }
@@ -376,7 +376,7 @@ class RoleBasedTestRunner:
         expense_data = {
             "amount": 250.00,
             "vendor": "AWS",
-            "category": "Cloud Services",
+            "category": "SOFTWARE",
             "description": "Manager submitted expense",
             "date": datetime.now().isoformat()
         }
@@ -404,7 +404,7 @@ class RoleBasedTestRunner:
             emp_expense_data = {
                 "amount": 75.00,
                 "vendor": "Lunch Meeting",
-                "category": "Meals",
+                "category": "MEALS",
                 "description": "Team lunch",
                 "date": datetime.now().isoformat()
             }
@@ -480,7 +480,7 @@ class RoleBasedTestRunner:
         expense_data = {
             "amount": 125.00,
             "vendor": "Accounting Software Co",
-            "category": "Software",
+            "category": "SOFTWARE",
             "description": "Accountant expense submission",
             "date": datetime.now().isoformat()
         }
@@ -560,7 +560,7 @@ class RoleBasedTestRunner:
             expense_data = {
                 "amount": 45.00,
                 "vendor": "Coffee Shop",
-                "category": "Meals",
+                "category": "MEALS",
                 "description": f"{username} expense submission",
                 "date": datetime.now().isoformat()
             }
@@ -646,7 +646,7 @@ class RoleBasedTestRunner:
             invalid_expense = {
                 "amount": -100.00,  # Negative amount
                 "vendor": "Test Vendor",
-                "category": "Test",
+                "category": "OTHER",
                 "description": "Negative amount test",
                 "date": datetime.now().isoformat()
             }
@@ -661,7 +661,7 @@ class RoleBasedTestRunner:
             huge_expense = {
                 "amount": 999999999.99,  # Very large amount
                 "vendor": "Test Vendor",
-                "category": "Test",
+                "category": "OTHER",
                 "description": "Large amount test",
                 "date": datetime.now().isoformat()
             }
@@ -675,7 +675,7 @@ class RoleBasedTestRunner:
             sql_injection_expense = {
                 "amount": 50.00,
                 "vendor": "'; DROP TABLE expenses; --",
-                "category": "Test",
+                "category": "OTHER",
                 "description": "SQL injection test",
                 "date": datetime.now().isoformat()
             }
@@ -689,7 +689,7 @@ class RoleBasedTestRunner:
             xss_expense = {
                 "amount": 50.00,
                 "vendor": "Test Vendor",
-                "category": "Test",
+                "category": "OTHER",
                 "description": "<script>alert('XSS')</script>",
                 "date": datetime.now().isoformat()
             }
@@ -703,7 +703,7 @@ class RoleBasedTestRunner:
             invalid_date_expense = {
                 "amount": 50.00,
                 "vendor": "Test Vendor",
-                "category": "Test",
+                "category": "OTHER",
                 "description": "Invalid date test",
                 "date": "not-a-date"
             }
@@ -748,7 +748,7 @@ class RoleBasedTestRunner:
             duplicate_expense = {
                 "amount": 75.00,
                 "vendor": "Duplicate Test",
-                "category": "Test",
+                "category": "OTHER",
                 "description": "Duplicate submission test",
                 "date": datetime.now().isoformat()
             }
@@ -769,7 +769,7 @@ class RoleBasedTestRunner:
                 rapid_expense = {
                     "amount": 10.00,
                     "vendor": f"Rapid Test {i}",
-                    "category": "Test",
+                    "category": "OTHER",
                     "description": f"Rate limit test {i}",
                     "date": datetime.now().isoformat()
                 }

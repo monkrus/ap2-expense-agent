@@ -319,7 +319,7 @@ class ManagerWorkflow(WorkflowTest):
         expense_data = {
             "amount": 150.00,
             "vendor": "Office Supplies Co",
-            "category": "OFFICE",
+            "category": "OFFICE_SUPPLIES",
             "description": "Luxury office chair",
         }
         response = requests.post(

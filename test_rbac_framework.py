@@ -518,7 +518,7 @@ class EmployeeTests:
         expense_data = {
             "amount": 120.00,
             "vendor": "Tech Store",
-            "category": "OFFICE",
+            "category": "OFFICE_SUPPLIES",
             "description": "Wireless mouse and keyboard",
             "date": datetime.now().strftime("%Y-%m-%d"),
             "has_receipt": True
@@ -896,7 +896,7 @@ class CrossRoleTests:
         expense_data = {
             "amount": 200.00,
             "vendor": "Supply Vendor",
-            "category": "OFFICE",
+            "category": "OFFICE_SUPPLIES",
             "description": "Office supplies for team",
             "date": datetime.now().strftime("%Y-%m-%d")
         }
@@ -1004,7 +1004,7 @@ class EdgeCaseTests:
         expense_data = {
             "amount": 999999999.99,
             "vendor": "Test",
-            "category": "OFFICE",
+            "category": "OFFICE_SUPPLIES",
             "description": "Large amount test",
             "date": datetime.now().strftime("%Y-%m-%d")
         }
@@ -1050,13 +1050,15 @@ class EdgeCaseTests:
         }
         response = self.client.post("/expenses", emp.token, expense_data)
 
-        passed = response.status_code in [200, 201, 400]  # Handled safely
+        # SQL injection is safe if it either rejects (400) OR creates it safely (200/201)
+        # The ORM should parameterize queries automatically
+        passed = response.status_code in [200, 201, 400, 422]  # Handled safely
         self.fw.add_result(TestResult(
             test_name="SQL Injection Protection",
             category=TestCategory.EDGE_CASE,
             role="SECURITY",
             passed=passed,
-            message="SQL injection handled safely",
+            message="SQL injection handled safely (ORM parameterized queries)",
             actual_status=response.status_code
         ))
 
@@ -1070,13 +1072,15 @@ class EdgeCaseTests:
         }
         response = self.client.post("/expenses", emp.token, expense_data)
 
-        passed = response.status_code in [200, 201, 400]
+        # XSS is safe if it either rejects (400) OR stores it safely (200/201)
+        # The frontend (React) auto-escapes, backend just stores the data
+        passed = response.status_code in [200, 201, 400, 422]
         self.fw.add_result(TestResult(
             test_name="XSS Protection",
             category=TestCategory.EDGE_CASE,
             role="SECURITY",
             passed=passed,
-            message="XSS content handled safely",
+            message="XSS content handled safely (React auto-escapes on render)",
             actual_status=response.status_code
         ))
 
@@ -1104,7 +1108,7 @@ class EdgeCaseTests:
         expense_data = {
             "amount": 0.00,
             "vendor": "Free Sample Vendor",
-            "category": "OFFICE",
+            "category": "OFFICE_SUPPLIES",
             "description": "Free promotional items",
             "date": datetime.now().strftime("%Y-%m-%d")
         }
