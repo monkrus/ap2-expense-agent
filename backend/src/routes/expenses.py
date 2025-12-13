@@ -293,6 +293,58 @@ async def list_expenses(
     ]
 
 
+@router.get("/export")
+async def export_expenses(
+    request: Request,
+    format: str = "csv",
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Export expenses to CSV
+
+    Permissions: Accountants, admins
+    """
+    org_id = request.headers.get("X-Organization-Id")
+
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization context required"
+        )
+
+    # Verify organization access
+    ensure_org_access(current_user.id, org_id, db)
+
+    # Check permission (accountants and admins can export)
+    user_org_role = get_user_organization_role(current_user.id, org_id, db)
+
+    can_export = (
+        user_org_role in ["owner", "admin"] or
+        current_user.role in [UserRole.ADMIN, UserRole.ACCOUNTANT]
+    )
+
+    if not can_export:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to export expenses"
+        )
+
+    # Get all expenses for organization
+    expenses = db.query(Expense).filter(Expense.organization_id == org_id).all()
+
+    # In a real implementation, generate actual CSV file
+    # For now, return metadata
+
+    return {
+        "message": "Export ready",
+        "format": format,
+        "expense_count": len(expenses),
+        "exported_by": current_user.username,
+        "exported_at": datetime.utcnow().isoformat()
+    }
+
+
 @router.get("/{expense_id}")
 async def get_expense(
     expense_id: str,
@@ -747,56 +799,4 @@ async def flag_expense(
         "message": "Expense flagged for admin review",
         "flagged_by": current_user.username,
         "note": note
-    }
-
-
-@router.get("/export")
-async def export_expenses(
-    request: Request,
-    format: str = "csv",
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db),
-):
-    """
-    Export expenses to CSV
-
-    Permissions: Accountants, admins
-    """
-    org_id = request.headers.get("X-Organization-Id")
-
-    if not org_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required"
-        )
-
-    # Verify organization access
-    ensure_org_access(current_user.id, org_id, db)
-
-    # Check permission (accountants and admins can export)
-    user_org_role = get_user_organization_role(current_user.id, org_id, db)
-
-    can_export = (
-        user_org_role in ["owner", "admin"] or
-        current_user.role in [UserRole.ADMIN, UserRole.ACCOUNTANT]
-    )
-
-    if not can_export:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to export expenses"
-        )
-
-    # Get all expenses for organization
-    expenses = db.query(Expense).filter(Expense.organization_id == org_id).all()
-
-    # In a real implementation, generate actual CSV file
-    # For now, return metadata
-
-    return {
-        "message": "Export ready",
-        "format": format,
-        "expense_count": len(expenses),
-        "exported_by": current_user.username,
-        "exported_at": datetime.utcnow().isoformat()
     }
