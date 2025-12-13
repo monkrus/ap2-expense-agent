@@ -203,13 +203,8 @@ def create_approval_policy(
     if data.conditions:
         # Validate category list
         if "categories" in data.conditions:
-            valid_categories = [
-                "Travel",
-                "Meals",
-                "Software",
-                "Office Supplies",
-                "Other",
-            ]
+            from ..models import ExpenseCategory
+            valid_categories = [cat.value for cat in ExpenseCategory]
             for cat in data.conditions["categories"]:
                 if cat not in valid_categories:
                     raise HTTPException(

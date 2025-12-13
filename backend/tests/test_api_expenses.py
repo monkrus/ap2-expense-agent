@@ -27,12 +27,12 @@ class TestExpenseAPIRoutes:
         )
 
         assert response.status_code == 201
-        data = response.json()
-        assert data["success"] == True
-        expense = data["expense"]
+        expense = response.json()
         assert expense["amount"] == 100.50
         assert expense["description"] == "Office supplies"
         assert expense["status"] == "PENDING"
+        assert "id" in expense
+        assert "auto_approved" in expense
 
     def test_create_expense_missing_required_fields(self, client, org_headers):
         """Test creating expense without required fields"""

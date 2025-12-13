@@ -358,9 +358,15 @@ def org_headers(test_user, auth_headers, db_session):
 
 
 @pytest.fixture
-def admin_org_headers(test_organization, admin_headers):
-    """Create admin headers with organization context"""
-    return {**admin_headers, "X-Organization-Id": test_organization.id}
+def admin_org_headers(test_admin, admin_headers, db_session):
+    """Create admin headers with admin's own organization context"""
+    # Get admin's organization
+    membership = (
+        db_session.query(OrganizationMember)
+        .filter(OrganizationMember.user_id == test_admin.id)
+        .first()
+    )
+    return {**admin_headers, "X-Organization-Id": membership.organization_id}
 
 
 @pytest.fixture

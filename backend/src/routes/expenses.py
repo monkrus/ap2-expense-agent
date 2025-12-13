@@ -334,6 +334,7 @@ async def get_expense(
 
 
 @router.put("/{expense_id}")
+@router.patch("/{expense_id}")
 async def update_expense(
     expense_id: str,
     data: ExpenseUpdate,
@@ -385,8 +386,16 @@ async def update_expense(
 
     return {
         "id": expense.id,
-        "message": "Expense updated successfully",
-        "status": expense.status.value if hasattr(expense.status, 'value') else expense.status
+        "amount": expense.amount,
+        "vendor": expense.vendor,
+        "category": expense.category,
+        "description": expense.description,
+        "status": expense.status.value if hasattr(expense.status, 'value') else expense.status,
+        "date": expense.date.isoformat() if expense.date else None,
+        "user_id": expense.user_id,
+        "organization_id": expense.organization_id,
+        "created_at": expense.created_at.isoformat() if expense.created_at else None,
+        "updated_at": expense.updated_at.isoformat() if expense.updated_at else None,
     }
 
 

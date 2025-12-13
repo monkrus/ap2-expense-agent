@@ -25,12 +25,12 @@ class TestExpenseCreation:
             },
         )
         assert response.status_code == 201
-        data = response.json()
-        assert data["success"] == True
-        expense = data["expense"]
+        expense = response.json()
         assert expense["amount"] == 150.00
         assert expense["vendor"] == "Test Restaurant"
         assert expense["status"] == "PENDING"
+        assert "id" in expense
+        assert "auto_approved" in expense
 
     def test_create_expense_without_auth(self, client, test_organization):
         """Test creating expense without authentication fails"""
@@ -110,11 +110,10 @@ class TestExpenseUpdate:
             },
         )
         assert response.status_code == 200
-        data = response.json()
-        assert data["success"] == True
-        expense = data["expense"]
+        expense = response.json()
         assert expense["amount"] == 200.00
         assert expense["vendor"] == "Updated Vendor"
+        assert expense["description"] == "Updated description"
 
     def test_cannot_update_others_expense(
         self, client, second_org_headers, test_expense
