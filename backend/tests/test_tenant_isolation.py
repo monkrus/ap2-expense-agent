@@ -111,7 +111,7 @@ class TestTenantIsolation:
             "/api/v1/expenses", json=expense_data, headers=org_headers
         )
         assert response.status_code == status.HTTP_201_CREATED
-        expense_id = response.json()["expense"]["id"]
+        expense_id = response.json()["id"]
 
         # User from org 1 should see the expense
         response = client.get(f"/api/v1/expenses/{expense_id}", headers=org_headers)
@@ -190,7 +190,7 @@ class TestTenantIsolation:
         response = client.post(
             "/api/v1/expenses", json=expense_data, headers=org_headers
         )
-        expense_id = response.json()["expense"]["id"]
+        expense_id = response.json()["id"]
 
         # Try to update with org 2 credentials
         update_data = {"amount": 999.99, "description": "Hacked!"}
@@ -230,7 +230,7 @@ class TestTenantIsolation:
         response = client.post(
             "/api/v1/expenses", json=expense_data, headers=org_headers
         )
-        expense_id = response.json()["expense"]["id"]
+        expense_id = response.json()["id"]
 
         # Try to delete with org 2 credentials
         response = client.delete(
@@ -288,8 +288,7 @@ class TestTenantIsolation:
             headers=auth_headers,  # No X-Organization-Id
         )
 
-        # Should succeed by using user's default organization
-        assert response.status_code == status.HTTP_201_CREATED
-        assert "expense" in response.json()
-        assert "id" in response.json()["expense"]
-        assert response.json()["expense"]["description"] == "Test expense"
+        # Should now require organization header (400 error)
+        # Multi-tenant security requires explicit org context
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Organization context required" in response.json()["detail"]

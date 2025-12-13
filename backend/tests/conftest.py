@@ -242,6 +242,20 @@ def manager_headers(client, test_manager):
     return {"Authorization": f"Bearer {token}"}
 
 
+@pytest.fixture
+def manager_org_headers(test_manager, manager_headers, db_session):
+    """Create manager headers with manager's organization context"""
+    from src.models import OrganizationMember
+
+    # Get manager's organization
+    membership = (
+        db_session.query(OrganizationMember)
+        .filter(OrganizationMember.user_id == test_manager.id)
+        .first()
+    )
+    return {**manager_headers, "X-Organization-Id": membership.organization_id}
+
+
 # ============================================================================
 # Organization Fixtures (Multi-Tenancy)
 # ============================================================================
