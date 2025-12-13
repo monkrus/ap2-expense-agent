@@ -2,9 +2,6 @@ import React, { useState } from "react";
 import { Download, FileText, Table } from "lucide-react";
 import { expenseAPI } from "../services/api";
 import { useToast } from "../hooks/useToast";
-import ExcelJS from "exceljs";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 import { withTimeout, logSecurityEvent } from "../utils/excelSecurity";
 
 const ExpenseExport = ({ expenses, onClose }) => {
@@ -57,6 +54,9 @@ const ExpenseExport = ({ expenses, onClose }) => {
         expenseCount: expenses.length,
         format: "xlsx",
       });
+
+      // Dynamically import ExcelJS only when needed (lazy loading)
+      const ExcelJS = (await import("exceljs")).default;
 
       // Wrap Excel operations in timeout protection
       // This protects against ReDoS (Regular Expression Denial of Service)
@@ -191,8 +191,12 @@ const ExpenseExport = ({ expenses, onClose }) => {
     document.body.removeChild(link);
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     try {
+      // Dynamically import jsPDF and autoTable only when needed (lazy loading)
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+
       // Create new PDF document (A4 size, portrait orientation)
       const doc = new jsPDF();
 

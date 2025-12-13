@@ -1,0 +1,1462 @@
+<testsuites id="" name="" tests="90" failures="90" skipped="0" errors="0" time="13.616674000000001">
+<testsuite name="auth.spec.js" timestamp="2025-12-13T14:57:15.026Z" hostname="chromium" tests="7" failures="7" skipped="0" time="0.032" errors="0">
+<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0.006">
+<failure message="auth.spec.js:12:3 should display login page" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.js:12:3 › Authentication Flow › should display login page ─────────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0.004">
+<failure message="auth.spec.js:21:3 should login with valid credentials" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.js:21:3 › Authentication Flow › should login with valid credentials ───────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0.005">
+<failure message="auth.spec.js:39:3 should show error with invalid credentials" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.js:39:3 › Authentication Flow › should show error with invalid credentials 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="0.004">
+<failure message="auth.spec.js:54:3 should logout successfully" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.js:54:3 › Authentication Flow › should logout successfully ────────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0.004">
+<failure message="auth.spec.js:72:3 should handle token expiration" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.js:72:3 › Authentication Flow › should handle token expiration ────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0.005">
+<failure message="auth.spec.js:80:3 should redirect to login when accessing protected route without auth" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.js:80:3 › Protected Routes › should redirect to login when accessing protected route without auth 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="0.004">
+<failure message="auth.spec.js:88:3 should allow access to protected routes when authenticated" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.js:88:3 › Protected Routes › should allow access to protected routes when authenticated 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="expense-submission.spec.js" timestamp="2025-12-13T14:57:15.026Z" hostname="chromium" tests="11" failures="11" skipped="0" time="0.054" errors="0">
+<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0.005">
+<failure message="expense-submission.spec.js:20:3 should display expense submission form" type="FAILURE">
+<![CDATA[  [chromium] › expense-submission.spec.js:20:3 › Expense Submission Flow › should display expense submission form 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="0.006">
+<failure message="expense-submission.spec.js:31:3 should submit expense successfully" type="FAILURE">
+<![CDATA[  [chromium] › expense-submission.spec.js:31:3 › Expense Submission Flow › should submit expense successfully 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="0.006">
+<failure message="expense-submission.spec.js:51:3 should validate required fields" type="FAILURE">
+<![CDATA[  [chromium] › expense-submission.spec.js:51:3 › Expense Submission Flow › should validate required fields 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:62:3 should validate amount field" type="FAILURE">
+<![CDATA[  [chromium] › expense-submission.spec.js:62:3 › Expense Submission Flow › should validate amount field 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0.005">
+<failure message="expense-submission.spec.js:73:3 should upload receipt" type="FAILURE">
+<![CDATA[  [chromium] › expense-submission.spec.js:73:3 › Expense Submission Flow › should upload receipt ───
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0.005">
+<failure message="expense-submission.spec.js:103:3 should display expense list" type="FAILURE">
+<![CDATA[  [chromium] › expense-submission.spec.js:103:3 › Expense List & Status › should display expense list 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="0.007">
+<failure message="expense-submission.spec.js:116:3 should filter expenses by status" type="FAILURE">
+<![CDATA[  [chromium] › expense-submission.spec.js:116:3 › Expense List & Status › should filter expenses by status 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0.005">
+<failure message="expense-submission.spec.js:132:3 should view expense details" type="FAILURE">
+<![CDATA[  [chromium] › expense-submission.spec.js:132:3 › Expense List & Status › should view expense details 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:153:3 should display pending expenses for approval" type="FAILURE">
+<![CDATA[  [chromium] › expense-submission.spec.js:153:3 › Expense Approval Flow (Admin/Manager) › should display pending expenses for approval 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="0.005">
+<failure message="expense-submission.spec.js:164:3 should approve expense" type="FAILURE">
+<![CDATA[  [chromium] › expense-submission.spec.js:164:3 › Expense Approval Flow (Admin/Manager) › should approve expense 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0.004">
+<failure message="expense-submission.spec.js:184:3 should reject expense with reason" type="FAILURE">
+<![CDATA[  [chromium] › expense-submission.spec.js:184:3 › Expense Approval Flow (Admin/Manager) › should reject expense with reason 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.js" timestamp="2025-12-13T14:57:15.026Z" hostname="firefox" tests="7" failures="7" skipped="0" time="0.034" errors="0">
+<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0.009">
+<failure message="auth.spec.js:12:3 should display login page" type="FAILURE">
+<![CDATA[  [firefox] › auth.spec.js:12:3 › Authentication Flow › should display login page ──────────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0.004">
+<failure message="auth.spec.js:21:3 should login with valid credentials" type="FAILURE">
+<![CDATA[  [firefox] › auth.spec.js:21:3 › Authentication Flow › should login with valid credentials ────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0.003">
+<failure message="auth.spec.js:39:3 should show error with invalid credentials" type="FAILURE">
+<![CDATA[  [firefox] › auth.spec.js:39:3 › Authentication Flow › should show error with invalid credentials ─
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="0.003">
+<failure message="auth.spec.js:54:3 should logout successfully" type="FAILURE">
+<![CDATA[  [firefox] › auth.spec.js:54:3 › Authentication Flow › should logout successfully ─────────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0.003">
+<failure message="auth.spec.js:72:3 should handle token expiration" type="FAILURE">
+<![CDATA[  [firefox] › auth.spec.js:72:3 › Authentication Flow › should handle token expiration ─────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0.003">
+<failure message="auth.spec.js:80:3 should redirect to login when accessing protected route without auth" type="FAILURE">
+<![CDATA[  [firefox] › auth.spec.js:80:3 › Protected Routes › should redirect to login when accessing protected route without auth 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="0.009">
+<failure message="auth.spec.js:88:3 should allow access to protected routes when authenticated" type="FAILURE">
+<![CDATA[  [firefox] › auth.spec.js:88:3 › Protected Routes › should allow access to protected routes when authenticated 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="expense-submission.spec.js" timestamp="2025-12-13T14:57:15.026Z" hostname="firefox" tests="11" failures="11" skipped="0" time="0.055" errors="0">
+<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0.006">
+<failure message="expense-submission.spec.js:20:3 should display expense submission form" type="FAILURE">
+<![CDATA[  [firefox] › expense-submission.spec.js:20:3 › Expense Submission Flow › should display expense submission form 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="0.004">
+<failure message="expense-submission.spec.js:31:3 should submit expense successfully" type="FAILURE">
+<![CDATA[  [firefox] › expense-submission.spec.js:31:3 › Expense Submission Flow › should submit expense successfully 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="0.005">
+<failure message="expense-submission.spec.js:51:3 should validate required fields" type="FAILURE">
+<![CDATA[  [firefox] › expense-submission.spec.js:51:3 › Expense Submission Flow › should validate required fields 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="0.007">
+<failure message="expense-submission.spec.js:62:3 should validate amount field" type="FAILURE">
+<![CDATA[  [firefox] › expense-submission.spec.js:62:3 › Expense Submission Flow › should validate amount field 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0.007">
+<failure message="expense-submission.spec.js:73:3 should upload receipt" type="FAILURE">
+<![CDATA[  [firefox] › expense-submission.spec.js:73:3 › Expense Submission Flow › should upload receipt ────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0.006">
+<failure message="expense-submission.spec.js:103:3 should display expense list" type="FAILURE">
+<![CDATA[  [firefox] › expense-submission.spec.js:103:3 › Expense List & Status › should display expense list 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:116:3 should filter expenses by status" type="FAILURE">
+<![CDATA[  [firefox] › expense-submission.spec.js:116:3 › Expense List & Status › should filter expenses by status 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0.006">
+<failure message="expense-submission.spec.js:132:3 should view expense details" type="FAILURE">
+<![CDATA[  [firefox] › expense-submission.spec.js:132:3 › Expense List & Status › should view expense details 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0.005">
+<failure message="expense-submission.spec.js:153:3 should display pending expenses for approval" type="FAILURE">
+<![CDATA[  [firefox] › expense-submission.spec.js:153:3 › Expense Approval Flow (Admin/Manager) › should display pending expenses for approval 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:164:3 should approve expense" type="FAILURE">
+<![CDATA[  [firefox] › expense-submission.spec.js:164:3 › Expense Approval Flow (Admin/Manager) › should approve expense 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:184:3 should reject expense with reason" type="FAILURE">
+<![CDATA[  [firefox] › expense-submission.spec.js:184:3 › Expense Approval Flow (Admin/Manager) › should reject expense with reason 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\firefox-1497\firefox\firefox.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.js" timestamp="2025-12-13T14:57:15.026Z" hostname="webkit" tests="7" failures="7" skipped="0" time="0.043" errors="0">
+<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0.005">
+<failure message="auth.spec.js:12:3 should display login page" type="FAILURE">
+<![CDATA[  [webkit] › auth.spec.js:12:3 › Authentication Flow › should display login page ───────────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0.018">
+<failure message="auth.spec.js:21:3 should login with valid credentials" type="FAILURE">
+<![CDATA[  [webkit] › auth.spec.js:21:3 › Authentication Flow › should login with valid credentials ─────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0.005">
+<failure message="auth.spec.js:39:3 should show error with invalid credentials" type="FAILURE">
+<![CDATA[  [webkit] › auth.spec.js:39:3 › Authentication Flow › should show error with invalid credentials ──
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="0.004">
+<failure message="auth.spec.js:54:3 should logout successfully" type="FAILURE">
+<![CDATA[  [webkit] › auth.spec.js:54:3 › Authentication Flow › should logout successfully ──────────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0.005">
+<failure message="auth.spec.js:72:3 should handle token expiration" type="FAILURE">
+<![CDATA[  [webkit] › auth.spec.js:72:3 › Authentication Flow › should handle token expiration ──────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0.003">
+<failure message="auth.spec.js:80:3 should redirect to login when accessing protected route without auth" type="FAILURE">
+<![CDATA[  [webkit] › auth.spec.js:80:3 › Protected Routes › should redirect to login when accessing protected route without auth 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="0.003">
+<failure message="auth.spec.js:88:3 should allow access to protected routes when authenticated" type="FAILURE">
+<![CDATA[  [webkit] › auth.spec.js:88:3 › Protected Routes › should allow access to protected routes when authenticated 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="expense-submission.spec.js" timestamp="2025-12-13T14:57:15.026Z" hostname="webkit" tests="11" failures="11" skipped="0" time="0.048" errors="0">
+<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0.004">
+<failure message="expense-submission.spec.js:20:3 should display expense submission form" type="FAILURE">
+<![CDATA[  [webkit] › expense-submission.spec.js:20:3 › Expense Submission Flow › should display expense submission form 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:31:3 should submit expense successfully" type="FAILURE">
+<![CDATA[  [webkit] › expense-submission.spec.js:31:3 › Expense Submission Flow › should submit expense successfully 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="0.01">
+<failure message="expense-submission.spec.js:51:3 should validate required fields" type="FAILURE">
+<![CDATA[  [webkit] › expense-submission.spec.js:51:3 › Expense Submission Flow › should validate required fields 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="0.004">
+<failure message="expense-submission.spec.js:62:3 should validate amount field" type="FAILURE">
+<![CDATA[  [webkit] › expense-submission.spec.js:62:3 › Expense Submission Flow › should validate amount field 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:73:3 should upload receipt" type="FAILURE">
+<![CDATA[  [webkit] › expense-submission.spec.js:73:3 › Expense Submission Flow › should upload receipt ─────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0.004">
+<failure message="expense-submission.spec.js:103:3 should display expense list" type="FAILURE">
+<![CDATA[  [webkit] › expense-submission.spec.js:103:3 › Expense List & Status › should display expense list 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="0.004">
+<failure message="expense-submission.spec.js:116:3 should filter expenses by status" type="FAILURE">
+<![CDATA[  [webkit] › expense-submission.spec.js:116:3 › Expense List & Status › should filter expenses by status 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:132:3 should view expense details" type="FAILURE">
+<![CDATA[  [webkit] › expense-submission.spec.js:132:3 › Expense List & Status › should view expense details 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0.006">
+<failure message="expense-submission.spec.js:153:3 should display pending expenses for approval" type="FAILURE">
+<![CDATA[  [webkit] › expense-submission.spec.js:153:3 › Expense Approval Flow (Admin/Manager) › should display pending expenses for approval 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:164:3 should approve expense" type="FAILURE">
+<![CDATA[  [webkit] › expense-submission.spec.js:164:3 › Expense Approval Flow (Admin/Manager) › should approve expense 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0.004">
+<failure message="expense-submission.spec.js:184:3 should reject expense with reason" type="FAILURE">
+<![CDATA[  [webkit] › expense-submission.spec.js:184:3 › Expense Approval Flow (Admin/Manager) › should reject expense with reason 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.js" timestamp="2025-12-13T14:57:15.026Z" hostname="Mobile Chrome" tests="7" failures="7" skipped="0" time="0.051" errors="0">
+<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0.009">
+<failure message="auth.spec.js:12:3 should display login page" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › auth.spec.js:12:3 › Authentication Flow › should display login page ────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0.012">
+<failure message="auth.spec.js:21:3 should login with valid credentials" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › auth.spec.js:21:3 › Authentication Flow › should login with valid credentials ──
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0.009">
+<failure message="auth.spec.js:39:3 should show error with invalid credentials" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › auth.spec.js:39:3 › Authentication Flow › should show error with invalid credentials 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="0.005">
+<failure message="auth.spec.js:54:3 should logout successfully" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › auth.spec.js:54:3 › Authentication Flow › should logout successfully ───────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0.004">
+<failure message="auth.spec.js:72:3 should handle token expiration" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › auth.spec.js:72:3 › Authentication Flow › should handle token expiration ───────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0.009">
+<failure message="auth.spec.js:80:3 should redirect to login when accessing protected route without auth" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › auth.spec.js:80:3 › Protected Routes › should redirect to login when accessing protected route without auth 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="0.003">
+<failure message="auth.spec.js:88:3 should allow access to protected routes when authenticated" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › auth.spec.js:88:3 › Protected Routes › should allow access to protected routes when authenticated 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="expense-submission.spec.js" timestamp="2025-12-13T14:57:15.026Z" hostname="Mobile Chrome" tests="11" failures="11" skipped="0" time="0.053" errors="0">
+<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0.007">
+<failure message="expense-submission.spec.js:20:3 should display expense submission form" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › expense-submission.spec.js:20:3 › Expense Submission Flow › should display expense submission form 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="0.004">
+<failure message="expense-submission.spec.js:31:3 should submit expense successfully" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › expense-submission.spec.js:31:3 › Expense Submission Flow › should submit expense successfully 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="0.008">
+<failure message="expense-submission.spec.js:51:3 should validate required fields" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › expense-submission.spec.js:51:3 › Expense Submission Flow › should validate required fields 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="0.005">
+<failure message="expense-submission.spec.js:62:3 should validate amount field" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › expense-submission.spec.js:62:3 › Expense Submission Flow › should validate amount field 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0.004">
+<failure message="expense-submission.spec.js:73:3 should upload receipt" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › expense-submission.spec.js:73:3 › Expense Submission Flow › should upload receipt 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0.005">
+<failure message="expense-submission.spec.js:103:3 should display expense list" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › expense-submission.spec.js:103:3 › Expense List & Status › should display expense list 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="0.004">
+<failure message="expense-submission.spec.js:116:3 should filter expenses by status" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › expense-submission.spec.js:116:3 › Expense List & Status › should filter expenses by status 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0.005">
+<failure message="expense-submission.spec.js:132:3 should view expense details" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › expense-submission.spec.js:132:3 › Expense List & Status › should view expense details 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0.005">
+<failure message="expense-submission.spec.js:153:3 should display pending expenses for approval" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › expense-submission.spec.js:153:3 › Expense Approval Flow (Admin/Manager) › should display pending expenses for approval 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:164:3 should approve expense" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › expense-submission.spec.js:164:3 › Expense Approval Flow (Admin/Manager) › should approve expense 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:184:3 should reject expense with reason" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › expense-submission.spec.js:184:3 › Expense Approval Flow (Admin/Manager) › should reject expense with reason 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\chromium_headless_shell-1200\chrome-headless-shell-win64\chrome-headless-shell.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.js" timestamp="2025-12-13T14:57:15.026Z" hostname="Mobile Safari" tests="7" failures="7" skipped="0" time="0.037" errors="0">
+<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0.004">
+<failure message="auth.spec.js:12:3 should display login page" type="FAILURE">
+<![CDATA[  [Mobile Safari] › auth.spec.js:12:3 › Authentication Flow › should display login page ────────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0.003">
+<failure message="auth.spec.js:21:3 should login with valid credentials" type="FAILURE">
+<![CDATA[  [Mobile Safari] › auth.spec.js:21:3 › Authentication Flow › should login with valid credentials ──
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0.01">
+<failure message="auth.spec.js:39:3 should show error with invalid credentials" type="FAILURE">
+<![CDATA[  [Mobile Safari] › auth.spec.js:39:3 › Authentication Flow › should show error with invalid credentials 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="0.01">
+<failure message="auth.spec.js:54:3 should logout successfully" type="FAILURE">
+<![CDATA[  [Mobile Safari] › auth.spec.js:54:3 › Authentication Flow › should logout successfully ───────────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0.005">
+<failure message="auth.spec.js:72:3 should handle token expiration" type="FAILURE">
+<![CDATA[  [Mobile Safari] › auth.spec.js:72:3 › Authentication Flow › should handle token expiration ───────
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0.002">
+<failure message="auth.spec.js:80:3 should redirect to login when accessing protected route without auth" type="FAILURE">
+<![CDATA[  [Mobile Safari] › auth.spec.js:80:3 › Protected Routes › should redirect to login when accessing protected route without auth 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="0.003">
+<failure message="auth.spec.js:88:3 should allow access to protected routes when authenticated" type="FAILURE">
+<![CDATA[  [Mobile Safari] › auth.spec.js:88:3 › Protected Routes › should allow access to protected routes when authenticated 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="expense-submission.spec.js" timestamp="2025-12-13T14:57:15.026Z" hostname="Mobile Safari" tests="11" failures="11" skipped="0" time="0.039" errors="0">
+<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0.005">
+<failure message="expense-submission.spec.js:20:3 should display expense submission form" type="FAILURE">
+<![CDATA[  [Mobile Safari] › expense-submission.spec.js:20:3 › Expense Submission Flow › should display expense submission form 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="0.006">
+<failure message="expense-submission.spec.js:31:3 should submit expense successfully" type="FAILURE">
+<![CDATA[  [Mobile Safari] › expense-submission.spec.js:31:3 › Expense Submission Flow › should submit expense successfully 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="0.004">
+<failure message="expense-submission.spec.js:51:3 should validate required fields" type="FAILURE">
+<![CDATA[  [Mobile Safari] › expense-submission.spec.js:51:3 › Expense Submission Flow › should validate required fields 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="0.004">
+<failure message="expense-submission.spec.js:62:3 should validate amount field" type="FAILURE">
+<![CDATA[  [Mobile Safari] › expense-submission.spec.js:62:3 › Expense Submission Flow › should validate amount field 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:73:3 should upload receipt" type="FAILURE">
+<![CDATA[  [Mobile Safari] › expense-submission.spec.js:73:3 › Expense Submission Flow › should upload receipt 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:103:3 should display expense list" type="FAILURE">
+<![CDATA[  [Mobile Safari] › expense-submission.spec.js:103:3 › Expense List & Status › should display expense list 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:116:3 should filter expenses by status" type="FAILURE">
+<![CDATA[  [Mobile Safari] › expense-submission.spec.js:116:3 › Expense List & Status › should filter expenses by status 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:132:3 should view expense details" type="FAILURE">
+<![CDATA[  [Mobile Safari] › expense-submission.spec.js:132:3 › Expense List & Status › should view expense details 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:153:3 should display pending expenses for approval" type="FAILURE">
+<![CDATA[  [Mobile Safari] › expense-submission.spec.js:153:3 › Expense Approval Flow (Admin/Manager) › should display pending expenses for approval 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="0.003">
+<failure message="expense-submission.spec.js:164:3 should approve expense" type="FAILURE">
+<![CDATA[  [Mobile Safari] › expense-submission.spec.js:164:3 › Expense Approval Flow (Admin/Manager) › should approve expense 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0.002">
+<failure message="expense-submission.spec.js:184:3 should reject expense with reason" type="FAILURE">
+<![CDATA[  [Mobile Safari] › expense-submission.spec.js:184:3 › Expense Approval Flow (Admin/Manager) › should reject expense with reason 
+
+    Error: browserType.launch: Executable doesn't exist at C:\Users\robot\AppData\Local\ms-playwright\webkit-2227\Playwright.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+</testsuites>
