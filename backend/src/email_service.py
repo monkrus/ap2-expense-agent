@@ -10,6 +10,12 @@ from email.mime.text import MIMEText
 from typing import Optional
 
 from .config import settings
+from .email_templates import (
+    get_expense_approved_email,
+    get_expense_rejected_email,
+    get_pending_approval_email,
+    get_budget_alert_email,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -499,4 +505,44 @@ class EmailService:
         The AP2 Expense Manager Team
         """
 
+        return EmailService.send_email(to_email, subject, html_body, text_body)
+
+    @staticmethod
+    def send_expense_approved_email(
+        to_email: str, expense_data: dict, approver_name: str
+    ) -> bool:
+        """Send expense approval notification email"""
+        subject, html_body, text_body = get_expense_approved_email(
+            expense_data, approver_name
+        )
+        return EmailService.send_email(to_email, subject, html_body, text_body)
+
+    @staticmethod
+    def send_expense_rejected_email(
+        to_email: str, expense_data: dict, rejector_name: str, reason: str
+    ) -> bool:
+        """Send expense rejection notification email"""
+        subject, html_body, text_body = get_expense_rejected_email(
+            expense_data, rejector_name, reason
+        )
+        return EmailService.send_email(to_email, subject, html_body, text_body)
+
+    @staticmethod
+    def send_pending_approval_email(
+        to_email: str, expense_data: dict, submitter_name: str, manager_name: str
+    ) -> bool:
+        """Send pending approval notification email to managers"""
+        subject, html_body, text_body = get_pending_approval_email(
+            expense_data, submitter_name, manager_name
+        )
+        return EmailService.send_email(to_email, subject, html_body, text_body)
+
+    @staticmethod
+    def send_budget_alert_email(
+        to_email: str, budget_data: dict, current_spending: float, threshold_percent: int
+    ) -> bool:
+        """Send budget alert notification email"""
+        subject, html_body, text_body = get_budget_alert_email(
+            budget_data, current_spending, threshold_percent
+        )
         return EmailService.send_email(to_email, subject, html_body, text_body)

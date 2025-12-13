@@ -12,8 +12,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import OrganizationMember, OrganizationRole, User, UserRole
-from ..models_approval import ApprovalPolicy
+from ..models import ApprovalPolicy, OrganizationMember, OrganizationRole, User, UserRole
 from ..services.approval_policy_service import ApprovalPolicyService
 
 router = APIRouter(prefix="/api/v1/approval-policies", tags=["approval-policies"])

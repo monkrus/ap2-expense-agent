@@ -11,8 +11,7 @@ from typing import Dict, List, Optional, Tuple
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
-from ..models import Expense, ExpenseCategory, ExpenseStatus, User, UserRole
-from ..models_approval import ApprovalPolicy
+from ..models import ApprovalPolicy, Expense, ExpenseCategory, ExpenseStatus, User, UserRole
 
 logger = logging.getLogger(__name__)
 

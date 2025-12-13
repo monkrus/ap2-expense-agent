@@ -35,6 +35,7 @@ from .routes.payment import (
 from .routes.expenses import router as expenses_router
 from .routes.receipts import router as receipts_router
 from .routes.webhooks import router as webhooks_router
+from .routes.approval_policies import router as approval_policies_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
 from .startup_checks import validate_settings
 from .tenant_context import tenant_middleware
@@ -210,6 +211,7 @@ app.include_router(webhooks_router)
 app.include_router(expenses_router)
 
 app.include_router(receipts_router)
+app.include_router(approval_policies_router)
 app.include_router(notifications_router)
 
 # Include GCP Marketplace webhooks
