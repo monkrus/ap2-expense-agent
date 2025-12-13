@@ -124,12 +124,24 @@ class ApprovalPolicyService:
                 return False, f"User role '{user.role.value}' not allowed"
 
         # Receipt requirement
-        # TODO: KNOWN ISSUE - Receipts are uploaded AFTER expense creation
-        # This check will always fail at creation time. Need to either:
-        # 1. Re-evaluate policy after receipt upload
+        # ARCHITECTURAL DECISION: Receipt requirement check disabled for v1.1.0
+        #
+        # ISSUE: Receipts are uploaded AFTER expense creation in current workflow
+        # This check always fails at expense creation time
+        #
+        # CONSIDERED OPTIONS:
+        # 1. Re-evaluate policy after receipt upload (✓ RECOMMENDED for v1.2)
+        #    - Add webhook/trigger to re-check policy when receipt uploaded
+        #    - Auto-approve pending expenses that now meet all criteria
         # 2. Allow conditional approval pending receipt
+        #    - Mark as "conditionally approved" until receipt uploaded
+        #    - Requires new status type
         # 3. Change workflow to upload receipt before expense creation
-        # For now, commenting out to allow auto-approval to work
+        #    - Breaking UX change, not backwards compatible
+        #
+        # DECISION: Temporarily disable for v1.1.0 launch
+        # Implement option #1 in v1.2 (post-launch enhancement)
+        #
         # if policy.require_receipt:
         #     receipt_count = len(expense.receipts) if expense.receipts else 0
         #     if receipt_count == 0:
