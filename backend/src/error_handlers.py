@@ -3,6 +3,7 @@ Global Error Handlers and Custom Exceptions
 Provides consistent error handling across the application
 """
 
+import ast
 import logging
 import sys
 import traceback
@@ -10,7 +11,7 @@ from typing import Union
 
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -208,6 +209,26 @@ async def http_exception_handler(
 ) -> JSONResponse:
     """Handle HTTP exceptions"""
     request_id = request.headers.get("X-Request-ID")
+
+    # Special-case: organization limit errors should return a plain message only
+    if exc.status_code == status.HTTP_402_PAYMENT_REQUIRED:
+        message = None
+
+        # Detail may arrive as a dict or a stringified dict
+        detail = exc.detail
+        if isinstance(detail, dict):
+            if detail.get("error") == "organization_limit_reached":
+                message = detail.get("message")
+        elif isinstance(detail, str) and "organization_limit_reached" in detail:
+            try:
+                parsed = ast.literal_eval(detail)
+                if isinstance(parsed, dict) and parsed.get("error") == "organization_limit_reached":
+                    message = parsed.get("message")
+            except Exception:
+                message = None
+
+        if message:
+            return PlainTextResponse(content=message, status_code=exc.status_code)
 
     logger.warning(
         f"HTTP Exception: {exc.status_code} - {exc.detail}",

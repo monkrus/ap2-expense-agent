@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import PlainTextResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -280,17 +281,10 @@ async def create_organization(
                     f"Please contact support for custom enterprise solutions."
                 )
 
-            raise HTTPException(
+            # Return a simple, user-friendly message without extra metadata
+            return PlainTextResponse(
+                content=friendly_message,
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": "organization_limit_reached",
-                    "message": friendly_message,
-                    "upgrade_required": True,
-                    "current_tier": tier_limits.name,
-                    "current_limit": tier_limits.max_organizations,
-                    "current_count": owned_orgs_count,
-                    "upgrade_options": suggestion if suggestion else None,
-                },
             )
 
     # Create organization
