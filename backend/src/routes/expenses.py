@@ -35,6 +35,7 @@ from ..tenant_context import (
     get_user_organization_role,
 )
 from ..permissions import can_approve_expense
+from ..email_service import EmailService
 
 router = APIRouter(prefix="/api/v1/expenses", tags=["expenses"])
 
@@ -75,12 +76,13 @@ def ensure_expense_access(expense_id: str, user: User, org_id: str, db: Session)
     # Check role-based access
     user_org_role = get_user_organization_role(user.id, org_id, db)
 
-    # Owners, admins, and accountants can see all expenses
-    if user_org_role in ["owner", "admin"] or user.role == UserRole.ACCOUNTANT:
+    # SECURITY FIX (HIGH-4): Only check organization roles, not global roles
+    # Owners and admins can see all expenses in their organization
+    if user_org_role in ["owner", "admin"]:
         return expense
 
-    # Managers can see all team expenses
-    if user_org_role == "manager" or user.role == UserRole.MANAGER:
+    # Managers can see all team expenses in their organization
+    if user_org_role == "manager":
         return expense
 
     # Employees can only see their own expenses
@@ -148,7 +150,7 @@ async def create_expense(
         datetime.fromisoformat(data.date) if data.date else datetime.utcnow()
     )
 
-    # Create expense
+    # Create expense with PENDING status initially
     expense = Expense(
         id=str(uuid.uuid4()),
         organization_id=org_id,
@@ -162,9 +164,57 @@ async def create_expense(
         ai_analysis="Manual submission",
         risk_level="LOW",
         compliance_check=True,
+        auto_approved=False,  # Default to False
     )
 
     db.add(expense)
+    db.flush()  # Flush to get ID but don't commit yet
+
+    # =====================================================================
+    # AUTO-APPROVAL EVALUATION
+    # =====================================================================
+    try:
+        from ..services.approval_policy_service import ApprovalPolicyService
+
+        policy_service = ApprovalPolicyService(db)
+        should_auto_approve, matching_policy, reason = policy_service.evaluate_expense(
+            expense, current_user
+        )
+
+        if should_auto_approve and matching_policy:
+            # AUTO-APPROVE THE EXPENSE
+            expense.status = ExpenseStatus.APPROVED
+            expense.approved_by = current_user.id  # Self-approval via policy
+            expense.approved_at = datetime.utcnow()
+            expense.auto_approved = True
+            expense.approval_policy_id = matching_policy.id
+
+            db.commit()
+            db.refresh(expense)
+
+            return {
+                "id": expense.id,
+                "amount": expense.amount,
+                "vendor": expense.vendor,
+                "category": expense.category,
+                "description": expense.description,
+                "status": expense.status.value,
+                "date": expense.date.isoformat() if expense.date else None,
+                "created_at": expense.created_at.isoformat() if expense.created_at else None,
+                "auto_approved": True,
+                "approval_policy_id": matching_policy.id,
+                "message": f"Auto-approved by policy: {matching_policy.name}"
+            }
+    except ImportError:
+        # Approval policy service not available, continue with manual approval
+        pass
+    except Exception as e:
+        # Log error but don't fail the request
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Auto-approval evaluation failed: {e}")
+
+    # MANUAL APPROVAL REQUIRED (or auto-approval failed)
     db.commit()
     db.refresh(expense)
 
@@ -177,6 +227,8 @@ async def create_expense(
         "status": expense.status.value,
         "date": expense.date.isoformat() if expense.date else None,
         "created_at": expense.created_at.isoformat() if expense.created_at else None,
+        "auto_approved": False,
+        "message": "Expense submitted for manual approval"
     }
 
 
@@ -216,11 +268,12 @@ async def list_expenses(
     # Role-based filtering
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
 
-    # Employees see only their own expenses
-    if user_org_role in ["member", None] and current_user.role == UserRole.EMPLOYEE:
+    # SECURITY FIX (HIGH-4): Only use organization roles for filtering
+    # Members see only their own expenses
+    if user_org_role in ["member", None]:
         query = query.filter(Expense.user_id == current_user.id)
 
-    # All other roles (manager, accountant, admin, owner) see all expenses
+    # All other org roles (manager, admin, owner) see all expenses
 
     expenses = query.all()
 
@@ -368,7 +421,9 @@ async def delete_expense(
     logger.info(f"DELETE EXPENSE - Checking if role == UserRole.ACCOUNTANT: {current_user.role == UserRole.ACCOUNTANT}")
 
     # CRITICAL: Accountants cannot delete expenses (audit trail protection)
-    if current_user.role == UserRole.ACCOUNTANT:
+    # Check both enum and string value to handle all cases
+    user_role_value = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role)
+    if current_user.role == UserRole.ACCOUNTANT or user_role_value == "accountant":
         logger.info("DELETE EXPENSE - BLOCKING ACCOUNTANT DELETE")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -417,6 +472,13 @@ async def approve_expense(
 
     expense = ensure_expense_access(expense_id, current_user, org_id, db)
 
+    # Check if expense is in a state that can be approved
+    if expense.status != ExpenseStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot approve expense with status {expense.status.value}. Only PENDING expenses can be approved."
+        )
+
     # Prevent self-approval
     if expense.user_id == current_user.id:
         raise HTTPException(
@@ -438,18 +500,43 @@ async def approve_expense(
             detail="You do not have permission to approve expenses"
         )
 
-    # Update expense status
+    # Update expense status with approval metadata
     expense.status = ExpenseStatus.APPROVED
+    expense.approved_by = current_user.id
+    expense.approved_at = datetime.utcnow()
     expense.updated_at = datetime.utcnow()
 
     db.commit()
     db.refresh(expense)
 
+    # Send approval notification email to expense owner
+    try:
+        expense_owner = db.query(User).filter(User.id == expense.user_id).first()
+        if expense_owner and expense_owner.email:
+            expense_data = {
+                "id": expense.id,
+                "amount": float(expense.amount),
+                "vendor": expense.vendor or "Unknown",
+                "description": expense.description or "",
+                "category": expense.category or "Uncategorized",
+                "date": expense.expense_date.strftime("%Y-%m-%d") if expense.expense_date else "N/A",
+                "submitted_at": expense.created_at.strftime("%Y-%m-%d %H:%M") if expense.created_at else "N/A"
+            }
+            EmailService.send_expense_approved_email(
+                to_email=expense_owner.email,
+                expense_data=expense_data,
+                approver_name=current_user.full_name or current_user.username
+            )
+    except Exception as e:
+        # Log error but don't fail the approval
+        print(f"Failed to send approval email: {str(e)}")
+
     return {
         "id": expense.id,
         "status": expense.status.value if hasattr(expense.status, 'value') else expense.status,
         "message": f"Expense approved by {current_user.username}",
-        "approved_at": datetime.utcnow().isoformat()
+        "approved_by": current_user.id,
+        "approved_at": expense.approved_at.isoformat()
     }
 
 
@@ -477,6 +564,13 @@ async def reject_expense(
 
     expense = ensure_expense_access(expense_id, current_user, org_id, db)
 
+    # Check if expense is in a state that can be rejected
+    if expense.status != ExpenseStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot reject expense with status {expense.status.value}. Only PENDING expenses can be rejected."
+        )
+
     # Prevent self-rejection (same logic as approval)
     if expense.user_id == current_user.id:
         raise HTTPException(
@@ -501,13 +595,38 @@ async def reject_expense(
     # Get rejection reason
     reason = data.get("reason", "No reason provided")
 
-    # Update expense status
+    # Update expense status with rejection metadata
     expense.status = ExpenseStatus.REJECTED
+    expense.rejection_reason = reason
+    expense.approved_by = current_user.id  # Track who rejected it
+    expense.approved_at = datetime.utcnow()  # Time of rejection
     expense.updated_at = datetime.utcnow()
-    # Note: You may want to add a rejection_reason field to your Expense model
 
     db.commit()
     db.refresh(expense)
+
+    # Send rejection notification email to expense owner
+    try:
+        expense_owner = db.query(User).filter(User.id == expense.user_id).first()
+        if expense_owner and expense_owner.email:
+            expense_data = {
+                "id": expense.id,
+                "amount": float(expense.amount),
+                "vendor": expense.vendor or "Unknown",
+                "description": expense.description or "",
+                "category": expense.category or "Uncategorized",
+                "date": expense.expense_date.strftime("%Y-%m-%d") if expense.expense_date else "N/A",
+                "submitted_at": expense.created_at.strftime("%Y-%m-%d %H:%M") if expense.created_at else "N/A"
+            }
+            EmailService.send_expense_rejected_email(
+                to_email=expense_owner.email,
+                expense_data=expense_data,
+                rejector_name=current_user.full_name or current_user.username,
+                reason=reason
+            )
+    except Exception as e:
+        # Log error but don't fail the rejection
+        print(f"Failed to send rejection email: {str(e)}")
 
     return {
         "id": expense.id,

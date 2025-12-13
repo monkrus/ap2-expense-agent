@@ -529,10 +529,24 @@ async def update_member_role(
             status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
         )
 
+    # SECURITY FIX (CRITICAL-2): Prevent self-role modification
+    if member.user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot modify your own role. Contact another administrator.",
+        )
+
     # Cannot change owner role
     if member.role == OrganizationRole.OWNER:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot change owner role"
+        )
+
+    # SECURITY FIX (CRITICAL-1): Only OWNER can grant OWNER role
+    if role == OrganizationRole.OWNER and user_role != OrganizationRole.OWNER.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the organization OWNER can grant OWNER role to others.",
         )
 
     member.role = role
@@ -579,6 +593,13 @@ async def remove_organization_member(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot remove organization owner",
+        )
+
+    # SECURITY FIX (HIGH-2): Only OWNER can remove ADMINs
+    if member.role == OrganizationRole.ADMIN and user_role != OrganizationRole.OWNER.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the organization OWNER can remove administrators.",
         )
 
     # Soft delete (deactivate)
