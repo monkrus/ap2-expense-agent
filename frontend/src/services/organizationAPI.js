@@ -125,10 +125,29 @@ export const createOrganization = async (data) => {
 
     // Handle 402 Payment Required - Free tier limit
     if (response.status === 402) {
-      const errorData = typeof error.detail === 'object' ? error.detail : { message: error.detail };
-      const customError = new Error('Organization limit reached');
+      let errorData = typeof error.detail === 'object' ? error.detail : { message: error.detail };
+
+      // Attempt to parse stringified dict responses from backend error handler
+      if (typeof error.detail === 'string' && error.detail.trim().startsWith('{')) {
+        try {
+          const normalized = error.detail
+            .replace(/'/g, '"')
+            .replace(/\bTrue\b/g, 'true')
+            .replace(/\bFalse\b/g, 'false');
+          errorData = JSON.parse(normalized);
+        } catch (_) {
+          // Fallback to message-only
+          errorData = { message: error.detail };
+        }
+      }
+
+      const friendlyMessage = errorData.user_friendly_message
+        || errorData.message
+        || 'Free plan allows 1 organization. Upgrade to add more teams.';
+      const customError = new Error(friendlyMessage);
       customError.status = 402;
       customError.data = errorData;
+      customError.friendlyMessage = friendlyMessage;
       throw customError;
     }
 

@@ -1,8 +1,9 @@
 """
 Database seeding with default test users.
-These users will ALWAYS be created if they don't exist.
+These users will ALWAYS be created if they don't exist unless explicitly skipped.
 """
 
+import os
 import uuid
 from datetime import datetime
 
@@ -10,38 +11,48 @@ from sqlalchemy.orm import Session
 
 from .auth import AuthService
 from .models import User, UserRole
+from .config import settings
 
-# FIXED TEST USERS - DO NOT MODIFY
-DEFAULT_USERS = [
-    {
-        "username": "admintest",
-        "email": "admintest@example.com",
-        "full_name": "Admin Test User",
-        "role": UserRole.ADMIN,
-        "password": "AgentTest!",
-    },
-    {
-        "username": "testuser",
-        "email": "testuser@example.com",
-        "full_name": "Test Manager User",
-        "role": UserRole.MANAGER,
-        "password": "AgentTest!",
-    },
-    {
-        "username": "emptest",
-        "email": "emptest@example.com",
-        "full_name": "Employee Test 1",
-        "role": UserRole.EMPLOYEE,
-        "password": "AgentTest!",
-    },
-    {
-        "username": "emptest2",
-        "email": "emptest2@example.com",
-        "full_name": "Employee Test 2",
-        "role": UserRole.EMPLOYEE,
-        "password": "AgentTest!",
-    },
-]
+# Allow disabling default seed users via environment variable to keep clean dev databases
+SKIP_DEFAULT_USERS = settings.skip_default_users or (
+    os.getenv("SKIP_DEFAULT_USERS", "").lower() in ("1", "true", "yes")
+)
+
+# FIXED TEST USERS - DO NOT MODIFY unless intentionally skipping via env flag
+DEFAULT_USERS = (
+    []
+    if SKIP_DEFAULT_USERS
+    else [
+        {
+            "username": "admintest",
+            "email": "admintest@example.com",
+            "full_name": "Admin Test User",
+            "role": UserRole.ADMIN,
+            "password": "AgentTest!",
+        },
+        {
+            "username": "testuser",
+            "email": "testuser@example.com",
+            "full_name": "Test Manager User",
+            "role": UserRole.MANAGER,
+            "password": "AgentTest!",
+        },
+        {
+            "username": "emptest",
+            "email": "emptest@example.com",
+            "full_name": "Employee Test 1",
+            "role": UserRole.EMPLOYEE,
+            "password": "AgentTest!",
+        },
+        {
+            "username": "emptest2",
+            "email": "emptest2@example.com",
+            "full_name": "Employee Test 2",
+            "role": UserRole.EMPLOYEE,
+            "password": "AgentTest!",
+        },
+    ]
+)
 
 
 def seed_default_users(db: Session, force_password_reset: bool = False) -> dict:

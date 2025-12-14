@@ -32,6 +32,10 @@ def get_db():
 
 def init_db():
     """Initialize database tables"""
+    # Import all model modules to ensure relationships with Base are registered
+    from . import models_approval  # noqa: F401
+    from . import models_billing  # noqa: F401
+
     Base.metadata.create_all(bind=engine)
 
 

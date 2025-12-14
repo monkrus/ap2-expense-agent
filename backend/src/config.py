@@ -82,6 +82,9 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: str = "http://localhost:3000,http://localhost:5173,http://localhost"
 
+    # Development helpers
+    skip_default_users: bool = False
+
     # Environment
     environment: str = "development"
     debug: bool = True

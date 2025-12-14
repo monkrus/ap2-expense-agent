@@ -219,10 +219,15 @@ async def http_exception_handler(
         },
     )
 
-    # Return standard FastAPI format with "detail" for compatibility
-    return JSONResponse(
-        status_code=exc.status_code, content={"detail": str(exc.detail)}
-    )
+    # Return standard FastAPI format with "detail" for compatibility.
+    # Keep structured detail when possible, fall back to string if not JSON-serializable.
+    detail_content = exc.detail
+    try:
+        return JSONResponse(status_code=exc.status_code, content={"detail": detail_content})
+    except TypeError:
+        return JSONResponse(
+            status_code=exc.status_code, content={"detail": str(detail_content)}
+        )
 
 
 async def validation_exception_handler(

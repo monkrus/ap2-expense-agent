@@ -154,13 +154,18 @@ const OrganizationManagement = () => {
       // Handle Free tier limit (402 Payment Required)
       if (err.status === 402) {
         const errorData = err.data || {};
+        const friendlyMessage =
+          err.friendlyMessage ||
+          errorData.user_friendly_message ||
+          errorData.message ||
+          'Free plan allows 1 organization. Upgrade to create another.';
 
         // Store tier info for upgrade prompt
         setUpgradeTierInfo({
           currentTier: errorData.current_tier || 'free',
           currentLimit: errorData.current_limit || 1,
           currentCount: errorData.current_count || 1,
-          message: errorData.message || 'You have reached your organization limit.'
+          message: friendlyMessage
         });
 
         // Close create modal
@@ -168,6 +173,7 @@ const OrganizationManagement = () => {
 
         // Show upgrade prompt modal
         setShowUpgradePrompt(true);
+        showError(friendlyMessage);
       }
       // Handle validation errors with suggestions (400 Bad Request)
       else if (err.status === 400 && err.data) {

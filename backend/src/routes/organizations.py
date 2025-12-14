@@ -226,6 +226,10 @@ async def create_organization(
                 f"Organization limit reached: user={current_user.username}, "
                 f"count={owned_orgs_count}, limit={tier_limits.max_organizations}"
             )
+            friendly_message = (
+                f"Your {tier_limits.name} plan includes {tier_limits.max_organizations} "
+                "organization. Upgrade to create another team."
+            )
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail={
@@ -235,6 +239,8 @@ async def create_organization(
                     "current_tier": user_tier.value,
                     "current_limit": tier_limits.max_organizations,
                     "current_count": owned_orgs_count,
+                    "user_friendly_message": friendly_message,
+                    "upgrade_cta": "/pricing",
                 },
             )
 
