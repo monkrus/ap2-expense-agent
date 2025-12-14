@@ -130,14 +130,35 @@ export const createOrganization = async (data) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    let error;
+    let errorData;
+
+    // Try to parse JSON response
+    try {
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        error = await response.json();
+      } else {
+        // Handle non-JSON responses (e.g., plain text)
+        const text = await response.text();
+        error = { detail: text };
+      }
+    } catch (parseError) {
+      // If JSON parsing fails, try to get text
+      try {
+        const text = await response.text();
+        error = { detail: text };
+      } catch {
+        error = { detail: "Failed to create organization" };
+      }
+    }
 
     // Handle 402 Payment Required - Free tier limit
     if (response.status === 402) {
-      const errorData =
+      errorData =
         typeof error.detail === "object"
           ? error.detail
-          : { message: error.detail };
+          : { message: error.detail || "Organization limit reached" };
       const customError = new Error("Organization limit reached");
       customError.status = 402;
       customError.data = errorData;

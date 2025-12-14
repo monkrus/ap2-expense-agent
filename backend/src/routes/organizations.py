@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import PlainTextResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -281,10 +280,19 @@ async def create_organization(
                     f"Please contact support for custom enterprise solutions."
                 )
 
-            # Return a simple, user-friendly message without extra metadata
-            return PlainTextResponse(
-                content=friendly_message,
+            # Return JSON response directly for frontend upgrade prompt
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                content={
+                    "detail": {
+                        "message": friendly_message,
+                        "current_tier": user_tier.value.lower() if user_tier else "free",
+                        "current_limit": tier_limits.max_organizations,
+                        "current_count": owned_orgs_count,
+                        "upgrade_options": suggestion,
+                    }
+                },
             )
 
     # Create organization

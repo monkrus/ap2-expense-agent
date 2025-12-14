@@ -195,24 +195,21 @@ const OrganizationManagement = () => {
         timezone: "UTC",
       });
     } catch (err) {
+      console.log("🔴 CREATE ORG ERROR:", err); // Debug: See the full error
+      console.log("🔴 Error status:", err.status); // Debug: Check status
+      console.log("🔴 Error data:", err.data); // Debug: Check data
+
       // Handle Free tier limit (402 Payment Required)
       if (err.status === 402) {
         const errorData = err.data || {};
+        console.log("✅ 402 DETECTED - Error Data:", errorData);
 
-        //console.log("402 Error Data:", errorData); // Debug log
-       // console.log("Message field:", errorData.message); // Debug message field
+        const messageText =
+          typeof errorData.message === "string"
+            ? errorData.message
+            : "You have reached your plan's organization limit. Upgrade to create more organizations.";
 
-        // Extract just the message string, ensure it's not the entire object
-       // const messageText = typeof errorData.message === 'string'
-       //   ? errorData.message
-       //   : "You have reached your organization limit.You've reached your plan's limit of 1 organization. Upgrade to Starter ($29/month) to create up to 3 organizations";
-
-      const messageText =
-      typeof errorData.message === "string"
-       ? errorData.message
-       : "You have reached your plan's organization limit. Upgrade to create more organizations.";
-
-      console.log("Extracted message:", messageText); // Debug extracted message
+        console.log("✅ Extracted message:", messageText);
 
         // Store tier info for upgrade prompt with new backend format
         setUpgradeTierInfo({
@@ -223,12 +220,22 @@ const OrganizationManagement = () => {
           upgradeOptions: errorData.upgrade_options || null,
         });
 
+        console.log("✅ Setting upgrade tier info:", {
+          currentTier: errorData.current_tier || "Free",
+          currentLimit: errorData.current_limit || 1,
+          currentCount: errorData.current_count || 1,
+          message: messageText,
+          upgradeOptions: errorData.upgrade_options || null,
+        });
+
         // Close create modal
         setShowCreateOrgModal(false);
+        console.log("✅ Closed create modal");
 
         // Show upgrade prompt modal
         setShowUpgradePrompt(true);
-        return
+        console.log("✅ Set showUpgradePrompt to TRUE");
+        return;
       }
       // Handle validation errors with suggestions (400 Bad Request)
       else if (err.status === 400 && err.data) {

@@ -210,25 +210,21 @@ async def http_exception_handler(
     """Handle HTTP exceptions"""
     request_id = request.headers.get("X-Request-ID")
 
-    # Special-case: organization limit errors should return a plain message only
+    # Special-case: 402 Payment Required errors return full detail as JSON
+    # This handles tier limit errors with upgrade prompts
     if exc.status_code == status.HTTP_402_PAYMENT_REQUIRED:
-        message = None
-
-        # Detail may arrive as a dict or a stringified dict
         detail = exc.detail
-        if isinstance(detail, dict):
-            if detail.get("error") == "organization_limit_reached":
-                message = detail.get("message")
-        elif isinstance(detail, str) and "organization_limit_reached" in detail:
-            try:
-                parsed = ast.literal_eval(detail)
-                if isinstance(parsed, dict) and parsed.get("error") == "organization_limit_reached":
-                    message = parsed.get("message")
-            except Exception:
-                message = None
+        logger.info(f"402 ERROR - Detail type: {type(detail)}, Value: {detail}")
 
-        if message:
-            return PlainTextResponse(content=message, status_code=exc.status_code)
+        # If detail is a dict, return it as JSON for frontend upgrade prompts
+        if isinstance(detail, dict):
+            logger.info(f"402 ERROR - Returning JSON response with detail")
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"detail": detail}
+            )
+        else:
+            logger.warning(f"402 ERROR - Detail is not a dict, type is {type(detail)}")
 
     logger.warning(
         f"HTTP Exception: {exc.status_code} - {exc.detail}",

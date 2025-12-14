@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_user
 from ..billing.tier_limits import TIER_CONFIGS
 from ..database import get_db
-from ..models import OrganizationMember, SubscriptionTier, User
+from ..models import OrganizationMember, Subscription, SubscriptionTier, User
 from ..models_billing import BillingTier, OrganizationSubscription, UsageMetric
 
 router = APIRouter(prefix="/api/billing/org", tags=["billing-org"])
@@ -65,6 +65,54 @@ def get_organization_subscription(
     )
 
     if not subscription:
+        # FALLBACK: Check if user has a personal subscription
+        # This handles legacy users who have user-level subscriptions but no org-level subscriptions
+        user_subscription = (
+            db.query(Subscription)
+            .filter(
+                Subscription.user_id == current_user.id,
+                Subscription.status.in_(["active", "trialing"])
+            )
+            .first()
+        )
+
+        if user_subscription:
+            # Map user subscription to organization subscription format
+            tier_name = user_subscription.tier.value.lower()
+            tier_limits_config = TIER_CONFIGS.get(user_subscription.tier)
+
+            return {
+                "has_subscription": True,
+                "subscription_id": user_subscription.id,
+                "tier": tier_name,
+                "tier_display_name": tier_limits_config.name if tier_limits_config else tier_name.title(),
+                "tier_price": tier_limits_config.price_monthly if tier_limits_config else 0,
+                "status": user_subscription.status,
+                "billing_period_start": user_subscription.current_period_start,
+                "billing_period_end": user_subscription.current_period_end,
+                "next_billing_date": user_subscription.current_period_end,
+                "cancel_at": user_subscription.canceled_at,
+                "is_trial": user_subscription.status == "trialing",
+                "trial_end": user_subscription.trial_end,
+                "limits": {
+                    "max_users": user_subscription.max_users,
+                    "max_expenses_per_month": user_subscription.max_expenses_per_month,
+                    "max_ai_categorizations": user_subscription.max_ai_categorizations,
+                    "max_ap2_transactions": user_subscription.max_ap2_transactions,
+                    "ocr_scans_included": tier_limits_config.ocr_scans_included if tier_limits_config else 0,
+                    "data_retention_days": tier_limits_config.data_retention_days if tier_limits_config else 30,
+                } if tier_limits_config else {},
+                "features": {
+                    "priority_support": tier_limits_config.priority_support if tier_limits_config else False,
+                    "custom_integrations": tier_limits_config.custom_integrations if tier_limits_config else False,
+                    "sso_enabled": tier_limits_config.sso_enabled if tier_limits_config else False,
+                } if tier_limits_config else {},
+                "gcp_entitlement_id": None,
+                "gcp_account_id": None,
+                "organization_id": org_id,
+                "source": "user_subscription_fallback",  # For debugging
+            }
+
         return {"has_subscription": False, "tier": None, "organization_id": org_id}
 
     # Get tier details
