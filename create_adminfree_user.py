@@ -4,6 +4,10 @@ Create adminfree user with Free tier for testing
 
 import sys
 import os
+import io
+
+# Fix Unicode encoding for Windows
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
