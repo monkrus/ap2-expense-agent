@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 class APIError extends Error {
   constructor(message, status, data, errorCode = null) {
@@ -318,19 +318,19 @@ export const chatAPI = {
 
 // Auth API helpers
 export const authAPI = {
-  login: async (email, password) => {
-    const formData = new FormData();
-    formData.append('username', email);
-    formData.append('password', password);
-
-    return fetch('/api/auth/login', {
+  login: async (username, password, totpCode = null) => {
+    return request('/auth/login', {
       method: 'POST',
-      body: formData,
-    }).then(handleResponse);
+      body: JSON.stringify({
+        username,
+        password,
+        totp_code: totpCode,
+      }),
+    });
   },
 
   register: async (userData) => {
-    return request('/users/register', {
+    return request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
@@ -344,3 +344,4 @@ export const authAPI = {
 };
 
 export { APIError };
+export { API_BASE_URL };

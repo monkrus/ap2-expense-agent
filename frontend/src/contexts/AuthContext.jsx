@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { API_BASE_URL } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -32,7 +33,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password, totpCode = null) => {
     try {
-      const response = await fetch('/api/v1/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +66,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await fetch('/api/v1/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,7 +89,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       if (refreshToken) {
-        await fetch('/api/v1/auth/logout', {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -111,7 +112,7 @@ export const AuthProvider = ({ children }) => {
 
   const refreshAccessToken = async () => {
     try {
-      const response = await fetch('/api/v1/auth/refresh', {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,14 +142,16 @@ export const AuthProvider = ({ children }) => {
       'Authorization': `Bearer ${accessToken}`,
     };
 
-    let response = await fetch(url, { ...options, headers });
+    const targetUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+
+    let response = await fetch(targetUrl, { ...options, headers });
 
     // If token expired, try to refresh
     if (response.status === 401 && refreshToken) {
       try {
         const newAccessToken = await refreshAccessToken();
         headers['Authorization'] = `Bearer ${newAccessToken}`;
-        response = await fetch(url, { ...options, headers });
+        response = await fetch(targetUrl, { ...options, headers });
       } catch (error) {
         logout();
         throw error;
@@ -189,14 +192,16 @@ export const AuthProvider = ({ children }) => {
       'Authorization': `Bearer ${accessToken}`,
     };
 
-    let response = await fetch(url, { ...options, headers });
+    const targetUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+
+    let response = await fetch(targetUrl, { ...options, headers });
 
     // If token expired, try to refresh and retry
     if (response.status === 401 && refreshToken) {
       try {
         const newAccessToken = await refreshAccessToken();
         headers['Authorization'] = `Bearer ${newAccessToken}`;
-        response = await fetch(url, { ...options, headers });
+        response = await fetch(targetUrl, { ...options, headers });
       } catch (error) {
         // Token refresh failed, logout user
         logout();
