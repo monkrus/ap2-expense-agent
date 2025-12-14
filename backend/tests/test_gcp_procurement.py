@@ -202,7 +202,7 @@ class TestProcurementWebhook:
         assert subscription.gcp_account_id == "acct_test_456"
         assert subscription.status == "active"
         assert subscription.is_trial is False
-        assert subscription.metadata["source"] == "gcp_marketplace"
+        assert subscription.additional_metadata["source"] == "gcp_marketplace"
 
     async def test_handle_procurement_billing_event_logged(
         self, db_session, webhook_data, mock_email_service

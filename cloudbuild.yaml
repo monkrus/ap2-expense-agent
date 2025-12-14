@@ -142,30 +142,31 @@ steps:
   # Deploy frontend to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy-frontend'
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - 'run'
-      - 'deploy'
-      - 'ap2-expense-frontend'
-      - '--image'
-      - 'gcr.io/$PROJECT_ID/ap2-expense-frontend:${TAG_NAME:-$COMMIT_SHA}'
-      - '--region'
-      - 'us-central1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--min-instances'
-      - '1'
-      - '--max-instances'
-      - '5'
-      - '--memory'
-      - '512Mi'
-      - '--cpu'
-      - '1'
-      - '--timeout'
-      - '60s'
-      - '--concurrency'
-      - '100'
+      - '-c'
+      - |
+        set -e
+
+        BACKEND_URL=$(gcloud run services describe ap2-expense-backend \
+          --region=us-central1 \
+          --project=$PROJECT_ID \
+          --format="value(status.url)")
+
+        echo "Deploying frontend with BACKEND_URL=$BACKEND_URL"
+
+        gcloud run deploy ap2-expense-frontend \
+          --image gcr.io/$PROJECT_ID/ap2-expense-frontend:${TAG_NAME:-$COMMIT_SHA} \
+          --region us-central1 \
+          --platform managed \
+          --allow-unauthenticated \
+          --min-instances 1 \
+          --max-instances 5 \
+          --memory 512Mi \
+          --cpu 1 \
+          --timeout 60s \
+          --concurrency 100 \
+          --set-env-vars BACKEND_URL=$BACKEND_URL
 
   # Run smoke tests to verify deployment
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -198,7 +199,7 @@ steps:
           echo "ERROR: Backend health check failed (HTTP $HTTP_CODE)"
           exit 1
         fi
-        echo "✓ Backend health check passed (HTTP 200)"
+        echo "OK Backend health check passed (HTTP 200)"
 
         # Test 2: Backend API docs accessible
         echo "Testing backend API docs..."
@@ -207,7 +208,7 @@ steps:
           echo "ERROR: Backend API docs failed (HTTP $HTTP_CODE)"
           exit 1
         fi
-        echo "✓ Backend API docs accessible (HTTP 200)"
+        echo "OK Backend API docs accessible (HTTP 200)"
 
         # Test 3: GCP webhook health endpoint
         echo "Testing GCP webhook health endpoint..."
@@ -216,7 +217,7 @@ steps:
           echo "ERROR: GCP webhook health check failed (HTTP $HTTP_CODE)"
           exit 1
         fi
-        echo "✓ GCP webhook health check passed (HTTP 200)"
+        echo "OK GCP webhook health check passed (HTTP 200)"
 
         # Test 4: Frontend accessible
         echo "Testing frontend..."
@@ -225,11 +226,11 @@ steps:
           echo "ERROR: Frontend failed (HTTP $HTTP_CODE)"
           exit 1
         fi
-        echo "✓ Frontend accessible (HTTP 200)"
+        echo "OK Frontend accessible (HTTP 200)"
 
         echo ""
         echo "================================"
-        echo "✓ All smoke tests passed!"
+        echo "OK All smoke tests passed!"
         echo "================================"
         echo "Backend: $BACKEND_URL"
         echo "Frontend: $FRONTEND_URL"

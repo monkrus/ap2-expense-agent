@@ -136,6 +136,11 @@ class Organization(Base):
     expenses = relationship(
         "Expense", back_populates="organization", cascade="all, delete-orphan"
     )
+    approval_policies = relationship(
+        "ApprovalPolicy",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )
 
 
 class OrganizationMember(Base):
@@ -399,6 +404,10 @@ class Expense(Base):
     approved_by = Column(String(255), ForeignKey("users.id"), nullable=True)
     approved_at = Column(DateTime, nullable=True)
     rejection_reason = Column(Text, nullable=True)
+    auto_approved = Column(Boolean, default=False, nullable=False, index=True)
+    approval_policy_id = Column(
+        String(255), ForeignKey("approval_policies.id", ondelete="SET NULL"), nullable=True
+    )
 
     # AP2 Integration
     transaction_id = Column(
@@ -431,6 +440,7 @@ class Expense(Base):
     user = relationship("User", foreign_keys=[user_id], backref="expenses")
     approver = relationship("User", foreign_keys=[approved_by])
     archiver = relationship("User", foreign_keys=[archived_by])
+    approval_policy = relationship("ApprovalPolicy", back_populates="expenses")
     intent_mandate = relationship("IntentMandate", backref="expenses")
     cart_mandate = relationship("CartMandate", backref="expenses")
     payment_mandate = relationship("PaymentMandate", backref="expenses")

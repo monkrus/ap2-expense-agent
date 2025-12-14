@@ -29,6 +29,8 @@ from src.models import (
     User,
     UserRole,
 )
+# Ensure all models (including approval policies) are registered on the metadata
+import src.models_approval  # noqa: F401
 
 # Test database setup (in-memory SQLite)
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"

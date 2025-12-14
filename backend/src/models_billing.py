@@ -101,8 +101,9 @@ class OrganizationSubscription(Base):
     tier_name = Column(String(100), nullable=False)
 
     # GCP Marketplace
-    gcp_account_id = Column(String(255), nullable=True, unique=True)
-    gcp_entitlement_id = Column(String(255), nullable=True)
+    gcp_account_id = Column(String(255), nullable=True, unique=False)
+    # Each entitlement should only map to a single subscription
+    gcp_entitlement_id = Column(String(255), nullable=True, unique=True)
     marketplace_order_id = Column(String(255), nullable=True)
 
     # Status

@@ -5,10 +5,12 @@ Handles authentication and API calls to Google Cloud Marketplace
 
 import hashlib
 import hmac
+import json
 from datetime import datetime
 from typing import Dict, Optional
 
 import requests
+from google.auth import default as google_auth_default
 from google.auth.transport.requests import AuthorizedSession
 from google.oauth2 import service_account
 
@@ -32,20 +34,39 @@ class GCPMarketplaceClient:
         self.api_base_url = "https://cloudcommerceprocurement.googleapis.com/v1"
         self.session: Optional[AuthorizedSession] = None
 
-        # Initialize credentials
+        # Initialize credentials (prefer explicit service account, fall back to ADC/WI)
         self.credentials = None
         if self.service_account_path:
             try:
-                self.credentials = (
-                    service_account.Credentials.from_service_account_file(
+                svc_value = self.service_account_path.strip()
+                if svc_value.startswith("{"):
+                    info = json.loads(svc_value)
+                    self.credentials = service_account.Credentials.from_service_account_info(
+                        info,
+                        scopes=["https://www.googleapis.com/auth/cloud-platform"],
+                    )
+                else:
+                    self.credentials = service_account.Credentials.from_service_account_file(
                         self.service_account_path,
                         scopes=["https://www.googleapis.com/auth/cloud-platform"],
                     )
-                )
-                self.session = AuthorizedSession(self.credentials)
             except Exception as e:
                 print(f"Warning: Failed to load GCP service account: {e}")
-                print("GCP Marketplace integration will be disabled")
+                print("GCP Marketplace integration will attempt to use default credentials")
+
+        if not self.credentials:
+            try:
+                creds, project = google_auth_default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+                self.credentials = creds
+                if not self.project_id:
+                    self.project_id = project
+            except Exception as e:
+                print(f"Warning: Failed to load default GCP credentials: {e}")
+
+        if self.credentials:
+            self.session = AuthorizedSession(self.credentials)
+        else:
+            print("Warning: No GCP credentials available. Marketplace API calls will be skipped.")
 
     async def report_usage(
         self,

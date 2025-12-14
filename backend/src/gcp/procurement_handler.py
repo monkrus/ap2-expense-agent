@@ -157,7 +157,7 @@ async def handle_procurement_webhook(webhook_data: Dict, db: Session) -> Dict:
             billing_period_end=datetime.utcnow() + timedelta(days=30),
             next_billing_date=datetime.utcnow() + timedelta(days=30),
             is_trial=False,  # GCP handles trials
-            metadata={
+            additional_metadata={
                 "source": "gcp_marketplace",
                 "provisioned_at": datetime.utcnow().isoformat(),
                 "initial_plan": plan,

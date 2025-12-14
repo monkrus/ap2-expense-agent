@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Dict
 
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from ..config import settings
 from ..email_service import EmailService
@@ -103,7 +104,7 @@ async def handle_entitlement_update(webhook_data: Dict, db: Session) -> Dict:
         subscription.updated_at = datetime.utcnow()
 
         # Update metadata
-        metadata = subscription.metadata or {}
+        metadata = subscription.additional_metadata or {}
         if not isinstance(metadata, dict):
             import json
 
@@ -118,7 +119,10 @@ async def handle_entitlement_update(webhook_data: Dict, db: Session) -> Dict:
                 "source": "gcp_marketplace",
             }
         )
-        subscription.metadata = metadata
+        # Assign a fresh dict to ensure SQLAlchemy detects change
+        subscription.additional_metadata = dict(metadata)
+        flag_modified(subscription, "additional_metadata")
+        db.add(subscription)
 
         # === Step 3: Update organization limits ===
         organization = db.query(Organization).filter_by(id=organization_id).first()
@@ -264,7 +268,7 @@ async def handle_entitlement_cancellation(webhook_data: Dict, db: Session) -> Di
             cancellation_date = datetime.utcnow()
 
         # Update metadata
-        metadata = subscription.metadata or {}
+        metadata = subscription.additional_metadata or {}
         if not isinstance(metadata, dict):
             import json
 
@@ -276,7 +280,9 @@ async def handle_entitlement_cancellation(webhook_data: Dict, db: Session) -> Di
             "reason": cancellation_reason,
             "source": "gcp_marketplace",
         }
-        subscription.metadata = metadata
+        subscription.additional_metadata = dict(metadata)
+        flag_modified(subscription, "additional_metadata")
+        db.add(subscription)
 
         # === Step 3: Deactivate organization (soft delete) ===
         # Keep data for 7 days grace period

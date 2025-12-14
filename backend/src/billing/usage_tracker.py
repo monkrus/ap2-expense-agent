@@ -84,7 +84,7 @@ class UsageTracker:
                     period_start=datetime.utcnow(),
                     period_end=datetime.utcnow(),
                     reported_to_gcp=False,
-                    metadata=metadata,
+                    additional_metadata=metadata,
                     created_at=datetime.utcnow(),
                 )
                 self.db.add(usage_metric)
