@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Users, UserPlus, Edit, Trash2, Shield, Lock, Unlock, Search, Filter, RefreshCw, Eye, Check, X, AlertCircle, EyeOff, UserCheck, UserX } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,10 +17,12 @@ const PERMISSION_CATEGORIES = {
   report: { label: 'Reports', color: 'bg-yellow-50 border-yellow-200' },
   system: { label: 'System', color: 'bg-red-50 border-red-200' },
   billing: { label: 'Billing', color: 'bg-pink-50 border-pink-200' },
+  audit: { label: 'Audit', color: 'bg-amber-50 border-amber-200' },
+  org: { label: 'Organizations', color: 'bg-sky-50 border-sky-200' },
   ap2: { label: 'AP2 Protocol', color: 'bg-teal-50 border-teal-200' }
 };
 
-const CATEGORY_ORDER = ['expense', 'receipt', 'comment', 'user', 'report', 'system', 'billing', 'ap2'];
+const CATEGORY_ORDER = ['expense', 'receipt', 'comment', 'user', 'report', 'system', 'billing', 'audit', 'org', 'ap2'];
 
 const UserManagementDashboard = () => {
   const { user: currentUser, getAuthHeaders, fetchWithAuth } = useAuth();
@@ -259,12 +261,15 @@ const UserManagementDashboard = () => {
       'expense:edit_department': 'Edit department expenses',
       'expense:edit_all': 'Edit all expenses',
       'expense:delete_own': 'Delete own pending expenses',
+      'expense:delete_all': 'Delete any expense',
       'expense:approve_department': 'Approve department expenses (up to $5,000)',
-      'expense:approve_all': 'Approve any expense (unlimited amount)',
+      'expense:approve_all': 'Approve any expense (no limit)',
       'expense:reject': 'Reject expenses',
-      'expense:bulk_approve': 'Bulk approve multiple expenses',
-      'expense:bulk_reject': 'Bulk reject multiple expenses',
-      'expense:withdraw': 'Withdraw pending expenses',
+      'expense:reject_department': 'Reject department expenses',
+      'expense:reject_all': 'Reject any expense',
+      'expense:bulk_approve': 'Bulk approve expenses',
+      'expense:bulk_reject': 'Bulk reject expenses',
+      'expense:withdraw': 'Withdraw own pending expenses',
 
       // Receipt permissions
       'receipt:upload': 'Upload receipt attachments',
@@ -276,6 +281,7 @@ const UserManagementDashboard = () => {
 
       // Comment permissions
       'comment:add': 'Add comments to expenses',
+      'comment:create': 'Add comments to expenses',
       'comment:view': 'View expense comments',
       'comment:edit_own': 'Edit own comments',
       'comment:delete_own': 'Delete own comments',
@@ -291,6 +297,7 @@ const UserManagementDashboard = () => {
       'user:delete': 'Delete user accounts',
       'user:change_role': 'Change user roles',
       'user:suspend': 'Suspend/activate user accounts',
+      'user:unlock': 'Unlock user accounts',
 
       // Report permissions
       'report:view_own': 'View own expense reports',
@@ -304,10 +311,23 @@ const UserManagementDashboard = () => {
       'system:maintenance': 'Perform database maintenance',
       'system:health': 'View system health status',
       'system:audit': 'Access audit logs',
+      'system:analytics': 'View system analytics',
 
       // Billing permissions
       'billing:view': 'View billing information',
       'billing:manage': 'Manage billing and subscriptions',
+
+      // Audit permissions
+      'audit:view_all': 'View all audit logs',
+      'audit:view_department': 'View department audit logs',
+      'audit:view_own': 'View own audit entries',
+
+      // Organization permissions
+      'org:create': 'Create organizations',
+      'org:delete': 'Delete organizations',
+      'org:edit': 'Edit organization settings',
+      'org:manage_members': 'Manage organization members',
+      'org:view': 'View organizations',
 
       // AP2 Protocol permissions
       'ap2:create_mandate': 'Create AP2 payment mandates',
@@ -563,6 +583,7 @@ const UserManagementDashboard = () => {
           </div>
         </div>
 
+        
         {/* Create User Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -661,10 +682,25 @@ const UserManagementDashboard = () => {
                   />
                 </div>
 
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-sm font-semibold text-gray-700">Account Status</p>
+                  <p className="text-xs text-gray-500 mt-1">New users are active by default and can log in once created.</p>
+                </div>
+
                 <div className="flex gap-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowCreateModal(false)}
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      setCreateForm({
+                        email: '',
+                        username: '',
+                        full_name: '',
+                        password: '',
+                        role: 'EMPLOYEE',
+                        department_id: '',
+                      });
+                    }}
                     disabled={processing}
                     className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 font-medium"
                   >

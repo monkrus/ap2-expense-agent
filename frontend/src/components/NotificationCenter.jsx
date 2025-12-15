@@ -1,9 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, CheckCheck, Clock, DollarSign, Repeat, AlertCircle, Info, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../services/api';
+
+// Normalize host to call non-v1 notification endpoints; fall back to backend on 8000 if unset
+const deriveApiHost = () => {
+  if (API_BASE_URL) return API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+  try {
+    const u = new URL(window.location.href);
+    u.port = '8000';
+    return u.origin;
+  } catch (_) {
+    return 'http://localhost:8000';
+  }
+};
+const API_HOST = deriveApiHost();
 
 const NotificationCenter = () => {
-  const { user } = useAuth();
+  const { user, fetchWithAuth } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -37,19 +51,20 @@ const NotificationCenter = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/notifications?limit=20', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data);
-      }
+      const response = await fetchWithAuth(`${API_HOST}/api/notifications?limit=20`);
+      if (!response.ok) throw new Error(`Failed to load notifications (${response.status})`);
+      const data = await response.json();
+      // Backend returns {notifications: [], total_count, unread_count}
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unread_count || 0);
     } catch (err) {
-      console.error('Failed to fetch notifications:', err);
+      // Suppress noise if the user is not authenticated yet (401)
+      if (err?.message?.includes('401')) {
+        setNotifications([]);
+        setUnreadCount(0);
+      } else {
+        console.error('Failed to fetch notifications:', err);
+      }
     } finally {
       setLoading(false);
     }
@@ -57,30 +72,27 @@ const NotificationCenter = () => {
 
   const fetchUnreadCount = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/notifications/unread-count', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUnreadCount(data.unread_count || 0);
-      }
+      const response = await fetchWithAuth(`${API_HOST}/api/notifications/unread-count`);
+      if (!response.ok) throw new Error(`Unread count failed (${response.status})`);
+      const data = await response.json();
+      setUnreadCount(data.unread_count || 0);
     } catch (err) {
-      console.error('Failed to fetch unread count:', err);
+      // Quietly reset to zero if unauthorized during initial load
+      if (err?.message?.includes('401')) {
+        setUnreadCount(0);
+      } else if (err?.message?.includes('Failed to fetch')) {
+        // Network/offline: clear badge but don't spam console
+        setUnreadCount(0);
+      } else {
+        console.error('Failed to fetch unread count:', err);
+      }
     }
   };
 
   const markAsRead = async (notificationId) => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await fetchWithAuth(`${API_HOST}/api/notifications/${notificationId}/read`, {
+        method: 'POST'
       });
 
       if (response.ok) {
@@ -96,12 +108,8 @@ const NotificationCenter = () => {
 
   const markAllAsRead = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/notifications/mark-all-read', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await fetchWithAuth(`${API_HOST}/api/notifications/mark-all-read`, {
+        method: 'POST'
       });
 
       if (response.ok) {

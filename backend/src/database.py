@@ -4,6 +4,9 @@ from sqlalchemy.pool import QueuePool
 
 from .config import settings
 from .models import Base
+from . import models  # noqa: F401
+from . import models_approval  # noqa: F401
+from . import models_billing  # noqa: F401
 
 # Create database engine with connection pooling
 engine = create_engine(
