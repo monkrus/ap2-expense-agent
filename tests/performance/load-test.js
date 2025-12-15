@@ -28,7 +28,7 @@ const BASE_URL = __ENV.BASE_URL || 'http://localhost:8000';
 // Test data
 const TEST_USERS = [
   { username: 'emptest', password: 'AgentTest!' },
-  { username: 'admintest', password: 'AgentTest!' },
+  { username: 'adminfree', password: 'Testme1!' },
   { username: 'testuser', password: 'AgentTest!' },
 ];
 

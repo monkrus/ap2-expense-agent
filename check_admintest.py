@@ -6,11 +6,11 @@ from backend.src.models import Organization, OrganizationMember, User
 
 db = SessionLocal()
 
-user = db.query(User).filter(User.username == 'admintest').first()
+user = db.query(User).filter(User.username == 'adminfree').first()
 print(f'User: {user.username} ({user.id})')
 print(f'Role: {user.role}')
 
-print('\nAll organizations owned by admintest:')
+print('\nAll organizations owned by adminfree:')
 orgs = (
     db.query(Organization)
     .join(OrganizationMember)

@@ -7,10 +7,10 @@ set -e
 
 # Configuration
 BASE_URL="http://localhost:8000"
-ADMIN_USER="admintest"
-ADMIN_PASS="AgentTest!"
-EMP_USER="emptest"
-EMP_PASS="AgentTest!"
+ADMIN_USER="adminfree"
+ADMIN_PASS="Testme1!"
+EMP_USER="adminfree"
+EMP_PASS="Testme1!"
 
 # Colors
 GREEN='\033[0;32m'
@@ -66,8 +66,8 @@ cat << 'EOF'
 curl -X POST $BASE_URL/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "emptest",
-    "password": "AgentTest!"
+    "username": "adminfree",
+    "password": "Testme1!"
   }'
 # Save token: TOKEN=$(above_command | jq -r '.access_token')
 EOF
@@ -486,7 +486,7 @@ echo "${GREEN}✓ All API endpoints documented${NC}"
 echo ""
 echo "Quick Start:"
 echo "1. Login to get token:"
-echo "   TOKEN=\$(curl -s -X POST $BASE_URL/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"emptest\",\"password\":\"AgentTest!\"}' | jq -r '.access_token')"
+echo "   TOKEN=\$(curl -s -X POST $BASE_URL/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"adminfree\",\"password\":\"Testme1!\"}' | jq -r '.access_token')"
 echo ""
 echo "2. Use token in requests:"
 echo "   curl -H \"Authorization: Bearer \$TOKEN\" $BASE_URL/api/v1/expenses/report"

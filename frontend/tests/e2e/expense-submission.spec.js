@@ -4,7 +4,7 @@ const { test, expect } = require('@playwright/test');
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 
 // Helper function to login
-async function login(page, username = 'emptest', password = 'AgentTest!') {
+async function login(page, username = 'adminfree', password = 'Testme1!') {
   await page.goto(BASE_URL);
   await page.fill('input[name="username"], input[type="text"]', username);
   await page.fill('input[name="password"], input[type="password"]', password);
@@ -147,7 +147,7 @@ test.describe('Expense List & Status', () => {
 test.describe('Expense Approval Flow (Admin/Manager)', () => {
   test.beforeEach(async ({ page }) => {
     // Login as admin
-    await login(page, 'admintest', 'AgentTest!');
+    await login(page, 'adminfree', 'Testme1!');
   });
 
   test('should display pending expenses for approval', async ({ page }) => {

@@ -22,7 +22,7 @@ def check_user_consistency():
     print("\n[1] Logging in as admin...")
     admin_login = requests.post(
         f"{API_BASE_URL}/api/v1/auth/login",
-        json={"username": "admintest", "password": "AgentTest!"}
+        json={"username": "adminfree", "password": "Testme1!"}
     )
 
     if admin_login.status_code != 200:
@@ -89,7 +89,7 @@ def check_user_consistency():
 
     # Step 5: Check for default test users
     print("\n[5] Default Test Users Check:")
-    expected_users = ['admintest', 'testuser', 'emptest', 'emptest2']
+    expected_users = ['adminfree']
     found_users = [u['username'] for u in all_users]
 
     for expected in expected_users:

@@ -77,10 +77,10 @@ test.describe('Security & Permissions Tests', () => {
       await manageUsersBtn.click();
       await waitForLoading(page);
 
-      // Search for "admintest"
+      // Search for "adminfree"
       const searchBox = page.locator('input[placeholder*="Search"]').first();
       if (await searchBox.isVisible({ timeout: 2000 })) {
-        await searchBox.fill('admintest');
+        await searchBox.fill('adminfree');
         await page.waitForTimeout(500);
       }
 

@@ -150,11 +150,11 @@ def main():
             # Test login
             response = requests.post(
                 "http://localhost:8000/api/v1/auth/login",
-                json={"username": "admintest", "password": "AgentTest!"},
+                json={"username": "adminfree", "password": "Testme1!"},
                 timeout=5
             )
             if response.status_code == 200:
-                print_check("OK", "Admin user (admintest) can login")
+                print_check("OK", "Admin user (adminfree) can login")
             else:
                 print_check("FAIL", f"Admin login failed: {response.status_code}")
         except Exception as e:

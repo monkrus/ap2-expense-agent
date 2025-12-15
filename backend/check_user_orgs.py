@@ -3,9 +3,9 @@ from src.models import User, Organization, OrganizationMember
 
 db = next(get_db())
 
-user = db.query(User).filter(User.username == 'admintest').first()
+user = db.query(User).filter(User.username == 'adminfree').first()
 if not user:
-    print("User 'admintest' not found")
+    print("User 'adminfree' not found")
     exit()
 
 print(f"User ID: {user.id}")

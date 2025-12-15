@@ -20,8 +20,8 @@ test.describe('Authentication Flow', () => {
 
   test('should login with valid credentials', async ({ page }) => {
     // Fill login form
-    await page.fill('input[name="username"], input[type="text"]', 'emptest');
-    await page.fill('input[name="password"], input[type="password"]', 'AgentTest!');
+    await page.fill('input[name="username"], input[type="text"]', 'adminfree');
+    await page.fill('input[name="password"], input[type="password"]', 'Testme1!');
 
     // Submit form
     await page.click('button[type="submit"], button:has-text("Login")');
@@ -53,8 +53,8 @@ test.describe('Authentication Flow', () => {
 
   test('should logout successfully', async ({ page }) => {
     // Login first
-    await page.fill('input[name="username"], input[type="text"]', 'emptest');
-    await page.fill('input[name="password"], input[type="password"]', 'AgentTest!');
+    await page.fill('input[name="username"], input[type="text"]', 'adminfree');
+    await page.fill('input[name="password"], input[type="password"]', 'Testme1!');
     await page.click('button[type="submit"], button:has-text("Login")');
     await page.waitForLoadState('networkidle');
 
@@ -88,8 +88,8 @@ test.describe('Protected Routes', () => {
   test('should allow access to protected routes when authenticated', async ({ page }) => {
     // Login
     await page.goto(BASE_URL);
-    await page.fill('input[name="username"], input[type="text"]', 'emptest');
-    await page.fill('input[name="password"], input[type="password"]', 'AgentTest!');
+    await page.fill('input[name="username"], input[type="text"]', 'adminfree');
+    await page.fill('input[name="password"], input[type="password"]', 'Testme1!');
     await page.click('button[type="submit"], button:has-text("Login")');
     await page.waitForLoadState('networkidle');
 

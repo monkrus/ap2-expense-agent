@@ -3,8 +3,8 @@
  */
 
 export const ADMIN_CREDENTIALS = {
-  username: 'admintest',
-  password: 'AgentTest!',
+  username: 'adminfree',
+  password: 'Testme1!',
 };
 
 export const EMPLOYEE_CREDENTIALS = {

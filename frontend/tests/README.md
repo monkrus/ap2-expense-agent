@@ -42,7 +42,7 @@ tests/
 ## Test Credentials
 
 ### Admin User
-- **Username:** `admintest`
+- **Username:** `adminfree`
 - **Password:** `AgentTest!`
 
 ### Employee User (for permission tests)

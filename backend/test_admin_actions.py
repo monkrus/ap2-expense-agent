@@ -19,8 +19,8 @@ FRONTEND_URL = "http://localhost:5173"
 
 # Test credentials
 ADMIN_USER = {
-    "username": "admintest",
-    "password": "AgentTest!"
+    "username": "adminfree",
+    "password": "Testme1!"
 }
 
 class AdminDashboardTester:
