@@ -3,6 +3,24 @@ import { Users, UserPlus, Edit, Trash2, Shield, Lock, Unlock, Search, Filter, Re
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
 import adminAPI from '../services/adminAPI';
+import { API_BASE_URL } from '../services/api';
+
+// Normalize API host to avoid double /api/v1 prefixes when calling admin endpoints directly
+const API_HOST = (API_BASE_URL || '').replace(/\/api\/v1\/?$/, '');
+
+// Friendly category metadata for permissions display
+const PERMISSION_CATEGORIES = {
+  expense: { label: 'Expenses', color: 'bg-blue-50 border-blue-200' },
+  receipt: { label: 'Receipts', color: 'bg-green-50 border-green-200' },
+  comment: { label: 'Comments', color: 'bg-purple-50 border-purple-200' },
+  user: { label: 'Users & Roles', color: 'bg-indigo-50 border-indigo-200' },
+  report: { label: 'Reports', color: 'bg-yellow-50 border-yellow-200' },
+  system: { label: 'System', color: 'bg-red-50 border-red-200' },
+  billing: { label: 'Billing', color: 'bg-pink-50 border-pink-200' },
+  ap2: { label: 'AP2 Protocol', color: 'bg-teal-50 border-teal-200' }
+};
+
+const CATEGORY_ORDER = ['expense', 'receipt', 'comment', 'user', 'report', 'system', 'billing', 'ap2'];
 
 const UserManagementDashboard = () => {
   const { user: currentUser, getAuthHeaders, fetchWithAuth } = useAuth();
@@ -121,7 +139,7 @@ const UserManagementDashboard = () => {
           profileData.email = editForm.email;
         }
 
-        const profileResponse = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/profile`, {
+        const profileResponse = await fetchWithAuth(`${API_HOST}/api/v1/admin/users/${selectedUser.id}/profile`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json'
@@ -137,7 +155,7 @@ const UserManagementDashboard = () => {
       }
 
       // Update role (convert to lowercase for backend)
-      const roleResponse = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/role`, {
+      const roleResponse = await fetchWithAuth(`${API_HOST}/api/v1/admin/users/${selectedUser.id}/role`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -152,7 +170,7 @@ const UserManagementDashboard = () => {
       }
 
       // Update department
-      const deptResponse = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/department`, {
+      const deptResponse = await fetchWithAuth(`${API_HOST}/api/v1/admin/users/${selectedUser.id}/department`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -170,7 +188,7 @@ const UserManagementDashboard = () => {
         const action = editForm.is_active ? 'activated' : 'suspended';
 
         const statusResponse = await fetchWithAuth(
-          `${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/${endpoint}`,
+          `${API_HOST}/api/v1/admin/users/${selectedUser.id}/${endpoint}`,
           {
             method: 'POST',
             headers: {
@@ -210,7 +228,7 @@ const UserManagementDashboard = () => {
     setProcessing(true);
 
     try {
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}`, {
+      const response = await fetchWithAuth(`${API_HOST}/api/v1/admin/users/${selectedUser.id}`, {
         method: 'DELETE'
       });
 
@@ -297,7 +315,11 @@ const UserManagementDashboard = () => {
       'ap2:execute_payment': 'Execute AP2 payments',
     };
 
-    return descriptions[permission] || permission.replace(/:/g, ': ').replace(/_/g, ' ');
+    if (descriptions[permission]) return descriptions[permission];
+    // Fallback: humanize unknown permission key
+    return permission
+      .replace(/[:_]/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
   const handleViewPermissions = async (user) => {
@@ -305,7 +327,7 @@ const UserManagementDashboard = () => {
     setShowPermissionsModal(true);
 
     try {
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/users/${user.id}/permissions`);
+      const response = await fetchWithAuth(`${API_HOST}/api/v1/admin/users/${user.id}/permissions`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch permissions');
@@ -918,7 +940,7 @@ const UserManagementDashboard = () => {
 
               <div className="space-y-4 mb-6">
                 {userPermissions.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">Loading permissions...</p>
+                  <p className="text-gray-500 text-center py-4">No permissions assigned.</p>
                 ) : (
                   (() => {
                     const grouped = userPermissions.reduce((acc, perm) => {
@@ -928,33 +950,39 @@ const UserManagementDashboard = () => {
                       return acc;
                     }, {});
 
-                    const categoryColors = {
-                      expense: 'bg-blue-50 border-blue-200',
-                      receipt: 'bg-green-50 border-green-200',
-                      comment: 'bg-purple-50 border-purple-200',
-                      user: 'bg-indigo-50 border-indigo-200',
-                      report: 'bg-yellow-50 border-yellow-200',
-                      system: 'bg-red-50 border-red-200',
-                      billing: 'bg-pink-50 border-pink-200',
-                      ap2: 'bg-teal-50 border-teal-200'
-                    };
+                    const categories = Object.keys(grouped).sort((a, b) => {
+                      const ai = CATEGORY_ORDER.indexOf(a);
+                      const bi = CATEGORY_ORDER.indexOf(b);
+                      if (ai === -1 && bi === -1) return a.localeCompare(b);
+                      if (ai === -1) return 1;
+                      if (bi === -1) return -1;
+                      return ai - bi;
+                    });
 
-                    return Object.entries(grouped).map(([category, perms]) => (
-                      <div key={category} className={`p-4 rounded-lg border ${categoryColors[category] || 'bg-gray-50 border-gray-200'}`}>
-                        <h4 className="text-sm font-bold text-gray-800 mb-2 capitalize flex items-center gap-2">
-                          <Shield className="w-4 h-4" />
-                          {category} Permissions ({perms.length})
-                        </h4>
-                        <div className="grid grid-cols-1 gap-1">
-                          {perms.map((perm, idx) => (
-                            <div key={idx} className="flex items-start gap-2 text-xs">
-                              <Check className="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-gray-700">{getPermissionDescription(perm)}</span>
-                            </div>
-                          ))}
+                    return categories.map((category) => {
+                      const perms = grouped[category] || [];
+                      const meta = PERMISSION_CATEGORIES[category] || {
+                        label: category.charAt(0).toUpperCase() + category.slice(1),
+                        color: 'bg-gray-50 border-gray-200'
+                      };
+
+                      return (
+                        <div key={category} className={`p-4 rounded-lg border ${meta.color}`}>
+                          <h4 className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                            <Shield className="w-4 h-4" />
+                            {meta.label} ({perms.length})
+                          </h4>
+                          <div className="grid grid-cols-1 gap-1">
+                            {perms.sort().map((perm, idx) => (
+                              <div key={idx} className="flex items-start gap-2 text-xs">
+                                <Check className="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5" />
+                                <span className="text-gray-700">{getPermissionDescription(perm)}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ));
+                      );
+                    });
                   })()
                 )}
               </div>
