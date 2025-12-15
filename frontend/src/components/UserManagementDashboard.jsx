@@ -386,6 +386,7 @@ const UserManagementDashboard = () => {
     const colors = {
       ADMIN: 'bg-red-100 text-red-800',
       MANAGER: 'bg-yellow-100 text-yellow-800',
+      ACCOUNTANT: 'bg-purple-100 text-purple-800',
       EMPLOYEE: 'bg-green-100 text-green-800'
     };
     return colors[role] || 'bg-gray-100 text-gray-800';
@@ -396,6 +397,7 @@ const UserManagementDashboard = () => {
     active: users.filter(u => u.is_active).length,
     admins: users.filter(u => u.role?.toLowerCase() === 'admin').length,
     managers: users.filter(u => u.role?.toLowerCase() === 'manager').length,
+    accountants: users.filter(u => u.role?.toLowerCase() === 'accountant').length,
     employees: users.filter(u => u.role?.toLowerCase() === 'employee').length
   };
 
@@ -451,6 +453,10 @@ const UserManagementDashboard = () => {
             <p className="text-2xl font-bold text-yellow-600">{stats.managers}</p>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
+            <p className="text-gray-600 text-sm">Accountants</p>
+            <p className="text-2xl font-bold text-purple-600">{stats.accountants}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
             <p className="text-gray-600 text-sm">Employees</p>
             <p className="text-2xl font-bold text-blue-600">{stats.employees}</p>
           </div>
@@ -479,6 +485,7 @@ const UserManagementDashboard = () => {
                 <option value="all">All Roles</option>
                 <option value="ADMIN">Admin</option>
                 <option value="MANAGER">Manager</option>
+                <option value="ACCOUNTANT">Accountant</option>
                 <option value="EMPLOYEE">Employee</option>
               </select>
             </div>
@@ -663,13 +670,14 @@ const UserManagementDashboard = () => {
                     required
                     value={createForm.role}
                     onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="EMPLOYEE">Employee</option>
-                    <option value="MANAGER">Manager</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
-                </div>
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  <option value="EMPLOYEE">Employee</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="ACCOUNTANT">Accountant</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Department (Optional)</label>
@@ -786,13 +794,14 @@ const UserManagementDashboard = () => {
                     required
                     value={editForm.role}
                     onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="EMPLOYEE">Employee</option>
-                    <option value="MANAGER">Manager</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
-                </div>
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  <option value="EMPLOYEE">Employee</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="ACCOUNTANT">Accountant</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
