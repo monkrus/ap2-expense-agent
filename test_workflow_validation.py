@@ -258,7 +258,7 @@ def test_role_based_workflows():
     print("\n[2.3] Permission Enforcement (Role-Based)")
     log_test("Employee: Submit expense (own)", True)  # Always allowed
     log_test("Manager: View department expenses", True)  # Allowed
-    log_test("Manager: Approve expenses <= $5000", True)  # Allowed
+    log_test("Manager: Approve expenses under $5000", True)  # Allowed
     log_test("Admin: Full access", True)  # Allowed
     log_test("Accountant: Read-only access", True)  # View only, no approve
 
@@ -627,17 +627,17 @@ def main():
     try:
         response = requests.get(f"{BASE_URL}/health", timeout=5)
         if response.status_code != 200:
-            print("\n❌ Backend health check failed!")
+            print("\n[ERROR] Backend health check failed!")
             print(f"Status: {response.status_code}")
             return
     except Exception as e:
-        print(f"\n❌ Cannot connect to backend at {BASE_URL}")
+        print(f"\n[ERROR] Cannot connect to backend at {BASE_URL}")
         print(f"Error: {e}")
         print("\nPlease ensure the backend is running:")
         print("  cd backend && .venv/Scripts/python.exe -m uvicorn src.api:app --reload")
         return
 
-    print(f"\n✅ Backend is running at {BASE_URL}")
+    print(f"\n[OK] Backend is running at {BASE_URL}")
 
     # Run workflow tests
     test_authentication_workflows()
