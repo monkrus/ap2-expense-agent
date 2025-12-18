@@ -1,0 +1,1992 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\robot\\Desktop\\ap2-expense-agent\\frontend\\playwright.config.js",
+    "rootDir": "C:/Users/robot/Desktop/ap2-expense-agent/frontend/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "playwright-report/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "playwright-report/results.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/Users/robot/Desktop/ap2-expense-agent/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/robot/Desktop/ap2-expense-agent/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/robot/Desktop/ap2-expense-agent/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "C:/Users/robot/Desktop/ap2-expense-agent/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/robot/Desktop/ap2-expense-agent/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "C:/Users/robot/Desktop/ap2-expense-agent/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/robot/Desktop/ap2-expense-agent/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "C:/Users/robot/Desktop/ap2-expense-agent/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/robot/Desktop/ap2-expense-agent/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "C:/Users/robot/Desktop/ap2-expense-agent/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.57.0",
+    "workers": 10,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:5173",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "auth.spec.js",
+      "file": "auth.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Authentication Flow",
+          "file": "auth.spec.js",
+          "line": 7,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should display login page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-5d15ed19bb786409f7d5",
+              "file": "auth.spec.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should login with valid credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-2bea5ed216bb3a3158d0",
+              "file": "auth.spec.js",
+              "line": 21,
+              "column": 3
+            },
+            {
+              "title": "should show error with invalid credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-6d030ad220892425cae6",
+              "file": "auth.spec.js",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "should logout successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-2c1afcf4edb938cb82a8",
+              "file": "auth.spec.js",
+              "line": 54,
+              "column": 3
+            },
+            {
+              "title": "should handle token expiration",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-c2f7312bf56946418a5b",
+              "file": "auth.spec.js",
+              "line": 72,
+              "column": 3
+            },
+            {
+              "title": "should display login page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-29fc9a674ae3e195dc95",
+              "file": "auth.spec.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should login with valid credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-b91fd00c0dced284ef16",
+              "file": "auth.spec.js",
+              "line": 21,
+              "column": 3
+            },
+            {
+              "title": "should show error with invalid credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-f8b20fb6a95672038802",
+              "file": "auth.spec.js",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "should logout successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-fb88c490584b2f3aed0e",
+              "file": "auth.spec.js",
+              "line": 54,
+              "column": 3
+            },
+            {
+              "title": "should handle token expiration",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-b9f5ff49bf827f2d74c4",
+              "file": "auth.spec.js",
+              "line": 72,
+              "column": 3
+            },
+            {
+              "title": "should display login page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-5a9d35772ba87b8f8000",
+              "file": "auth.spec.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should login with valid credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-5949e13d8fc9162c98cf",
+              "file": "auth.spec.js",
+              "line": 21,
+              "column": 3
+            },
+            {
+              "title": "should show error with invalid credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-85e8f81d4173c6cda709",
+              "file": "auth.spec.js",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "should logout successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-7544822f37f3c8e044ba",
+              "file": "auth.spec.js",
+              "line": 54,
+              "column": 3
+            },
+            {
+              "title": "should handle token expiration",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-699c7d65099b6c4e8469",
+              "file": "auth.spec.js",
+              "line": 72,
+              "column": 3
+            },
+            {
+              "title": "should display login page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-8c875d4fe361f75540ee",
+              "file": "auth.spec.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should login with valid credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-9a0e4e31e87e1e235345",
+              "file": "auth.spec.js",
+              "line": 21,
+              "column": 3
+            },
+            {
+              "title": "should show error with invalid credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-a191c89ab1d3c5ae6878",
+              "file": "auth.spec.js",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "should logout successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-2f5312a09da838f4fcab",
+              "file": "auth.spec.js",
+              "line": 54,
+              "column": 3
+            },
+            {
+              "title": "should handle token expiration",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-04ee8e6960a3ff762248",
+              "file": "auth.spec.js",
+              "line": 72,
+              "column": 3
+            },
+            {
+              "title": "should display login page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-e5c83759ead76953af19",
+              "file": "auth.spec.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should login with valid credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-3f54984ca90aa989ec6d",
+              "file": "auth.spec.js",
+              "line": 21,
+              "column": 3
+            },
+            {
+              "title": "should show error with invalid credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-7b3f6c6415785a158b96",
+              "file": "auth.spec.js",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "should logout successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-c573fdf88f639d03adbe",
+              "file": "auth.spec.js",
+              "line": 54,
+              "column": 3
+            },
+            {
+              "title": "should handle token expiration",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-8e3a4ceb92513df670cd",
+              "file": "auth.spec.js",
+              "line": 72,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Protected Routes",
+          "file": "auth.spec.js",
+          "line": 79,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should redirect to login when accessing protected route without auth",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-17c9db76d2033abd203f",
+              "file": "auth.spec.js",
+              "line": 80,
+              "column": 3
+            },
+            {
+              "title": "should allow access to protected routes when authenticated",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-ab380dfeb7ad406d650e",
+              "file": "auth.spec.js",
+              "line": 88,
+              "column": 3
+            },
+            {
+              "title": "should redirect to login when accessing protected route without auth",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-93e6d477eea238a549dc",
+              "file": "auth.spec.js",
+              "line": 80,
+              "column": 3
+            },
+            {
+              "title": "should allow access to protected routes when authenticated",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-9f88006d2e4efd1c3360",
+              "file": "auth.spec.js",
+              "line": 88,
+              "column": 3
+            },
+            {
+              "title": "should redirect to login when accessing protected route without auth",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-5395fc09c4d1fd5e883f",
+              "file": "auth.spec.js",
+              "line": 80,
+              "column": 3
+            },
+            {
+              "title": "should allow access to protected routes when authenticated",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-e46d6ff32f520f73e1e3",
+              "file": "auth.spec.js",
+              "line": 88,
+              "column": 3
+            },
+            {
+              "title": "should redirect to login when accessing protected route without auth",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-038f18881de489fc3135",
+              "file": "auth.spec.js",
+              "line": 80,
+              "column": 3
+            },
+            {
+              "title": "should allow access to protected routes when authenticated",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-bedb76e3e96012a11257",
+              "file": "auth.spec.js",
+              "line": 88,
+              "column": 3
+            },
+            {
+              "title": "should redirect to login when accessing protected route without auth",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-97090f730442c84eb77a",
+              "file": "auth.spec.js",
+              "line": 80,
+              "column": 3
+            },
+            {
+              "title": "should allow access to protected routes when authenticated",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d5ed79a6b333c2ba7209-08361b0336fed9a06a17",
+              "file": "auth.spec.js",
+              "line": 88,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "expense-submission.spec.js",
+      "file": "expense-submission.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Expense Submission Flow",
+          "file": "expense-submission.spec.js",
+          "line": 15,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should display expense submission form",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-b840c6cfa45445a7cafd",
+              "file": "expense-submission.spec.js",
+              "line": 20,
+              "column": 3
+            },
+            {
+              "title": "should submit expense successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-22ad26efd46d6ad51224",
+              "file": "expense-submission.spec.js",
+              "line": 31,
+              "column": 3
+            },
+            {
+              "title": "should validate required fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-a1dbc4289682f94bfbf8",
+              "file": "expense-submission.spec.js",
+              "line": 51,
+              "column": 3
+            },
+            {
+              "title": "should validate amount field",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-866d000c78b744433b1c",
+              "file": "expense-submission.spec.js",
+              "line": 62,
+              "column": 3
+            },
+            {
+              "title": "should upload receipt",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-9b8a225e6de2ec0cf337",
+              "file": "expense-submission.spec.js",
+              "line": 73,
+              "column": 3
+            },
+            {
+              "title": "should display expense submission form",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-cad87368b543a73c473f",
+              "file": "expense-submission.spec.js",
+              "line": 20,
+              "column": 3
+            },
+            {
+              "title": "should submit expense successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-3933fcde4957cf0dcb0b",
+              "file": "expense-submission.spec.js",
+              "line": 31,
+              "column": 3
+            },
+            {
+              "title": "should validate required fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-271b7e757d01ba881b0b",
+              "file": "expense-submission.spec.js",
+              "line": 51,
+              "column": 3
+            },
+            {
+              "title": "should validate amount field",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-f0531b341da7ff85baa4",
+              "file": "expense-submission.spec.js",
+              "line": 62,
+              "column": 3
+            },
+            {
+              "title": "should upload receipt",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-0f182269138c3aa33dc8",
+              "file": "expense-submission.spec.js",
+              "line": 73,
+              "column": 3
+            },
+            {
+              "title": "should display expense submission form",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-b565ce259c622fa947f1",
+              "file": "expense-submission.spec.js",
+              "line": 20,
+              "column": 3
+            },
+            {
+              "title": "should submit expense successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-88a215c48eee9a639636",
+              "file": "expense-submission.spec.js",
+              "line": 31,
+              "column": 3
+            },
+            {
+              "title": "should validate required fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-16d925423e30d73dbe4e",
+              "file": "expense-submission.spec.js",
+              "line": 51,
+              "column": 3
+            },
+            {
+              "title": "should validate amount field",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-ff53fa36c13059efd5c7",
+              "file": "expense-submission.spec.js",
+              "line": 62,
+              "column": 3
+            },
+            {
+              "title": "should upload receipt",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-a14480f8c432866273fe",
+              "file": "expense-submission.spec.js",
+              "line": 73,
+              "column": 3
+            },
+            {
+              "title": "should display expense submission form",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-ba984cef6afeaa479101",
+              "file": "expense-submission.spec.js",
+              "line": 20,
+              "column": 3
+            },
+            {
+              "title": "should submit expense successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-56864b4ee05cd7638de5",
+              "file": "expense-submission.spec.js",
+              "line": 31,
+              "column": 3
+            },
+            {
+              "title": "should validate required fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-21704cc78364e85ad539",
+              "file": "expense-submission.spec.js",
+              "line": 51,
+              "column": 3
+            },
+            {
+              "title": "should validate amount field",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-0f7de0287b1a98e5ca26",
+              "file": "expense-submission.spec.js",
+              "line": 62,
+              "column": 3
+            },
+            {
+              "title": "should upload receipt",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-b3aa24edfba6a3e417fa",
+              "file": "expense-submission.spec.js",
+              "line": 73,
+              "column": 3
+            },
+            {
+              "title": "should display expense submission form",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-fd471d2e7524b2648a5d",
+              "file": "expense-submission.spec.js",
+              "line": 20,
+              "column": 3
+            },
+            {
+              "title": "should submit expense successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-3659ab8a4ceaa5544d75",
+              "file": "expense-submission.spec.js",
+              "line": 31,
+              "column": 3
+            },
+            {
+              "title": "should validate required fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-7f6ecb29b50c9728d2b0",
+              "file": "expense-submission.spec.js",
+              "line": 51,
+              "column": 3
+            },
+            {
+              "title": "should validate amount field",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-eaca3412b1f3a996ca7f",
+              "file": "expense-submission.spec.js",
+              "line": 62,
+              "column": 3
+            },
+            {
+              "title": "should upload receipt",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-5d7f6cccf45edb42e7a0",
+              "file": "expense-submission.spec.js",
+              "line": 73,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Expense List & Status",
+          "file": "expense-submission.spec.js",
+          "line": 98,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should display expense list",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-9347cd1a3e5eeba90761",
+              "file": "expense-submission.spec.js",
+              "line": 103,
+              "column": 3
+            },
+            {
+              "title": "should filter expenses by status",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-1e70947c7c4407200861",
+              "file": "expense-submission.spec.js",
+              "line": 116,
+              "column": 3
+            },
+            {
+              "title": "should view expense details",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-1bbe167adb824af8c359",
+              "file": "expense-submission.spec.js",
+              "line": 132,
+              "column": 3
+            },
+            {
+              "title": "should display expense list",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-22833ff38c53174f8abe",
+              "file": "expense-submission.spec.js",
+              "line": 103,
+              "column": 3
+            },
+            {
+              "title": "should filter expenses by status",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-4176a6e7d0c5d35711ef",
+              "file": "expense-submission.spec.js",
+              "line": 116,
+              "column": 3
+            },
+            {
+              "title": "should view expense details",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-57fb16f9d0fb03eb79f6",
+              "file": "expense-submission.spec.js",
+              "line": 132,
+              "column": 3
+            },
+            {
+              "title": "should display expense list",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-f47b020a0ec962301899",
+              "file": "expense-submission.spec.js",
+              "line": 103,
+              "column": 3
+            },
+            {
+              "title": "should filter expenses by status",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-a1f9e30e613aea8777bd",
+              "file": "expense-submission.spec.js",
+              "line": 116,
+              "column": 3
+            },
+            {
+              "title": "should view expense details",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-27b38f53eb2687dee8d9",
+              "file": "expense-submission.spec.js",
+              "line": 132,
+              "column": 3
+            },
+            {
+              "title": "should display expense list",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-3865ed2a628bcfca5db9",
+              "file": "expense-submission.spec.js",
+              "line": 103,
+              "column": 3
+            },
+            {
+              "title": "should filter expenses by status",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-4e98b68299c9d8eec60b",
+              "file": "expense-submission.spec.js",
+              "line": 116,
+              "column": 3
+            },
+            {
+              "title": "should view expense details",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-c8534b8cbe7ad0bea930",
+              "file": "expense-submission.spec.js",
+              "line": 132,
+              "column": 3
+            },
+            {
+              "title": "should display expense list",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-faca4c6c9c4c488c9ce8",
+              "file": "expense-submission.spec.js",
+              "line": 103,
+              "column": 3
+            },
+            {
+              "title": "should filter expenses by status",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-b0950c5e82bbc4bd4c3e",
+              "file": "expense-submission.spec.js",
+              "line": 116,
+              "column": 3
+            },
+            {
+              "title": "should view expense details",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-7ff47947586146d4eb51",
+              "file": "expense-submission.spec.js",
+              "line": 132,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Expense Approval Flow (Admin/Manager)",
+          "file": "expense-submission.spec.js",
+          "line": 147,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should display pending expenses for approval",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-fe3a20138e7c9ccf5728",
+              "file": "expense-submission.spec.js",
+              "line": 153,
+              "column": 3
+            },
+            {
+              "title": "should approve expense",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-916902d4e20016cc8cfc",
+              "file": "expense-submission.spec.js",
+              "line": 164,
+              "column": 3
+            },
+            {
+              "title": "should reject expense with reason",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-86d8d0a037a3ef263dcb",
+              "file": "expense-submission.spec.js",
+              "line": 184,
+              "column": 3
+            },
+            {
+              "title": "should display pending expenses for approval",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-9e6f630193e02de5ebf7",
+              "file": "expense-submission.spec.js",
+              "line": 153,
+              "column": 3
+            },
+            {
+              "title": "should approve expense",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-07c0fae7fca05452f2b0",
+              "file": "expense-submission.spec.js",
+              "line": 164,
+              "column": 3
+            },
+            {
+              "title": "should reject expense with reason",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-9481dd25051f5dc6762b",
+              "file": "expense-submission.spec.js",
+              "line": 184,
+              "column": 3
+            },
+            {
+              "title": "should display pending expenses for approval",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-2e9252ca156a983d5260",
+              "file": "expense-submission.spec.js",
+              "line": 153,
+              "column": 3
+            },
+            {
+              "title": "should approve expense",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-2fbeea57e56fc5b5dcd6",
+              "file": "expense-submission.spec.js",
+              "line": 164,
+              "column": 3
+            },
+            {
+              "title": "should reject expense with reason",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-f41f9a81dfeee64589ff",
+              "file": "expense-submission.spec.js",
+              "line": 184,
+              "column": 3
+            },
+            {
+              "title": "should display pending expenses for approval",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-1a7e6d79c9f28a51e388",
+              "file": "expense-submission.spec.js",
+              "line": 153,
+              "column": 3
+            },
+            {
+              "title": "should approve expense",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-81367ea80c47af28573a",
+              "file": "expense-submission.spec.js",
+              "line": 164,
+              "column": 3
+            },
+            {
+              "title": "should reject expense with reason",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-f69c82b2a46e0a39b724",
+              "file": "expense-submission.spec.js",
+              "line": 184,
+              "column": 3
+            },
+            {
+              "title": "should display pending expenses for approval",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-fa3491886a5bcdedcc5a",
+              "file": "expense-submission.spec.js",
+              "line": 153,
+              "column": 3
+            },
+            {
+              "title": "should approve expense",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-3702cbcb0b2c4e47a85c",
+              "file": "expense-submission.spec.js",
+              "line": 164,
+              "column": 3
+            },
+            {
+              "title": "should reject expense with reason",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bacbfb029c5a2a060931-cdf3352b944f0580f39f",
+              "file": "expense-submission.spec.js",
+              "line": 184,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-12-18T03:09:36.683Z",
+    "duration": 189.17499999999995,
+    "expected": 0,
+    "skipped": 90,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

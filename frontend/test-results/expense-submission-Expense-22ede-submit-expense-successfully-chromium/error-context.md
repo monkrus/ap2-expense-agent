@@ -1,0 +1,136 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e7]
+      - generic [ref=e9]: Unlock the full power of AP2Get unlimited expenses, AI categorization, and priority support.
+    - generic [ref=e10]:
+      - link "View Plans" [ref=e11] [cursor=pointer]:
+        - /url: /pricing
+        - text: View Plans
+        - img [ref=e12]
+      - button "Dismiss" [ref=e14] [cursor=pointer]:
+        - img [ref=e15]
+  - generic [ref=e19]:
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - heading "Admin Dashboard" [level=1] [ref=e23]:
+            - img [ref=e24]
+            - text: Admin Dashboard
+          - generic [ref=e27]:
+            - generic [ref=e28]: 👑
+            - generic [ref=e29]: Administrator
+            - img [ref=e30]
+        - paragraph [ref=e32]: System administration and user management
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - button "Organizations" [ref=e35] [cursor=pointer]:
+            - img [ref=e36]
+            - text: Organizations
+          - button "Billing" [ref=e40] [cursor=pointer]:
+            - img [ref=e41]
+            - text: Billing
+          - button "Change Password" [ref=e43] [cursor=pointer]:
+            - img [ref=e44]
+            - text: Change Password
+          - button "Batch Upload" [ref=e48] [cursor=pointer]:
+            - img [ref=e49]
+            - text: Batch Upload
+        - generic [ref=e52]:
+          - button "Refresh" [ref=e53] [cursor=pointer]
+          - button "Notifications" [ref=e55] [cursor=pointer]:
+            - img [ref=e56]
+          - button "Logout" [ref=e59] [cursor=pointer]:
+            - img [ref=e60]
+            - text: Logout
+    - generic [ref=e64]:
+      - button "Pending Approvals" [ref=e65] [cursor=pointer]:
+        - img [ref=e66]
+        - text: Pending Approvals
+      - button "All Expenses" [ref=e69] [cursor=pointer]:
+        - img [ref=e70]
+        - text: All Expenses
+      - button "Archived" [ref=e73] [cursor=pointer]:
+        - img [ref=e74]
+        - text: Archived
+      - button "User Management" [ref=e78] [cursor=pointer]:
+        - img [ref=e79]
+        - text: User Management
+      - button "Billing & Usage" [ref=e87] [cursor=pointer]:
+        - img [ref=e88]
+        - text: Billing & Usage
+      - button "AI Assistant" [ref=e90] [cursor=pointer]:
+        - img [ref=e91]
+        - text: AI Assistant
+      - button "Recurring" [ref=e94] [cursor=pointer]:
+        - img [ref=e95]
+        - text: Recurring
+      - button "Budgets" [ref=e100] [cursor=pointer]:
+        - img [ref=e101]
+        - text: Budgets
+    - generic [ref=e104]:
+      - generic [ref=e106]:
+        - generic [ref=e107]:
+          - paragraph [ref=e108]: Total Users
+          - paragraph [ref=e109]: "6"
+        - img [ref=e110]
+      - generic [ref=e116]:
+        - generic [ref=e117]:
+          - paragraph [ref=e118]: Total Active Users
+          - paragraph [ref=e119]: "4"
+        - img [ref=e120]
+      - generic [ref=e123]:
+        - generic [ref=e124]:
+          - paragraph [ref=e125]: Total Expenses
+          - paragraph [ref=e126]: "0"
+        - img [ref=e127]
+      - generic [ref=e130]:
+        - generic [ref=e131]:
+          - paragraph [ref=e132]: Monthly Revenue
+          - paragraph [ref=e133]: $0.00
+        - img [ref=e134]
+    - generic [ref=e137]:
+      - generic [ref=e139]:
+        - generic [ref=e140]:
+          - paragraph [ref=e141]: Pending Requests
+          - paragraph [ref=e142]: "0"
+        - img [ref=e143]
+      - generic [ref=e147]:
+        - generic [ref=e148]:
+          - paragraph [ref=e149]: Total Amount
+          - paragraph [ref=e150]: $0.00
+        - img [ref=e151]
+      - generic [ref=e154]:
+        - generic [ref=e155]:
+          - paragraph [ref=e156]: Pending Submitters
+          - paragraph [ref=e157]: "0"
+        - img [ref=e158]
+    - generic [ref=e165]:
+      - img [ref=e166]
+      - textbox "Search by ID, vendor, description, category, user..." [ref=e169]
+    - generic [ref=e170]:
+      - heading "Pending Expense Requests" [level=2] [ref=e172]:
+        - img [ref=e173]
+        - text: Pending Expense Requests
+      - generic [ref=e176]:
+        - img [ref=e177]
+        - paragraph [ref=e180]: All caught up!
+        - paragraph [ref=e181]: No pending expense requests at the moment.
+    - generic [ref=e182]:
+      - heading "Powered by Google AP2 Protocol" [level=3] [ref=e183]:
+        - img [ref=e184]
+        - text: Powered by Google AP2 Protocol
+      - generic [ref=e186]:
+        - generic [ref=e187]:
+          - heading "Authorization" [level=4] [ref=e188]
+          - paragraph [ref=e189]: Every approval creates cryptographic Intent Mandates proving authorization
+        - generic [ref=e190]:
+          - heading "Authenticity" [level=4] [ref=e191]
+          - paragraph [ref=e192]: Cart Mandates ensure accurate transaction details are preserved
+        - generic [ref=e193]:
+          - heading "Accountability" [level=4] [ref=e194]
+          - paragraph [ref=e195]: Complete audit trail with Payment Mandates for compliance
+```

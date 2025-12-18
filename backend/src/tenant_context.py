@@ -58,6 +58,11 @@ def get_user_organizations(user_id: str, db: Session) -> list:
     )
 
     org_ids = [m.organization_id for m in memberships]
+
+    # Handle empty list case to avoid unnecessary database query
+    if not org_ids:
+        return []
+
     organizations = (
         db.query(Organization)
         .filter(Organization.id.in_(org_ids), Organization.is_active == True)

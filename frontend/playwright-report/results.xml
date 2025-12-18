@@ -1,0 +1,382 @@
+<testsuites id="" name="" tests="90" failures="0" skipped="90" errors="0" time="0.18917499999999995">
+<testsuite name="auth.spec.js" timestamp="2025-12-18T03:09:36.871Z" hostname="chromium" tests="7" failures="0" skipped="7" time="0" errors="0">
+<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="expense-submission.spec.js" timestamp="2025-12-18T03:09:36.871Z" hostname="chromium" tests="11" failures="0" skipped="11" time="0" errors="0">
+<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.js" timestamp="2025-12-18T03:09:36.871Z" hostname="firefox" tests="7" failures="0" skipped="7" time="0" errors="0">
+<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="expense-submission.spec.js" timestamp="2025-12-18T03:09:36.871Z" hostname="firefox" tests="11" failures="0" skipped="11" time="0" errors="0">
+<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.js" timestamp="2025-12-18T03:09:36.871Z" hostname="webkit" tests="7" failures="0" skipped="7" time="0" errors="0">
+<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="expense-submission.spec.js" timestamp="2025-12-18T03:09:36.871Z" hostname="webkit" tests="11" failures="0" skipped="11" time="0" errors="0">
+<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.js" timestamp="2025-12-18T03:09:36.871Z" hostname="Mobile Chrome" tests="7" failures="0" skipped="7" time="0" errors="0">
+<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="expense-submission.spec.js" timestamp="2025-12-18T03:09:36.871Z" hostname="Mobile Chrome" tests="11" failures="0" skipped="11" time="0" errors="0">
+<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.js" timestamp="2025-12-18T03:09:36.871Z" hostname="Mobile Safari" tests="7" failures="0" skipped="7" time="0" errors="0">
+<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="expense-submission.spec.js" timestamp="2025-12-18T03:09:36.871Z" hostname="Mobile Safari" tests="11" failures="0" skipped="11" time="0" errors="0">
+<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>

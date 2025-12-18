@@ -1,3 +1,4 @@
+import logging
 import secrets
 import uuid
 from datetime import datetime, timedelta
@@ -27,6 +28,8 @@ from ..schemas import (
     UserCreate,
     UserResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
@@ -100,7 +103,7 @@ async def register(
         )
     except Exception as e:
         # Log but don't fail registration if subscription creation fails
-        print(f"Warning: Failed to create Free subscription for user {user.id}: {e}")
+        logger.warning(f"Failed to create Free subscription for user {user.id}: {e}")
 
     # Log audit event
     AuthService.log_audit(
@@ -233,7 +236,7 @@ async def login_form(
 ):
     """OAuth2 compatible login endpoint"""
     login_data = LoginRequest(username=form_data.username, password=form_data.password)
-    return await login(login_data, request, db)
+    return await login(request, login_data, db)
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -246,6 +249,13 @@ async def refresh_token(
 
     # Create new access token
     user = db.query(User).filter(User.id == refresh_token.user_id).first()
+
+    # Check if user exists
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User account not found",
+        )
 
     # Check if account is suspended/inactive
     if not user.is_active:
@@ -362,6 +372,14 @@ async def confirm_password_reset(
 
     # Update password
     user = db.query(User).filter(User.id == reset_token.user_id).first()
+
+    # Check if user exists
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User account not found",
+        )
+
     user.hashed_password = AuthService.hash_password(reset_data.new_password)
 
     # Mark token as used
