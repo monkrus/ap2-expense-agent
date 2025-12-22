@@ -655,7 +655,7 @@ async def create_invitation(
     db.refresh(invitation)
 
     # Send invitation email
-    EmailService.send_organization_invitation_email(
+    await EmailService.send_organization_invitation_email(
         to_email=invitation.email,
         organization_name=organization.name,
         inviter_name=current_user.full_name or current_user.username,

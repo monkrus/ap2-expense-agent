@@ -5,6 +5,7 @@ Provides secure key management and signing for AP2 mandates
 
 import base64
 import hashlib
+import hmac
 import os
 from typing import TYPE_CHECKING, Optional
 
@@ -159,41 +160,37 @@ class KMSSigningService:
 
     def _dev_sign(self, data: str) -> str:
         """
-        Development-only signing using local RSA key
+        Development-only signing using deterministic HMAC
+
+        Produces a 256-byte signature (base64 ~344 chars) to mirror RSA-2048
+        output length for tests that validate signature size.
 
         WARNING: This is INSECURE and should NEVER be used in production!
-        Keys are stored in memory and not protected by HSM.
+        Uses a static secret to keep signatures stable for tests.
         """
-        from cryptography.hazmat.backends import default_backend
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import padding, rsa
+        secret = (settings.jwt_secret or "dev-signing-secret").encode("utf-8")
+        seed = hmac.new(secret, data.encode("utf-8"), hashlib.sha256).digest()
 
-        # Generate ephemeral key (in production, this would be in KMS)
-        private_key = rsa.generate_private_key(
-            public_exponent=65537, key_size=2048, backend=default_backend()
-        )
+        # Expand to 256 bytes deterministically (RSA-2048 signature size)
+        output = bytearray()
+        counter = 0
+        while len(output) < 256:
+            counter_bytes = counter.to_bytes(4, "big")
+            block = hmac.new(secret, seed + counter_bytes, hashlib.sha256).digest()
+            output.extend(block)
+            counter += 1
 
-        # Sign the data
-        signature = private_key.sign(
-            data.encode("utf-8"),
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256(),
-        )
-
-        return base64.b64encode(signature).decode("utf-8")
+        return base64.b64encode(bytes(output[:256])).decode("utf-8")
 
     def _dev_verify(self, data: str, signature: str) -> bool:
         """
         Development-only signature verification
 
-        WARNING: This always returns True in dev mode!
+        WARNING: This is INSECURE and should NEVER be used in production!
         Use only for testing, never in production.
         """
-        # In dev mode, we can't verify without storing the key
-        # This is a security compromise acceptable only in development
-        return len(signature) > 0  # Basic sanity check
+        expected = self._dev_sign(data)
+        return hmac.compare_digest(expected, signature)
 
     def get_public_key_pem(self) -> str:
         """

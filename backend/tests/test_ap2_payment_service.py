@@ -113,7 +113,7 @@ class TestAP2PaymentService:
         assert cart.merchant == "Amazon"
         assert cart.status == "pending"
         assert cart.user_signature == "test_signature"
-        assert cart.total == 145.98  # 45.99 + 99.99
+        assert float(cart.total) == 145.98  # 45.99 + 99.99
 
     async def test_create_cart_mandate_invalid_intent(
         self, ap2_service, sample_cart_items
@@ -475,19 +475,34 @@ class TestAP2PaymentService:
         )
 
         items = [
-            {"id": "1", "description": "Item 1", "amount": 10.50},
-            {"id": "2", "description": "Item 2", "amount": 20.25},
-            {"id": "3", "description": "Item 3", "amount": 5.00},
+            {
+                "id": "1",
+                "description": "Item 1",
+                "amount": 10.50,
+                "category": "office_supplies",
+            },
+            {
+                "id": "2",
+                "description": "Item 2",
+                "amount": 20.25,
+                "category": "software",
+            },
+            {
+                "id": "3",
+                "description": "Item 3",
+                "amount": 5.00,
+                "category": "office_supplies",
+            },
         ]
 
         cart = await ap2_service.create_cart_mandate(
             intent_mandate_id=intent.id,
             items=items,
-            merchant="Test Merchant",
+            merchant="Amazon",
             user_signature="test_sig",
         )
 
-        assert cart.total == 35.75  # 10.50 + 20.25 + 5.00
+        assert float(cart.total) == 35.75  # 10.50 + 20.25 + 5.00
 
     async def test_empty_cart_items(self, ap2_service, test_user, sample_constraints):
         """Test creating cart with empty items list"""
@@ -498,8 +513,8 @@ class TestAP2PaymentService:
         cart = await ap2_service.create_cart_mandate(
             intent_mandate_id=intent.id,
             items=[],
-            merchant="Test Merchant",
+            merchant="Amazon",
             user_signature="test_sig",
         )
 
-        assert cart.total == 0.0
+        assert float(cart.total) == 0.0

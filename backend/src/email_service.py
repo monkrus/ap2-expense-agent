@@ -4,7 +4,7 @@ Email Service for sending verification and password reset emails
 
 import logging
 import os
-import smtplib
+import re
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
@@ -19,20 +19,52 @@ from .email_templates import (
 
 logger = logging.getLogger(__name__)
 
+try:
+    import aiosmtplib
+except Exception:  # pragma: no cover - fallback for environments without aiosmtplib
+    class _AioSMTPStub:
+        __ap2_stub__ = True
+
+        class SMTP:
+            def __init__(self, *args, **kwargs):
+                raise RuntimeError("aiosmtplib is required for async email sending")
+
+    aiosmtplib = _AioSMTPStub()
+
 
 class EmailService:
     """Service for sending emails"""
 
     @staticmethod
-    def send_email(
-        to_email: str, subject: str, html_body: str, text_body: Optional[str] = None
+    async def send_email(
+        to_email: str,
+        subject: str,
+        html_body: Optional[str] = None,
+        text_body: Optional[str] = None,
+        body: Optional[str] = None,
     ) -> bool:
         """
         Send an email using SMTP
         Returns True if successful, False otherwise
         """
+        if body and not html_body:
+            html_body = body
+
+        if html_body is None:
+            html_body = ""
+
         # Check if email is configured
-        if not settings.smtp_server or not settings.smtp_username:
+        smtp_server = getattr(settings, "smtp_server", None) or getattr(
+            settings, "smtp_host", None
+        )
+        smtp_username = getattr(settings, "smtp_username", None)
+        smtp_password = getattr(settings, "smtp_password", None)
+        smtp_port = getattr(settings, "smtp_port", 587)
+        smtp_from_email = getattr(settings, "smtp_from_email", None) or getattr(
+            settings, "from_email", None
+        )
+
+        if not smtp_server or not smtp_username:
             logger.warning(
                 "Email not configured. Email would have been sent to: %s", to_email
             )
@@ -43,7 +75,7 @@ class EmailService:
         try:
             # Create message
             msg = MIMEMultipart("alternative")
-            msg["From"] = settings.smtp_from_email
+            msg["From"] = smtp_from_email or smtp_username
             msg["To"] = to_email
             msg["Subject"] = subject
 
@@ -52,14 +84,17 @@ class EmailService:
                 part1 = MIMEText(text_body, "plain")
                 msg.attach(part1)
 
-            part2 = MIMEText(html_body, "html")
-            msg.attach(part2)
+            if html_body:
+                part2 = MIMEText(html_body, "html")
+                msg.attach(part2)
 
             # Send email
-            with smtplib.SMTP(settings.smtp_server, settings.smtp_port) as server:
-                server.starttls()
-                server.login(settings.smtp_username, settings.smtp_password)
-                server.send_message(msg)
+            async with aiosmtplib.SMTP(
+                hostname=smtp_server, port=smtp_port
+            ) as server:
+                await server.starttls()
+                await server.login(smtp_username, smtp_password)
+                await server.send_message(msg)
 
             logger.info("Email sent successfully to %s", to_email)
             return True
@@ -69,7 +104,7 @@ class EmailService:
             return False
 
     @staticmethod
-    def send_verification_email(
+    async def send_verification_email(
         to_email: str, username: str, verification_token: str, base_url: str = None
     ) -> bool:
         """Send email verification link"""
@@ -171,15 +206,21 @@ class EmailService:
         The AP2 Expense Manager Team
         """
 
-        return EmailService.send_email(to_email, subject, html_body, text_body)
+        return await EmailService.send_email(to_email, subject, html_body, text_body)
 
     @staticmethod
-    def send_password_reset_email(
-        to_email: str, username: str, reset_token: str, base_url: str = None
+    async def send_password_reset_email(
+        to_email: str,
+        reset_token: str,
+        username: Optional[str] = None,
+        base_url: str = None,
     ) -> bool:
         """Send password reset link"""
         if not base_url:
             base_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+        if not username:
+            username = to_email.split("@")[0]
 
         reset_link = f"{base_url}/auth/reset-password?token={reset_token}"
 
@@ -286,10 +327,12 @@ class EmailService:
         The AP2 Expense Manager Team
         """
 
-        return EmailService.send_email(to_email, subject, html_body, text_body)
+        return await EmailService.send_email(to_email, subject, html_body, text_body)
 
     @staticmethod
-    def send_welcome_email(to_email: str, username: str, full_name: str) -> bool:
+    async def send_welcome_email(
+        to_email: str, username: str, full_name: Optional[str] = None
+    ) -> bool:
         """Send welcome email after email verification"""
         subject = "Welcome to AP2 Expense Manager!"
 
@@ -396,10 +439,10 @@ class EmailService:
         The AP2 Expense Manager Team
         """
 
-        return EmailService.send_email(to_email, subject, html_body, text_body)
+        return await EmailService.send_email(to_email, subject, html_body, text_body)
 
     @staticmethod
-    def send_organization_invitation_email(
+    async def send_organization_invitation_email(
         to_email: str,
         organization_name: str,
         inviter_name: str,
@@ -505,44 +548,86 @@ class EmailService:
         The AP2 Expense Manager Team
         """
 
-        return EmailService.send_email(to_email, subject, html_body, text_body)
+        return await EmailService.send_email(to_email, subject, html_body, text_body)
 
     @staticmethod
-    def send_expense_approved_email(
+    async def send_expense_approved_email(
         to_email: str, expense_data: dict, approver_name: str
     ) -> bool:
         """Send expense approval notification email"""
         subject, html_body, text_body = get_expense_approved_email(
             expense_data, approver_name
         )
-        return EmailService.send_email(to_email, subject, html_body, text_body)
+        return await EmailService.send_email(to_email, subject, html_body, text_body)
 
     @staticmethod
-    def send_expense_rejected_email(
+    async def send_expense_rejected_email(
         to_email: str, expense_data: dict, rejector_name: str, reason: str
     ) -> bool:
         """Send expense rejection notification email"""
         subject, html_body, text_body = get_expense_rejected_email(
             expense_data, rejector_name, reason
         )
-        return EmailService.send_email(to_email, subject, html_body, text_body)
+        return await EmailService.send_email(to_email, subject, html_body, text_body)
 
     @staticmethod
-    def send_pending_approval_email(
+    async def send_pending_approval_email(
         to_email: str, expense_data: dict, submitter_name: str, manager_name: str
     ) -> bool:
         """Send pending approval notification email to managers"""
         subject, html_body, text_body = get_pending_approval_email(
             expense_data, submitter_name, manager_name
         )
-        return EmailService.send_email(to_email, subject, html_body, text_body)
+        return await EmailService.send_email(to_email, subject, html_body, text_body)
 
     @staticmethod
-    def send_budget_alert_email(
+    async def send_budget_alert_email(
         to_email: str, budget_data: dict, current_spending: float, threshold_percent: int
     ) -> bool:
         """Send budget alert notification email"""
         subject, html_body, text_body = get_budget_alert_email(
             budget_data, current_spending, threshold_percent
         )
-        return EmailService.send_email(to_email, subject, html_body, text_body)
+        return await EmailService.send_email(to_email, subject, html_body, text_body)
+
+    @staticmethod
+    async def send_expense_approved_notification(
+        to_email: str, expense_id: str, amount: float, approver_name: str
+    ) -> bool:
+        """Compatibility wrapper for legacy tests."""
+        expense_data = {
+            "id": expense_id,
+            "amount": amount,
+            "vendor": "Unknown",
+            "category": "Uncategorized",
+            "description": "",
+            "date": "N/A",
+        }
+        return await EmailService.send_expense_approved_email(
+            to_email, expense_data, approver_name
+        )
+
+    @staticmethod
+    async def send_expense_rejected_notification(
+        to_email: str, expense_id: str, amount: float, reason: str
+    ) -> bool:
+        """Compatibility wrapper for legacy tests."""
+        expense_data = {
+            "id": expense_id,
+            "amount": amount,
+            "vendor": "Unknown",
+            "category": "Uncategorized",
+            "description": "",
+            "date": "N/A",
+        }
+        return await EmailService.send_expense_rejected_email(
+            to_email, expense_data, "Approver", reason
+        )
+
+    @staticmethod
+    def _is_valid_email(email: str) -> bool:
+        """Basic email validation for tests and guardrails."""
+        if not email:
+            return False
+        pattern = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+        return re.match(pattern, email) is not None

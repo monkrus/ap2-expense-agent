@@ -204,7 +204,7 @@ class TestProcurementWebhook:
         assert subscription.gcp_account_id == "acct_test_456"
         assert subscription.status == "active"
         assert subscription.is_trial is False
-        assert subscription.metadata["source"] == "gcp_marketplace"
+        assert subscription.additional_metadata["source"] == "gcp_marketplace"
 
     async def test_handle_procurement_billing_event_logged(
         self, db_session, webhook_data, mock_email_service
@@ -371,6 +371,7 @@ class TestProcurementWebhook:
         for tier, expected_max_members in tiers_to_test:
             webhook_data["plan"] = tier
             webhook_data["entitlement_id"] = f"ent_{tier}_123"
+            webhook_data["account_id"] = f"acct_{tier}_456"
             webhook_data["user_email"] = f"admin_{tier}@acme.com"
 
             result = await handle_procurement_webhook(webhook_data, db_session)

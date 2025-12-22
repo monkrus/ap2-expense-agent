@@ -46,7 +46,7 @@ async def start_onboarding(
 ):
     """Start onboarding flow"""
     service = OnboardingService(db)
-    return service.start_onboarding(current_user)
+    return await service.start_onboarding(current_user)
 
 
 @router.post("/steps/{step}/complete")
@@ -82,7 +82,7 @@ async def invite_team(
 ):
     """Invite team members as part of onboarding"""
     service = OnboardingService(db)
-    invitation_ids = service.invite_team_step(
+    invitation_ids = await service.invite_team_step(
         user=current_user,
         organization_id=request.organization_id,
         email_addresses=request.emails,

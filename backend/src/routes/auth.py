@@ -83,7 +83,7 @@ async def register(
     db.commit()
 
     # Send verification email
-    EmailService.send_verification_email(
+    await EmailService.send_verification_email(
         to_email=user.email,
         username=user.username,
         verification_token=verification_token,
@@ -295,7 +295,7 @@ async def request_password_reset(
     db.commit()
 
     # Send password reset email
-    EmailService.send_password_reset_email(
+    await EmailService.send_password_reset_email(
         to_email=user.email, username=user.username, reset_token=token
     )
 
@@ -583,7 +583,7 @@ async def verify_email(token: str, request: Request, db: Session = Depends(get_d
     db.commit()
 
     # Send welcome email
-    EmailService.send_welcome_email(
+    await EmailService.send_welcome_email(
         to_email=user.email, username=user.username, full_name=user.full_name
     )
 
@@ -632,7 +632,7 @@ async def resend_verification(
     db.commit()
 
     # Send verification email
-    EmailService.send_verification_email(
+    await EmailService.send_verification_email(
         to_email=user.email,
         username=user.username,
         verification_token=verification_token,

@@ -32,7 +32,7 @@ class OnboardingService:
         self.db = db
         self.email_service = EmailService()
 
-    def start_onboarding(self, user: User) -> Dict:
+    async def start_onboarding(self, user: User) -> Dict:
         """
         Start onboarding flow for new user
 
@@ -42,7 +42,7 @@ class OnboardingService:
         progress = self._get_onboarding_progress(user)
 
         # Send welcome email
-        self.email_service.send_welcome_email(
+        await self.email_service.send_welcome_email(
             to_email=user.email, username=user.username, full_name=user.full_name
         )
 
@@ -106,7 +106,7 @@ class OnboardingService:
 
         return org
 
-    def invite_team_step(
+    async def invite_team_step(
         self, user: User, organization_id: str, email_addresses: List[str]
     ) -> List[str]:
         """
@@ -116,7 +116,9 @@ class OnboardingService:
 
         for email in email_addresses:
             # Send invitation
-            invitation_id = self._send_team_invitation(user, organization_id, email)
+            invitation_id = await self._send_team_invitation(
+                user, organization_id, email
+            )
             invitation_ids.append(invitation_id)
 
         # Mark step complete
@@ -220,7 +222,7 @@ class OnboardingService:
         progress = self._get_onboarding_progress(user)
         return progress["percentage"] == 100
 
-    def _send_team_invitation(
+    async def _send_team_invitation(
         self, inviter: User, organization_id: str, email: str
     ) -> str:
         """Send team invitation email"""
@@ -236,7 +238,7 @@ class OnboardingService:
 
         # Send email
         if org:
-            self.email_service.send_organization_invitation_email(
+            await self.email_service.send_organization_invitation_email(
                 to_email=email,
                 organization_name=org.name,
                 inviter_name=inviter.full_name or inviter.username,

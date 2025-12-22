@@ -739,7 +739,7 @@ async def approve_expense(
                 "date": expense.date.strftime("%Y-%m-%d") if expense.date else "N/A",
                 "submitted_at": expense.created_at.strftime("%Y-%m-%d %H:%M") if expense.created_at else "N/A"
             }
-            EmailService.send_expense_approved_email(
+            await EmailService.send_expense_approved_email(
                 to_email=expense_owner.email,
                 expense_data=expense_data,
                 approver_name=current_user.full_name or current_user.username
@@ -835,7 +835,7 @@ async def reject_expense(
                 "date": expense.date.strftime("%Y-%m-%d") if expense.date else "N/A",
                 "submitted_at": expense.created_at.strftime("%Y-%m-%d %H:%M") if expense.created_at else "N/A"
             }
-            EmailService.send_expense_rejected_email(
+            await EmailService.send_expense_rejected_email(
                 to_email=expense_owner.email,
                 expense_data=expense_data,
                 rejector_name=current_user.full_name or current_user.username,
