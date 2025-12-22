@@ -1,0 +1,84 @@
+__pycache__/
+*.pyc
+.venv*/
+venv/
+.env
+.env.*
+.env.production
+.env.local
+.env.development
+node_modules/
+dist/
+.DS_Store
+*.log
+.pytest_cache/
+.coverage
+
+# Database files (should never be in git)
+*.db
+*.sqlite
+*.sqlite3
+
+# Test artifacts
+nul
+
+# Strategy documents (keep private)
+*_ROADMAP.md
+*_CHECKLIST.md
+*_ANALYSIS.md
+*_SUMMARY.md
+*_PLAN.md
+*_AUDIT.md
+CLEANUP_PLAN.md
+
+# Google Cloud credentials - NEVER COMMIT THESE!
+github-actions-key.json
+*-key.json
+credentials.json
+service-account*.json
+gcloud-key*.json
+
+# Claude Code settings
+.claude/settings.local.json
+
+# Debug and temporary files
+*_debug.html
+check_*.html
+
+# Malformed path files (Windows issues)
+C:Users*
+*:*
+
+# Backend temporary files
+backend/expenses.db
+backend/*.log
+backend/logs/*.log
+backend/nul
+
+# Top-level logs and artifacts
+logs/*.log
+logs/*.log.*
+
+# Frontend temporary files
+frontend/*.log
+frontend/nul
+test_login.json
+backend/.venv/
+dump.rdb
+
+# Upload directories (dynamically generated)
+backend/uploads/
+uploads/
+
+# Backup verification cache and reports
+scripts/.backup-verification-cache
+*.backup-report.json
+
+# Screenshot staging area
+screenshots/staging/
+marketplace/screenshots/*.png
+marketplace/screenshots/*.jpg
+
+# Temporary test data
+test-data/
+sample-data-*.json

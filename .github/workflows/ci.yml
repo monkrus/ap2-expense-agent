@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    env:
+      PIP_CONSTRAINT: ""
+      REDIS_URL: redis://localhost:6379/0
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Clear pip constraint (Dependabot safety)
+        run: echo "PIP_CONSTRAINT=" >> $GITHUB_ENV
+      - name: Install dependencies
+        run: |
+          unset PIP_CONSTRAINT || true
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest pytest-asyncio pytest-cov httpx
+        env:
+          PIP_CONSTRAINT: ""
+      - name: Run tests
+        working-directory: backend
+        run: pytest -v --maxfail=1 --cov=src --cov-report=term-missing
+
+  helm-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+      - name: Lint chart
+        run: helm lint helm/ap2-expense

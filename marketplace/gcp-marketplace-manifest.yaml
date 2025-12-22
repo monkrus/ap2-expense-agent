@@ -1,0 +1,121 @@
+# Google Cloud Marketplace Listing Metadata (informational)
+# Note: This file is not a valid packaging artifact. Use Consumer Procurement
+# (SaaS) or x-google-marketplace schema (GKE) depending on offering type.
+
+apiVersion: v1
+kind: MarketplaceListing
+metadata:
+  name: ap2-expense-agent
+  displayName: "AP2 Expense Agent - AI-Powered Expense Management"
+  version: "1.0.0"
+  category: "AI Agents"
+  subcategory: "Finance & Accounting"
+
+product:
+  name: "AP2 Expense Agent"
+  shortDescription: "AI-powered expense management with Google's AP2 Protocol for automated, cryptographically verified payments"
+  longDescription: |
+    Transform your expense management with the AP2 Expense Agent — the first AI‑native expense tracking system
+    built on Google's Agent Payments Protocol (AP2).
+
+    Key Features:
+    - AP2 Protocol integration with cryptographic verification (Intent + Cart + Payment mandates)
+    - AI‑powered categorization, OCR, and anomaly detection
+    - Enterprise security: JWT, RBAC, SSO/SAML (Enterprise)
+    - Native Google Cloud integrations
+
+  documentation:
+    quickstart: "https://github.com/monkrus/ap2-expense-agent/blob/main/README.md"
+    userGuide: "https://docs.ap2expense.com/user-guide"
+    apiReference: "https://docs.ap2expense.com/api"
+    troubleshooting: "https://docs.ap2expense.com/troubleshooting"
+
+  support:
+    email: "support@ap2expense.com"
+    documentation: "https://docs.ap2expense.com"
+    slack: "https://ap2expense.slack.com"
+    tier: "Professional"
+
+  media:
+    logo: "gs://ap2-expense-agent-assets/logo-512.png"
+    icon: "gs://ap2-expense-agent-assets/icon-128.png"
+    screenshots:
+      - title: "Dashboard Overview"
+        url: "gs://ap2-expense-agent-assets/screenshot-dashboard.png"
+      - title: "AP2 Payment Flow"
+        url: "gs://ap2-expense-agent-assets/screenshot-ap2-flow.png"
+      - title: "Receipt OCR"
+        url: "gs://ap2-expense-agent-assets/screenshot-ocr.png"
+      - title: "Analytics & Reporting"
+        url: "gs://ap2-expense-agent-assets/screenshot-analytics.png"
+      - title: "Admin Panel"
+        url: "gs://ap2-expense-agent-assets/screenshot-admin.png"
+
+pricing:
+  model: "SUBSCRIPTION"
+  tiers:
+    - name: "Starter"
+      displayName: "Starter Plan"
+      price:
+        amount: 29.00
+        currency: "USD"
+        period: "MONTH"
+      features:
+        - "Up to 25 users"
+        - "100 expenses/month"
+        - "Basic receipt OCR"
+        - "AI categorization (500/month)"
+        - "30-day data retention"
+        - "Standard support"
+
+    - name: "Professional"
+      displayName: "Professional Plan"
+      price:
+        amount: 99.00
+        currency: "USD"
+        period: "MONTH"
+      features:
+        - "Up to 100 users"
+        - "Unlimited expenses"
+        - "Advanced receipt OCR"
+        - "AI categorization (5,000/month)"
+        - "AP2 automated payments (100/month)"
+        - "90-day data retention"
+        - "Priority support"
+        - "Custom approval workflows"
+      recommended: true
+
+    - name: "Enterprise"
+      displayName: "Enterprise Plan"
+      price:
+        amount: 399.00
+        currency: "USD"
+        period: "MONTH"
+      features:
+        - "Up to 500 users"
+        - "Unlimited everything"
+        - "Unlimited AI categorization"
+        - "Unlimited AP2 transactions"
+        - "365-day data retention"
+        - "Dedicated support"
+        - "Custom integrations"
+        - "SSO/SAML"
+        - "SLA guarantee (99.9%)"
+
+    - name: "Enterprise Plus"
+      displayName: "Enterprise Plus"
+      price:
+        contact: true
+      features:
+        - "Unlimited users"
+        - "White-label options"
+        - "On-premise deployment"
+        - "Custom SLA (99.95%+)"
+        - "Dedicated account manager"
+        - "Custom feature development"
+
+trial:
+  enabled: true
+  days: 14
+  description: "14-day free trial, no credit card required"
+

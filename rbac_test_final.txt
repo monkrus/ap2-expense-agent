@@ -1,0 +1,14 @@
+
+[95m[1m================================================================================[0m
+[95m[1m                      COMPREHENSIVE RBAC TESTING FRAMEWORK                      [0m
+[95m[1m================================================================================[0m
+
+
+[96m[1m--------------------------------------------------------------------------------[0m
+[96m[1mSetup Phase: Authenticating Users[0m
+[96m[1m--------------------------------------------------------------------------------[0m
+[94m[21:59:26] [INFO][0m Logging in emptest (EMPLOYEE)...
+[93m[21:59:28] [WARNING][0m Rate limited. Waiting 2s before retry...
+[93m[21:59:30] [WARNING][0m Rate limited. Waiting 4s before retry...
+[91m[21:59:34] [ERROR][0m Failed to login emptest after 3 attempts: rate limited
+[91m[21:59:34] [ERROR][0m Setup failed. Aborting tests.

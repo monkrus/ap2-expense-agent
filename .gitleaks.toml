@@ -1,0 +1,22 @@
+# Gitleaks configuration to ignore known non-secret sample data and historical logs.
+# These paths contain sample tokens or legacy logs that are not active secrets.
+
+[allowlist]
+description = "Ignore sample docs and historical log artifacts"
+files = [
+  "logs/app.log",
+  "logs/app.log.*",
+  "backend/logs/app.log",
+  "backend/logs/app.log.*",
+  "STRIPE_WEBHOOKS_LIVE_TEST_RESULTS.md",
+  "STRIPE_TESTING_RESULTS.md",
+  "STRIPE_QUICK_START.md",
+  "BILLING_INTEGRATION.md",
+  "MULTI_TENANCY_IMPLEMENTATION.md",
+  "FINAL_IMPLEMENTATION_STATUS.md",
+  "SETUP_GUIDE.md",
+  "API_DOCUMENTATION.md",
+  "docs/API_INTEGRATION_GUIDE.md",
+  "docs/TROUBLESHOOTING.md",
+  ".claude/settings.local.json"
+]

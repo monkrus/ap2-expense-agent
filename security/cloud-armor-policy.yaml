@@ -1,0 +1,140 @@
+# Google Cloud Armor Security Policy
+# Deploy with: gcloud compute security-policies create ap2-expense-policy --description "AP2 Expense Agent Security Policy"
+# Apply rules: gcloud compute security-policies rules create PRIORITY --security-policy ap2-expense-policy --expression "..." --action "..."
+
+name: ap2-expense-policy
+description: "Security policy for AP2 Expense Agent - DDoS protection and WAF rules"
+
+# Default action
+type: CLOUD_ARMOR
+defaultAction: allow
+
+# Rules (higher priority = evaluated first)
+rules:
+  # Rule 1: Block malicious IPs (priority 1000)
+  - priority: 1000
+    description: "Block known malicious IPs"
+    match:
+      expr:
+        expression: "origin.ip in ['10.0.0.0/8', '192.168.0.0/16']"  # Example - replace with real blocklist
+    action: deny(403)
+    preview: false
+
+  # Rule 2: Rate limiting per IP (priority 2000)
+  - priority: 2000
+    description: "Rate limit: 100 requests per minute per IP"
+    match:
+      expr:
+        expression: "true"
+    action: rate_based_ban
+    rateLimitOptions:
+      conformAction: allow
+      exceedAction: deny(429)
+      enforceOnKey: IP
+      rateLimitThreshold:
+        count: 100
+        intervalSec: 60
+      banDurationSec: 600  # 10 minute ban
+
+  # Rule 3: SQL Injection protection (priority 3000)
+  - priority: 3000
+    description: "Block SQL injection attempts"
+    match:
+      expr:
+        expression: |
+          request.path.matches("(?i)(union|select|insert|update|delete|drop|create|alter|exec|script|javascript|<script)")
+          || request.query.matches("(?i)(union|select|insert|update|delete|drop|create|alter|exec|script|javascript|<script)")
+    action: deny(403)
+    preview: false
+
+  # Rule 4: XSS protection (priority 3100)
+  - priority: 3100
+    description: "Block XSS attempts"
+    match:
+      expr:
+        expression: |
+          request.path.matches("(?i)(<script|javascript:|onerror=|onload=)")
+          || request.query.matches("(?i)(<script|javascript:|onerror=|onload=)")
+    action: deny(403)
+    preview: false
+
+  # Rule 5: Path traversal protection (priority 3200)
+  - priority: 3200
+    description: "Block path traversal attempts"
+    match:
+      expr:
+        expression: |
+          request.path.matches("(?i)(\\.\\.[\\/\\\\]|\\.\\.[\\%])")
+    action: deny(403)
+    preview: false
+
+  # Rule 6: Block suspicious user agents (priority 4000)
+  - priority: 4000
+    description: "Block suspicious bots and scanners"
+    match:
+      expr:
+        expression: |
+          request.headers['user-agent'].matches("(?i)(sqlmap|nikto|nmap|masscan|nessus|openvas|metasploit)")
+    action: deny(403)
+    preview: false
+
+  # Rule 7: Require authentication for API (priority 5000)
+  - priority: 5000
+    description: "Allow authenticated API requests"
+    match:
+      expr:
+        expression: |
+          request.path.startsWith("/api/") && has(request.headers['authorization'])
+    action: allow
+    preview: false
+
+  # Rule 8: Block unauthenticated API access except login/register (priority 5100)
+  - priority: 5100
+    description: "Block unauthenticated API access"
+    match:
+      expr:
+        expression: |
+          request.path.startsWith("/api/")
+          && !request.path.matches("/api/v1/users/(login|register)")
+          && !has(request.headers['authorization'])
+    action: deny(401)
+    preview: false
+
+  # Rule 9: Geographic restrictions (optional - priority 6000)
+  - priority: 6000
+    description: "Allow specific countries only (optional)"
+    match:
+      expr:
+        expression: "origin.region_code in ['US', 'CA', 'GB', 'AU', 'NZ']"  # Example - adjust as needed
+    action: allow
+    preview: true  # Set to false to enforce
+
+  # Rule 10: OWASP Top 10 protection (priority 7000)
+  - priority: 7000
+    description: "OWASP ModSecurity Core Rule Set protection"
+    match:
+      expr:
+        expression: "evaluatePreconfiguredExpr('xss-stable')"
+    action: deny(403)
+    preview: false
+
+  # Rule 11: Advanced DDoS protection (priority 8000)
+  - priority: 8000
+    description: "Advanced DDoS mitigation"
+    match:
+      expr:
+        expression: "evaluatePreconfiguredExpr('sqli-stable')"
+    action: deny(403)
+    preview: false
+
+# Adaptive protection (automatic DDoS detection)
+adaptiveProtectionConfig:
+  layer7DdosDefenseConfig:
+    enable: true
+    ruleVisibility: STANDARD
+
+# JSON parsing
+jsonParsing: STANDARD
+
+# Logging
+logLevel: VERBOSE

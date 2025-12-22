@@ -1,0 +1,23 @@
+# Bandit configuration file
+
+[bandit]
+# Exclude test directories and virtual environments
+exclude_dirs = ['/tests', '/venv', '/.venv', '/env']
+
+# Test IDs to skip (comma-separated)
+skips = []
+
+# Test IDs to run (comma-separated, default is all)
+tests = []
+
+# Set confidence level (LOW, MEDIUM, HIGH)
+level = LOW
+
+# Set severity level (LOW, MEDIUM, HIGH)
+severity = LOW
+
+# Output format (csv, json, txt, html, yaml)
+format = txt
+
+# Output file
+output_file = bandit-report.txt

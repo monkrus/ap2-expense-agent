@@ -1,0 +1,67 @@
+# Pod Security Policy for AP2 Expense Agent
+# Note: PodSecurityPolicy is deprecated in K8s 1.25+
+# For GKE 1.25+, use Pod Security Standards instead
+
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: ap2-expense-restricted
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName: 'runtime/default'
+spec:
+  # Prevent privilege escalation
+  privileged: false
+  allowPrivilegeEscalation: false
+
+  # Require non-root user
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+
+  # Restrict filesystem
+  readOnlyRootFilesystem: true
+
+  # Drop all capabilities
+  requiredDropCapabilities:
+  - ALL
+
+  # Don't allow host access
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+
+  # Restrict volumes
+  volumes:
+  - 'configMap'
+  - 'emptyDir'
+  - 'projected'
+  - 'secret'
+  - 'downwardAPI'
+  - 'persistentVolumeClaim'
+
+  # SELinux
+  seLinux:
+    rule: 'RunAsAny'
+
+  # Filesystem group
+  fsGroup:
+    rule: 'RunAsAny'
+
+  # Supplemental groups
+  supplementalGroups:
+    rule: 'RunAsAny'
+
+---
+# For GKE 1.25+: Pod Security Standards
+# Apply at namespace level
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ap2-expense
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

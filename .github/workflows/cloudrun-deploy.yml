@@ -1,0 +1,116 @@
+name: Deploy to Cloud Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: 'GCP Project ID'
+        required: true
+      region:
+        description: 'GCP Region'
+        default: 'us-central1'
+        required: true
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ (secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != '') || secrets.GCP_SERVICE_ACCOUNT_KEY != '' }}
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate auth inputs
+        run: |
+          if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ] && [ -n "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]; then
+            echo "::error::Provide only one of GCP_WORKLOAD_IDENTITY_PROVIDER or GCP_SERVICE_ACCOUNT_KEY"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ] && [ -z "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]; then
+            echo "::error::No GCP credentials provided; skipping deploy."
+            exit 1
+          fi
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}
+          install_components: 'beta'
+
+      - name: Check GCP Credentials
+        id: check-creds
+        run: |
+          if [ -n "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]; then
+            echo "auth_method=service_account_key" >> $GITHUB_OUTPUT
+          elif [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ] && [ -n "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
+            echo "auth_method=workload_identity" >> $GITHUB_OUTPUT
+          else
+            echo "auth_method=none" >> $GITHUB_OUTPUT
+            echo "⚠️ No GCP credentials configured - deployment will be skipped"
+          fi
+
+      - name: Auth with Workload Identity Federation
+        if: steps.check-creds.outputs.auth_method == 'workload_identity'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Auth with Service Account Key
+        if: steps.check-creds.outputs.auth_method == 'service_account_key'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Configure gcloud project/region
+        if: steps.check-creds.outputs.auth_method != 'none'
+        run: |
+          gcloud config set project "${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}"
+          echo "REGION=${{ github.event.inputs.region || secrets.GCP_REGION || 'us-central1' }}" >> $GITHUB_ENV
+
+      - name: Build and push Backend image
+        if: steps.check-creds.outputs.auth_method != 'none'
+        run: |
+          COMMIT_SHA=${GITHUB_SHA::12}
+          gcloud builds submit --tag gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-backend:${COMMIT_SHA} --config cloudbuild.yaml
+
+      - name: Build and push Frontend image
+        if: steps.check-creds.outputs.auth_method != 'none'
+        run: |
+          COMMIT_SHA=${GITHUB_SHA::12}
+          gcloud builds submit --tag gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-frontend:${COMMIT_SHA} --config cloudbuild.yaml
+
+      - name: Deploy Backend to Cloud Run
+        if: steps.check-creds.outputs.auth_method != 'none'
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+        run: |
+          if [ -z "$JWT_SECRET" ] || [ -z "$DATABASE_URL" ]; then
+            echo "::error::Missing JWT_SECRET or DATABASE_URL secrets; refusing to deploy insecure defaults."
+            exit 1
+          fi
+          COMMIT_SHA=${GITHUB_SHA::12}
+          gcloud run deploy ap2-expense-backend \
+            --image gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-backend:${COMMIT_SHA} \
+            --region $REGION --platform managed --allow-unauthenticated \
+            --min-instances 1 --max-instances 10 --memory 2Gi --cpu 2 --port 8080 \
+            --set-env-vars ENVIRONMENT=production,DEBUG=false,ALLOW_DEV_KMS_FALLBACK=false,RATE_LIMIT_ENABLED=true,JWT_SECRET=$JWT_SECRET,DATABASE_URL=$DATABASE_URL,GCP_PROJECT_ID=${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }},REDIS_URL=${REDIS_URL:-redis://localhost:6379/0},FRONTEND_URL=${FRONTEND_URL:-}
+
+      - name: Deploy Frontend to Cloud Run
+        if: steps.check-creds.outputs.auth_method != 'none'
+        run: |
+          COMMIT_SHA=${GITHUB_SHA::12}
+          gcloud run deploy ap2-expense-frontend \
+            --image gcr.io/${{ github.event.inputs.project_id || secrets.GCP_PROJECT_ID }}/ap2-expense-frontend:${COMMIT_SHA} \
+            --region $REGION --platform managed --allow-unauthenticated \
+            --min-instances 1 --max-instances 5 --memory 512Mi --cpu 1 --port 8080

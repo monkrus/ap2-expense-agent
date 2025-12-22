@@ -1,0 +1,152 @@
+{
+  "displayName": "AP2 Expense Agent - Billing & Usage Dashboard",
+  "mosaicLayout": {
+    "columns": 12,
+    "tiles": [
+      {
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "API Calls (Last 24h)",
+          "xyChart": {
+            "dataSets": [{
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "resource.type=\"k8s_pod\" resource.labels.namespace_name=\"ap2-expense\" metric.type=\"custom.googleapis.com/api_calls\"",
+                  "aggregation": {
+                    "alignmentPeriod": "3600s",
+                    "perSeriesAligner": "ALIGN_SUM",
+                    "crossSeriesReducer": "REDUCE_SUM",
+                    "groupByFields": ["resource.labels.organization_id"]
+                  }
+                }
+              },
+              "plotType": "STACKED_AREA",
+              "targetAxis": "Y1"
+            }],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "API Calls",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Active Organizations",
+          "scorecard": {
+            "timeSeriesQuery": {
+              "timeSeriesFilter": {
+                "filter": "resource.type=\"k8s_pod\" resource.labels.namespace_name=\"ap2-expense\" metric.type=\"custom.googleapis.com/active_organizations\"",
+                "aggregation": {
+                  "alignmentPeriod": "3600s",
+                  "perSeriesAligner": "ALIGN_MAX"
+                }
+              }
+            },
+            "sparkChartView": {
+              "sparkChartType": "SPARK_BAR"
+            }
+          }
+        }
+      },
+      {
+        "yPos": 4,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Storage Usage by Organization",
+          "xyChart": {
+            "dataSets": [{
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "resource.type=\"k8s_pod\" resource.labels.namespace_name=\"ap2-expense\" metric.type=\"custom.googleapis.com/storage_gb\"",
+                  "aggregation": {
+                    "alignmentPeriod": "3600s",
+                    "perSeriesAligner": "ALIGN_MEAN",
+                    "crossSeriesReducer": "REDUCE_SUM",
+                    "groupByFields": ["resource.labels.organization_id"]
+                  }
+                }
+              },
+              "plotType": "STACKED_BAR",
+              "targetAxis": "Y1"
+            }],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "GB",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 4,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Active Users by Tier",
+          "pieChart": {
+            "dataSets": [{
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "resource.type=\"k8s_pod\" resource.labels.namespace_name=\"ap2-expense\" metric.type=\"custom.googleapis.com/active_users_by_tier\"",
+                  "aggregation": {
+                    "alignmentPeriod": "3600s",
+                    "perSeriesAligner": "ALIGN_MEAN",
+                    "crossSeriesReducer": "REDUCE_SUM",
+                    "groupByFields": ["metric.labels.tier"]
+                  }
+                }
+              }
+            }]
+          }
+        }
+      },
+      {
+        "yPos": 8,
+        "width": 12,
+        "height": 4,
+        "widget": {
+          "title": "Usage Limits - Organizations Approaching Limits",
+          "xyChart": {
+            "dataSets": [{
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "resource.type=\"k8s_pod\" resource.labels.namespace_name=\"ap2-expense\" metric.type=\"custom.googleapis.com/usage_percentage\"",
+                  "aggregation": {
+                    "alignmentPeriod": "3600s",
+                    "perSeriesAligner": "ALIGN_MEAN",
+                    "crossSeriesReducer": "REDUCE_MEAN",
+                    "groupByFields": ["resource.labels.organization_id", "metric.labels.metric_type"]
+                  }
+                }
+              },
+              "plotType": "LINE",
+              "targetAxis": "Y1"
+            }],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "Usage %",
+              "scale": "LINEAR"
+            },
+            "thresholds": [{
+              "value": 80,
+              "color": "YELLOW",
+              "direction": "ABOVE"
+            }, {
+              "value": 95,
+              "color": "RED",
+              "direction": "ABOVE"
+            }]
+          }
+        }
+      }
+    ]
+  }
+}

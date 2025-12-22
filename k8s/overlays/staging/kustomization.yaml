@@ -1,0 +1,26 @@
+resources:
+  - ../../base
+patches:
+  - target:
+      kind: Deployment
+      name: backend
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/1/env/0/value
+        value: "8080"
+      - op: add
+        path: /spec/template/spec/containers/1/env/-
+        value:
+          name: ENVIRONMENT
+          value: "staging"
+      - op: add
+        path: /spec/template/spec/containers/1/env/-
+        value:
+          name: GCP_WEBHOOK_AUDIENCE
+          value: "https://staging.your-domain.com/api/webhooks/gcp/events"
+  - target:
+      kind: Ingress
+    patch: |-
+      - op: add
+        path: /metadata/annotations/networking.gke.io~1managed-certificates
+        value: ap2-expense-managed-cert

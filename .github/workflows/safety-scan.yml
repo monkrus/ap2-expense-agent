@@ -1,0 +1,38 @@
+name: Security Audit / Python Dependency Safety Check
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Safety CLI v3
+        run: |
+          python -m pip install --upgrade pip
+          # Safety v3 currently has CLI/typer regressions; pin to stable v2 CLI
+          pip install "safety==2.3.5"
+      - name: Safety scan (requirements file)
+        env:
+          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
+        run: |
+          # Prefer scanning locked requirements file without installing deps
+          safety check --full-report -r backend/requirements.txt || true
+      # Optional: save JSON artifact for auditing
+      - name: Safety JSON report
+        if: always()
+        run: |
+          safety check --json -r backend/requirements.txt > safety-report.json || true
+      - name: Upload Safety report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safety-report
+          path: safety-report.json

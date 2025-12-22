@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ap2-expense-config
+  namespace: ap2-expense
+  labels:
+    app.kubernetes.io/name: ap2-expense-agent
+    app.kubernetes.io/component: config
+data:
+  # Backend configuration
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "info"
+  CORS_ORIGINS: '["https://your-domain.com"]'
+
+  # Redis configuration (optional)
+  REDIS_URL: "redis://redis-service:6379/0"
+
+  # Frontend configuration
+  VITE_API_URL: "/api"

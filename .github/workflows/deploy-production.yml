@@ -1,0 +1,269 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/deploy-production.yml'
+  workflow_dispatch:
+    inputs:
+      skip_backend:
+        description: 'Skip backend deployment'
+        required: false
+        type: boolean
+        default: false
+      skip_frontend:
+        description: 'Skip frontend deployment'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: us-central1
+  BACKEND_SERVICE: ap2-expense-backend
+  FRONTEND_SERVICE: ap2-expense-frontend
+
+jobs:
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    env:
+      PIP_CONSTRAINT: ""
+    if: ${{ !inputs.skip_backend }}
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Clear pip constraint (Dependabot safety)
+        run: echo "PIP_CONSTRAINT=" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          unset PIP_CONSTRAINT || true
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        env:
+          PIP_CONSTRAINT: ""
+
+      - name: Run security audit
+        run: |
+          pip install pip-audit
+          pip-audit || true
+
+      - name: Run tests
+        run: |
+          pytest --tb=short -v --cov=src --cov-report=xml
+        env:
+          DATABASE_URL: sqlite:///./test.db
+          JWT_SECRET: test-secret-key
+          ENVIRONMENT: test
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./backend/coverage.xml
+          flags: backend
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_frontend }}
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit
+        run: npm audit --audit-level=high || true
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_API_URL: https://placeholder-backend-url/api/v1
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 1
+
+  deploy-backend:
+    name: Deploy Backend to Cloud Run
+    needs: test-backend
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_backend && secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != '' && secrets.JWT_SECRET != '' && secrets.DATABASE_URL != '' }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Build and push backend image
+        working-directory: ./backend
+        run: |
+          docker build -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }} .
+          docker tag gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }} \
+                     gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:latest
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }}
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.BACKEND_SERVICE }} \
+            --image gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }} \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --min-instances 1 \
+            --max-instances 10 \
+            --memory 2Gi \
+            --cpu 2 \
+            --port 8080 \
+            --timeout 300 \
+            --set-env-vars ENVIRONMENT=production,DEBUG=false,ALLOW_DEV_KMS_FALLBACK=false,RATE_LIMIT_ENABLED=true,COMMIT_SHA=${{ github.sha }},JWT_SECRET=${{ secrets.JWT_SECRET }},DATABASE_URL=${{ secrets.DATABASE_URL }},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}
+
+      - name: Get backend URL
+        id: backend-url
+        run: |
+          URL=$(gcloud run services describe ${{ env.BACKEND_SERVICE }} \
+            --region ${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Backend URL: $URL"
+
+      - name: Test backend health
+        run: |
+          sleep 10
+          curl -f ${{ steps.backend-url.outputs.url }}/health || exit 1
+          curl -f ${{ steps.backend-url.outputs.url }}/api/webhooks/gcp/health || exit 1
+
+    outputs:
+      backend-url: ${{ steps.backend-url.outputs.url }}
+
+  deploy-frontend:
+    name: Deploy Frontend to Cloud Run
+    needs: [test-frontend, deploy-backend]
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_frontend && secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != '' }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Create production env file
+        working-directory: ./frontend
+        run: |
+          echo "VITE_API_URL=${{ needs.deploy-backend.outputs.backend-url }}/api/v1" > .env.production
+
+      - name: Build and push frontend image
+        working-directory: ./frontend
+        run: |
+          docker build -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }} .
+          docker tag gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }} \
+                     gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.FRONTEND_SERVICE }}:latest
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }}
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.FRONTEND_SERVICE }}:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.FRONTEND_SERVICE }} \
+            --image gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }} \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --min-instances 1 \
+            --max-instances 5 \
+            --memory 512Mi \
+            --cpu 1 \
+            --port 80 \
+            --timeout 60
+
+      - name: Get frontend URL
+        id: frontend-url
+        run: |
+          URL=$(gcloud run services describe ${{ env.FRONTEND_SERVICE }} \
+            --region ${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Frontend URL: $URL"
+
+      - name: Test frontend
+        run: |
+          sleep 10
+          curl -f ${{ steps.frontend-url.outputs.url }} || exit 1
+
+  notify-success:
+    name: Notify Deployment Success
+    needs: [deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: Deployment summary
+        run: |
+          echo "🎉 Deployment successful!"
+          echo "Backend: ${{ needs.deploy-backend.outputs.backend-url }}"
+          echo "Frontend: ${{ needs.deploy-frontend.outputs.frontend-url || 'Skipped' }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Triggered by: ${{ github.actor }}"

@@ -1,0 +1,37 @@
+{
+  "info": {
+    "name": "AP2 Expense - Smoke Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Basic health, webhooks, and metrics checks. Set baseUrl variable."
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [{"listen": "test", "script": {"exec": ["pm.test('Status is 200', function() { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "GCP Webhook Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/webhooks/gcp/health"
+      },
+      "event": [{"listen": "test", "script": {"exec": ["pm.test('Status is 200', function() { pm.response.to.have.status(200); });"]}}]
+    },
+    {
+      "name": "Metrics",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/metrics"
+      },
+      "event": [{"listen": "test", "script": {"exec": ["pm.test('Status is 200', function() { pm.response.to.have.status(200); });","pm.test('Has Prometheus format', function() { pm.expect(pm.response.text()).to.include('http_requests_total'); });"]}}]
+    }
+  ],
+  "variable": [
+    {"key": "baseUrl", "value": "https://<BACKEND_HOST>"}
+  ]
+}
+
