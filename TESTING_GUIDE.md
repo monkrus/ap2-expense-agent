@@ -263,7 +263,7 @@ Tests multi-user workflows:
 **Cause**: Previously deleted org (soft delete)
 **Solution**:
 - Restart backend server (loads `is_active=True` filter)
-- Run: `python cleanup_soft_deleted_orgs.py`
+- Run: `python backend/cleanup_soft_deleted_orgs.py`
 - Use unique slugs: `f"org-{int(time.time())}"`
 
 ### Problem: "Invalid category" validation errors (422)

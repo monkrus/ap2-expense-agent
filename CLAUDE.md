@@ -25,7 +25,7 @@ cd backend && uvicorn src.api:app --reload
 cd backend && pytest
 
 # Run specific test file
-cd backend && pytest tests/test_organizations.py -v
+cd backend && pytest tests/test_auth.py -v
 
 # Database migrations (Alembic)
 cd backend && alembic upgrade head
@@ -52,7 +52,7 @@ cd frontend && npm test
 python -c "from src.database import SessionLocal; from src.models import Organization; db = SessionLocal(); print(db.query(Organization).all())"
 
 # Clean up soft-deleted organizations
-python cleanup_soft_deleted_orgs.py
+python backend/cleanup_soft_deleted_orgs.py
 
 # Seed test data
 cd backend && python seed_tiers_quick.py
@@ -229,7 +229,7 @@ Defined in `backend/src/billing/tier_limits.py`:
 ### "Organization slug already taken" after deletion
 
 **Cause**: Backend server hasn't reloaded with `is_active` filter changes
-**Fix**: Restart backend server or run `python cleanup_soft_deleted_orgs.py`
+**Fix**: Restart backend server or run `python backend/cleanup_soft_deleted_orgs.py`
 
 ### Rate limit exceeded (429)
 
@@ -314,7 +314,7 @@ cd backend && pytest
 python test_org_final.py
 
 # Create regression tests for bugs you fix:
-cd backend && pytest tests/test_organizations.py::test_duplicate_name_validation -v
+cd backend && pytest tests/test_tier_limits_comprehensive.py::test_TIER_FREE_010_recreate_deleted_org_slug_reuse -v
 ```
 
 **Rule**: Test your changes before considering them complete.
@@ -394,7 +394,7 @@ existing_slug = (
 **When you fix a bug, create a test** to prevent it from coming back:
 
 ```python
-# Example: backend/tests/test_organizations.py
+# Example: backend/tests/test_tier_limits_comprehensive.py
 def test_duplicate_name_case_insensitive():
     """Prevent regression: org names must be unique (case-insensitive)"""
     # This test ensures the fix in organizations.py:80-91 stays in place
