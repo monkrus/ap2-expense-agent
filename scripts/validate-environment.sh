@@ -122,19 +122,16 @@ check_var "JWT_EXPIRATION_MINUTES" false "^[0-9]+$" "JWT expiration (minutes)"
 echo ""
 
 # ============================================================================
-# Stripe Integration
+# Stripe Payment Processor (AP2)
 # ============================================================================
 
-print_header "Stripe Payment Processing"
+print_header "Stripe Payment Processor"
 if [ "$ENVIRONMENT" = "production" ]; then
-    check_var "STRIPE_API_KEY" true "^sk_live_" "Stripe API key (production)"
+    check_var "STRIPE_SECRET_KEY" true "^sk_live_" "Stripe secret key (production)"
 else
-    check_var "STRIPE_API_KEY" true "^sk_test_" "Stripe API key (test)"
+    check_var "STRIPE_SECRET_KEY" true "^sk_test_" "Stripe secret key (test)"
 fi
 check_var "STRIPE_WEBHOOK_SECRET" true "^whsec_" "Stripe webhook secret"
-check_var "STRIPE_PRICE_ID_STARTER" false "^price_" "Stripe price ID - Starter"
-check_var "STRIPE_PRICE_ID_PROFESSIONAL" false "^price_" "Stripe price ID - Professional"
-check_var "STRIPE_PRICE_ID_ENTERPRISE" false "^price_" "Stripe price ID - Enterprise"
 echo ""
 
 # ============================================================================

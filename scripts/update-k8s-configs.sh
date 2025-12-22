@@ -219,9 +219,8 @@ GCP_KMS_SIGNING_KEY=ap2-mandate-signing-key
 GOOGLE_API_KEY=
 GOOGLE_GENAI_USE_VERTEXAI=false
 
-# Stripe (optional)
+# Stripe payment processor (AP2 optional)
 STRIPE_SECRET_KEY=sk_test_
-STRIPE_PUBLISHABLE_KEY=pk_test_
 
 # Email (optional)
 SMTP_SERVER=

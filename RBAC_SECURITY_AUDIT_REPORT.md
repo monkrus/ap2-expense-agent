@@ -336,13 +336,15 @@ The Free tier has `max_users = 1`, which includes the owner. So even the OWNER c
 
 **Option 1**: Increase Free tier to 2-3 users
 ```python
-# In tier_limits.py
-SubscriptionTier.FREE: TierLimits(
-    name="Free",
-    max_users=3,  # <--- Allow small teams
-    max_organizations=1,
-    max_expenses_per_month=20,
-    ...
+# In BillingTier seed data (backend/scripts/seed_billing_tiers.py)
+free_tier = BillingTier(
+    tier_name="free",
+    display_name="Free",
+    limits={
+        "max_members": 3,  # Allow small teams
+        "max_expenses_per_month": 20,
+        # ...
+    },
 )
 ```
 
@@ -749,3 +751,4 @@ The RBAC system has a solid foundation with proper multi-tenancy isolation and o
 ---
 
 **End of Report**
+

@@ -27,7 +27,7 @@ const getAuthHeaders = () => {
  * @param {object} metadata - Optional metadata
  */
 export const trackUsage = async (usageType, quantity = 1, metadata = null) => {
-  const response = await fetch(`${API_BASE_URL}/api/billing/usage/track`, {
+  const response = await fetch(`${API_BASE_URL}/api/billing/org/usage/track`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
@@ -71,7 +71,7 @@ export const getMonthlyUsage = async (usageType = null) => {
  */
 export const checkUsageLimit = async (usageType) => {
   const response = await fetch(
-    `${API_BASE_URL}/api/billing/usage/check-limit/${usageType}`,
+    `${API_BASE_URL}/api/billing/org/usage/check-limit/${usageType}`,
     {
       headers: getAuthHeaders(),
     },
@@ -106,96 +106,6 @@ export const getSubscription = async () => {
   return response.json();
 };
 
-/**
- * Create a new subscription for the user's organization
- * @param {string} tier - Subscription tier (starter, professional, enterprise, enterprise_plus)
- * @param {number} trialDays - Number of trial days (default: 14)
- */
-export const createSubscription = async (tier, trialDays = 14) => {
-  // Use organization-based endpoint
-  const response = await fetch(`${API_BASE_URL}/api/billing/org/subscription`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({
-      tier,
-      trial_days: trialDays,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to create subscription");
-  }
-
-  return response.json();
-};
-
-/**
- * Upgrade subscription to a new tier
- * @param {string} subscriptionId - Subscription ID (not used in org-based API)
- * @param {string} newTier - New tier to upgrade to
- */
-export const upgradeSubscription = async (subscriptionId, newTier) => {
-  // Use organization-based endpoint (doesn't need subscriptionId)
-  const response = await fetch(
-    `${API_BASE_URL}/api/billing/org/subscription/upgrade?new_tier=${newTier}`,
-    {
-      method: "PUT",
-      headers: getAuthHeaders(),
-    },
-  );
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || "Failed to upgrade subscription");
-  }
-
-  return response.json();
-};
-
-/**
- * Cancel subscription
- * @param {string} subscriptionId - Subscription ID
- * @param {boolean} immediate - Cancel immediately vs at period end
- */
-export const cancelSubscription = async (subscriptionId, immediate = false) => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/billing/subscription/${subscriptionId}?immediate=${immediate}`,
-    {
-      method: "DELETE",
-      headers: getAuthHeaders(),
-    },
-  );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to cancel subscription");
-  }
-
-  return response.json();
-};
-
-/**
- * Reactivate a canceled subscription
- * @param {string} subscriptionId - Subscription ID
- */
-export const reactivateSubscription = async (subscriptionId) => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/billing/subscription/${subscriptionId}/reactivate`,
-    {
-      method: "POST",
-      headers: getAuthHeaders(),
-    },
-  );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to reactivate subscription");
-  }
-
-  return response.json();
-};
-
 // ============================================================================
 // Billing Tiers
 // ============================================================================
@@ -222,7 +132,7 @@ export const getAllTiers = async () => {
  * @param {string} tier - Tier name
  */
 export const getTierInfo = async (tier) => {
-  const response = await fetch(`${API_BASE_URL}/api/billing/tiers/${tier}`, {
+  const response = await fetch(`${API_BASE_URL}/api/billing/org/tiers/${tier}`, {
     headers: getAuthHeaders(),
   });
 
@@ -242,10 +152,6 @@ export default {
 
   // Subscription management
   getSubscription,
-  createSubscription,
-  upgradeSubscription,
-  cancelSubscription,
-  reactivateSubscription,
 
   // Tiers
   getAllTiers,

@@ -447,14 +447,14 @@ test_response_time() {
 # ============================================================================
 
 test_stripe_integration() {
-    print_header "Test 12: Stripe Integration (Optional)"
+    print_header "Test 12: Stripe Payment Processor (Optional)"
 
     # This test would require authentication, so we just check if environment is configured
-    if [ -n "${STRIPE_API_KEY:-}" ]; then
-        print_success "Stripe integration: Configured"
+    if [ -n "${STRIPE_SECRET_KEY:-}" ]; then
+        print_success "Stripe payment processor: Configured"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
-        print_warning "Stripe integration: Not configured in environment"
+        print_warning "Stripe payment processor: Not configured in environment"
         TESTS_SKIPPED=$((TESTS_SKIPPED + 1))
     fi
 

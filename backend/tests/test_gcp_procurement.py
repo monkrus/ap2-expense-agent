@@ -8,6 +8,8 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+pytestmark = pytest.mark.asyncio
+
 from src.gcp.procurement_handler import (
     generate_secure_password,
     generate_slug,

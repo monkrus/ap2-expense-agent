@@ -23,7 +23,7 @@ A production-ready, cloud-native expense management system with Google Cloud Mar
 - **GCP Marketplace Integration** - Native Google Cloud Marketplace billing
 - **Subscription Tiers** - STARTER, PROFESSIONAL, ENTERPRISE, ENTERPRISE_PLUS
 - **Usage-Based Billing** - Automatic overage tracking and metering
-- **Stripe Integration** - Complete payment processing with webhooks
+- **Stripe Payment Processor (AP2)** - Optional Stripe-backed AP2 payments
 - **2FA Authentication** - TOTP-based two-factor authentication
 - **Audit Logging** - Complete audit trail with hash chain verification
 - **OAuth Support** - Google OAuth integration
@@ -126,7 +126,7 @@ docker-compose up -d
                            │
                            ▼
               ┌────────────────────────┐
-              │   Stripe Payments      │
+              │   AP2 Payments         │
               └────────────────────────┘
 ```
 
@@ -154,7 +154,7 @@ docker-compose up -d
 - Cloud Build
 
 **Integrations:**
-- Stripe (payments)
+- Stripe (AP2 payments)
 - Google Cloud Marketplace (billing)
 - Google OAuth (authentication)
 - SendGrid/SMTP (emails)
@@ -472,7 +472,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] Multi-tenant architecture
 - [x] AP2 protocol integration
 - [x] GCP Marketplace integration
-- [x] Stripe billing
+- [x] Marketplace billing
 - [x] Complete deployment automation
 
 ### Phase 2 (Q1 2025)

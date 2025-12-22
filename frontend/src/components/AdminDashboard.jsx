@@ -827,17 +827,48 @@ const AdminDashboard = () => {
   const isStarterPlan = subscription?.tier?.toLowerCase() === "starter";
   const showUpsells = isFreePlan || isStarterPlan;
 
+  const usageLimitKeyMap = {
+    ai_categorization: "max_ai_categorizations",
+    ap2_transaction: "max_ap2_transactions",
+    ocr_scan: "ocr_scans_included",
+    expense: "max_expenses_per_month",
+    active_users: "max_users",
+  };
+
+  const resolveUsageLimit = (usageKey, usageEntry) => {
+    if (
+      usageEntry &&
+      usageEntry.limit !== null &&
+      usageEntry.limit !== undefined
+    ) {
+      return usageEntry.limit;
+    }
+    const limitKey = usageLimitKeyMap[usageKey] || `max_${usageKey}`;
+    return subscription?.limits?.[limitKey] ?? null;
+  };
+
+  const getUsageQuantity = (usageEntry) => {
+    if (!usageEntry) return 0;
+    if (typeof usageEntry === "number") return usageEntry;
+    return usageEntry.quantity || 0;
+  };
+
   // Calculate usage percentages for upsell warnings
-  const getUsagePercent = (type) => {
-    if (!monthlyUsage?.usage_by_type || !subscription?.limits) return 0;
-    const usage = monthlyUsage.usage_by_type[type]?.count || 0;
-    const limit = subscription.limits[`max_${type}`];
-    if (!limit) return 0;
+  const getUsagePercent = (usageKey) => {
+    const usageEntry = monthlyUsage?.usage?.[usageKey];
+    if (!usageEntry) return 0;
+    const usage = getUsageQuantity(usageEntry);
+    const limitValue = resolveUsageLimit(usageKey, usageEntry);
+    if (limitValue === null || limitValue === undefined) return 0;
+    const limit =
+      typeof limitValue === "string" ? Number(limitValue) : limitValue;
+    if (!Number.isFinite(limit)) return 0;
+    if (limit === 0) return usage > 0 ? 100 : 0;
     return Math.round((usage / limit) * 100);
   };
 
-  const aiUsagePercent = getUsagePercent("ai_categorizations");
-  const expenseUsagePercent = getUsagePercent("expenses_per_month");
+  const aiUsagePercent = getUsagePercent("ai_categorization");
+  const expenseUsagePercent = getUsagePercent("expense");
 
   return (
     <div
@@ -863,18 +894,24 @@ const AdminDashboard = () => {
                 <UsageLimitWarning
                   feature="AI categorizations"
                   currentUsage={
-                    monthlyUsage.usage_by_type?.ai_categorizations?.count || 0
+                    monthlyUsage.usage?.ai_categorization?.quantity || 0
                   }
-                  limit={subscription?.limits?.max_ai_categorizations || 100}
+                  limit={
+                    monthlyUsage?.usage?.ai_categorization?.limit ??
+                    subscription?.limits?.max_ai_categorizations ||
+                    100
+                  }
                 />
               )}
               {expenseUsagePercent >= 70 && (
                 <UsageLimitWarning
                   feature="expenses"
-                  currentUsage={
-                    monthlyUsage.usage_by_type?.expenses_per_month?.count || 0
+                  currentUsage={monthlyUsage.usage?.expense?.quantity || 0}
+                  limit={
+                    monthlyUsage?.usage?.expense?.limit ??
+                    subscription?.limits?.max_expenses_per_month ||
+                    500
                   }
-                  limit={subscription?.limits?.max_expenses_per_month || 500}
                 />
               )}
             </div>
@@ -1313,12 +1350,22 @@ const AdminDashboard = () => {
                           {monthlyUsage.usage &&
                             Object.entries(monthlyUsage.usage).map(
                               ([key, value]) => {
+                                const current = getUsageQuantity(value);
+                                const limitValue = resolveUsageLimit(key, value);
                                 const limit =
-                                  subscription.limits?.[`max_${key}`];
-                                const percentage = limit
-                                  ? (value / limit) * 100
-                                  : 0;
-                                const isOverLimit = limit && value > limit;
+                                  typeof limitValue === "string"
+                                    ? Number(limitValue)
+                                    : limitValue;
+                                const hasLimit =
+                                  limitValue !== null &&
+                                  limitValue !== undefined &&
+                                  Number.isFinite(limit);
+                                const percentage =
+                                  hasLimit && limit > 0
+                                    ? (current / limit) * 100
+                                    : 0;
+                                const isOverLimit =
+                                  hasLimit && limit > 0 && current > limit;
 
                                 return (
                                   <div key={key} className="space-y-2">
@@ -1333,11 +1380,11 @@ const AdminDashboard = () => {
                                             : "text-gray-600"
                                         }
                                       >
-                                        {value}{" "}
-                                        {limit ? `/ ${limit}` : "(unlimited)"}
+                                        {current}{" "}
+                                        {hasLimit ? `/ ${limit}` : "(unlimited)"}
                                       </span>
                                     </div>
-                                    {limit && (
+                                    {hasLimit && limit > 0 && (
                                       <div className="w-full bg-gray-200 rounded-full h-2">
                                         <div
                                           className={`h-2 rounded-full transition-all ${

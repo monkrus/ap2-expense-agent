@@ -52,14 +52,6 @@ class Settings(BaseSettings):
     stripe_secret_key: Optional[str] = None
     stripe_publishable_key: Optional[str] = None
     stripe_webhook_secret: Optional[str] = None
-    # Monthly price IDs
-    stripe_price_id_starter_monthly: Optional[str] = None
-    stripe_price_id_professional_monthly: Optional[str] = None
-    stripe_price_id_enterprise_monthly: Optional[str] = None
-    # Annual price IDs
-    stripe_price_id_starter_annual: Optional[str] = None
-    stripe_price_id_professional_annual: Optional[str] = None
-    stripe_price_id_enterprise_annual: Optional[str] = None
 
     # Subscription & Monetization
     enable_billing: bool = False  # Enable/disable billing features

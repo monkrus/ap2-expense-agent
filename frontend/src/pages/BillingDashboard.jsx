@@ -17,7 +17,10 @@ import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../hooks/useToast";
 import billingAPI from "../services/billingAPI";
 import organizationAPI from "../services/organizationAPI";
-import paymentAPI from "../services/paymentAPI";
+
+const MARKETPLACE_URL =
+  import.meta.env.VITE_GCP_MARKETPLACE_URL ||
+  "https://console.cloud.google.com/marketplace";
 
 /**
  * Billing Dashboard
@@ -132,29 +135,7 @@ const BillingDashboard = () => {
   };
 
   const handleUpgrade = (tierName) => {
-    if (subscription?.gcp_entitlement_id) {
-      // GCP customer - redirect to GCP Console
-      window.open(
-        `https://console.cloud.google.com/marketplace/product/google/${subscription.gcp_entitlement_id}`,
-        "_blank",
-      );
-    } else {
-      // Direct customer - navigate to pricing page
-      window.location.href = "/pricing";
-    }
-  };
-
-  const handleManagePayment = async () => {
-    try {
-      setLoading(true);
-      const { url } = await paymentAPI.createPortalSession();
-      window.location.href = url;
-    } catch (err) {
-      showError("Failed to open payment portal");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    window.open(MARKETPLACE_URL, "_blank");
   };
 
   const getUsagePercentage = (current, limit) => {
@@ -347,34 +328,15 @@ const BillingDashboard = () => {
               )}
             </div>
 
-            {!subscription?.gcp_entitlement_id && (
-              <div className="flex gap-3">
-                <button
-                  onClick={handleManagePayment}
-                  className="px-6 py-3 bg-white/10 text-white border border-white/20 rounded-lg font-semibold hover:bg-white/20 transition-colors"
-                >
-                  Manage Payment
-                </button>
-                <button
-                  onClick={() => (window.location.href = "/pricing")}
-                  className="px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
-                >
-                  Upgrade Plan
-                </button>
-              </div>
-            )}
-
-            {subscription?.gcp_entitlement_id && (
-              <a
-                href={`https://console.cloud.google.com/marketplace`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
-              >
-                Manage in GCP
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            )}
+            <a
+              href={MARKETPLACE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
+            >
+              Manage in GCP
+              <ExternalLink className="w-4 h-4" />
+            </a>
           </div>
         </div>
 
@@ -434,46 +396,48 @@ const BillingDashboard = () => {
             <UsageProgressBar
               label="AI Categorizations"
               current={usage?.usage?.ai_categorization?.quantity || 0}
-              limit={subscription?.limits?.max_ai_categorizations}
-              overage={Math.max(
-                0,
-                (usage?.usage?.ai_categorization?.quantity || 0) -
-                  (subscription?.limits?.max_ai_categorizations || Infinity),
-              )}
-              overageFee={usage?.usage?.ai_categorization?.fees || 0}
+              limit={
+                usage?.usage?.ai_categorization?.limit ??
+                subscription?.limits?.max_ai_categorizations
+              }
+              overage={usage?.usage?.ai_categorization?.overage || 0}
+              overageFee={usage?.usage?.ai_categorization?.overage_fee || 0}
               unit="categorizations"
             />
 
             <UsageProgressBar
               label="AP2 Transactions"
               current={usage?.usage?.ap2_transaction?.quantity || 0}
-              limit={subscription?.limits?.max_ap2_transactions}
-              overage={Math.max(
-                0,
-                (usage?.usage?.ap2_transaction?.quantity || 0) -
-                  (subscription?.limits?.max_ap2_transactions || Infinity),
-              )}
-              overageFee={usage?.usage?.ap2_transaction?.fees || 0}
+              limit={
+                usage?.usage?.ap2_transaction?.limit ??
+                subscription?.limits?.max_ap2_transactions
+              }
+              overage={usage?.usage?.ap2_transaction?.overage || 0}
+              overageFee={usage?.usage?.ap2_transaction?.overage_fee || 0}
               unit="transactions"
             />
 
             <UsageProgressBar
               label="OCR Scans"
               current={usage?.usage?.ocr_scan?.quantity || 0}
-              limit={subscription?.limits?.ocr_scans_included}
-              overage={Math.max(
-                0,
-                (usage?.usage?.ocr_scan?.quantity || 0) -
-                  (subscription?.limits?.ocr_scans_included || Infinity),
-              )}
-              overageFee={usage?.usage?.ocr_scan?.fees || 0}
+              limit={
+                usage?.usage?.ocr_scan?.limit ??
+                subscription?.limits?.ocr_scans_included
+              }
+              overage={usage?.usage?.ocr_scan?.overage || 0}
+              overageFee={usage?.usage?.ocr_scan?.overage_fee || 0}
               unit="scans"
             />
 
             <UsageProgressBar
               label="Expenses Submitted"
               current={usage?.usage?.expense?.quantity || 0}
-              limit={subscription?.limits?.max_expenses_per_month}
+              limit={
+                usage?.usage?.expense?.limit ??
+                subscription?.limits?.max_expenses_per_month
+              }
+              overage={usage?.usage?.expense?.overage || 0}
+              overageFee={usage?.usage?.expense?.overage_fee || 0}
               unit="expenses"
             />
           </div>

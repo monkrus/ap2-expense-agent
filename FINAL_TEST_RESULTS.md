@@ -384,9 +384,8 @@ update_data = {"description": "Updated description"}
 | `RBAC_TESTING_GUIDE.md` | 420 lines | User guide & documentation |
 | `TEST_EXECUTION_SUMMARY.md` | 380 lines | First run summary |
 | `FINAL_TEST_RESULTS.md` | This file | Final test results |
-| `rbac_test_output.txt` | 150 lines | Raw console output |
 
-**Total:** ~2,680 lines of test code and documentation
+**Total:** ~2,530 lines of test code and documentation
 
 ---
 

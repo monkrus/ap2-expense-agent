@@ -23,15 +23,11 @@ from .permissions import (
 from .rate_limit import limiter, rate_limit_handler
 from .routes import admin_router, auth_router, oauth_router, users_router
 from .routes.ap2 import router as ap2_router
-from .routes.billing import router as billing_router
 from .routes.billing_org import router as billing_org_router
 from .routes.dlq_admin import router as dlq_admin_router
 from .routes.gcp_webhooks import router as gcp_webhooks_router
 from .routes.notifications import router as notifications_router
 from .routes.organizations import router as organizations_router
-from .routes.payment import (
-    router as payment_router,  # Payment endpoints - reload trigger
-)
 from .routes.expenses import router as expenses_router
 from .routes.receipts import router as receipts_router
 from .routes.webhooks import router as webhooks_router
@@ -200,10 +196,8 @@ app.include_router(admin_router)
 # Include organization router (multi-tenancy)
 app.include_router(organizations_router)
 
-# Include billing and payment routers
-app.include_router(billing_router)
-app.include_router(billing_org_router)  # Organization-based billing
-app.include_router(payment_router)
+# Include billing router (organization-based only)
+app.include_router(billing_org_router)
 app.include_router(ap2_router)
 app.include_router(webhooks_router)
 

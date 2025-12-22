@@ -104,17 +104,12 @@ class Organization(Base):
     currency = Column(String(10), nullable=False, default="USD")
     timezone = Column(String(50), nullable=False, default="UTC")
 
-    # Subscription
-    subscription_id = Column(String(255), ForeignKey("subscriptions.id"), nullable=True)
-
     # Limits
     max_members = Column(Integer, nullable=False, default=25)
     max_expenses_per_month = Column(Integer, nullable=True)
 
     # Stripe integration
     stripe_customer_id = Column(String(255), nullable=True, index=True)
-    stripe_subscription_id = Column(String(255), nullable=True, index=True)
-    stripe_price_id = Column(String(255), nullable=True)
 
     # Status
     is_active = Column(Boolean, default=True, nullable=False)
@@ -831,139 +826,6 @@ class PaymentMandate(Base):
 
     # Relationships
     cart_mandate = relationship("CartMandate", back_populates="payment_mandates")
-
-
-# ============================================================================
-# Subscription & Billing Models
-# ============================================================================
-
-
-class SubscriptionTier(str, enum.Enum):
-    FREE = "free"
-    STARTER = "starter"
-    PROFESSIONAL = "professional"
-    ENTERPRISE = "enterprise"
-    ENTERPRISE_PLUS = "enterprise_plus"
-
-
-class Subscription(Base):
-    """User/Organization subscription"""
-
-    __tablename__ = "subscriptions"
-
-    id = Column(String(255), primary_key=True)
-    user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
-    tier = Column(
-        StringEnum(SubscriptionTier),
-        nullable=False,
-        default=SubscriptionTier.FREE.value,
-    )
-    status = Column(
-        String(50), nullable=False, default="active", index=True
-    )  # active, canceled, past_due, trialing
-
-    # Stripe integration
-    stripe_customer_id = Column(String(255), nullable=True, index=True)
-    stripe_subscription_id = Column(String(255), nullable=True, index=True)
-    stripe_price_id = Column(String(255), nullable=True)
-
-    # Billing
-    current_period_start = Column(DateTime, nullable=True)
-    current_period_end = Column(DateTime, nullable=True)
-    trial_end = Column(DateTime, nullable=True)
-    canceled_at = Column(DateTime, nullable=True)
-
-    # Limits
-    max_users = Column(Integer, nullable=True)  # NULL = unlimited
-    max_expenses_per_month = Column(Integer, nullable=True)  # NULL = unlimited
-    max_ai_categorizations = Column(Integer, nullable=True)  # NULL = unlimited
-    max_ap2_transactions = Column(Integer, nullable=True)  # NULL = unlimited
-
-    # Timestamps
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, onupdate=func.now())
-
-    # Relationships
-    user = relationship("User", backref="subscriptions")
-    usage_records = relationship(
-        "UsageRecord", back_populates="subscription", cascade="all, delete-orphan"
-    )
-
-
-class UsageRecord(Base):
-    """Track usage for billing"""
-
-    __tablename__ = "usage_records"
-
-    id = Column(String(255), primary_key=True)
-    subscription_id = Column(
-        String(255), ForeignKey("subscriptions.id"), nullable=False, index=True
-    )
-    user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
-
-    # Usage types
-    usage_type = Column(
-        String(50), nullable=False, index=True
-    )  # expense, ai_categorization, ocr_scan, ap2_transaction
-    quantity = Column(Integer, nullable=False, default=1)
-
-    # Billing
-    billable = Column(
-        Boolean, nullable=False, default=False
-    )  # Is this over the tier limit?
-    fee = Column(Numeric(10, 4), nullable=True)  # Fee charged for this usage
-
-    # Additional data
-    extra_data = Column(
-        Text, nullable=True
-    )  # JSON stored as text for additional metadata
-
-    # Timestamps
-    created_at = Column(DateTime, server_default=func.now(), index=True)
-
-    # Relationships
-    subscription = relationship("Subscription", back_populates="usage_records")
-    user = relationship("User", backref="usage_records")
-
-
-class Invoice(Base):
-    """Monthly invoices"""
-
-    __tablename__ = "invoices"
-
-    id = Column(String(255), primary_key=True)
-    subscription_id = Column(
-        String(255), ForeignKey("subscriptions.id"), nullable=False, index=True
-    )
-    user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
-
-    # Stripe integration
-    stripe_invoice_id = Column(String(255), nullable=True, index=True)
-
-    # Invoice details
-    period_start = Column(DateTime, nullable=False)
-    period_end = Column(DateTime, nullable=False)
-
-    # Amounts
-    subscription_amount = Column(
-        Numeric(10, 2), nullable=False
-    )  # Base subscription fee
-    usage_amount = Column(Numeric(10, 2), nullable=False, default=0)  # Overage fees
-    total_amount = Column(Numeric(10, 2), nullable=False)
-
-    # Status
-    status = Column(
-        String(50), nullable=False, default="draft", index=True
-    )  # draft, open, paid, void
-    paid_at = Column(DateTime, nullable=True)
-
-    # Timestamps
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, onupdate=func.now())
-
-    # Relationships
-    subscription = relationship("Subscription", backref="invoices")
-    user = relationship("User", backref="invoices")
 
 
 # ============================================================================

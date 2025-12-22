@@ -46,11 +46,11 @@ This document captures the responsibilities and primary commands/validation area
 
 ### api-integration-tester
 - Focus: External APIs (Marketplace, AP2, Gemini, Stripe, email/webhooks), error handling, retries, webhook validation.
-- Commands: `pytest tests/test_integrations.py -v`, `pytest tests/test_webhooks.py -v`, `pytest tests/test_stripe.py -v`, `pytest tests/test_payments.py -v`, `pytest tests/test_gemini_ai.py -v`, `pytest tests/test_notifications.py -v`, plus manual log inspections and env var checks.
+- Commands: `pytest tests/test_integrations.py -v`, `pytest tests/test_webhooks.py -v`, `pytest backend/tests/test_stripe_processor.py -v`, `pytest tests/test_payments.py -v`, `pytest tests/test_gemini_ai.py -v`, `pytest tests/test_notifications.py -v`, plus manual log inspections and env var checks.
 
 ### billing-usage-auditor
 - Focus: Subscription tiers, usage metering (AP2/AI), Stripe, Google Marketplace metering, revenue reconciliation.
-- Commands: Activate backend venv, run `pytest tests/test_billing.py -v`, `pytest tests/test_subscriptions.py -v`, `pytest tests/test_usage_tracking.py -v`, run audit scripts (e.g., `scripts/audit_usage.py`), reconcile scripts, SQL checks, and Stripe/Marketplace verification commands.
+- Commands: Activate backend venv, run `pytest backend/tests/test_gcp_* -v`, run audit scripts (e.g., `scripts/audit_usage.py`), reconcile scripts, SQL checks, and Marketplace verification commands.
 
 ### notification-delivery-checker
 - Focus: Email/in-app triggers, templates, retry behavior, branding, SMTP config, templates.

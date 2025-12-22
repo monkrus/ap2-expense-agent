@@ -8,6 +8,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+pytestmark = pytest.mark.asyncio
+
 from src.gcp.marketplace_client import GCPMarketplaceClient
 
 

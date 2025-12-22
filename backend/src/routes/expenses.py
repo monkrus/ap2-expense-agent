@@ -684,10 +684,32 @@ async def approve_expense(
 
     # Check approval permission
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
+    if user_org_role not in ["owner", "admin", "manager"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to approve expenses",
+        )
 
-    can_approve = (
-        user_org_role in ["owner", "admin", "manager"] or
-        current_user.role in [UserRole.ADMIN, UserRole.MANAGER]
+    expense_owner = db.query(User).filter(User.id == expense.user_id).first()
+
+    if current_user.role == UserRole.ADMIN:
+        effective_role = UserRole.ADMIN
+    elif current_user.role == UserRole.ACCOUNTANT:
+        effective_role = UserRole.ACCOUNTANT
+    elif user_org_role == "owner":
+        effective_role = UserRole.ADMIN
+    else:
+        effective_role = UserRole.MANAGER
+
+    can_approve = can_approve_expense(
+        user_role=effective_role,
+        expense_amount=float(expense.amount),
+        expense_user_id=expense.user_id,
+        user_id=current_user.id,
+        user_department_id=current_user.department_id,
+        expense_owner_department_id=(
+            expense_owner.department_id if expense_owner else None
+        ),
     )
 
     if not can_approve:
@@ -707,7 +729,6 @@ async def approve_expense(
 
     # Send approval notification email to expense owner
     try:
-        expense_owner = db.query(User).filter(User.id == expense.user_id).first()
         if expense_owner and expense_owner.email:
             expense_data = {
                 "id": expense.id,
@@ -715,7 +736,7 @@ async def approve_expense(
                 "vendor": expense.vendor or "Unknown",
                 "description": expense.description or "",
                 "category": expense.category or "Uncategorized",
-                "date": expense.expense_date.strftime("%Y-%m-%d") if expense.expense_date else "N/A",
+                "date": expense.date.strftime("%Y-%m-%d") if expense.date else "N/A",
                 "submitted_at": expense.created_at.strftime("%Y-%m-%d %H:%M") if expense.created_at else "N/A"
             }
             EmailService.send_expense_approved_email(
@@ -811,7 +832,7 @@ async def reject_expense(
                 "vendor": expense.vendor or "Unknown",
                 "description": expense.description or "",
                 "category": expense.category or "Uncategorized",
-                "date": expense.expense_date.strftime("%Y-%m-%d") if expense.expense_date else "N/A",
+                "date": expense.date.strftime("%Y-%m-%d") if expense.date else "N/A",
                 "submitted_at": expense.created_at.strftime("%Y-%m-%d %H:%M") if expense.created_at else "N/A"
             }
             EmailService.send_expense_rejected_email(

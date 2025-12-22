@@ -108,7 +108,7 @@ Google Cloud Marketplace → Cloud Run Deployment
 ├── Secret Manager
 │   ├── JWT_SECRET
 │   ├── DATABASE_URL
-│   └── STRIPE_API_KEY
+│   └── STRIPE_SECRET_KEY
 │
 └── Cloud Storage
     └── Bucket: {org-id}-receipts
@@ -398,29 +398,28 @@ Payment Date: Nov 1, 2025
 **Backend Tracks Every Action:**
 
 ```python
+from src.billing.usage_tracker import UsageTracker
+from src.gcp.usage_reporter import GCPUsageReporter
+
+tracker = UsageTracker(db)
+
 # When expense is categorized by AI
-billing_service.track_usage(
-    organization_id="org_acme",
-    metric_type="ai_categorization",
+tracker.track_usage(
+    user_id="user_123",
+    usage_type="ai_categorization",
     quantity=1
 )
 
 # When AP2 transaction is completed
-billing_service.track_usage(
-    organization_id="org_acme",
-    metric_type="ap2_transaction",
+tracker.track_usage(
+    user_id="user_123",
+    usage_type="ap2_transaction",
     quantity=1
 )
 
 # Every hour: Report to Google
-billing_service.report_to_gcp_marketplace(
-    organization_id="org_acme",
-    metrics={
-        "ai_categorization": 6234,
-        "ap2_transaction": 127,
-        "active_users": 45
-    }
-)
+reporter = GCPUsageReporter(db)
+await reporter.report_all_organizations()
 ```
 
 **Google's Backend:**
@@ -677,3 +676,4 @@ Your App → Database: Soft-delete organization data
 ---
 
 **This is exactly how your AP2 Expense Agent will work on Google Cloud Marketplace!**
+

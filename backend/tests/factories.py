@@ -17,8 +17,6 @@ from src.models import (
     Organization,
     OrganizationMember,
     OrganizationRole,
-    Subscription,
-    SubscriptionTier,
     User,
     UserRole,
 )
@@ -209,91 +207,6 @@ def create_organization_with_owner(
 
 
 # ============================================================================
-# Subscription Factories
-# ============================================================================
-
-
-def create_subscription(
-    db_session,
-    user: User,
-    tier: SubscriptionTier = SubscriptionTier.FREE,
-    status: str = "active",
-    **kwargs
-) -> Subscription:
-    """
-    Create a subscription for a user.
-
-    Args:
-        db_session: Database session
-        user: User to create subscription for
-        tier: Subscription tier
-        status: Subscription status (active, trialing, past_due, canceled)
-        **kwargs: Additional subscription attributes
-
-    Returns:
-        Created Subscription instance
-    """
-    from src.billing.tier_limits import get_tier_limits
-
-    limits = get_tier_limits(tier)
-
-    subscription = Subscription(
-        id=str(uuid.uuid4()),
-        user_id=user.id,
-        tier=tier,
-        status=status,
-        max_users=limits.max_users,
-        max_expenses_per_month=limits.max_expenses_per_month,
-        max_ai_categorizations=limits.max_ai_categorizations,
-        max_ap2_transactions=limits.max_ap2_transactions,
-        current_period_start=kwargs.get("current_period_start", datetime.utcnow()),
-        current_period_end=kwargs.get("current_period_end", datetime.utcnow() + timedelta(days=30)),
-        created_at=datetime.utcnow(),
-    )
-    db_session.add(subscription)
-    db_session.flush()
-    return subscription
-
-
-def create_free_tier_user_with_org(
-    db_session,
-    expenses_count: int = 0
-) -> tuple[User, Organization, Subscription]:
-    """
-    Create a FREE tier user with organization and expenses.
-
-    Useful for testing tier limits.
-
-    Args:
-        db_session: Database session
-        expenses_count: Number of expenses to create this month
-
-    Returns:
-        Tuple of (User, Organization, Subscription)
-    """
-    user = create_user(db_session)
-    org = create_organization(db_session, max_members=1, max_expenses_per_month=20)
-    add_user_to_organization(db_session, user, org, OrganizationRole.OWNER)
-    subscription = create_subscription(db_session, user, SubscriptionTier.FREE)
-
-    # Create expenses if requested
-    for i in range(expenses_count):
-        create_expense(
-            db_session,
-            user=user,
-            organization=org,
-            amount=100.0 + i,
-            created_at=datetime.utcnow() - timedelta(days=i)
-        )
-
-    db_session.commit()
-    db_session.refresh(user)
-    db_session.refresh(org)
-    db_session.refresh(subscription)
-    return user, org, subscription
-
-
-# ============================================================================
 # Expense Factories
 # ============================================================================
 
@@ -458,54 +371,3 @@ def create_manager_approval_scenario(
         'expense_over_5k': expense_over_5k,
     }
 
-
-def create_tier_limit_scenario(
-    db_session,
-    tier: SubscriptionTier,
-    expenses_at_limit: bool = False
-) -> dict:
-    """
-    Create a scenario for testing tier limits.
-
-    Args:
-        tier: Subscription tier to test
-        expenses_at_limit: If True, create expenses up to the tier limit
-
-    Returns:
-        Dict with:
-        {
-            'user': User,
-            'org': Organization,
-            'subscription': Subscription,
-            'expenses': List[Expense],  # Empty or at limit
-        }
-    """
-    from src.billing.tier_limits import get_tier_limits
-
-    limits = get_tier_limits(tier)
-
-    user = create_user(db_session)
-    org = create_organization(db_session, max_members=limits.max_users, max_expenses_per_month=limits.max_expenses_per_month)
-    add_user_to_organization(db_session, user, org, OrganizationRole.OWNER)
-    subscription = create_subscription(db_session, user, tier)
-
-    expenses = []
-    if expenses_at_limit and limits.max_expenses_per_month:
-        for i in range(limits.max_expenses_per_month):
-            expense = create_pending_expense(
-                db_session,
-                user,
-                org,
-                amount=50.0 + i,
-                created_at=datetime.utcnow() - timedelta(hours=i)
-            )
-            expenses.append(expense)
-
-    db_session.commit()
-
-    return {
-        'user': user,
-        'org': org,
-        'subscription': subscription,
-        'expenses': expenses,
-    }

@@ -293,9 +293,12 @@ async def execute_payment(
 
     # Track AP2 transaction usage
     tracker = UsageTracker(db)
-    tracker.track_usage(
-        user_id=current_user.id, usage_type="ap2_transaction", quantity=1
-    )
+    try:
+        tracker.track_usage(
+            user_id=current_user.id, usage_type="ap2_transaction", quantity=1
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc))
 
     payment_result = await ap2_service.execute_payment(
         payment_mandate_id=request.payment_mandate_id,
@@ -329,9 +332,12 @@ async def complete_ap2_flow(
 
     # Track AP2 transaction usage
     tracker = UsageTracker(db)
-    tracker.track_usage(
-        user_id=current_user.id, usage_type="ap2_transaction", quantity=1
-    )
+    try:
+        tracker.track_usage(
+            user_id=current_user.id, usage_type="ap2_transaction", quantity=1
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc))
 
     result = await ap2_service.complete_ap2_flow(
         user_id=current_user.id,

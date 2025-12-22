@@ -9,6 +9,8 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+pytestmark = pytest.mark.asyncio
+
 from src.models import CartMandate, IntentMandate, PaymentMandate, User
 from src.payments.ap2_service import AP2PaymentService
 

@@ -18,8 +18,6 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     This endpoint receives events from Stripe for:
     - Payment success/failure
-    - Subscription changes
-    - Invoice updates
     - Refunds
     """
     handler = StripeWebhookHandler(db)

@@ -25,6 +25,8 @@ def seed_subscription(db, org_id: str, entitlement_id: str, plan: str = "profess
 
 import pytest
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest.mark.asyncio
 async def test_tier_change_idempotency(db_session):

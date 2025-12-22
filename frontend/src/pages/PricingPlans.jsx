@@ -14,8 +14,6 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { useToast } from "../hooks/useToast";
-import paymentAPI from "../services/paymentAPI";
 import billingAPI from "../services/billingAPI";
 
 /**
@@ -66,7 +64,7 @@ const PRICING_TIERS = [
     highlights: ["Everything in Free", "AI categorization", "Email support"],
     icon: Users,
     color: "blue",
-    buttonText: "Start Free Trial",
+    buttonText: "Subscribe in GCP",
     monthlyPrice: 29,
     annualPrice: 24,
     features: {
@@ -102,7 +100,7 @@ const PRICING_TIERS = [
     icon: Users,
     color: "indigo",
     popular: true,
-    buttonText: "Start Free Trial",
+    buttonText: "Subscribe in GCP",
     monthlyPrice: 99,
     annualPrice: 82,
     features: {
@@ -138,7 +136,7 @@ const PRICING_TIERS = [
     ],
     icon: Building2,
     color: "purple",
-    buttonText: "Contact Sales",
+    buttonText: "Subscribe in GCP",
     monthlyPrice: 399,
     annualPrice: 332,
     features: {
@@ -160,6 +158,10 @@ const PRICING_TIERS = [
     },
   },
 ];
+
+const MARKETPLACE_URL =
+  import.meta.env.VITE_GCP_MARKETPLACE_URL ||
+  "https://console.cloud.google.com/marketplace";
 
 // Feature comparison data for the table
 const FEATURE_CATEGORIES = [
@@ -205,7 +207,6 @@ const FEATURE_CATEGORIES = [
 
 const PricingPlans = () => {
   const { user } = useAuth();
-  const { success, error: showError } = useToast();
   const [billingCycle, setBillingCycle] = useState("monthly");
   const [processingTier, setProcessingTier] = useState(null);
   const [expandedFAQ, setExpandedFAQ] = useState(null);
@@ -262,22 +263,9 @@ const PricingPlans = () => {
       return;
     }
 
-    try {
-      setProcessingTier(tierId);
-      const { url } = await paymentAPI.createCheckoutSession(
-        tierId,
-        selectedBillingCycle,
-      );
-      // Redirect to Stripe checkout
-      window.location.href = url;
-    } catch (err) {
-      const errorMessage =
-        err.response?.data?.detail ||
-        "Failed to start checkout. Please try again.";
-      showError(errorMessage);
-      console.error("Checkout error:", err);
-      setProcessingTier(null);
-    }
+    setProcessingTier(tierId);
+    window.open(MARKETPLACE_URL, "_blank");
+    setProcessingTier(null);
   };
 
   const getPrice = (tier) => {
@@ -309,8 +297,8 @@ const PricingPlans = () => {
             Choose Your Plan
           </h1>
           <p className="text-xl text-gray-600 mb-8">
-            Start with a 14-day free trial. No credit card required. Cancel
-            anytime.
+            Subscribe via Google Cloud Marketplace. Trials and billing are
+            managed in your GCP account.
           </p>
 
           {/* Billing Toggle */}
@@ -774,7 +762,7 @@ const FAQ_ITEMS = [
   {
     question: "How does the 14-day free trial work?",
     answer:
-      "Start any plan free for 14 days with full access to all features. No credit card required upfront. At the end of your trial, simply add a payment method to continue, or your account will be downgraded to limited access.",
+      "Start any plan free for 14 days through Google Cloud Marketplace with full access to all features. No credit card required upfront. At the end of your trial, manage your subscription in Marketplace to continue.",
   },
   {
     question: "What's the difference between the plans?",
@@ -784,17 +772,17 @@ const FAQ_ITEMS = [
   {
     question: "Can I upgrade or downgrade at any time?",
     answer:
-      "Absolutely! Upgrade instantly to get immediate access to new features. When you downgrade, you keep your current plan until the billing period ends. We prorate charges fairly, so you only pay for what you use.",
+      "Yes. Plan changes are managed in Google Cloud Marketplace and apply per Marketplace billing rules.",
   },
   {
     question: "What payment methods do you accept?",
     answer:
-      "We accept all major credit cards (Visa, MasterCard, American Express, Discover) through Stripe's secure payment processing. Enterprise customers can pay via invoice, ACH, or through Google Cloud Marketplace for consolidated billing.",
+      "Billing is handled through Google Cloud Marketplace, so charges are billed to your Google Cloud billing account.",
   },
   {
     question: "How much can I save with annual billing?",
     answer:
-      "Annual billing saves you approximately 17% compared to monthly billing. For example, Professional plan is $79/month billed monthly, or just $66/month when billed annually - saving you $156 per year!",
+      "Annual billing options are configured through the Marketplace listing. Contact sales or check the listing for current terms.",
   },
   {
     question: "What happens if I exceed my plan limits?",
@@ -809,7 +797,7 @@ const FAQ_ITEMS = [
   {
     question: "Can I cancel my subscription?",
     answer:
-      "Yes, cancel anytime with no cancellation fees. You'll retain access until your billing period ends. We also offer a 30-day money-back guarantee if you're not satisfied within the first month.",
+      "Cancel from Google Cloud Marketplace. Access continues until the end of your current billing period, per Marketplace terms.",
   },
   {
     question: "Do you offer discounts for nonprofits or startups?",

@@ -184,10 +184,9 @@ fc7287d Fix 4 of 5 security vulnerabilities in dependencies
 - **Organization Management** - Enhanced organization admin interface
 - **UI/UX Improvements** - Dashboard layout and functionality
 
-### Stripe Integration Fixes
-- **Error Handling Update** - Fixed `stripe.error.StripeError` to `stripe.StripeError` (Stripe library v2+ compatibility)
-- **Portal Session Fix** - Auto-create Stripe customers when accessing billing portal
-- **Environment Configuration** - Redis setup, Stripe test keys configuration
+### Marketplace Billing Consolidation
+- Stripe subscription checkout/portal removed; Marketplace is now the only subscription source
+- Stripe remains only as the AP2 payment processor
 
 ### Key Changes
 ```
@@ -196,10 +195,9 @@ dcfd298 Organized admin dashboard, redesign
 ```
 
 ### Files Modified (Current Session)
-- `backend/src/routes/payment.py` - Portal session auto-customer creation
-- `backend/src/integrations/stripe_integration.py` - Stripe error class fixes
-- `backend/src/models.py` - Added Stripe fields to Organization model
-- `backend/.env` - Stripe test keys configuration
+- `backend/src/routes/billing_org.py` - Org-based Marketplace billing
+- `backend/src/billing/limit_enforcer.py` - Marketplace usage limits
+- `frontend/src/pages/PricingPlans.jsx` - Marketplace upgrade flow
 
 ---
 
@@ -213,7 +211,7 @@ dcfd298 Organized admin dashboard, redesign
 | **Frontend** | React 18 + Vite | Single-page application |
 | **Database** | SQLite (dev) / PostgreSQL (prod) | Data persistence |
 | **Cache** | Redis | Session caching, rate limiting |
-| **Payments** | Stripe | Payment processing |
+| **Payments** | Stripe | AP2 payment processor |
 | **Deployment** | Google Cloud Run | Container hosting |
 | **Marketplace** | Google Cloud Marketplace | Distribution |
 | **Protocol** | AP2 (Agent Payment Protocol) | Secure transactions |
@@ -226,7 +224,7 @@ ap2-expense-agent/
 │   │   ├── routes/          # API endpoints
 │   │   ├── models.py        # SQLAlchemy models
 │   │   ├── auth.py          # Authentication
-│   │   ├── integrations/    # External services
+│   │   ├── gcp/             # Marketplace integration
 │   │   └── services/        # Business logic
 │   ├── tests/               # Test suite
 │   └── .env                 # Configuration

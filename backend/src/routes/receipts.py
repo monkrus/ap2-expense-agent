@@ -275,7 +275,7 @@ async def batch_upload_receipts(
                 quantity=len(successful_files),
                 organization_id=membership.organization_id,
             )
-            logger.warning(f"[OCR DEBUG] Created UsageRecord: {record.id}")
+            logger.warning(f"[OCR DEBUG] Created UsageMetric: {record.id}")
         else:
             logger.warning(
                 f"[OCR DEBUG] NOT tracking - membership={membership is not None}, successful_files={len(successful_files) if successful_files else 0}"

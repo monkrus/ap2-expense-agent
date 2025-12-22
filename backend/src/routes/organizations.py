@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 from ..auth import get_current_active_user
 from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
-from ..billing.tier_limits import get_tier_limits
 from ..cache import invalidate_user_cache
+from ..config import settings
 from ..database import get_db
 from ..email_service import EmailService
 from ..models import (
@@ -27,8 +27,6 @@ from ..models import (
     OrganizationInvitation,
     OrganizationMember,
     OrganizationRole,
-    Subscription,
-    SubscriptionTier,
     User,
 )
 from ..schemas import (
@@ -140,6 +138,11 @@ async def create_organization(
     db: Session = Depends(get_db),
 ):
     """Create a new organization"""
+    if settings.enable_gcp_marketplace:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Organizations are provisioned via Google Cloud Marketplace.",
+        )
 
     # Clean up any soft-deleted organizations with the same slug
     # This prevents UNIQUE constraint violations while allowing slug reuse
@@ -210,92 +213,6 @@ async def create_organization(
             },
         )
 
-    # Get user's subscription tier
-    user_subscription = (
-        db.query(Subscription)
-        .filter(Subscription.user_id == current_user.id)
-        .filter(Subscription.status.in_(["active", "trialing"]))
-        .first()
-    )
-
-    # Determine tier (no subscription = Free tier)
-    user_tier = user_subscription.tier if user_subscription else SubscriptionTier.FREE
-    tier_limits = get_tier_limits(user_tier)
-
-    # Check organization limit for this tier
-    if tier_limits.max_organizations is not None:
-        # Count how many ACTIVE organizations user already owns
-        owned_orgs_count = (
-            db.query(OrganizationMember)
-            .join(Organization, OrganizationMember.organization_id == Organization.id)
-            .filter(OrganizationMember.user_id == current_user.id)
-            .filter(OrganizationMember.role == OrganizationRole.OWNER)
-            .filter(OrganizationMember.is_active == True)
-            .filter(Organization.is_active == True)
-            .count()
-        )
-
-        logger.info(
-            f"Organization limit check: user={current_user.username}, "
-            f"tier={user_tier.value}, owned_orgs={owned_orgs_count}, "
-            f"limit={tier_limits.max_organizations}"
-        )
-
-        if owned_orgs_count >= tier_limits.max_organizations:
-            logger.warning(
-                f"Organization limit reached: user={current_user.username}, "
-                f"count={owned_orgs_count}, limit={tier_limits.max_organizations}"
-            )
-
-            # Get next tier suggestion based on current tier
-            upgrade_suggestions = {
-                SubscriptionTier.FREE: {
-                    "next_tier": "Starter",
-                    "next_tier_orgs": 3,
-                    "price": "$29/month",
-                },
-                SubscriptionTier.STARTER: {
-                    "next_tier": "Pro",
-                    "next_tier_orgs": 10,
-                    "price": "$99/month",
-                },
-                SubscriptionTier.PROFESSIONAL: {
-                    "next_tier": "Enterprise",
-                    "next_tier_orgs": 25,
-                    "price": "$399/month",
-                },
-            }
-
-            suggestion = upgrade_suggestions.get(user_tier)
-
-            # Build user-friendly message
-            if suggestion:
-                friendly_message = (
-                    f"You've reached your plan's limit of {tier_limits.max_organizations} "
-                    f"organization{'s' if tier_limits.max_organizations != 1 else ''}. "
-                    f"Upgrade to {suggestion['next_tier']} ({suggestion['price']}) "
-                    f"to create up to {suggestion['next_tier_orgs']} organizations."
-                )
-            else:
-                # Enterprise users hitting limit
-                friendly_message = (
-                    f"You've reached your plan's limit of {tier_limits.max_organizations} organizations. "
-                    f"Please contact support for custom enterprise solutions."
-                )
-
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": "organization_limit_reached",
-                    "message": friendly_message,
-                    "upgrade_required": True,
-                    "current_tier": tier_limits.name,
-                    "current_limit": tier_limits.max_organizations,
-                    "current_count": owned_orgs_count,
-                    "upgrade_options": suggestion if suggestion else None,
-                },
-            )
-
     # Create organization with error handling for UNIQUE constraint violations
     try:
         organization = Organization(
@@ -305,7 +222,7 @@ async def create_organization(
             description=org_data.description,
             currency=org_data.currency or "USD",
             timezone=org_data.timezone or "UTC",
-            max_members=tier_limits.max_users,  # Set based on user's subscription tier
+            max_members=org_data.max_members or 25,
             is_active=True,
         )
         db.add(organization)
@@ -320,33 +237,6 @@ async def create_organization(
             is_active=True,
         )
         db.add(membership)
-
-        # Check if user already has a subscription
-        existing_subscription = (
-            db.query(Subscription)
-            .filter(Subscription.user_id == current_user.id)
-            .filter(Subscription.status.in_(["active", "trialing"]))
-            .first()
-        )
-
-        # Create explicit Free subscription if none exists
-        if not existing_subscription:
-            free_limits = get_tier_limits(SubscriptionTier.FREE)
-            subscription = Subscription(
-                id=str(uuid.uuid4()),
-                user_id=current_user.id,
-                tier=SubscriptionTier.FREE,
-                status="active",
-                max_users=free_limits.max_users,
-                max_expenses_per_month=free_limits.max_expenses_per_month,
-                max_ai_categorizations=free_limits.max_ai_categorizations,
-                max_ap2_transactions=free_limits.max_ap2_transactions,
-            )
-            db.add(subscription)
-
-        # Note: Organization-level billing subscriptions are managed separately
-        # The user-level subscription (created above) controls tier limits
-        # Organization-specific billing (GCP Marketplace) is handled via webhooks
 
         db.commit()
         db.refresh(organization)

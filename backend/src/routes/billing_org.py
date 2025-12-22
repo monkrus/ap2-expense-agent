@@ -3,6 +3,7 @@ Organization-based billing API endpoints
 Works with OrganizationSubscription instead of user-based Subscription
 """
 
+import json
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
@@ -13,9 +14,11 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
-from ..billing.tier_limits import TIER_CONFIGS
+from ..billing.limit_enforcer import LimitEnforcer
+from ..billing.usage_tracker import UsageTracker
+from ..config import settings
 from ..database import get_db
-from ..models import OrganizationMember, SubscriptionTier, User
+from ..models import OrganizationMember, User
 from ..models_billing import BillingTier, OrganizationSubscription, UsageMetric
 
 router = APIRouter(prefix="/api/billing/org", tags=["billing-org"])
@@ -24,6 +27,12 @@ router = APIRouter(prefix="/api/billing/org", tags=["billing-org"])
 class CreateSubscriptionRequest(BaseModel):
     tier: str
     trial_days: int = 14
+
+
+class UsageTrackRequest(BaseModel):
+    usage_type: str
+    quantity: int = 1
+    metadata: Optional[dict] = None
 
 
 def get_user_organization(db: Session, user_id: str) -> Optional[str]:
@@ -59,7 +68,7 @@ def get_organization_subscription(
         db.query(OrganizationSubscription)
         .filter(
             OrganizationSubscription.organization_id == org_id,
-            OrganizationSubscription.status == "active",
+            OrganizationSubscription.status.in_(["active", "trialing"]),
         )
         .first()
     )
@@ -70,25 +79,20 @@ def get_organization_subscription(
     # Get tier details
     tier = db.query(BillingTier).filter(BillingTier.id == subscription.tier_id).first()
 
-    # Get cancel_at from Stripe if available
     cancel_at = None
-    if subscription.stripe_subscription_id:
+
+    limits = tier.limits if tier else {}
+    features = tier.features if tier else {}
+    if isinstance(limits, str):
         try:
-            import os
-
-            import stripe
-
-            stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-            stripe_sub = stripe.Subscription.retrieve(
-                subscription.stripe_subscription_id
-            )
-
-            # Check if subscription is scheduled to be canceled
-            if stripe_sub.get("cancel_at"):
-                cancel_at = datetime.fromtimestamp(stripe_sub["cancel_at"])
-        except Exception as e:
-            # Log error but don't fail the request
-            print(f"Error fetching Stripe cancel_at: {e}")
+            limits = json.loads(limits)
+        except json.JSONDecodeError:
+            limits = {}
+    if isinstance(features, str):
+        try:
+            features = json.loads(features)
+        except json.JSONDecodeError:
+            features = []
 
     return {
         "has_subscription": True,
@@ -103,8 +107,8 @@ def get_organization_subscription(
         "cancel_at": cancel_at,
         "is_trial": subscription.is_trial,
         "trial_end": subscription.trial_end,
-        "limits": tier.limits if tier else {},
-        "features": tier.features if tier else {},
+        "limits": limits,
+        "features": features,
         "gcp_entitlement_id": subscription.gcp_entitlement_id,
         "gcp_account_id": subscription.gcp_account_id,
         "organization_id": org_id,
@@ -136,8 +140,8 @@ def get_monthly_usage(
         db.query(UsageMetric)
         .filter(
             UsageMetric.organization_id == org_id,
-            UsageMetric.period_start >= period_start,
-            UsageMetric.period_end <= period_end,
+            UsageMetric.created_at >= period_start,
+            UsageMetric.created_at <= period_end,
         )
         .all()
     )
@@ -147,7 +151,7 @@ def get_monthly_usage(
         db.query(OrganizationSubscription)
         .filter(
             OrganizationSubscription.organization_id == org_id,
-            OrganizationSubscription.status == "active",
+            OrganizationSubscription.status.in_(["active", "trialing"]),
         )
         .first()
     )
@@ -181,7 +185,28 @@ def get_monthly_usage(
 
     if tier and tier.limits:
         limits = tier.limits
+        if isinstance(limits, str):
+            try:
+                limits = json.loads(limits)
+            except json.JSONDecodeError:
+                limits = {}
         overage_pricing = tier.overage_pricing or {}
+        if isinstance(overage_pricing, str):
+            try:
+                overage_pricing = json.loads(overage_pricing)
+            except json.JSONDecodeError:
+                overage_pricing = {}
+
+        def normalize_limit(value):
+            if value is None:
+                return None
+            try:
+                limit = int(value)
+            except (TypeError, ValueError):
+                return None
+            if limit < 0:
+                return None
+            return limit
 
         for usage_type, quantity in usage_by_type.items():
             limit_key = (
@@ -199,7 +224,7 @@ def get_monthly_usage(
             }
 
             limit_key = limit_mapping.get(usage_type, limit_key)
-            limit = limits.get(limit_key)
+            limit = normalize_limit(limits.get(limit_key))
 
             overage = 0
             overage_fee = Decimal("0")
@@ -229,7 +254,7 @@ def get_monthly_usage(
             }
 
         # Add active users count to usage details
-        max_users = limits.get("max_users")
+        max_users = normalize_limit(limits.get("max_users"))
         usage_details["active_users"] = {
             "quantity": active_members_count,
             "limit": max_users,
@@ -262,6 +287,110 @@ def get_monthly_usage(
     }
 
 
+@router.post("/usage/track")
+def track_usage(
+    request: UsageTrackRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Track a usage event for the current user's organization."""
+    org_id = get_user_organization(db, current_user.id)
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not part of any organization",
+        )
+
+    tracker = UsageTracker(db)
+    try:
+        metric = tracker.track_usage(
+            user_id=current_user.id,
+            usage_type=request.usage_type,
+            quantity=request.quantity,
+            metadata=request.metadata,
+            organization_id=org_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    return {
+        "success": True,
+        "usage_metric_id": metric.id,
+        "usage_type": metric.metric_type,
+        "quantity": metric.metric_value,
+    }
+
+
+@router.get("/usage/check-limit/{usage_type}")
+def check_usage_limit(
+    usage_type: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Check usage limits for a specific usage type."""
+    org_id = get_user_organization(db, current_user.id)
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not part of any organization",
+        )
+
+    limit_enforcer = LimitEnforcer(db)
+    summary = limit_enforcer.get_usage_summary(org_id)
+
+    key_map = {
+        "expense": "expenses",
+        "expenses": "expenses",
+        "user": "users",
+        "users": "users",
+        "ai_categorization": "ai_categorizations",
+        "ai_categorizations": "ai_categorizations",
+        "ocr_scan": "ocr_scans",
+        "ocr_scans": "ocr_scans",
+        "ap2_transaction": "ap2_transactions",
+        "ap2_transactions": "ap2_transactions",
+    }
+
+    summary_key = key_map.get(usage_type)
+    if not summary_key:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported usage type: {usage_type}",
+        )
+
+    usage_info = summary.get("usage", {}).get(summary_key)
+    if not usage_info:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No usage data for type: {usage_type}",
+        )
+
+    return {
+        "usage_type": usage_type,
+        "exceeded": usage_info.get("blocked", False),
+        "current_usage": usage_info.get("current"),
+        "limit": usage_info.get("limit"),
+        "unlimited": usage_info.get("unlimited", False),
+    }
+
+
+@router.get("/usage/summary")
+def get_usage_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get usage summary and limits for the current organization."""
+    org_id = get_user_organization(db, current_user.id)
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not part of any organization",
+        )
+
+    limit_enforcer = LimitEnforcer(db)
+    return limit_enforcer.get_usage_summary(org_id)
+
+
 @router.get("/tiers")
 def get_all_tiers(db: Session = Depends(get_db)):
     """Get all available billing tiers"""
@@ -278,9 +407,9 @@ def get_all_tiers(db: Session = Depends(get_db)):
                 "tier": tier.tier_name,
                 "display_name": tier.display_name,
                 "price_monthly": float(tier.base_price_monthly),
-                "limits": tier.limits,
-                "features": tier.features,
-                "overage_pricing": tier.overage_pricing,
+                "limits": json.loads(tier.limits) if isinstance(tier.limits, str) else tier.limits,
+                "features": json.loads(tier.features) if isinstance(tier.features, str) else tier.features,
+                "overage_pricing": json.loads(tier.overage_pricing) if isinstance(tier.overage_pricing, str) else tier.overage_pricing,
             }
             for tier in tiers
         ]
@@ -307,9 +436,9 @@ def get_tier_info(tier_name: str, db: Session = Depends(get_db)):
         "tier": tier.tier_name,
         "display_name": tier.display_name,
         "price_monthly": float(tier.base_price_monthly),
-        "limits": tier.limits,
-        "features": tier.features,
-        "overage_pricing": tier.overage_pricing,
+        "limits": json.loads(tier.limits) if isinstance(tier.limits, str) else tier.limits,
+        "features": json.loads(tier.features) if isinstance(tier.features, str) else tier.features,
+        "overage_pricing": json.loads(tier.overage_pricing) if isinstance(tier.overage_pricing, str) else tier.overage_pricing,
     }
 
 
@@ -320,6 +449,11 @@ def upgrade_subscription(
     current_user: User = Depends(get_current_user),
 ):
     """Upgrade organization subscription to a new tier"""
+    if settings.enable_gcp_marketplace:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Subscriptions are managed via Google Cloud Marketplace.",
+        )
 
     # Get user's organization
     org_id = get_user_organization(db, current_user.id)
@@ -362,7 +496,7 @@ def upgrade_subscription(
         db.query(OrganizationSubscription)
         .filter(
             OrganizationSubscription.organization_id == org_id,
-            OrganizationSubscription.status == "active",
+            OrganizationSubscription.status.in_(["active", "trialing"]),
         )
         .first()
     )
@@ -396,6 +530,11 @@ def create_organization_subscription(
 ):
     """Create a new subscription for the user's organization"""
     import uuid
+    if settings.enable_gcp_marketplace:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Subscriptions are managed via Google Cloud Marketplace.",
+        )
 
     tier = request.tier
     trial_days = request.trial_days

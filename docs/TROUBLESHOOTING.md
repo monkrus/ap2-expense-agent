@@ -654,7 +654,7 @@ Common issues and solutions for AP2 Expense Agent.
 
 **Solutions:**
 
-1. **Set Stripe API key**
+1. **Set Stripe secret key**
    ```bash
    # Create secret
    echo -n "sk_live_YOUR_KEY" | gcloud secrets create stripe-secret-key \

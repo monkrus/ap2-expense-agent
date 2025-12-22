@@ -7,10 +7,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from ..auth import AuthService, TOTPService, get_current_active_user, require_admin
-from ..billing import SubscriptionService
 from ..database import get_db
 from ..email_service import EmailService
-from ..models import PasswordResetToken, SubscriptionTier, User, UserRole
+from ..models import PasswordResetToken, User, UserRole
 from ..rate_limit import RateLimits, limiter
 from ..schemas import (
     LoginRequest,
@@ -89,18 +88,6 @@ async def register(
         username=user.username,
         verification_token=verification_token,
     )
-
-    # Create Free tier subscription automatically for new users
-    subscription_service = SubscriptionService(db)
-    try:
-        subscription_service.create_subscription(
-            user_id=user.id,
-            tier=SubscriptionTier.FREE,
-            trial_days=0,  # No trial for Free tier
-        )
-    except Exception as e:
-        # Log but don't fail registration if subscription creation fails
-        print(f"Warning: Failed to create Free subscription for user {user.id}: {e}")
 
     # Log audit event
     AuthService.log_audit(

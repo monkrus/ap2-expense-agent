@@ -7,6 +7,8 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+pytestmark = pytest.mark.asyncio
+
 from src.email_service import EmailService
 
 

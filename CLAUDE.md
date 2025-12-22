@@ -6,7 +6,7 @@ This file provides context and best practices for Claude Code and subagents work
 
 **Stack**: Python FastAPI (backend) + React (frontend) + SQLite/PostgreSQL
 **Architecture**: Multi-tenant SaaS with Google Cloud Marketplace integration
-**Key Features**: Expense management, AP2 protocol, Stripe billing, organization management
+**Key Features**: Expense management, AP2 protocol, Marketplace billing, organization management
 
 ---
 
@@ -107,16 +107,13 @@ api.py                      # Main FastAPI application
 routes/
   ├── organizations.py      # Organization CRUD, invitations, members
   ├── auth.py              # Authentication endpoints
-  ├── billing.py           # Subscription & billing
-  ├── billing_org.py       # Organization-level billing
-  ├── payment.py           # Stripe checkout sessions
-  └── webhooks.py          # Stripe webhook handlers
+  ├── billing_org.py       # Organization-level billing (Marketplace)
+  └── webhooks.py          # Marketplace/Stripe webhooks
 models.py                  # SQLAlchemy ORM models
 models_billing.py          # Billing-specific models
 billing/
-  ├── tier_limits.py       # Subscription tier definitions
-  ├── subscription_service.py
-  └── limit_enforcer.py    # Usage limit enforcement
+  ├── usage_tracker.py     # Org usage tracking
+  └── limit_enforcer.py    # Org usage/limit enforcement
 tenant_context.py          # Multi-tenancy utilities
 ```
 
@@ -176,18 +173,11 @@ Example (organizations.py:67-121):
 
 ---
 
-## Subscription Tiers
+## Billing Tiers (Marketplace)
 
-Defined in `backend/src/billing/tier_limits.py`:
-
-| Tier | Monthly Price | Max Orgs | Max Users | Max Expenses/Mo |
-|------|--------------|----------|-----------|-----------------|
-| FREE | $0 | 1 | 1 | 20 |
-| STARTER | $29 | 3 | 5 | 50 |
-| PROFESSIONAL | $99 | 10 | 25 | Unlimited |
-| ENTERPRISE | $399 | 25 | 100 | Unlimited |
-
-**Critical**: Free tier has hard limits enforced. Other tiers may have usage-based billing.
+Billing tiers live in `backend/src/models_billing.py` (BillingTier) and are
+seeded via `backend/scripts/seed_billing_tiers.py`. Limits are enforced at
+the organization level by `backend/src/billing/limit_enforcer.py`.
 
 ---
 
@@ -314,7 +304,7 @@ cd backend && pytest
 python test_org_final.py
 
 # Create regression tests for bugs you fix:
-cd backend && pytest tests/test_tier_limits_comprehensive.py::test_TIER_FREE_010_recreate_deleted_org_slug_reuse -v
+# Add/extend a pytest in backend/tests/ or extend test_org_final.py
 ```
 
 **Rule**: Test your changes before considering them complete.
@@ -376,7 +366,7 @@ existing_slug = (
 
 **Files to be extra careful with**:
 - `backend/src/routes/organizations.py`
-- `backend/src/routes/billing_org.py`
+- `backend/src/routes/billing_org.py       # Organization-level billing (Marketplace)
 - `backend/src/tenant_context.py`
 
 ### 6. Before Committing Checklist ✓
@@ -394,7 +384,7 @@ existing_slug = (
 **When you fix a bug, create a test** to prevent it from coming back:
 
 ```python
-# Example: backend/tests/test_tier_limits_comprehensive.py
+# Example: backend/tests/test_organizations.py
 def test_duplicate_name_case_insensitive():
     """Prevent regression: org names must be unique (case-insensitive)"""
     # This test ensures the fix in organizations.py:80-91 stays in place

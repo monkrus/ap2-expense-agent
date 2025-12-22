@@ -98,9 +98,8 @@ REDIS_URL=redis://localhost:6379/0
 # JWT
 JWT_SECRET_KEY=GENERATE_STRONG_KEY_HERE  # openssl rand -hex 32
 
-# Stripe
+# Stripe payment processor (AP2)
 STRIPE_SECRET_KEY=sk_test_...  # Use test key initially
-STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 # GCP
 GCP_PROJECT_ID=your-project-id
@@ -116,17 +115,17 @@ ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
 
 ## Step 3: Create Migration for Recent Changes
 
-Generate migration for nullable max_users:
+Generate migration for current billing schema:
 
 ```bash
 cd /home/user/ap2-expense-agent/backend
 
 # Generate new migration
-alembic revision --autogenerate -m "make_subscription_limits_nullable"
+alembic revision --autogenerate -m "align_marketplace_billing_tables"
 ```
 
 This will create a new migration file. Review it to ensure it includes:
-- Making `max_users` nullable in `subscriptions` table
+- Marketplace billing tables (billing_tiers, organization_subscriptions, usage_metrics)
 - Any other recent model changes
 
 ---
@@ -161,16 +160,9 @@ Verify tables:
 -- List all tables
 \dt
 
--- Check subscriptions table structure
-\d subscriptions
-
--- Verify max_users is nullable
-SELECT column_name, is_nullable, data_type
-FROM information_schema.columns
-WHERE table_name = 'subscriptions'
-  AND column_name = 'max_users';
-
--- Should show: max_users | YES | integer
+-- Check marketplace billing tables
+\d billing_tiers
+\d organization_subscriptions
 ```
 
 ---
@@ -188,7 +180,6 @@ Run tests:
 pytest
 
 # Run specific test suites
-pytest tests/test_subscription_service.py -v
 pytest tests/test_tenant_isolation.py -v
 pytest tests/test_expenses.py -v
 ```

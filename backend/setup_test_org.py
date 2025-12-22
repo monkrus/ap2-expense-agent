@@ -3,7 +3,7 @@ Setup test organization and add users to it
 """
 
 from src.database import SessionLocal
-from src.models import User, Organization, OrganizationMember, UserRole, SubscriptionTier, OrganizationRole
+from src.models import User, Organization, OrganizationMember, UserRole, OrganizationRole
 from sqlalchemy import select
 import uuid
 

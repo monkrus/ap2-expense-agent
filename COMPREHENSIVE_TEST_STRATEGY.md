@@ -495,7 +495,7 @@ pending → revoked ✓
 | Test ID | Description | Steps | Expected Result | Priority |
 |---------|-------------|-------|-----------------|----------|
 | TIER-STR-001 | Create 50th expense (at limit) | 1. STARTER user, 49 expenses this month<br>2. Submit expense | ✅ 201 Created (at limit, no overage yet) | 🟠 |
-| TIER-STR-002 | Create 51st expense (overage) | 1. STARTER user, 50 expenses this month<br>2. Submit expense | ✅ 201 Created + UsageRecord (billable=True, fee=$0.01) | 🟠 |
+| TIER-STR-002 | Create 51st expense (overage) | 1. STARTER user, 50 expenses this month<br>2. Submit expense | ✅ 201 Created + UsageMetric recorded (Marketplace handles overage billing) | 🟠 |
 | TIER-STR-003 | Invite 6th user (soft limit overage) | 1. STARTER user (5 users max)<br>2. Invite 6th user | ✅ 201 Created + Overage fee charged | 🟠 |
 | TIER-STR-004 | Create 4th organization (over 3 limit) | 1. STARTER user (3 orgs max)<br>2. Create 4th org | ⚠️ Depends: Block or allow with fee? | 🟡 |
 | TIER-STR-005 | Use 101st AI categorization (overage) | 1. STARTER user (100 AI max)<br>2. Use 101st AI call | ✅ Success + Overage fee ($0.05) | 🟡 |

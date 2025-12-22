@@ -8,9 +8,11 @@ from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+
+pytestmark = pytest.mark.asyncio
 from fastapi import HTTPException
 
-from src.models import CartMandate, PaymentMandate, Subscription
+from src.models import CartMandate, PaymentMandate
 from src.payments.webhook_handler import StripeWebhookHandler
 
 
@@ -41,30 +43,6 @@ class TestStripeWebhookHandler:
             created=1234567890,
             metadata={"ap2_payment_mandate_id": "mandate_test_123"},
             last_payment_error=None,
-        )
-
-    @pytest.fixture
-    def subscription_data(self):
-        """Sample subscription data"""
-        return Mock(
-            id="sub_test_123",
-            customer="cus_test_456",
-            status="active",
-            current_period_start=1234567890,
-            current_period_end=1237246290,
-            trial_end=None,
-            canceled_at=None,
-            items=Mock(data=[Mock(price=Mock(id="price_test"))]),
-        )
-
-    @pytest.fixture
-    def invoice_data(self):
-        """Sample invoice data"""
-        return Mock(
-            id="inv_test_123",
-            subscription="sub_test_123",
-            amount_paid=10000,
-            status="paid",
         )
 
     @patch("src.payments.webhook_handler.settings")
@@ -101,10 +79,10 @@ class TestStripeWebhookHandler:
         self, mock_settings, mock_construct, webhook_handler, mock_request
     ):
         """Test webhook with invalid signature"""
-        import stripe
+        from stripe import _error as stripe_error
 
         mock_settings.stripe_webhook_secret = "test_secret"
-        mock_construct.side_effect = stripe.error.SignatureVerificationError(
+        mock_construct.side_effect = stripe_error.SignatureVerificationError(
             "Invalid signature", "sig_header"
         )
 
@@ -231,230 +209,6 @@ class TestStripeWebhookHandler:
 
     @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
     @patch("src.payments.webhook_handler.settings")
-    async def test_handle_subscription_created(
-        self,
-        mock_settings,
-        mock_construct,
-        webhook_handler,
-        mock_request,
-        subscription_data,
-        db_session,
-        test_user,
-    ):
-        """Test handling subscription created event"""
-        mock_settings.stripe_webhook_secret = "test_secret"
-
-        # Create test subscription
-        subscription = Subscription(
-            id="sub_db_123",
-            user_id=test_user.id,
-            tier="PROFESSIONAL",
-            status="trialing",
-            stripe_customer_id="cus_test_456",
-            current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow(),
-        )
-        db_session.add(subscription)
-        db_session.commit()
-
-        # Mock webhook event
-        mock_event = Mock()
-        mock_event.type = "customer.subscription.created"
-        mock_event.data.object = subscription_data
-        mock_construct.return_value = mock_event
-
-        # Handle webhook
-        result = await webhook_handler.handle_webhook(mock_request)
-
-        assert result["status"] == "success"
-
-        # Verify subscription updated
-        db_session.refresh(subscription)
-        assert subscription.stripe_subscription_id == "sub_test_123"
-        assert subscription.status == "active"
-
-    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
-    @patch("src.payments.webhook_handler.settings")
-    async def test_handle_subscription_updated(
-        self,
-        mock_settings,
-        mock_construct,
-        webhook_handler,
-        mock_request,
-        subscription_data,
-        db_session,
-        test_user,
-    ):
-        """Test handling subscription updated event"""
-        mock_settings.stripe_webhook_secret = "test_secret"
-
-        # Create test subscription with stripe_subscription_id
-        subscription = Subscription(
-            id="sub_db_123",
-            user_id=test_user.id,
-            tier="PROFESSIONAL",
-            status="active",
-            stripe_subscription_id="sub_test_123",
-            stripe_customer_id="cus_test_456",
-            current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow(),
-        )
-        db_session.add(subscription)
-        db_session.commit()
-
-        # Mock webhook event
-        subscription_data.status = "past_due"
-        mock_event = Mock()
-        mock_event.type = "customer.subscription.updated"
-        mock_event.data.object = subscription_data
-        mock_construct.return_value = mock_event
-
-        # Handle webhook
-        result = await webhook_handler.handle_webhook(mock_request)
-
-        assert result["status"] == "success"
-
-        # Verify subscription updated
-        db_session.refresh(subscription)
-        assert subscription.status == "past_due"
-
-    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
-    @patch("src.payments.webhook_handler.settings")
-    async def test_handle_subscription_deleted(
-        self,
-        mock_settings,
-        mock_construct,
-        webhook_handler,
-        mock_request,
-        subscription_data,
-        db_session,
-        test_user,
-    ):
-        """Test handling subscription deleted event"""
-        mock_settings.stripe_webhook_secret = "test_secret"
-
-        # Create test subscription
-        subscription = Subscription(
-            id="sub_db_123",
-            user_id=test_user.id,
-            tier="PROFESSIONAL",
-            status="active",
-            stripe_subscription_id="sub_test_123",
-            stripe_customer_id="cus_test_456",
-            current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow(),
-        )
-        db_session.add(subscription)
-        db_session.commit()
-
-        # Mock webhook event
-        subscription_data.canceled_at = 1234567890
-        mock_event = Mock()
-        mock_event.type = "customer.subscription.deleted"
-        mock_event.data.object = subscription_data
-        mock_construct.return_value = mock_event
-
-        # Handle webhook
-        result = await webhook_handler.handle_webhook(mock_request)
-
-        assert result["status"] == "success"
-
-        # Verify subscription canceled
-        db_session.refresh(subscription)
-        assert subscription.status == "canceled"
-        assert subscription.canceled_at is not None
-
-    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
-    @patch("src.payments.webhook_handler.settings")
-    async def test_handle_invoice_paid(
-        self,
-        mock_settings,
-        mock_construct,
-        webhook_handler,
-        mock_request,
-        invoice_data,
-        db_session,
-        test_user,
-    ):
-        """Test handling invoice paid event"""
-        mock_settings.stripe_webhook_secret = "test_secret"
-
-        # Create test subscription
-        subscription = Subscription(
-            id="sub_db_123",
-            user_id=test_user.id,
-            tier="PROFESSIONAL",
-            status="past_due",
-            stripe_subscription_id="sub_test_123",
-            stripe_customer_id="cus_test_456",
-            current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow(),
-        )
-        db_session.add(subscription)
-        db_session.commit()
-
-        # Mock webhook event
-        mock_event = Mock()
-        mock_event.type = "invoice.paid"
-        mock_event.data.object = invoice_data
-        mock_construct.return_value = mock_event
-
-        # Handle webhook
-        result = await webhook_handler.handle_webhook(mock_request)
-
-        assert result["status"] == "success"
-
-        # Verify subscription status updated to active
-        db_session.refresh(subscription)
-        assert subscription.status == "active"
-
-    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
-    @patch("src.payments.webhook_handler.settings")
-    async def test_handle_invoice_payment_failed(
-        self,
-        mock_settings,
-        mock_construct,
-        webhook_handler,
-        mock_request,
-        invoice_data,
-        db_session,
-        test_user,
-    ):
-        """Test handling invoice payment failed event"""
-        mock_settings.stripe_webhook_secret = "test_secret"
-
-        # Create test subscription
-        subscription = Subscription(
-            id="sub_db_123",
-            user_id=test_user.id,
-            tier="PROFESSIONAL",
-            status="active",
-            stripe_subscription_id="sub_test_123",
-            stripe_customer_id="cus_test_456",
-            current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow(),
-        )
-        db_session.add(subscription)
-        db_session.commit()
-
-        # Mock webhook event
-        invoice_data.status = "open"
-        mock_event = Mock()
-        mock_event.type = "invoice.payment_failed"
-        mock_event.data.object = invoice_data
-        mock_construct.return_value = mock_event
-
-        # Handle webhook
-        result = await webhook_handler.handle_webhook(mock_request)
-
-        assert result["status"] == "success"
-
-        # Verify subscription status updated to past_due
-        db_session.refresh(subscription)
-        assert subscription.status == "past_due"
-
-    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
-    @patch("src.payments.webhook_handler.settings")
     async def test_handle_unknown_event_type(
         self, mock_settings, mock_construct, webhook_handler, mock_request
     ):
@@ -470,7 +224,7 @@ class TestStripeWebhookHandler:
         # Handle webhook - should not raise error
         result = await webhook_handler.handle_webhook(mock_request)
 
-        assert result["status"] == "success"
+        assert result["status"] == "ignored"
         assert result["event_type"] == "unknown.event.type"
 
     @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
@@ -496,56 +250,3 @@ class TestStripeWebhookHandler:
         result = await webhook_handler.handle_webhook(mock_request)
 
         assert result["status"] == "success"
-
-    @patch("src.payments.webhook_handler.stripe.Webhook.construct_event")
-    @patch("src.payments.webhook_handler.settings")
-    async def test_handle_subscription_without_trial_end(
-        self,
-        mock_settings,
-        mock_construct,
-        webhook_handler,
-        mock_request,
-        db_session,
-        test_user,
-    ):
-        """Test handling subscription created without trial"""
-        mock_settings.stripe_webhook_secret = "test_secret"
-
-        # Create test subscription
-        subscription = Subscription(
-            id="sub_db_123",
-            user_id=test_user.id,
-            tier="PROFESSIONAL",
-            status="active",
-            stripe_customer_id="cus_test_456",
-            current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow(),
-        )
-        db_session.add(subscription)
-        db_session.commit()
-
-        # Mock subscription data without trial
-        subscription_data = Mock(
-            id="sub_test_123",
-            customer="cus_test_456",
-            status="active",
-            current_period_start=1234567890,
-            current_period_end=1237246290,
-            trial_end=None,
-            items=Mock(data=[Mock(price=Mock(id="price_test"))]),
-        )
-
-        # Mock webhook event
-        mock_event = Mock()
-        mock_event.type = "customer.subscription.created"
-        mock_event.data.object = subscription_data
-        mock_construct.return_value = mock_event
-
-        # Handle webhook
-        result = await webhook_handler.handle_webhook(mock_request)
-
-        assert result["status"] == "success"
-
-        # Verify trial_end is still None
-        db_session.refresh(subscription)
-        assert subscription.trial_end is None

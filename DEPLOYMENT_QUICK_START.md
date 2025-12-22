@@ -106,54 +106,29 @@ export const API_BASE_URL = 'https://api.your-domain.com';
 
 ---
 
-### **Phase 3: Stripe Configuration** (30 min)
+### **Phase 3: Marketplace Billing Configuration** (30 min)
 
-#### Step 3.1: Get Production API Keys (10 min)
-1. Go to: https://dashboard.stripe.com/apikeys
-2. Toggle to **Production** mode (not test mode!)
-3. Copy **Publishable key** and **Secret key**
-
-#### Step 3.2: Create Products & Prices (15 min)
+#### Step 3.1: Enable Marketplace Billing (10 min)
+Update `.env.production`:
 ```bash
-# In Stripe Dashboard:
-# 1. Go to Products → Create Product
-
-# Create 3 products:
-# - "Starter Plan" - $29/month or $290/year
-# - "Professional Plan" - $99/month or $990/year
-# - "Enterprise Plan" - $399/month or $3,990/year
-
-# 2. Copy the Price IDs (they look like: price_1ABC...)
+ENABLE_GCP_MARKETPLACE=true
+GCP_PROJECT_ID=YOUR_PROJECT_ID
+GCP_PROVIDER_ID=YOUR_PROVIDER_ID
+GCP_SERVICE_ACCOUNT_PATH=/secrets/gcp-marketplace-sa.json
+GCP_WEBHOOK_SECRET=your-webhook-secret
+GCP_WEBHOOK_AUDIENCE=your-webhook-audience
+GCP_USAGE_REPORTING_ENABLED=true
 ```
 
-#### Step 3.3: Update .env.production (5 min)
+#### Step 3.2: Configure SKU Map (10 min)
 ```bash
-STRIPE_SECRET_KEY=sk_live_YOUR_LIVE_SECRET_KEY
-STRIPE_PUBLISHABLE_KEY=pk_live_YOUR_LIVE_PUBLISHABLE_KEY
-
-STRIPE_PRICE_ID_STARTER_MONTHLY=price_1ABC...
-STRIPE_PRICE_ID_PROFESSIONAL_MONTHLY=price_1DEF...
-STRIPE_PRICE_ID_ENTERPRISE_MONTHLY=price_1GHI...
-
-STRIPE_PRICE_ID_STARTER_ANNUAL=price_1JKL...
-STRIPE_PRICE_ID_PROFESSIONAL_ANNUAL=price_1MNO...
-STRIPE_PRICE_ID_ENTERPRISE_ANNUAL=price_1PQR...
+GCP_MARKETPLACE_SKU_MAP={"expenses":{"unit":"expense","sku":"SKU_EXP"},"ai_categorizations":{"unit":"ai_categorization","sku":"SKU_AI"},"ap2_transactions":{"unit":"ap2_transaction","sku":"SKU_AP2"}}
 ```
 
-#### Step 3.4: Configure Webhook (10 min - DO AFTER DEPLOYMENT)
+#### Step 3.3: Verify Marketplace Webhook (10 min - AFTER DEPLOYMENT)
 ```bash
-# After deploying backend, create webhook in Stripe Dashboard:
-# 1. Go to: https://dashboard.stripe.com/webhooks
-# 2. Add endpoint: https://api.your-domain.com/api/v1/webhooks/stripe
-# 3. Select events:
-#    - checkout.session.completed
-#    - customer.subscription.created
-#    - customer.subscription.updated
-#    - customer.subscription.deleted
-#    - invoice.paid
-#    - invoice.payment_failed
-# 4. Copy webhook secret and update .env.production:
-STRIPE_WEBHOOK_SECRET=whsec_YOUR_WEBHOOK_SECRET
+# Ensure the Marketplace webhook endpoint is reachable
+# Endpoint: https://api.your-domain.com/api/v1/webhooks/gcp
 ```
 
 ---

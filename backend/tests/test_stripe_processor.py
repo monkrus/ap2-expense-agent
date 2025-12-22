@@ -8,6 +8,8 @@ from decimal import Decimal
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+
+pytestmark = pytest.mark.asyncio
 from stripe import _error as stripe_error
 
 from src.models import PaymentMandate

@@ -1643,13 +1643,10 @@ async def delete_user(
             Expense,
             ExpenseComment,
             IntentMandate,
-            Invoice,
             OrganizationInvitation,
             OrganizationMember,
             PaymentMandate,
             Receipt,
-            Subscription,
-            UsageRecord,
         )
 
         # Step 1: Delete AP2 mandates (in correct order due to foreign keys)
@@ -1678,18 +1675,7 @@ async def delete_user(
             synchronize_session=False
         )
 
-        # Step 6: Delete billing-related records
-        db.query(Invoice).filter(Invoice.user_id == user_id).delete(
-            synchronize_session=False
-        )
-        db.query(UsageRecord).filter(UsageRecord.user_id == user_id).delete(
-            synchronize_session=False
-        )
-        db.query(Subscription).filter(Subscription.user_id == user_id).delete(
-            synchronize_session=False
-        )
-
-        # Step 7: Delete organization-related records
+        # Step 6: Delete organization-related records
         db.query(OrganizationInvitation).filter(
             OrganizationInvitation.invited_by == user_id
         ).delete(synchronize_session=False)
@@ -1776,4 +1762,3 @@ async def get_all_permissions(
         role_mappings[role.value] = [p.value for p in perms]
 
     return {"categories": permissions_by_category, "role_mappings": role_mappings}
-

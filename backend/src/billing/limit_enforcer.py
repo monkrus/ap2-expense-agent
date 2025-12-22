@@ -1,27 +1,20 @@
 """
-Limit Enforcement Service
+Limit Enforcement Service (Marketplace-first).
 
-Enforces hard limits for Free tier and soft limits (with overage fees) for paid tiers.
-- Free tier: HARD BLOCK when limit exceeded (no payment method)
-- Paid tiers: SOFT LIMIT with overage fees (they have payment method)
+Uses organization subscriptions and billing tiers for limit enforcement.
 """
 
+import json
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from ..models import (
-    Expense,
-    Organization,
-    OrganizationMember,
-    Subscription,
-    SubscriptionTier,
-    UsageRecord,
-    User,
-)
-from .tier_limits import TierLimits, get_tier_limits
+from ..config import settings
+from ..models import Expense, OrganizationMember
+from ..models_billing import BillingTier, OrganizationSubscription, UsageMetric
 
 
 class LimitExceededError(Exception):
@@ -37,41 +30,90 @@ class LimitExceededError(Exception):
         )
 
 
-class LimitEnforcer:
-    """
-    Enforces usage limits based on subscription tier.
+@dataclass
+class OrgLimits:
+    tier_name: str
+    max_users: Optional[int]
+    max_organizations: Optional[int]
+    max_expenses_per_month: Optional[int]
+    max_ai_categorizations: Optional[int]
+    max_ap2_transactions: Optional[int]
+    ocr_scans_included: Optional[int]
+    data_retention_days: Optional[int]
+    features: Dict[str, bool]
+    has_subscription: bool
 
-    - Free tier: Hard limits (blocked)
-    - Paid tiers: Soft limits (overage fees charged)
-    """
+
+class LimitEnforcer:
+    """Enforces usage limits based on organization subscription tiers."""
 
     def __init__(self, db: Session):
         self.db = db
 
-    def get_org_tier(self, org_id: str) -> Tuple[SubscriptionTier, TierLimits]:
-        """Get the subscription tier and limits for an organization"""
-        # Get organization's subscription
-        subscription = (
-            self.db.query(Subscription)
-            .join(User, Subscription.user_id == User.id)
-            .join(OrganizationMember, OrganizationMember.user_id == User.id)
-            .filter(OrganizationMember.organization_id == org_id)
-            .filter(OrganizationMember.role == "owner")
+    def get_org_tier(self, org_id: str) -> OrgLimits:
+        """Get the subscription limits for an organization."""
+        org_subscription = (
+            self.db.query(OrganizationSubscription)
+            .filter(
+                OrganizationSubscription.organization_id == org_id,
+                OrganizationSubscription.status.in_(["active", "trialing"]),
+            )
             .first()
         )
 
-        if subscription and subscription.tier:
-            tier = subscription.tier
-        else:
-            tier = SubscriptionTier.FREE
+        if not org_subscription:
+            return self._default_limits(has_subscription=False)
 
-        limits = get_tier_limits(tier)
-        return tier, limits
+        tier = None
+        if org_subscription.tier_id:
+            tier = (
+                self.db.query(BillingTier)
+                .filter(BillingTier.id == org_subscription.tier_id)
+                .first()
+            )
+
+        if not tier and org_subscription.tier_name:
+            tier = (
+                self.db.query(BillingTier)
+                .filter(BillingTier.tier_name == org_subscription.tier_name)
+                .first()
+            )
+
+        if not tier:
+            return self._default_limits(
+                has_subscription=True, tier_name=org_subscription.tier_name or "unknown"
+            )
+
+        limits = self._normalize_limits(tier.limits)
+        features = self._feature_flags(tier.features, tier.tier_name)
+
+        return OrgLimits(
+            tier_name=tier.tier_name,
+            max_users=self._normalize_limit(limits.get("max_users")),
+            max_organizations=self._normalize_limit(limits.get("max_organizations")),
+            max_expenses_per_month=self._normalize_limit(
+                limits.get("max_expenses_per_month")
+            ),
+            max_ai_categorizations=self._normalize_limit(
+                limits.get("max_ai_categorizations")
+                or limits.get("ai_categorizations_included")
+            ),
+            max_ap2_transactions=self._normalize_limit(
+                limits.get("max_ap2_transactions")
+                or limits.get("ap2_transactions_included")
+            ),
+            ocr_scans_included=self._normalize_limit(
+                limits.get("ocr_scans_included")
+            ),
+            data_retention_days=limits.get("data_retention_days"),
+            features=features,
+            has_subscription=True,
+        )
 
     def is_free_tier(self, org_id: str) -> bool:
-        """Check if organization is on Free tier"""
-        tier, _ = self.get_org_tier(org_id)
-        return tier == SubscriptionTier.FREE
+        """Check if organization is on Free tier."""
+        limits = self.get_org_tier(org_id)
+        return limits.tier_name.lower() == "free"
 
     def get_current_month_usage(self, org_id: str) -> dict:
         """Get current month's usage for an organization"""
@@ -95,43 +137,13 @@ class LimitEnforcer:
             or 0
         )
 
-        # Get subscription for this organization
-        subscription = self._get_org_subscription(org_id)
-
-        ai_categorization_count = 0
-        ocr_scan_count = 0
-        ap2_transaction_count = 0
-
-        if subscription:
-            # Get AI categorization count from UsageRecord
-            ai_categorization_count = (
-                self.db.query(func.coalesce(func.sum(UsageRecord.quantity), 0))
-                .filter(UsageRecord.subscription_id == subscription.id)
-                .filter(UsageRecord.usage_type == "ai_categorization")
-                .filter(UsageRecord.created_at >= start_of_month)
-                .scalar()
-                or 0
-            )
-
-            # Get OCR scan count from UsageRecord
-            ocr_scan_count = (
-                self.db.query(func.coalesce(func.sum(UsageRecord.quantity), 0))
-                .filter(UsageRecord.subscription_id == subscription.id)
-                .filter(UsageRecord.usage_type == "ocr_scan")
-                .filter(UsageRecord.created_at >= start_of_month)
-                .scalar()
-                or 0
-            )
-
-            # Get AP2 transaction count from UsageRecord
-            ap2_transaction_count = (
-                self.db.query(func.coalesce(func.sum(UsageRecord.quantity), 0))
-                .filter(UsageRecord.subscription_id == subscription.id)
-                .filter(UsageRecord.usage_type == "ap2_transaction")
-                .filter(UsageRecord.created_at >= start_of_month)
-                .scalar()
-                or 0
-            )
+        ai_categorization_count = self._sum_usage(
+            org_id, "ai_categorization", start_of_month
+        )
+        ocr_scan_count = self._sum_usage(org_id, "ocr_scan", start_of_month)
+        ap2_transaction_count = self._sum_usage(
+            org_id, "ap2_transaction", start_of_month
+        )
 
         return {
             "expenses": expense_count,
@@ -141,16 +153,106 @@ class LimitEnforcer:
             "ap2_transactions": int(ap2_transaction_count),
         }
 
-    def _get_org_subscription(self, org_id: str) -> Optional[Subscription]:
-        """Get subscription for an organization (via owner)"""
-        return (
-            self.db.query(Subscription)
-            .join(User, Subscription.user_id == User.id)
-            .join(OrganizationMember, OrganizationMember.user_id == User.id)
-            .filter(OrganizationMember.organization_id == org_id)
-            .filter(OrganizationMember.role == "owner")
-            .first()
+    def _sum_usage(self, org_id: str, usage_type: str, start: datetime) -> int:
+        return int(
+            self.db.query(func.coalesce(func.sum(UsageMetric.metric_value), 0))
+            .filter(
+                UsageMetric.organization_id == org_id,
+                UsageMetric.metric_type == usage_type,
+                UsageMetric.created_at >= start,
+            )
+            .scalar()
+            or 0
         )
+
+    def _require_subscription(self, limits: OrgLimits) -> None:
+        if settings.enable_gcp_marketplace and not limits.has_subscription:
+            raise LimitExceededError(
+                feature="Subscription",
+                limit=1,
+                current=0,
+                upgrade_message="Active Google Cloud Marketplace subscription required.",
+            )
+
+    def _default_limits(
+        self, has_subscription: bool, tier_name: str = "free"
+    ) -> OrgLimits:
+        return OrgLimits(
+            tier_name=tier_name,
+            max_users=1,
+            max_organizations=1,
+            max_expenses_per_month=20,
+            max_ai_categorizations=0,
+            max_ap2_transactions=0,
+            ocr_scans_included=5,
+            data_retention_days=30,
+            features={
+                "api_access": False,
+                "sso_enabled": False,
+                "custom_integrations": False,
+                "advanced_analytics": False,
+                "approval_workflows": False,
+                "priority_support": False,
+            },
+            has_subscription=has_subscription,
+        )
+
+    def _normalize_limits(self, value: object) -> Dict:
+        if value is None:
+            return {}
+        if isinstance(value, dict):
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+                return parsed if isinstance(parsed, dict) else {}
+            except json.JSONDecodeError:
+                return {}
+        return {}
+
+    def _normalize_limit(self, value: Optional[object]) -> Optional[int]:
+        if value is None:
+            return None
+        try:
+            limit = int(value)
+        except (TypeError, ValueError):
+            return None
+        if limit < 0:
+            return None
+        return limit
+
+    def _feature_flags(self, value: object, tier_name: Optional[str]) -> Dict[str, bool]:
+        features = []
+        if isinstance(value, list):
+            features = value
+        elif isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    features = parsed
+                else:
+                    features = [value]
+            except json.JSONDecodeError:
+                features = [value]
+
+        normalized = {str(item).strip().lower() for item in features if item}
+        tier_rank = {
+            "free": 0,
+            "starter": 1,
+            "professional": 2,
+            "enterprise": 3,
+            "enterprise_plus": 4,
+        }
+        rank = tier_rank.get((tier_name or "").lower(), 0)
+
+        return {
+            "api_access": ("api" in " ".join(normalized)) or rank >= 3,
+            "sso_enabled": ("sso" in " ".join(normalized)) or rank >= 3,
+            "custom_integrations": ("integration" in " ".join(normalized)) or rank >= 3,
+            "advanced_analytics": ("analytics" in " ".join(normalized)) or rank >= 2,
+            "approval_workflows": ("approval" in " ".join(normalized)) or rank >= 2,
+            "priority_support": ("priority" in " ".join(normalized)) or rank >= 2,
+        }
 
     def check_user_limit(
         self, org_id: str, raise_error: bool = True
@@ -161,7 +263,8 @@ class LimitEnforcer:
         Returns: (can_add, message)
         Raises: LimitExceededError for Free tier if raise_error=True
         """
-        tier, limits = self.get_org_tier(org_id)
+        limits = self.get_org_tier(org_id)
+        self._require_subscription(limits)
 
         current_members = (
             self.db.query(func.count(OrganizationMember.id))
@@ -177,7 +280,7 @@ class LimitEnforcer:
         if current_members >= max_users:
             message = f"User limit reached ({current_members}/{max_users})"
 
-            if tier == SubscriptionTier.FREE and raise_error:
+            if limits.tier_name.lower() == "free" and raise_error:
                 raise LimitExceededError(
                     feature="Users",
                     limit=max_users,
@@ -198,7 +301,8 @@ class LimitEnforcer:
         Returns: (can_add, message)
         Raises: LimitExceededError for Free tier if raise_error=True
         """
-        tier, limits = self.get_org_tier(org_id)
+        limits = self.get_org_tier(org_id)
+        self._require_subscription(limits)
 
         now = datetime.utcnow()
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -220,7 +324,7 @@ class LimitEnforcer:
                 f"Monthly expense limit reached ({current_expenses}/{max_expenses})"
             )
 
-            if tier == SubscriptionTier.FREE and raise_error:
+            if limits.tier_name.lower() == "free" and raise_error:
                 raise LimitExceededError(
                     feature="Expenses",
                     limit=max_expenses,
@@ -241,13 +345,14 @@ class LimitEnforcer:
         Returns: (can_use, message)
         Raises: LimitExceededError for Free tier if raise_error=True
         """
-        tier, limits = self.get_org_tier(org_id)
+        limits = self.get_org_tier(org_id)
+        self._require_subscription(limits)
 
         max_ai = limits.max_ai_categorizations
 
         # Free tier has 0 AI categorizations - always block
         if max_ai == 0:
-            if tier == SubscriptionTier.FREE and raise_error:
+            if limits.tier_name.lower() == "free" and raise_error:
                 raise LimitExceededError(
                     feature="AI Categorization",
                     limit=0,
@@ -266,7 +371,7 @@ class LimitEnforcer:
         if current_ai + count > max_ai:
             message = f"AI categorization limit would be exceeded ({current_ai + count}/{max_ai})"
 
-            if tier == SubscriptionTier.FREE and raise_error:
+            if limits.tier_name.lower() == "free" and raise_error:
                 raise LimitExceededError(
                     feature="AI Categorization",
                     limit=max_ai,
@@ -287,7 +392,8 @@ class LimitEnforcer:
         Returns: (can_use, message)
         Raises: LimitExceededError for Free tier if raise_error=True
         """
-        tier, limits = self.get_org_tier(org_id)
+        limits = self.get_org_tier(org_id)
+        self._require_subscription(limits)
 
         max_ocr = limits.ocr_scans_included
 
@@ -303,7 +409,7 @@ class LimitEnforcer:
                 f"OCR scan limit would be exceeded ({current_ocr + count}/{max_ocr})"
             )
 
-            if tier == SubscriptionTier.FREE and raise_error:
+            if limits.tier_name.lower() == "free" and raise_error:
                 raise LimitExceededError(
                     feature="OCR Scans",
                     limit=max_ocr,
@@ -324,13 +430,14 @@ class LimitEnforcer:
         Returns: (can_use, message)
         Raises: LimitExceededError for Free tier if raise_error=True
         """
-        tier, limits = self.get_org_tier(org_id)
+        limits = self.get_org_tier(org_id)
+        self._require_subscription(limits)
 
         max_ap2 = limits.max_ap2_transactions
 
         # Free tier has 0 AP2 transactions - always block
         if max_ap2 == 0:
-            if tier == SubscriptionTier.FREE and raise_error:
+            if limits.tier_name.lower() == "free" and raise_error:
                 raise LimitExceededError(
                     feature="AP2 Transactions",
                     limit=0,
@@ -349,7 +456,7 @@ class LimitEnforcer:
         if current_ap2 + count > max_ap2:
             message = f"AP2 transaction limit would be exceeded ({current_ap2 + count}/{max_ap2})"
 
-            if tier == SubscriptionTier.FREE and raise_error:
+            if limits.tier_name.lower() == "free" and raise_error:
                 raise LimitExceededError(
                     feature="AP2 Transactions",
                     limit=max_ap2,
@@ -369,32 +476,28 @@ class LimitEnforcer:
 
         Features: 'api_access', 'sso_enabled', 'approval_workflows', 'custom_integrations'
         """
-        tier, limits = self.get_org_tier(org_id)
+        limits = self.get_org_tier(org_id)
+        self._require_subscription(limits)
 
         feature_checks = {
             "api_access": (
-                limits.api_access,
+                limits.features.get("api_access", False),
                 "API access requires Professional tier or higher.",
             ),
             "sso_enabled": (
-                limits.sso_enabled,
+                limits.features.get("sso_enabled", False),
                 "SSO/SAML requires Enterprise tier or higher.",
             ),
             "custom_integrations": (
-                limits.custom_integrations,
+                limits.features.get("custom_integrations", False),
                 "Custom integrations require Enterprise tier or higher.",
             ),
             "approval_workflows": (
-                tier
-                in [
-                    SubscriptionTier.PROFESSIONAL,
-                    SubscriptionTier.ENTERPRISE,
-                    SubscriptionTier.ENTERPRISE_PLUS,
-                ],
+                limits.features.get("approval_workflows", False),
                 "Approval workflows require Professional tier or higher.",
             ),
             "advanced_analytics": (
-                limits.advanced_analytics,
+                limits.features.get("advanced_analytics", False),
                 "Advanced analytics require Enterprise tier or higher.",
             ),
         }
@@ -405,7 +508,7 @@ class LimitEnforcer:
         has_access, upgrade_message = feature_checks[feature]
 
         if not has_access:
-            if tier == SubscriptionTier.FREE and raise_error:
+            if limits.tier_name.lower() == "free" and raise_error:
                 raise LimitExceededError(
                     feature=feature.replace("_", " ").title(),
                     limit=0,
@@ -430,10 +533,11 @@ class LimitEnforcer:
 
         Returns: (can_proceed, message)
         """
-        tier, limits = self.get_org_tier(org_id)
+        limits = self.get_org_tier(org_id)
+        self._require_subscription(limits)
 
         # Only apply daily rate limits to Free tier
-        if tier != SubscriptionTier.FREE:
+        if limits.tier_name.lower() != "free":
             return True, "Paid tier - no daily rate limits"
 
         now = datetime.utcnow()
@@ -471,18 +575,7 @@ class LimitEnforcer:
                 or 0
             )
         else:
-            subscription = self._get_org_subscription(org_id)
-            if subscription:
-                today_count = (
-                    self.db.query(func.coalesce(func.sum(UsageRecord.quantity), 0))
-                    .filter(UsageRecord.subscription_id == subscription.id)
-                    .filter(UsageRecord.usage_type == action_type)
-                    .filter(UsageRecord.created_at >= start_of_day)
-                    .scalar()
-                    or 0
-                )
-            else:
-                today_count = 0
+            today_count = self._sum_usage(org_id, action_type, start_of_day)
 
         if today_count >= daily_limit:
             message = f"Daily {action_type} limit reached ({today_count}/{daily_limit}). Try again tomorrow."
@@ -505,7 +598,7 @@ class LimitEnforcer:
 
         Useful for displaying usage dashboards and limit warnings.
         """
-        tier, limits = self.get_org_tier(org_id)
+        limits = self.get_org_tier(org_id)
         usage = self.get_current_month_usage(org_id)
 
         # Calculate percentages and warnings
@@ -539,9 +632,10 @@ class LimitEnforcer:
             }
 
         return {
-            "tier": tier.value,
-            "tier_name": limits.name,
-            "is_free_tier": tier == SubscriptionTier.FREE,
+            "tier": limits.tier_name,
+            "tier_name": limits.tier_name,
+            "is_free_tier": limits.tier_name.lower() == "free",
+            "subscription_active": limits.has_subscription,
             "usage": {
                 "expenses": calc_usage_info(
                     usage["expenses"], limits.max_expenses_per_month
@@ -558,11 +652,11 @@ class LimitEnforcer:
                 ),
             },
             "features": {
-                "api_access": limits.api_access,
-                "sso_enabled": limits.sso_enabled,
-                "custom_integrations": limits.custom_integrations,
-                "advanced_analytics": limits.advanced_analytics,
-                "priority_support": limits.priority_support,
+                "api_access": limits.features.get("api_access", False),
+                "sso_enabled": limits.features.get("sso_enabled", False),
+                "custom_integrations": limits.features.get("custom_integrations", False),
+                "advanced_analytics": limits.features.get("advanced_analytics", False),
+                "priority_support": limits.features.get("priority_support", False),
             },
             "data_retention_days": limits.data_retention_days,
         }

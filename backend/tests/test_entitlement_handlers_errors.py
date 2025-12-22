@@ -1,4 +1,6 @@
 import pytest
+
+pytestmark = pytest.mark.asyncio
 from sqlalchemy.orm import Session
 
 from src.gcp.entitlement_handler import (
