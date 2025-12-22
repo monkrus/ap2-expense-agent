@@ -52,9 +52,9 @@ npm run dev
 ### Admin User (Full Access)
 
 ```
-Username: admintest
+Username: adminfree
 Password: Testme1!
-Email: admintest@example.com
+Email: adminfree@example.com
 Role: ADMIN
 ```
 
@@ -66,56 +66,17 @@ Role: ADMIN
 - ✅ Manage users and organizations
 - ✅ Access billing and subscription data
 
-### Manager User (Manager Access)
+### Additional Roles (Optional)
 
-```
-Username: testuser
-Password: Testme1!
-Email: testuser@example.com
-Role: MANAGER
-```
+Only `adminfree` is seeded by default. If you need manager/employee/accountant flows, create users via the admin UI or `/api/v1/admin/users/create` and use them in the steps below. For role-specific steps, substitute those users wherever this guide references a non-admin login.
 
-**Permissions**:
-- ✅ Submit new expenses
-- ✅ View own expenses
-- ✅ Edit pending expenses
-- ✅ Upload receipts
-- ✅ Export own expense reports
-- ✅ View and manage budgets (read-only)
-- ✅ View recurring expense templates
-- ❌ Cannot create/edit budgets (admin only)
-- ❌ Cannot approve/reject expenses
+Suggested examples:
+- Manager: `manager1` / `Testme1!`
+- Employee: `employee1` / `Testme1!`
+- Employee 2: `employee2` / `Testme1!`
 
-### Employee User (Standard Access)
+**Note**: The database is automatically seeded with `adminfree` on startup.
 
-```
-Username: emptest
-Password: Testme1!
-Email: emptest@example.com
-Role: EMPLOYEE
-```
-
-**Permissions**:
-- ✅ Submit new expenses
-- ✅ View own expenses
-- ✅ Edit pending expenses
-- ✅ Withdraw pending expenses
-- ✅ Upload receipts
-- ✅ Export own expense reports
-- ❌ Cannot approve/reject expenses
-- ❌ Cannot view other users' expenses
-
-### Additional Test Users
-
-```
-Username: emptest2
-Email: emptest2@example.com
-Password: Testme1!
-Role: EMPLOYEE
-Status: Active
-```
-
-**Note**: All test users use the password `Testme1!` for consistency. The database is automatically seeded with these users on startup.
 
 ---
 
@@ -136,7 +97,7 @@ Status: Active
 
 1. **Admin Login**
    - [ ] Navigate to http://localhost:5173
-   - [ ] Login with `admintest` / `Testme1!`
+   - [ ] Login with `adminfree` / `Testme1!`
    - [ ] ✅ Verify dashboard loads successfully
    - [ ] ✅ Verify all admin tabs are visible:
      - Pending Approvals
@@ -150,7 +111,7 @@ Status: Active
    - [ ] ✅ Logout successfully
 
 2. **Manager Login**
-   - [ ] Login with `testuser` / `Testme1!`
+   - [ ] Login with `adminfree` / `Testme1!`
    - [ ] ✅ Verify manager dashboard has tabs:
      - Active Expenses
      - History
@@ -161,7 +122,7 @@ Status: Active
    - [ ] ✅ Logout successfully
 
 3. **Employee Login**
-   - [ ] Login with `emptest` / `Testme1!`
+   - [ ] Login with `adminfree` / `Testme1!`
    - [ ] ✅ Verify employee dashboard has tabs:
      - Active Expenses
      - History
@@ -178,7 +139,7 @@ Status: Active
 
 **Objective**: Test recurring expense template creation, management, and scheduling.
 
-**Test as Employee** (`testuser` or `emptest`):
+**Test as Employee** (`adminfree` or `adminfree`):
 
 1. **Create Recurring Template**
    - [ ] Click "Recurring" tab
@@ -243,7 +204,7 @@ Status: Active
 
 **Objective**: Test multi-file upload with AI extraction and bulk expense creation.
 
-**Test as Employee** (`testuser` or `emptest`):
+**Test as Employee** (`adminfree` or `adminfree`):
 
 1. **Open Batch Upload**
    - [ ] Go to "Active Expenses" tab
@@ -310,7 +271,7 @@ Status: Active
 
 **Objective**: Test budget creation, monitoring, alerts, and role-based access control.
 
-**Test as Admin** (`admintest`):
+**Test as Admin** (`adminfree`):
 
 1. **View Budget Dashboard**
    - [ ] Click "Budgets" tab
@@ -361,9 +322,9 @@ Status: Active
      - **Name**: John's Travel Budget
      - **Amount**: 5000
      - **Period**: Monthly
-     - **User**: Select `testuser` from dropdown
+     - **User**: Select `adminfree` from dropdown
    - [ ] ✅ Verify: Budget created
-   - [ ] ✅ Verify: Only testuser's expenses count toward this budget
+   - [ ] ✅ Verify: Only adminfree's expenses count toward this budget
 
 5. **Create Small Test Budget** (for Phase 5 testing)
    - [ ] Create budget:
@@ -401,11 +362,11 @@ Status: Active
      - Associated expenses list
      - Timeline/history
 
-**Test as Manager/Employee** (`testuser` or `emptest`):
+**Test as Manager/Employee** (`adminfree` or `adminfree`):
 
 9. **Verify Read-Only Access**
    - [ ] Logout as admin
-   - [ ] Login as `testuser`
+   - [ ] Login as `adminfree`
    - [ ] Go to "Budgets" tab
    - [ ] ✅ Verify: Can VIEW budgets
    - [ ] ✅ Verify: Stats display correctly
@@ -432,7 +393,7 @@ Status: Active
 
 **Prerequisites**: "Test Alert Budget" created in Phase 4 with $100 limit.
 
-**Test as Employee** (`testuser` or `emptest`):
+**Test as Employee** (`adminfree` or `adminfree`):
 
 1. **Check Initial State**
    - [ ] Go to "Budgets" tab
@@ -608,7 +569,7 @@ After completing all phases, verify:
 
 1. **Login as Employee**
    - Navigate to http://localhost:5173
-   - Username: `emptest`
+   - Username: `adminfree`
    - Password: `Employee123!`
    - Click "Login"
    - ✅ Verify: Redirected to Employee Dashboard
@@ -647,7 +608,7 @@ After completing all phases, verify:
    - ✅ Verify: Redirected to login page
 
 6. **Login as Admin**
-   - Username: `admintest`
+   - Username: `adminfree`
    - Password: `Admin123!`
    - ✅ Verify: Redirected to Admin Dashboard
 
@@ -695,13 +656,13 @@ After completing all phases, verify:
 
 **Steps**:
 
-1. **Login as Employee** (`emptest`)
+1. **Login as Employee** (`adminfree`)
 2. **Submit Expense**
    - Amount: 5000.00
    - Vendor: Luxury Hotel
    - Category: Travel
    - Description: Weekend stay
-3. **Login as Admin** (`admintest`)
+3. **Login as Admin** (`adminfree`)
 4. **Reject Expense**
    - Find the expense in pending list
    - Click "Reject" button
@@ -725,7 +686,7 @@ After completing all phases, verify:
 
 **Steps**:
 
-1. **Login as Employee** (`emptest`)
+1. **Login as Employee** (`adminfree`)
 2. **Submit Expense**
    - Amount: 50.00
    - Vendor: Uber
@@ -816,7 +777,7 @@ After completing all phases, verify:
    - ✅ Verify: Success message
 4. **Logout**
 5. **Login with New Password**
-   - Username: `emptest`
+   - Username: `adminfree`
    - Password: `NewPassword456!`
    - ✅ Verify: Login successful
 6. **Reset Password Back** (for continued testing)
@@ -836,7 +797,7 @@ After completing all phases, verify:
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "admintest",
+    "username": "adminfree",
     "password": "Testme1!"
   }'
 ```
@@ -850,7 +811,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
   "expires_in": 3600,
   "user": {
     "email": "admin@test.com",
-    "username": "admintest",
+    "username": "adminfree",
     "full_name": "Admin Test User",
     "role": "admin",
     "is_active": true
@@ -864,7 +825,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 # First, login as employee and get token
 TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"emptest","password":"Testme1!"}' \
+  -d '{"username":"adminfree","password":"Testme1!"}' \
   | jq -r '.access_token')
 
 # Submit expense
@@ -886,7 +847,7 @@ curl -X POST http://localhost:8000/api/v1/expenses \
 # Login as admin
 ADMIN_TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admintest","password":"Testme1!"}' \
+  -d '{"username":"adminfree","password":"Testme1!"}' \
   | jq -r '.access_token')
 
 # Get pending expenses
@@ -1069,7 +1030,7 @@ curl -X GET http://localhost:8000/api/v1/audit/{transaction_id} \
 for i in {1..6}; do
   curl -X POST http://localhost:8000/api/v1/auth/login \
     -H "Content-Type: application/json" \
-    -d '{"username":"admintest","password":"WrongPassword"}'
+    -d '{"username":"adminfree","password":"WrongPassword"}'
   sleep 1
 done
 ```
@@ -1082,7 +1043,7 @@ done
 # Get token
 TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admintest","password":"Admin123!"}' \
+  -d '{"username":"adminfree","password":"Admin123!"}' \
   | jq -r '.access_token')
 
 # Use immediately (should work)
@@ -1105,7 +1066,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 # Login as employee
 EMP_TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"emptest","password":"Employee123!"}' \
+  -d '{"username":"adminfree","password":"Employee123!"}' \
   | jq -r '.access_token')
 
 # Attempt to access admin endpoint

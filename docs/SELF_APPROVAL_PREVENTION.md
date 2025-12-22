@@ -109,7 +109,7 @@ Summary:
 
 ### Manual Testing
 
-1. Login as admin (`admintest / Testme1!`)
+1. Login as admin (`adminfree / Testme1!`)
 2. Create an expense
 3. Try to approve it → Should fail with: "Not authorized to approve this expense"
 

@@ -32,7 +32,7 @@ export default function () {
   // Login
   const loginRes = http.post(
     `${BASE_URL}/api/v1/auth/login`,
-    JSON.stringify({ username: 'emptest', password: 'Testme1!' }),
+    JSON.stringify({ username: 'adminfree', password: 'Testme1!' }),
     { headers: { 'Content-Type': 'application/json' } }
   );
 

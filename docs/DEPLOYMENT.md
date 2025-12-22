@@ -449,7 +449,7 @@ curl -X POST http://${INGRESS_IP}/api/v1/users/register \
   -d '{
     "email": "test@example.com",
     "password": "TestPassword123!",
-    "username": "testuser",
+    "username": "adminfree",
     "full_name": "Test User"
   }'
 
