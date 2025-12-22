@@ -1,6 +1,6 @@
 """
-Database seeding with default test users.
-These users will ALWAYS be created if they don't exist.
+Database seeding with a default admin user.
+This user will ALWAYS be created if it doesn't exist.
 """
 
 import uuid
@@ -11,34 +11,13 @@ from sqlalchemy.orm import Session
 from .auth import AuthService
 from .models import Organization, OrganizationMember, OrganizationRole, User, UserRole
 
-# FIXED TEST USERS - DO NOT MODIFY
+# FIXED DEFAULT USER - DO NOT MODIFY
 DEFAULT_USERS = [
     {
-        "username": "admintest",
-        "email": "admintest@example.com",
-        "full_name": "Admin Test User",
+        "username": "adminfree",
+        "email": "adminfree@example.com",
+        "full_name": "Admin Free",
         "role": UserRole.ADMIN,
-        "password": "Testme1!",
-    },
-    {
-        "username": "testuser",
-        "email": "testuser@example.com",
-        "full_name": "Test Manager User",
-        "role": UserRole.MANAGER,
-        "password": "Testme1!",
-    },
-    {
-        "username": "emptest",
-        "email": "emptest@example.com",
-        "full_name": "Employee Test 1",
-        "role": UserRole.EMPLOYEE,
-        "password": "Testme1!",
-    },
-    {
-        "username": "emptest2",
-        "email": "emptest2@example.com",
-        "full_name": "Employee Test 2",
-        "role": UserRole.EMPLOYEE,
         "password": "Testme1!",
     },
 ]
@@ -46,7 +25,7 @@ DEFAULT_USERS = [
 
 def seed_default_users(db: Session, force_password_reset: bool = False) -> dict:
     """
-    Seed the database with default test users.
+    Seed the database with the default admin user.
 
     This function:
     - Creates users if they don't exist
@@ -55,7 +34,7 @@ def seed_default_users(db: Session, force_password_reset: bool = False) -> dict:
 
     Args:
         db: Database session
-        force_password_reset: If True, reset all default users' passwords to default
+        force_password_reset: If True, reset the default user's password to default
 
     Returns:
         dict: Statistics about seeding operation
@@ -177,7 +156,7 @@ def ensure_default_users_exist(db: Session) -> None:
 
 def reset_default_users_passwords(db: Session) -> None:
     """
-    Reset all default users' passwords to the default password.
+    Reset the default user's password to the default password.
     Use this if passwords need to be reset to default.
     """
     stats = seed_default_users(db, force_password_reset=True)
