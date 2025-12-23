@@ -10,11 +10,34 @@ from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from .models import Organization, OrganizationMember
+from .models_billing import OrganizationSubscription
 
 # Thread-safe context variable for current organization
 current_organization: ContextVar[Optional[str]] = ContextVar(
     "current_organization", default=None
 )
+
+FREE_TIER_MAX_MEMBERS = 1
+
+
+def _get_active_subscription_org_ids(org_ids: list, db: Session) -> set:
+    if not org_ids:
+        return set()
+    rows = (
+        db.query(OrganizationSubscription.organization_id)
+        .filter(
+            OrganizationSubscription.organization_id.in_(org_ids),
+            OrganizationSubscription.status.in_(["active", "trialing"]),
+        )
+        .all()
+    )
+    return {row[0] for row in rows}
+
+
+def resolve_org_max_members(organization: Organization, subscribed_org_ids: set) -> int:
+    if organization.id not in subscribed_org_ids:
+        return FREE_TIER_MAX_MEMBERS
+    return organization.max_members or FREE_TIER_MAX_MEMBERS
 
 
 class TenantContext:
@@ -64,6 +87,8 @@ def get_user_organizations(user_id: str, db: Session) -> list:
         .all()
     )
 
+    subscribed_org_ids = _get_active_subscription_org_ids(org_ids, db)
+
     return [
         {
             "id": org.id,
@@ -72,7 +97,7 @@ def get_user_organizations(user_id: str, db: Session) -> list:
             "description": org.description,
             "currency": org.currency,
             "timezone": org.timezone,
-            "max_members": org.max_members,
+            "max_members": resolve_org_max_members(org, subscribed_org_ids),
             "is_active": org.is_active,
             "created_at": org.created_at,
             "role": next(
@@ -207,7 +232,7 @@ def create_default_organization_for_user(
         name=f"Personal Workspace",
         slug=slug,
         description="Your personal expense workspace",
-        max_members=1,
+        max_members=FREE_TIER_MAX_MEMBERS,
         is_active=True,
     )
     db.add(organization)

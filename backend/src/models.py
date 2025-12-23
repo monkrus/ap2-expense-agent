@@ -105,7 +105,7 @@ class Organization(Base):
     timezone = Column(String(50), nullable=False, default="UTC")
 
     # Limits
-    max_members = Column(Integer, nullable=False, default=25)
+    max_members = Column(Integer, nullable=False, default=1)
     max_expenses_per_month = Column(Integer, nullable=True)
 
     # Stripe integration

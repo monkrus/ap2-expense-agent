@@ -29,6 +29,7 @@ from ..models import (
     OrganizationRole,
     User,
 )
+from ..models_billing import OrganizationSubscription
 from ..schemas import (
     OrganizationCreate,
     OrganizationInvitationCreate,
@@ -40,6 +41,7 @@ from ..schemas import (
 from ..tenant_context import (
     TenantAwareQuery,
     TenantContext,
+    FREE_TIER_MAX_MEMBERS,
     get_organization_or_404,
     get_user_organization_role,
     get_user_organizations,
@@ -222,7 +224,11 @@ async def create_organization(
             description=org_data.description,
             currency=org_data.currency or "USD",
             timezone=org_data.timezone or "UTC",
-            max_members=org_data.max_members or 25,
+            max_members=(
+                org_data.max_members
+                if org_data.max_members is not None
+                else FREE_TIER_MAX_MEMBERS
+            ),
             is_active=True,
         )
         db.add(organization)
@@ -318,6 +324,16 @@ async def get_organization(
     TenantAwareQuery.ensure_organization_access(organization_id, current_user.id, db)
 
     organization = get_organization_or_404(organization_id, db)
+    subscription = (
+        db.query(OrganizationSubscription)
+        .filter(
+            OrganizationSubscription.organization_id == organization_id,
+            OrganizationSubscription.status.in_(["active", "trialing"]),
+        )
+        .first()
+    )
+    if not subscription:
+        organization.max_members = FREE_TIER_MAX_MEMBERS
     return organization
 
 

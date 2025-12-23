@@ -133,7 +133,7 @@ def create_organization(
         description=kwargs.get("description"),
         currency=kwargs.get("currency", "USD"),
         timezone=kwargs.get("timezone", "UTC"),
-        max_members=kwargs.get("max_members", 25),
+        max_members=kwargs.get("max_members", 1),
         max_expenses_per_month=kwargs.get("max_expenses_per_month"),
         is_active=is_active,
         created_at=kwargs.get("created_at", datetime.utcnow()),
@@ -370,4 +370,3 @@ def create_manager_approval_scenario(
         'expense_under_5k': expense_under_5k,
         'expense_over_5k': expense_over_5k,
     }
-

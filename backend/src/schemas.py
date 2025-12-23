@@ -160,7 +160,7 @@ class OrganizationCreate(BaseModel):
     description: Optional[str] = None
     currency: Optional[str] = "USD"
     timezone: Optional[str] = "UTC"
-    max_members: Optional[int] = 25
+    max_members: Optional[int] = 1
 
 
 class OrganizationUpdate(BaseModel):
