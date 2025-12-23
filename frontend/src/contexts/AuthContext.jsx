@@ -39,6 +39,39 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const validateOrganization = async () => {
+      try {
+        const orgResponse = await fetch("/api/v1/organizations", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!orgResponse.ok) return;
+
+        const orgs = await orgResponse.json();
+        const orgList = Array.isArray(orgs) ? orgs : orgs ? [orgs] : [];
+        const savedOrgId = localStorage.getItem("current_organization_id");
+
+        if (orgList.length === 0) {
+          localStorage.removeItem("current_organization_id");
+          return;
+        }
+
+        if (!savedOrgId || !orgList.some((org) => org.id === savedOrgId)) {
+          localStorage.setItem("current_organization_id", orgList[0].id);
+        }
+      } catch (orgError) {
+        console.warn("Failed to validate organizations:", orgError);
+      }
+    };
+
+    validateOrganization();
+  }, [accessToken]);
+
   const login = async (username, password, totpCode = null) => {
     try {
       const response = await fetch("/api/v1/auth/login", {
@@ -68,23 +101,26 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("user", JSON.stringify(normalizedUser));
 
       const savedOrgId = localStorage.getItem("current_organization_id");
-      if (!savedOrgId) {
-        try {
-          const orgResponse = await fetch("/api/v1/organizations", {
-            headers: {
-              Authorization: `Bearer ${data.access_token}`,
-              "Content-Type": "application/json",
-            },
-          });
-          if (orgResponse.ok) {
-            const orgs = await orgResponse.json();
-            if (Array.isArray(orgs) && orgs.length > 0) {
-              localStorage.setItem("current_organization_id", orgs[0].id);
-            }
+      try {
+        const orgResponse = await fetch("/api/v1/organizations", {
+          headers: {
+            Authorization: `Bearer ${data.access_token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (orgResponse.ok) {
+          const orgs = await orgResponse.json();
+          const orgList = Array.isArray(orgs) ? orgs : orgs ? [orgs] : [];
+          if (orgList.length === 0) {
+            localStorage.removeItem("current_organization_id");
+          } else if (!savedOrgId) {
+            localStorage.setItem("current_organization_id", orgList[0].id);
+          } else if (!orgList.some((org) => org.id === savedOrgId)) {
+            localStorage.setItem("current_organization_id", orgList[0].id);
           }
-        } catch (orgError) {
-          console.warn("Failed to fetch organizations after login:", orgError);
         }
+      } catch (orgError) {
+        console.warn("Failed to fetch organizations after login:", orgError);
       }
 
       return { success: true };

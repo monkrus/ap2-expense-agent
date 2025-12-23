@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 const ToastContext = createContext(null);
+let toastCounter = 0;
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
@@ -10,7 +11,10 @@ export const ToastProvider = ({ children }) => {
   }, []);
 
   const showToast = useCallback((message, type = "info") => {
-    const id = Date.now();
+    const id =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${toastCounter++}`;
     const toast = { id, message, type };
 
     setToasts((prev) => [...prev, toast]);

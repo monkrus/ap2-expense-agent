@@ -36,6 +36,7 @@ import {
 import { expenseAPI, APIError } from "../services/api";
 import adminAPI from "../services/adminAPI";
 import billingAPI from "../services/billingAPI";
+import organizationAPI from "../services/organizationAPI";
 import { useToast } from "../hooks/useToast";
 import { useAuth } from "../contexts/AuthContext";
 import ChangePassword from "./ChangePassword";
@@ -93,12 +94,46 @@ const AdminDashboard = () => {
   const [itemsPerPage] = useState(10); // Items per page for all expenses
   const [selectedExpenses, setSelectedExpenses] = useState([]); // Track selected expenses for bulk actions
   const hasLoadedData = useRef(false); // Track if initial data load has happened
-  const renderCount = useRef(0); // Track render count for debugging
+  const [orgReady, setOrgReady] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let cancelled = false;
+    const ensureOrgContext = async () => {
+      try {
+        const orgs = await organizationAPI.listOrganizations();
+        const orgList = Array.isArray(orgs) ? orgs : orgs ? [orgs] : [];
+        const savedOrgId = organizationAPI.getCurrentOrganizationId();
+
+        if (orgList.length === 0) {
+          organizationAPI.setCurrentOrganizationId(null);
+          return;
+        }
+
+        if (!savedOrgId || !orgList.some((org) => org.id === savedOrgId)) {
+          organizationAPI.setCurrentOrganizationId(orgList[0].id);
+        }
+      } catch (err) {
+        console.error("Error loading organizations:", err);
+      } finally {
+        if (!cancelled) {
+          setOrgReady(true);
+        }
+      }
+    };
+
+    ensureOrgContext();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // Fetch all data on initial mount
   useEffect(() => {
     // Only fetch if user is loaded and we haven't loaded data yet
-    if (!user || hasLoadedData.current) return;
+    if (!user || !orgReady || hasLoadedData.current) return;
 
     // Fetch all data sets on initial load in parallel
     // Only the first call shows loading spinner
@@ -120,7 +155,7 @@ const AdminDashboard = () => {
     };
 
     loadAllData();
-  }, [user]); // Depend on user being loaded
+  }, [user, orgReady]); // Depend on user and org context
 
   // Load billing data when billing tab is active
   useEffect(() => {
@@ -131,6 +166,7 @@ const AdminDashboard = () => {
 
   // Auto-refresh the active tab's data every 10 seconds
   useEffect(() => {
+    if (!orgReady) return;
     const interval = setInterval(() => {
       if (activeTab === "pending") {
         fetchPendingExpenses(false);
@@ -142,14 +178,14 @@ const AdminDashboard = () => {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [activeTab, statusFilter]);
+  }, [activeTab, statusFilter, orgReady]);
 
   // Refresh all expenses when status filter changes on 'all' tab
   useEffect(() => {
-    if (activeTab === "all") {
+    if (activeTab === "all" && orgReady) {
       fetchAllExpenses(true);
     }
-  }, [statusFilter]);
+  }, [statusFilter, orgReady]);
 
   // Reset to page 1 and clear selections when search, filter, or tab changes
   useEffect(() => {
@@ -177,6 +213,12 @@ const AdminDashboard = () => {
       console.error("Error fetching pending expenses:", err);
       if (err instanceof APIError && err.status === 401) {
         showError("Session expired. Please login again.");
+      } else if (
+        err instanceof APIError &&
+        err.status === 403 &&
+        err.message?.includes("access to this organization")
+      ) {
+        return;
       } else if (err instanceof APIError && err.status === 403) {
         showError("You do not have permission to view all expenses.");
       } else if (isInitialLoad) {
@@ -196,45 +238,11 @@ const AdminDashboard = () => {
       if (isInitialLoad) {
         setLoading(true);
       }
-      console.log(
-        "[AdminDashboard] Fetching all expenses with statusFilter:",
-        statusFilter,
-      );
       const filterValue = statusFilter !== "all" ? statusFilter : null;
-      console.log("[AdminDashboard] Sending filter value to API:", filterValue);
-      console.log(
-        "[AdminDashboard] API URL will be: /expenses/all" +
-          (filterValue ? `?status=${filterValue}` : ""),
-      );
 
       const data = await expenseAPI.getAllExpenses(filterValue);
-      console.log(
-        "[AdminDashboard] API Response - full data:",
-        JSON.stringify(data, null, 2),
-      );
-      console.log(
-        "[AdminDashboard] API Response - expenses count:",
-        data.expenses?.length,
-      );
-      console.log(
-        "[AdminDashboard] API Response - pending_count:",
-        data.pending_count,
-      );
 
       if (data.expenses && Array.isArray(data.expenses)) {
-        console.log(
-          "[AdminDashboard] Setting allExpenses with",
-          data.expenses.length,
-          "items",
-        );
-        console.log(
-          "[AdminDashboard] Expense IDs:",
-          data.expenses.map((e) => e.id),
-        );
-        console.log(
-          "[AdminDashboard] Expense statuses:",
-          data.expenses.map((e) => `${e.id}: ${e.status}`),
-        );
         setAllExpenses(data.expenses);
       } else {
         console.warn("[AdminDashboard] Invalid response format:", data);
@@ -245,6 +253,12 @@ const AdminDashboard = () => {
       console.error("Error details:", err.message, err.status, err.data);
       if (err instanceof APIError && err.status === 401) {
         showError("Session expired. Please login again.");
+      } else if (
+        err instanceof APIError &&
+        err.status === 403 &&
+        err.message?.includes("access to this organization")
+      ) {
+        return;
       } else if (err instanceof APIError && err.status === 403) {
         showError("You do not have permission to view all expenses.");
       } else if (isInitialLoad) {
@@ -336,6 +350,12 @@ const AdminDashboard = () => {
       console.error("Error fetching archived expenses:", err);
       if (err instanceof APIError && err.status === 401) {
         showError("Session expired. Please login again.");
+      } else if (
+        err instanceof APIError &&
+        err.status === 403 &&
+        err.message?.includes("access to this organization")
+      ) {
+        return;
       } else if (err instanceof APIError && err.status === 403) {
         showError("You do not have permission to view archived expenses.");
       } else if (isInitialLoad) {
@@ -809,18 +829,6 @@ const AdminDashboard = () => {
   };
 
   // Debug logging (can be removed in production)
-  console.log("[AdminDashboard] Render - activeTab:", activeTab);
-  console.log("[AdminDashboard] Render - statusFilter:", statusFilter);
-  console.log(
-    "[AdminDashboard] Render - pendingExpenses:",
-    pendingExpenses.length,
-  );
-  console.log("[AdminDashboard] Render - allExpenses:", allExpenses.length);
-  console.log(
-    "[AdminDashboard] Render - currentExpenses:",
-    currentExpenses.length,
-  );
-
   // Determine if user is on free/starter plan for upsells
   const isFreePlan =
     !subscription || subscription?.tier?.toLowerCase() === "free";
@@ -897,8 +905,8 @@ const AdminDashboard = () => {
                     monthlyUsage.usage?.ai_categorization?.quantity || 0
                   }
                   limit={
-                    monthlyUsage?.usage?.ai_categorization?.limit ??
-                    subscription?.limits?.max_ai_categorizations ||
+                    (monthlyUsage?.usage?.ai_categorization?.limit ??
+                      subscription?.limits?.max_ai_categorizations) ||
                     100
                   }
                 />
@@ -908,8 +916,8 @@ const AdminDashboard = () => {
                   feature="expenses"
                   currentUsage={monthlyUsage.usage?.expense?.quantity || 0}
                   limit={
-                    monthlyUsage?.usage?.expense?.limit ??
-                    subscription?.limits?.max_expenses_per_month ||
+                    (monthlyUsage?.usage?.expense?.limit ??
+                      subscription?.limits?.max_expenses_per_month) ||
                     500
                   }
                 />

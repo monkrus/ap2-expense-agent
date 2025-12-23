@@ -53,6 +53,14 @@ const getAuthToken = () => {
   return token;
 };
 
+const getStoredOrgId = () => {
+  const orgId = localStorage.getItem("current_organization_id");
+  if (!orgId || orgId === "null" || orgId === "undefined") {
+    return null;
+  }
+  return orgId;
+};
+
 const normalizeOrganizations = (data) => {
   if (Array.isArray(data)) {
     return data;
@@ -64,7 +72,7 @@ const normalizeOrganizations = (data) => {
 };
 
 const ensureOrganizationId = async (token) => {
-  const existingOrgId = localStorage.getItem("current_organization_id");
+  const existingOrgId = getStoredOrgId();
   if (existingOrgId || !token) {
     return existingOrgId;
   }
@@ -215,7 +223,8 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const request = async (endpoint, options = {}) => {
   const { retries = 0, retryDelay = 1000, ...fetchOptions } = options;
   const token = getAuthToken();
-  let orgId = localStorage.getItem("current_organization_id");
+  let orgId = getStoredOrgId();
+  let attemptedOrgRefresh = false;
 
   const headers = {
     "Content-Type": "application/json",
@@ -245,12 +254,45 @@ const request = async (endpoint, options = {}) => {
       const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
       return await handleResponse(response);
     } catch (error) {
+      let currentError = error;
       lastError = error;
 
+      if (currentError instanceof APIError && token && !attemptedOrgRefresh) {
+        const message = currentError.message || "";
+        const needsOrgRefresh =
+          (currentError.status === 403 &&
+            message.includes("access to this organization")) ||
+          (currentError.status === 400 &&
+            message.includes("Organization context required"));
+        if (needsOrgRefresh) {
+          attemptedOrgRefresh = true;
+          localStorage.removeItem("current_organization_id");
+          orgId = await ensureOrganizationId(token);
+          if (orgId) {
+            headers["X-Organization-Id"] = orgId;
+            config.headers = { ...headers };
+            try {
+              const retryResponse = await fetch(
+                `${API_BASE_URL}${endpoint}`,
+                config,
+              );
+              return await handleResponse(retryResponse);
+            } catch (retryError) {
+              currentError = retryError;
+              lastError = retryError;
+            }
+          }
+        }
+      }
+
       // Don't retry on client errors (4xx) except 429 (rate limit)
-      if (error instanceof APIError) {
-        if (error.status >= 400 && error.status < 500 && error.status !== 429) {
-          throw error;
+      if (currentError instanceof APIError) {
+        if (
+          currentError.status >= 400 &&
+          currentError.status < 500 &&
+          currentError.status !== 429
+        ) {
+          throw currentError;
         }
       }
 

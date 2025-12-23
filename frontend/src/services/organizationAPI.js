@@ -39,7 +39,11 @@ const getAuthHeaders = () => {
  * Get current organization ID from localStorage
  */
 export const getCurrentOrganizationId = () => {
-  return localStorage.getItem("current_organization_id");
+  const orgId = localStorage.getItem("current_organization_id");
+  if (!orgId || orgId === "null" || orgId === "undefined") {
+    return null;
+  }
+  return orgId;
 };
 
 /**
