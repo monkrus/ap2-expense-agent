@@ -140,6 +140,7 @@ async def create_organization(
     db: Session = Depends(get_db),
 ):
     """Create a new organization"""
+    logger.info(f"[CREATE_ORG] User {current_user.id} ({current_user.username}) attempting to create org: {org_data.name}")
     if settings.enable_gcp_marketplace:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -212,6 +213,38 @@ async def create_organization(
                 "field": "name",
                 "suggestions": suggestions,
                 "hint": "Names are case-insensitive. You can reuse names from deleted organizations.",
+            },
+        )
+
+    # Check organization count limit (Free tier can only create 1 organization)
+    try:
+        limit_enforcer = LimitEnforcer(db)
+        limit_enforcer.check_organization_limit(current_user.id, raise_error=True)
+    except LimitExceededError as e:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "error": "limit_exceeded",
+                "feature": e.feature,
+                "current_tier": "Free",
+                "current_limit": e.limit,
+                "current_count": e.current,
+                "message": str(e),
+                "upgrade_message": e.upgrade_message,
+                "upgrade_options": [
+                    {
+                        "tier": "Starter",
+                        "price": "$29/month",
+                        "organizations": 3,
+                        "users": 25,
+                    },
+                    {
+                        "tier": "Professional",
+                        "price": "$99/month",
+                        "organizations": 10,
+                        "users": 100,
+                    },
+                ],
             },
         )
 

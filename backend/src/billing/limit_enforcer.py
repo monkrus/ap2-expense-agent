@@ -13,7 +13,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..config import settings
-from ..models import Expense, OrganizationMember
+from ..models import Expense, Organization, OrganizationMember, OrganizationRole
 from ..models_billing import BillingTier, OrganizationSubscription, UsageMetric
 
 
@@ -291,6 +291,83 @@ class LimitEnforcer:
             return False, message
 
         return True, f"Can add users ({current_members}/{max_users})"
+
+    def check_organization_limit(
+        self, user_id: str, raise_error: bool = True
+    ) -> Tuple[bool, str]:
+        """
+        Check if user can create more organizations.
+
+        For free tier users, we need to:
+        1. Count how many organizations the user owns (is OWNER of)
+        2. Check against max_organizations limit for their tier
+        3. Raise error if limit exceeded and raise_error=True
+
+        Args:
+            user_id: ID of user attempting to create organization
+            raise_error: If True, raise LimitExceededError for Free tier
+
+        Returns: (can_create, message)
+        Raises: LimitExceededError for Free tier if raise_error=True
+        """
+
+        # Count organizations where user is OWNER
+        current_org_count = (
+            self.db.query(func.count(OrganizationMember.id.distinct()))
+            .join(Organization, OrganizationMember.organization_id == Organization.id)
+            .filter(OrganizationMember.user_id == user_id)
+            .filter(OrganizationMember.role == OrganizationRole.OWNER)
+            .filter(OrganizationMember.is_active == True)
+            .filter(Organization.is_active == True)
+            .scalar()
+            or 0
+        )
+
+        # Get user's tier limits from their first owned organization
+        # For free tier users with no orgs yet, use default free tier limits
+        user_org = (
+            self.db.query(Organization)
+            .join(OrganizationMember, OrganizationMember.organization_id == Organization.id)
+            .filter(OrganizationMember.user_id == user_id)
+            .filter(OrganizationMember.role == OrganizationRole.OWNER)
+            .filter(OrganizationMember.is_active == True)
+            .filter(Organization.is_active == True)
+            .first()
+        )
+
+        if user_org:
+            # User has an organization, get their tier from it
+            limits = self.get_org_tier(user_org.id)
+        else:
+            # New user with no organizations, assume free tier
+            limits = self._default_limits(has_subscription=False, tier_name="free")
+
+        max_orgs = limits.max_organizations
+
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[ORG_LIMIT_CHECK] user_id={user_id}, current_count={current_org_count}, max={max_orgs}, tier={limits.tier_name}")
+
+        if max_orgs is None:  # Unlimited
+            return True, "Unlimited organizations allowed"
+
+        if current_org_count >= max_orgs:
+            message = f"Organization limit reached ({current_org_count}/{max_orgs})"
+            logger.warning(f"[ORG_LIMIT_EXCEEDED] {message}, tier={limits.tier_name}, raise_error={raise_error}")
+
+            if limits.tier_name.lower() == "free" and raise_error:
+                logger.error(f"[ORG_LIMIT_ERROR] Raising LimitExceededError for user {user_id}")
+                raise LimitExceededError(
+                    feature="Organizations",
+                    limit=max_orgs,
+                    current=current_org_count,
+                    upgrade_message="Upgrade to Starter ($29/month) to create up to 3 organizations.",
+                )
+
+            return False, message
+
+        return True, f"Can create organizations ({current_org_count}/{max_orgs})"
 
     def check_expense_limit(
         self, org_id: str, raise_error: bool = True
