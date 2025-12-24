@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security - Organization Limit Bypass Fix (2025-12-24)
+
+#### MEDIUM Severity Vulnerability Patched
+
+**Issue**: Free tier users could create unlimited organizations, bypassing the 1-organization limit defined in the billing tier system.
+
+**Impact**:
+- Revenue loss from users not upgrading to paid tiers
+- Potential database bloat from unlimited organization creation
+- Business logic bypass (tier limits not enforced)
+
+**Root Cause**:
+- `create_organization` endpoint had no backend validation for organization count
+- `LimitEnforcer` service had methods for user/expense limits but not organization limits
+- Only frontend validation existed (easily bypassed via direct API calls)
+
+**Fix Implemented**:
+- ✅ Added `check_organization_limit()` method to `LimitEnforcer` service
+- ✅ Integrated limit check into organization creation endpoint
+- ✅ Returns 402 Payment Required with upgrade options when limit exceeded
+- ✅ Respects soft-deletion and multi-tenancy
+- ✅ Added debug logging for limit enforcement
+
+**Files Modified**:
+- `backend/src/billing/limit_enforcer.py` (+76 lines): New `check_organization_limit()` method
+- `backend/src/routes/organizations.py` (+31 lines): Added limit validation before creation
+
+**Testing**:
+- ✅ Automated test confirms vulnerability and fix (`test_org_limit_bypass.py`)
+- ✅ Proper 402 error response with upgrade options
+- ⏳ Manual frontend testing pending
+
+**Documentation**:
+- `SECURITY_ISSUE_ORG_LIMIT_BYPASS.md` - Complete security report (400+ lines)
+
+**Validation Order** (now correct):
+1. Check GCP Marketplace mode
+2. Clean up soft-deleted organizations with same slug
+3. Check duplicate slug (400 Bad Request)
+4. Check duplicate name (400 Bad Request)
+5. **Check organization count limit (402 Payment Required)** ← NEW
+6. Create organization
+
+**Error Response**:
+```json
+{
+  "error": "limit_exceeded",
+  "feature": "Organizations",
+  "current_tier": "Free",
+  "current_limit": 1,
+  "current_count": 1,
+  "message": "Organizations limit exceeded: 1/1...",
+  "upgrade_options": [...]
+}
+```
+
+**Reference**: See `SECURITY_ISSUE_ORG_LIMIT_BYPASS.md` for full details.
+
+---
+
 ### Added - Production Readiness & Testing Infrastructure (2025-12-23/24)
 
 #### Comprehensive Testing Infrastructure
