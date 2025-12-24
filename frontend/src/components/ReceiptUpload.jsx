@@ -102,8 +102,12 @@ const ReceiptUpload = ({ expenseId, onSuccess, onCancel }) => {
             <Upload className="w-6 h-6 text-indigo-600" />
             Upload Receipt
           </h2>
-          <button onClick={onCancel} className="p-1 hover:bg-gray-100 rounded">
-            <X className="w-6 h-6 text-gray-600" />
+          <button
+            onClick={onCancel}
+            className="p-1 hover:bg-gray-100 rounded"
+            aria-label="Close upload dialog"
+          >
+            <X className="w-6 h-6 text-gray-600" aria-hidden="true" />
           </button>
         </div>
 

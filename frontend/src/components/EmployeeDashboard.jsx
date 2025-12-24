@@ -363,14 +363,18 @@ const EmployeeDashboard = () => {
     <div
       className={`min-h-screen bg-gradient-to-br ${theme.colors.gradient} p-6`}
     >
-      <div className="max-w-6xl mx-auto">
+      {/* Skip to main content link for accessibility */}
+      <a href="#main-content" className="skip-to-content">
+        Skip to main content
+      </a>
+      <div className="max-w-6xl mx-auto" id="main-content">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                  <Receipt className={`w-8 h-8 text-${theme.colors.primary}`} />
+                  <Receipt className="w-8 h-8 text-blue-600" />
                   My Expenses
                 </h1>
                 <RoleBadge role="EMPLOYEE" showCapabilities={true} />
@@ -393,7 +397,7 @@ const EmployeeDashboard = () => {
                       user.role.slice(1).toLowerCase()
                     : "Employee"}
                 </p>
-                <p className="text-xs text-gray-400">{user?.email}</p>
+                <p className="text-xs text-gray-600">{user?.email}</p>
               </div>
               <NotificationCenter />
               <button
@@ -459,7 +463,7 @@ const EmployeeDashboard = () => {
                 </p>
               </div>
               <DollarSign
-                className={`w-10 h-10 text-${theme.colors.primary}`}
+                className="w-10 h-10 text-blue-600"
               />
             </div>
           </div>
@@ -633,7 +637,7 @@ const EmployeeDashboard = () => {
                       setNewExpense({ ...newExpense, date: e.target.value })
                     }
                     max={new Date().toISOString().split("T")[0]}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-${theme.colors.primary}`}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -653,7 +657,7 @@ const EmployeeDashboard = () => {
                     onChange={(e) =>
                       setNewExpense({ ...newExpense, amount: e.target.value })
                     }
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-${theme.colors.primary}`}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="0.00"
                     required
                   />
@@ -672,7 +676,7 @@ const EmployeeDashboard = () => {
                     onChange={(e) =>
                       setNewExpense({ ...newExpense, category: e.target.value })
                     }
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-${theme.colors.primary}`}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
                   >
                     <option value="TRAVEL">Travel</option>
@@ -697,7 +701,7 @@ const EmployeeDashboard = () => {
                     onChange={(e) =>
                       setNewExpense({ ...newExpense, vendor: e.target.value })
                     }
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-${theme.colors.primary}`}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="Vendor name"
                     required
                   />
@@ -719,7 +723,7 @@ const EmployeeDashboard = () => {
                         description: e.target.value,
                       })
                     }
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-${theme.colors.primary}`}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     rows="3"
                     placeholder="Expense description"
                     required
@@ -843,7 +847,7 @@ const EmployeeDashboard = () => {
                     <p className="text-gray-500 text-lg font-medium">
                       All caught up!
                     </p>
-                    <p className="text-gray-400 text-sm mt-2">
+                    <p className="text-gray-600 text-sm mt-2">
                       No pending expenses at the moment.
                     </p>
                   </>

@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./test.db"
     redis_url: str = "redis://localhost:6379/0"
 
-    # Database Connection Pooling
-    db_pool_size: int = 5  # Number of connections to keep open
-    db_max_overflow: int = 10  # Max connections beyond pool_size
+    # Database Connection Pooling (Scaled for production: 1000+ concurrent users)
+    db_pool_size: int = 20  # Number of connections to keep open (was 5)
+    db_max_overflow: int = 40  # Max connections beyond pool_size (was 10)
     db_pool_recycle: int = 3600  # Recycle connections after 1 hour
 
     # Data Retention (in days)

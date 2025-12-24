@@ -57,8 +57,13 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div
+            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3"
+            role="alert"
+            aria-live="polite"
+            id="login-error"
+          >
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-sm text-red-800">{error}</p>
           </div>
         )}
@@ -84,6 +89,8 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
                 placeholder="Enter your username"
                 required
                 disabled={loading}
+                aria-invalid={error ? 'true' : 'false'}
+                aria-describedby={error ? 'login-error' : undefined}
               />
             </div>
           </div>
@@ -108,17 +115,19 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
                 placeholder="Enter your password"
                 required
                 disabled={loading}
+                aria-invalid={error ? 'true' : 'false'}
+                aria-describedby={error ? 'login-error' : undefined}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                tabIndex={-1}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
+                  <EyeOff className="w-5 h-5" aria-hidden="true" />
                 ) : (
-                  <Eye className="w-5 h-5" />
+                  <Eye className="w-5 h-5" aria-hidden="true" />
                 )}
               </button>
             </div>

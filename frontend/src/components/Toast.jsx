@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { CheckCircle, XCircle, AlertCircle, Info, X } from "lucide-react";
 
 const Toast = ({ toast, onClose }) => {
@@ -23,6 +23,17 @@ const Toast = ({ toast, onClose }) => {
     info: "text-blue-800",
   };
 
+  // Auto-dismiss functionality
+  useEffect(() => {
+    if (toast.duration && toast.duration > 0) {
+      const timer = setTimeout(() => {
+        onClose(toast.id);
+      }, toast.duration);
+
+      return () => clearTimeout(timer);
+    }
+  }, [toast.id, toast.duration, onClose]);
+
   return (
     <div
       role="status"
@@ -39,9 +50,10 @@ const Toast = ({ toast, onClose }) => {
       </p>
       <button
         onClick={() => onClose(toast.id)}
+        aria-label="Close notification"
         className="text-gray-400 hover:text-gray-600 transition-colors"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" aria-hidden="true" />
       </button>
     </div>
   );
