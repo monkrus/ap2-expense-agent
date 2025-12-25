@@ -15,7 +15,8 @@ try:
         "admintest": "Testme1!",
         "testuser": "Testme1!",
         "emptest": "Testme1!",
-        "emptest2": "Testme1!"
+        "emptest2": "Testme1!",
+        "adminfree": "AdminFree123!"
     }
 
     for username, password in users_to_update.items():
@@ -23,11 +24,11 @@ try:
         if user:
             user.hashed_password = AuthService.hash_password(password)
             db.commit()
-            print(f"✅ Reset password for {username}")
+            print(f"[OK] Reset password for {username}")
         else:
-            print(f"⚠️  User {username} not found")
+            print(f"[WARN] User {username} not found")
 
-    print("\n✅ Password reset complete!")
+    print("\n[OK] Password reset complete!")
 
 finally:
     db.close()
