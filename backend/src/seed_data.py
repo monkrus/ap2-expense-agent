@@ -85,52 +85,7 @@ def seed_default_users(db: Session, force_password_reset: bool = False) -> dict:
                 seeded_users.append(new_user)
                 stats["created"] += 1
 
-        default_org = (
-            db.query(Organization)
-            .filter(Organization.slug == "default-org")
-            .first()
-        )
-        if not default_org:
-            default_org = Organization(
-                id=str(uuid.uuid4()),
-                name="Default Organization",
-                slug="default-org",
-                is_active=True,
-                created_at=datetime.utcnow(),
-            )
-            db.add(default_org)
-            db.flush()
-
-        role_mapping = {
-            UserRole.ADMIN: OrganizationRole.OWNER,
-            UserRole.MANAGER: OrganizationRole.MANAGER,
-        }
-
-        for user in seeded_users:
-            membership = (
-                db.query(OrganizationMember)
-                .filter(
-                    OrganizationMember.user_id == user.id,
-                    OrganizationMember.organization_id == default_org.id,
-                )
-                .first()
-            )
-            if membership:
-                if not membership.is_active:
-                    membership.is_active = True
-                continue
-
-            org_role = role_mapping.get(user.role, OrganizationRole.MEMBER)
-            membership = OrganizationMember(
-                id=str(uuid.uuid4()),
-                organization_id=default_org.id,
-                user_id=user.id,
-                role=org_role,
-                is_active=True,
-                joined_at=datetime.utcnow(),
-            )
-            db.add(membership)
-
+        # No default organization created - users must create their own
         db.commit()
         return stats
 

@@ -24,29 +24,37 @@ export function createAPIError(response, errorData) {
   let message = "An error occurred";
 
   if (errorData.detail) {
-    if (typeof errorData.detail === "object") {
-      // Structured detail object (e.g., 402 Payment Required)
-      message =
-        errorData.detail.message ||
-        errorData.detail.upgrade_message ||
-        errorData.detail.error ||
-        message;
-    } else if (typeof errorData.detail === "string") {
+    if (typeof errorData.detail === "string") {
       // Simple string detail
       message = errorData.detail;
     } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
-      // Validation errors array
-      const firstError = errorData.detail[0];
+      // Pydantic validation errors array
+      const errors = errorData.detail.map(err => {
+        const field = err.loc ? err.loc[err.loc.length - 1] : 'field';
+        let msg = err.msg || 'Validation error';
+
+        // Make validation messages more user-friendly
+        if (msg.includes('at least 3 characters')) {
+          msg = 'must be at least 3 characters long';
+        } else if (msg.includes('string does not match regex')) {
+          msg = 'can only contain lowercase letters, numbers, and hyphens';
+        }
+
+        return `${field}: ${msg}`;
+      });
+      message = errors.join(', ');
+    } else if (typeof errorData.detail === "object") {
+      // Structured detail object (e.g., 402 Payment Required)
       message =
-        firstError.message ||
-        firstError.msg ||
-        firstError.error ||
+        typeof errorData.detail.message === "string" ? errorData.detail.message :
+        typeof errorData.detail.upgrade_message === "string" ? errorData.detail.upgrade_message :
+        typeof errorData.detail.error === "string" ? errorData.detail.error :
         message;
     }
   } else if (errorData.message) {
-    message = errorData.message;
+    message = typeof errorData.message === "string" ? errorData.message : message;
   } else if (errorData.error) {
-    message = errorData.error;
+    message = typeof errorData.error === "string" ? errorData.error : message;
   }
 
   // Create error with message

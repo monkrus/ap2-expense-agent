@@ -231,10 +231,29 @@ const OrganizationManagement = () => {
         setShowUpgradePrompt(true);
         return
       }
+      // Handle Pydantic validation errors (422 Unprocessable Entity)
+      else if (err.status === 422 && err.data?.detail) {
+        const details = Array.isArray(err.data.detail) ? err.data.detail : [err.data.detail];
+        const errorMessages = details.map(detail => {
+          const field = detail.loc ? detail.loc[detail.loc.length - 1] : 'field';
+          let msg = detail.msg || 'Validation error';
+
+          // Make validation messages more user-friendly
+          if (msg.includes('at least 3 characters')) {
+            msg = `must be at least 3 characters long`;
+          } else if (msg.includes('string does not match regex')) {
+            msg = `can only contain lowercase letters, numbers, and hyphens`;
+          }
+
+          return `${field}: ${msg}`;
+        }).join('\n');
+
+        showError(`Validation Error:\n${errorMessages}`);
+      }
       // Handle validation errors with suggestions (400 Bad Request)
       else if (err.status === 400 && err.data) {
         const errorData = err.data;
-        let errorMessage = errorData.message || err.message;
+        let errorMessage = errorData.message || err.message || "Validation failed";
 
         // Add suggestions if available
         if (errorData.suggestions && errorData.suggestions.length > 0) {
@@ -250,7 +269,14 @@ const OrganizationManagement = () => {
 
         showError(errorMessage);
       } else {
-        showError(err.message);
+        // Fallback error handling - ensure we always show a string
+        console.error("Organization creation error:", err);
+        const errorMessage =
+          typeof err === 'string' ? err :
+          typeof err.message === 'string' ? err.message :
+          err.data?.message || err.data?.detail ||
+          "Failed to create organization. Please check your inputs and try again.";
+        showError(errorMessage);
       }
     } finally {
       setProcessing(false);
@@ -1074,12 +1100,14 @@ const OrganizationManagement = () => {
                 }`}
                 placeholder="acme-corp"
                 pattern="[a-z0-9\-]+"
-                title="Use only lowercase letters, numbers, and hyphens"
+                minLength="3"
+                maxLength="255"
+                title="Must be at least 3 characters. Use only lowercase letters, numbers, and hyphens"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
                 <strong>Auto-generated from name</strong> (you can customize
-                it). Use only lowercase letters, numbers, and hyphens. Example:
+                it). Must be at least 3 characters. Use only lowercase letters, numbers, and hyphens. Example:
                 "Corex Inc" becomes "corex-inc"
               </p>
               {/* Real-time slug validation feedback */}

@@ -362,7 +362,7 @@ class LimitEnforcer:
                     feature="Organizations",
                     limit=max_orgs,
                     current=current_org_count,
-                    upgrade_message="Upgrade to Starter ($29/month) to create up to 3 organizations.",
+                    upgrade_message="You've reached your Free plan's limit of 1 organization. Upgrade to Starter ($29/month) to create up to 3 organizations.",
                 )
 
             return False, message

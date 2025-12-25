@@ -200,6 +200,13 @@ const AdminDashboard = () => {
   }, [sortField, sortDirection]);
 
   const fetchPendingExpenses = async (isInitialLoad = false) => {
+    // Don't fetch if no organization is selected
+    const currentOrgId = organizationAPI.getCurrentOrganizationId();
+    if (!currentOrgId) {
+      setPendingExpenses([]);
+      return;
+    }
+
     try {
       // Only show loading spinner on initial load
       if (isInitialLoad) {
@@ -213,6 +220,14 @@ const AdminDashboard = () => {
       console.error("Error fetching pending expenses:", err);
       if (err instanceof APIError && err.status === 401) {
         showError("Session expired. Please login again.");
+      } else if (
+        err instanceof APIError &&
+        err.status === 400 &&
+        err.message?.includes("Organization context required")
+      ) {
+        // Silently handle - user has no organization
+        setPendingExpenses([]);
+        return;
       } else if (
         err instanceof APIError &&
         err.status === 403 &&
@@ -233,6 +248,13 @@ const AdminDashboard = () => {
   };
 
   const fetchAllExpenses = async (isInitialLoad = false) => {
+    // Don't fetch if no organization is selected
+    const currentOrgId = organizationAPI.getCurrentOrganizationId();
+    if (!currentOrgId) {
+      setAllExpenses([]);
+      return;
+    }
+
     try {
       // Only show loading spinner on initial load
       if (isInitialLoad) {
@@ -253,6 +275,14 @@ const AdminDashboard = () => {
       console.error("Error details:", err.message, err.status, err.data);
       if (err instanceof APIError && err.status === 401) {
         showError("Session expired. Please login again.");
+      } else if (
+        err instanceof APIError &&
+        err.status === 400 &&
+        err.message?.includes("Organization context required")
+      ) {
+        // Silently handle - user has no organization
+        setAllExpenses([]);
+        return;
       } else if (
         err instanceof APIError &&
         err.status === 403 &&
@@ -338,6 +368,13 @@ const AdminDashboard = () => {
   };
 
   const fetchArchivedExpenses = async (isInitialLoad = false) => {
+    // Don't fetch if no organization is selected
+    const currentOrgId = organizationAPI.getCurrentOrganizationId();
+    if (!currentOrgId) {
+      setArchivedExpenses([]);
+      return;
+    }
+
     try {
       if (isInitialLoad) {
         setLoading(true);
@@ -350,6 +387,14 @@ const AdminDashboard = () => {
       console.error("Error fetching archived expenses:", err);
       if (err instanceof APIError && err.status === 401) {
         showError("Session expired. Please login again.");
+      } else if (
+        err instanceof APIError &&
+        err.status === 400 &&
+        err.message?.includes("Organization context required")
+      ) {
+        // Silently handle - user has no organization
+        setArchivedExpenses([]);
+        return;
       } else if (
         err instanceof APIError &&
         err.status === 403 &&
