@@ -74,7 +74,44 @@ def get_organization_subscription(
     )
 
     if not subscription:
-        return {"has_subscription": False, "tier": None, "organization_id": org_id}
+        # No subscription = Free tier
+        # Get the free tier details
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"No subscription found for org {org_id}, fetching free tier")
+
+        free_tier = db.query(BillingTier).filter(BillingTier.tier_name == "free").first()
+        logger.info(f"Free tier found: {free_tier is not None}")
+
+        if not free_tier:
+            logger.warning("Free tier not found in database!")
+            return {"has_subscription": False, "tier": "free", "organization_id": org_id}
+
+        # Parse limits and features
+        limits = free_tier.limits if free_tier else {}
+        features = free_tier.features if free_tier else []
+        if isinstance(limits, str):
+            try:
+                limits = json.loads(limits)
+            except json.JSONDecodeError:
+                limits = {}
+        if isinstance(features, str):
+            try:
+                features = json.loads(features)
+            except json.JSONDecodeError:
+                features = []
+
+        return {
+            "has_subscription": False,
+            "tier": "free",
+            "tier_display_name": free_tier.display_name,
+            "tier_price": 0,
+            "status": "active",
+            "limits": limits,
+            "features": features,
+            "organization_id": org_id,
+            "is_trial": False,
+        }
 
     # Get tier details
     tier = db.query(BillingTier).filter(BillingTier.id == subscription.tier_id).first()
@@ -161,6 +198,9 @@ def get_monthly_usage(
         tier = (
             db.query(BillingTier).filter(BillingTier.id == subscription.tier_id).first()
         )
+    else:
+        # No subscription = Free tier
+        tier = db.query(BillingTier).filter(BillingTier.tier_name == "free").first()
 
     # Count active organization members
     active_members_count = (

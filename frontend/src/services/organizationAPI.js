@@ -21,19 +21,9 @@
  */
 
 import { createAPIError } from "../utils/apiErrorHandler";
+import { apiFetch } from "../utils/apiClient";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
-
-/**
- * Get authentication headers
- */
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("access_token");
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
-};
 
 /**
  * Get current organization ID from localStorage
@@ -65,9 +55,7 @@ export const setCurrentOrganizationId = (orgId) => {
  * List all organizations for current user
  */
 export const listOrganizations = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/organizations`, {
-    headers: getAuthHeaders(),
-  });
+  const response = await apiFetch(`${API_BASE_URL}/api/v1/organizations`);
 
   if (!response.ok) {
     const error = await response.json();
@@ -81,11 +69,8 @@ export const listOrganizations = async () => {
  * Get organization details
  */
 export const getOrganization = async (orgId) => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/organizations/${orgId}`,
-    {
-      headers: getAuthHeaders(),
-    },
+  const response = await apiFetch(
+    `${API_BASE_URL}/api/v1/organizations/${orgId}`
   );
 
   if (!response.ok) {
@@ -104,12 +89,8 @@ export const checkNameAvailability = async (name) => {
     return { available: false, message: "Name cannot be empty" };
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/organizations/validate/name?name=${encodeURIComponent(name)}`,
-    {
-      method: "GET",
-      headers: getAuthHeaders(),
-    },
+  const response = await apiFetch(
+    `${API_BASE_URL}/api/v1/organizations/validate/name?name=${encodeURIComponent(name)}`
   );
 
   if (!response.ok) {
@@ -127,12 +108,8 @@ export const checkSlugAvailability = async (slug) => {
     return { available: false, message: "Slug cannot be empty" };
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/organizations/validate/slug?slug=${encodeURIComponent(slug)}`,
-    {
-      method: "GET",
-      headers: getAuthHeaders(),
-    },
+  const response = await apiFetch(
+    `${API_BASE_URL}/api/v1/organizations/validate/slug?slug=${encodeURIComponent(slug)}`
   );
 
   if (!response.ok) {
@@ -146,9 +123,8 @@ export const checkSlugAvailability = async (slug) => {
  * Create new organization
  */
 export const createOrganization = async (data) => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/organizations`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/v1/organizations`, {
     method: "POST",
-    headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
 
@@ -165,13 +141,12 @@ export const createOrganization = async (data) => {
  * Update organization
  */
 export const updateOrganization = async (orgId, data) => {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/v1/organizations/${orgId}`,
     {
       method: "PATCH",
-      headers: getAuthHeaders(),
       body: JSON.stringify(data),
-    },
+    }
   );
 
   if (!response.ok) {
@@ -186,12 +161,11 @@ export const updateOrganization = async (orgId, data) => {
  * Delete organization
  */
 export const deleteOrganization = async (orgId) => {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/v1/organizations/${orgId}`,
     {
       method: "DELETE",
-      headers: getAuthHeaders(),
-    },
+    }
   );
 
   if (!response.ok) {
@@ -210,11 +184,8 @@ export const deleteOrganization = async (orgId) => {
  * List organization members
  */
 export const listMembers = async (orgId) => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/organizations/${orgId}/members`,
-    {
-      headers: getAuthHeaders(),
-    },
+  const response = await apiFetch(
+    `${API_BASE_URL}/api/v1/organizations/${orgId}/members`
   );
 
   if (!response.ok) {
@@ -229,13 +200,12 @@ export const listMembers = async (orgId) => {
  * Update member role
  */
 export const updateMemberRole = async (orgId, memberId, role) => {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/v1/organizations/${orgId}/members/${memberId}/role`,
     {
       method: "PATCH",
-      headers: getAuthHeaders(),
       body: JSON.stringify({ role }),
-    },
+    }
   );
 
   if (!response.ok) {
@@ -250,12 +220,11 @@ export const updateMemberRole = async (orgId, memberId, role) => {
  * Remove member from organization
  */
 export const removeMember = async (orgId, memberId) => {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/v1/organizations/${orgId}/members/${memberId}`,
     {
       method: "DELETE",
-      headers: getAuthHeaders(),
-    },
+    }
   );
 
   if (!response.ok) {
@@ -274,11 +243,8 @@ export const removeMember = async (orgId, memberId) => {
  * List pending invitations
  */
 export const listInvitations = async (orgId) => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/organizations/${orgId}/invitations`,
-    {
-      headers: getAuthHeaders(),
-    },
+  const response = await apiFetch(
+    `${API_BASE_URL}/api/v1/organizations/${orgId}/invitations`
   );
 
   if (!response.ok) {
@@ -293,13 +259,12 @@ export const listInvitations = async (orgId) => {
  * Create invitation
  */
 export const createInvitation = async (orgId, email, role = "member") => {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/v1/organizations/${orgId}/invitations`,
     {
       method: "POST",
-      headers: getAuthHeaders(),
       body: JSON.stringify({ email, role }),
-    },
+    }
   );
 
   if (!response.ok) {
@@ -315,12 +280,11 @@ export const createInvitation = async (orgId, email, role = "member") => {
  * Revoke invitation
  */
 export const revokeInvitation = async (orgId, invitationId) => {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/v1/organizations/${orgId}/invitations/${invitationId}`,
     {
       method: "DELETE",
-      headers: getAuthHeaders(),
-    },
+    }
   );
 
   if (!response.ok) {
@@ -335,12 +299,11 @@ export const revokeInvitation = async (orgId, invitationId) => {
  * Accept invitation
  */
 export const acceptInvitation = async (token) => {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/v1/organizations/invitations/${token}/accept`,
     {
       method: "POST",
-      headers: getAuthHeaders(),
-    },
+    }
   );
 
   if (!response.ok) {

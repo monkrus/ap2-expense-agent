@@ -3,18 +3,9 @@
  * Handles billing, usage tracking, and subscription management
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+import { apiFetch } from "../utils/apiClient";
 
-/**
- * Get authentication headers
- */
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("access_token");
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
-};
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 // ============================================================================
 // Usage Tracking
@@ -27,9 +18,8 @@ const getAuthHeaders = () => {
  * @param {object} metadata - Optional metadata
  */
 export const trackUsage = async (usageType, quantity = 1, metadata = null) => {
-  const response = await fetch(`${API_BASE_URL}/api/billing/org/usage/track`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/billing/org/usage/track`, {
     method: "POST",
-    headers: getAuthHeaders(),
     body: JSON.stringify({
       usage_type: usageType,
       quantity,
@@ -53,9 +43,7 @@ export const getMonthlyUsage = async (usageType = null) => {
   // Use organization-based endpoint
   const url = `${API_BASE_URL}/api/billing/org/usage/monthly`;
 
-  const response = await fetch(url, {
-    headers: getAuthHeaders(),
-  });
+  const response = await apiFetch(url);
 
   if (!response.ok) {
     const error = await response.json();
@@ -70,11 +58,8 @@ export const getMonthlyUsage = async (usageType = null) => {
  * @param {string} usageType - Usage type to check
  */
 export const checkUsageLimit = async (usageType) => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/billing/org/usage/check-limit/${usageType}`,
-    {
-      headers: getAuthHeaders(),
-    },
+  const response = await apiFetch(
+    `${API_BASE_URL}/api/billing/org/usage/check-limit/${usageType}`
   );
 
   if (!response.ok) {
@@ -94,9 +79,7 @@ export const checkUsageLimit = async (usageType) => {
  */
 export const getSubscription = async () => {
   // Use organization-based endpoint
-  const response = await fetch(`${API_BASE_URL}/api/billing/org/subscription`, {
-    headers: getAuthHeaders(),
-  });
+  const response = await apiFetch(`${API_BASE_URL}/api/billing/org/subscription`);
 
   if (!response.ok) {
     const error = await response.json();
@@ -115,9 +98,7 @@ export const getSubscription = async () => {
  */
 export const getAllTiers = async () => {
   // Use organization-based endpoint
-  const response = await fetch(`${API_BASE_URL}/api/billing/org/tiers`, {
-    headers: getAuthHeaders(),
-  });
+  const response = await apiFetch(`${API_BASE_URL}/api/billing/org/tiers`);
 
   if (!response.ok) {
     const error = await response.json();
@@ -132,9 +113,7 @@ export const getAllTiers = async () => {
  * @param {string} tier - Tier name
  */
 export const getTierInfo = async (tier) => {
-  const response = await fetch(`${API_BASE_URL}/api/billing/org/tiers/${tier}`, {
-    headers: getAuthHeaders(),
-  });
+  const response = await apiFetch(`${API_BASE_URL}/api/billing/org/tiers/${tier}`);
 
   if (!response.ok) {
     const error = await response.json();

@@ -45,6 +45,8 @@ const OrganizationManagement = () => {
   const [showEditOrgModal, setShowEditOrgModal] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [upgradeTierInfo, setUpgradeTierInfo] = useState(null);
+  const [showValidationError, setShowValidationError] = useState(false);
+  const [validationErrorInfo, setValidationErrorInfo] = useState(null);
 
   // Forms
   const [createOrgForm, setCreateOrgForm] = useState({
@@ -252,22 +254,25 @@ const OrganizationManagement = () => {
       }
       // Handle validation errors with suggestions (400 Bad Request)
       else if (err.status === 400 && err.data) {
-        const errorData = err.data;
-        let errorMessage = errorData.message || err.message || "Validation failed";
+        // Extract error data (wrapped in "detail" by backend)
+        const errorData = err.data.detail || err.data;
 
-        // Add suggestions if available
-        if (errorData.suggestions && errorData.suggestions.length > 0) {
-          errorMessage +=
-            "\n\nSuggestions:\n" +
-            errorData.suggestions.map((s) => `  • ${s}`).join("\n");
-        }
+        // Store validation error info for modal
+        setValidationErrorInfo({
+          error: errorData.error || "validation_error",
+          message: errorData.message || err.message || "Validation failed",
+          field: errorData.field || "unknown",
+          suggestions: errorData.suggestions || [],
+          hint: errorData.hint || null,
+          requirement: errorData.requirement || null,
+        });
 
-        // Add hint if available
-        if (errorData.hint) {
-          errorMessage += "\n\n" + errorData.hint;
-        }
+        // Close create modal
+        setShowCreateOrgModal(false);
 
-        showError(errorMessage);
+        // Show validation error modal
+        setShowValidationError(true);
+        return;
       } else {
         // Fallback error handling - ensure we always show a string
         console.error("Organization creation error:", err);
@@ -1633,6 +1638,71 @@ const OrganizationManagement = () => {
           upgradeTierInfo?.upgradeOptions?.next_tier || "Starter"
         }
       />
+
+      {/* Validation Error Modal */}
+      {showValidationError && validationErrorInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-yellow-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Validation Error
+                  </h3>
+                  <p className="text-gray-700 mb-4">
+                    {validationErrorInfo.message}
+                  </p>
+
+                  {/* Hint */}
+                  {validationErrorInfo.hint && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-blue-800">
+                        <strong>Tip:</strong> {validationErrorInfo.hint}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Suggestions */}
+                  {validationErrorInfo.suggestions && validationErrorInfo.suggestions.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Suggestions:
+                      </p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {validationErrorInfo.suggestions.map((suggestion, idx) => (
+                          <li key={idx} className="text-sm text-gray-600">
+                            {suggestion}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Requirement */}
+                  {validationErrorInfo.requirement && (
+                    <div className="text-sm text-gray-600 mb-4">
+                      <strong>Requirement:</strong> {validationErrorInfo.requirement}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setShowValidationError(false);
+                      setShowCreateOrgModal(true); // Reopen create modal so user can fix
+                    }}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  >
+                    Got it, let me fix that
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
