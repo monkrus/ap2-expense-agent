@@ -64,6 +64,81 @@ describe("API Error Handler", () => {
       expect(error.is401Unauthorized()).toBe(false);
       expect(error.is403Forbidden()).toBe(false);
     });
+
+    it("should parse new error format with error object (422 validation)", () => {
+      const mockResponse = { status: 422 };
+      const mockErrorData = {
+        error: {
+          message: "Request validation failed",
+          code: "VALIDATION_ERROR",
+          status: 422,
+          details: {
+            errors: [
+              {
+                field: "body.slug",
+                message: "String should have at least 3 characters",
+                type: "string_too_short",
+              },
+            ],
+          },
+        },
+      };
+
+      const error = createAPIError(mockResponse, mockErrorData);
+
+      expect(error).toBeInstanceOf(Error);
+      expect(error.status).toBe(422);
+      expect(error.data).toEqual(mockErrorData);
+      expect(error.message).toBe("slug: must be at least 3 characters long");
+      expect(error.is422ValidationError()).toBe(true);
+    });
+
+    it("should parse multiple validation errors", () => {
+      const mockResponse = { status: 422 };
+      const mockErrorData = {
+        error: {
+          message: "Request validation failed",
+          code: "VALIDATION_ERROR",
+          status: 422,
+          details: {
+            errors: [
+              {
+                field: "body.slug",
+                message: "String should have at least 3 characters",
+                type: "string_too_short",
+              },
+              {
+                field: "body.name",
+                message: "Field required",
+                type: "missing",
+              },
+            ],
+          },
+        },
+      };
+
+      const error = createAPIError(mockResponse, mockErrorData);
+
+      expect(error.message).toContain("slug:");
+      expect(error.message).toContain("name:");
+      expect(error.message).toContain(",");
+    });
+
+    it("should handle new error format without validation errors", () => {
+      const mockResponse = { status: 400 };
+      const mockErrorData = {
+        error: {
+          message: "Invalid request",
+          code: "BAD_REQUEST",
+          status: 400,
+        },
+      };
+
+      const error = createAPIError(mockResponse, mockErrorData);
+
+      expect(error.message).toBe("Invalid request");
+      expect(error.status).toBe(400);
+    });
   });
 
   describe("isTierLimitError", () => {

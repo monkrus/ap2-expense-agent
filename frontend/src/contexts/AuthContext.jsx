@@ -2,6 +2,9 @@ import React, { createContext, useState, useContext, useEffect } from "react";
 
 const AuthContext = createContext(null);
 
+// Export AuthContext for testing
+export { AuthContext };
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

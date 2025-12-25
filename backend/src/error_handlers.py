@@ -220,8 +220,10 @@ async def http_exception_handler(
     )
 
     # Return standard FastAPI format with "detail" for compatibility
+    # If detail is already a dict/list, keep it structured; otherwise convert to string
+    detail_content = exc.detail if isinstance(exc.detail, (dict, list)) else str(exc.detail)
     return JSONResponse(
-        status_code=exc.status_code, content={"detail": str(exc.detail)}
+        status_code=exc.status_code, content={"detail": detail_content}
     )
 
 
