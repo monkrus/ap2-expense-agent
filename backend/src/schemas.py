@@ -156,7 +156,8 @@ class OAuth2TokenResponse(BaseModel):
 
 class OrganizationCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    slug: str = Field(..., min_length=3, max_length=255, pattern="^[a-z0-9-]+$")
+    # Note: min_length validation removed - custom validation in route provides better error message
+    slug: str = Field(..., max_length=255, pattern="^[a-z0-9-]+$")
     description: Optional[str] = None
     currency: Optional[str] = "USD"
     timezone: Optional[str] = "UTC"

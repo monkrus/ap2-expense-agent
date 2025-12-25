@@ -129,8 +129,15 @@ class TestOrganizationCreation:
             headers=auth_headers
         )
 
-        assert response.status_code == 422
-        assert "error" in response.json()
+        assert response.status_code == 400
+        response_data = response.json()
+        assert "detail" in response_data
+        error_data = response_data["detail"]
+        assert error_data["error"] == "slug_too_short"
+        assert "Organization Name must be at least 1 character" in error_data["message"]
+        assert "Organization ID must be at least 3 characters" in error_data["message"]
+        assert error_data["field"] == "slug"
+        assert "hint" in error_data
 
     def test_create_organization_invalid_slug_format(self, client, auth_headers):
         """Test organization creation with invalid slug characters"""
@@ -492,11 +499,16 @@ class TestValidationErrorMessages:
             headers=auth_headers
         )
 
-        assert response.status_code == 422
-        error_data = response.json()
-        assert "error" in error_data
-        # Error should contain validation details
-        assert "details" in error_data["error"]
+        assert response.status_code == 400
+        response_data = response.json()
+        assert "detail" in response_data
+        error_data = response_data["detail"]
+        # Verify friendly error message format includes both rules
+        assert error_data["error"] == "slug_too_short"
+        assert "Organization Name must be at least 1 character" in error_data["message"]
+        assert "Organization ID must be at least 3 characters" in error_data["message"]
+        assert error_data["field"] == "slug"
+        assert "hint" in error_data
 
     def test_duplicate_name_provides_suggestions(self, client, auth_headers):
         """Test that duplicate name error provides suggestions"""

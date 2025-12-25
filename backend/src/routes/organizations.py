@@ -147,6 +147,20 @@ async def create_organization(
             detail="Organizations are provisioned via Google Cloud Marketplace.",
         )
 
+    # Validate slug length (must be at least 3 characters)
+    if len(org_data.slug) < 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "slug_too_short",
+                "message": "Organization Name must be at least 1 character and Organization ID must be at least 3 characters long.",
+                "field": "slug",
+                "requirement": "Name: min 1 character, ID: min 3 characters",
+                "current_length": len(org_data.slug),
+                "hint": "Use lowercase letters, numbers, and hyphens for the ID. Example: 'acme-corp' or 'my-team'",
+            },
+        )
+
     # Clean up any soft-deleted organizations with the same slug
     # This prevents UNIQUE constraint violations while allowing slug reuse
     soft_deleted_with_slug = (
