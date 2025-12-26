@@ -49,7 +49,6 @@ import AIAssistant from "../pages/AIAssistant";
 import RecurringExpenses from "../pages/RecurringExpenses";
 import BudgetManagement from "../pages/BudgetManagement";
 import NotificationCenter from "./NotificationCenter";
-import BatchReceiptUpload from "./BatchReceiptUpload";
 import { UpgradeBanner, UsageLimitWarning, SidebarUpgradeCard } from "./upsell";
 
 const AdminDashboard = () => {
@@ -78,7 +77,6 @@ const AdminDashboard = () => {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showReceiptUpload, setShowReceiptUpload] = useState(false);
   const [showReceiptList, setShowReceiptList] = useState(false);
-  const [showBatchUpload, setShowBatchUpload] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [rejectingExpense, setRejectingExpense] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -1021,30 +1019,10 @@ const AdminDashboard = () => {
                   <Key className="w-4 h-4" />
                   Change Password
                 </button>
-                <button
-                  onClick={() => setShowBatchUpload(true)}
-                  title="Batch Upload"
-                  className="flex items-center gap-2 px-3 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium text-sm whitespace-nowrap"
-                >
-                  <Upload className="w-4 h-4" />
-                  Batch Upload
-                </button>
               </div>
 
               {/* Right side - System actions */}
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    if (activeTab === "pending") fetchPendingExpenses();
-                    else if (activeTab === "archived") fetchArchivedExpenses();
-                    else fetchAllExpenses();
-                  }}
-                  disabled={loading}
-                  title="Refresh Data"
-                  className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm disabled:opacity-50 whitespace-nowrap"
-                >
-                  {loading ? "Refreshing..." : "Refresh"}
-                </button>
                 <NotificationCenter />
                 <button
                   onClick={async () => {
@@ -2284,20 +2262,6 @@ const AdminDashboard = () => {
                 setShowReceiptList(false);
                 setSelectedExpense(null);
               }}
-            />
-          )}
-
-          {/* Batch Receipt Upload Modal */}
-          {showBatchUpload && (
-            <BatchReceiptUpload
-              onSuccess={() => {
-                setShowBatchUpload(false);
-                // Refresh expenses after successful batch upload
-                fetchPendingExpenses();
-                fetchAllExpenses();
-                fetchDashboardStats();
-              }}
-              onCancel={() => setShowBatchUpload(false)}
             />
           )}
         </div>

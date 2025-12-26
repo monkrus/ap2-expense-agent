@@ -56,10 +56,11 @@ const NotificationCenter = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setNotifications(data);
+        setNotifications(data.notifications || []);
       }
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
+      setNotifications([]); // Fallback to empty array on error
     } finally {
       setLoading(false);
     }

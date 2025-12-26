@@ -37,8 +37,8 @@ const ChangePassword = ({ onClose, onSuccess }) => {
 
     try {
       const token = localStorage.getItem("access_token");
-      const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1";
-      const response = await fetch(`${API_BASE_URL}/users/me/change-password`, {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const response = await fetch(`${API_BASE_URL}/api/v1/users/me/change-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
