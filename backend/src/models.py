@@ -261,6 +261,9 @@ class User(Base):
     sessions = relationship(
         "Session", back_populates="user", cascade="all, delete-orphan"
     )
+    notifications = relationship(
+        "Notification", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class RefreshToken(Base):
@@ -943,4 +946,65 @@ class ApprovalPolicy(Base):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "created_by": self.created_by,
             "updated_by": self.updated_by,
+        }
+
+
+class NotificationType(str, enum.Enum):
+    """Notification types for different events"""
+    EXPENSE_SUBMITTED = "expense_submitted"
+    EXPENSE_APPROVED = "expense_approved"
+    EXPENSE_REJECTED = "expense_rejected"
+    RECURRING_SUBMITTED = "recurring_submitted"
+    RECURRING_REMINDER = "recurring_reminder"
+    COMMENT_ADDED = "comment_added"
+    BUDGET_THRESHOLD = "budget_threshold"
+
+
+class Notification(Base):
+    """
+    In-app notifications for users
+    """
+    __tablename__ = "notifications"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    organization_id = Column(String(36), ForeignKey("organizations.id"), nullable=True, index=True)
+
+    notification_type = Column(StringEnum(NotificationType), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+
+    # Optional reference to related entities
+    expense_id = Column(String(36), ForeignKey("expenses.id"), nullable=True)
+    recurring_template_id = Column(String(36), ForeignKey("recurring_expense_templates.id"), nullable=True)
+
+    # Metadata
+    is_read = Column(Boolean, default=False, nullable=False, index=True)
+    read_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    # Relationships
+    user = relationship("User", back_populates="notifications")
+    organization = relationship("Organization")
+    expense = relationship("Expense")
+    recurring_template = relationship("RecurringExpenseTemplate")
+
+    def __repr__(self):
+        return f"<Notification {self.id} - {self.notification_type} for User {self.user_id}>"
+
+    def to_dict(self):
+        """Convert to dictionary for API responses"""
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "organization_id": self.organization_id,
+            "notification_type": self.notification_type,
+            "title": self.title,
+            "message": self.message,
+            "expense_id": self.expense_id,
+            "recurring_template_id": self.recurring_template_id,
+            "is_read": self.is_read,
+            "read_at": self.read_at.isoformat() if self.read_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }

@@ -22,6 +22,8 @@ from ..database import get_db
 from ..models import (
     Expense,
     ExpenseStatus,
+    Notification,
+    NotificationType,
     Organization,
     OrganizationMember,
     User,
@@ -217,6 +219,41 @@ async def create_expense(
     # MANUAL APPROVAL REQUIRED (or auto-approval failed)
     db.commit()
     db.refresh(expense)
+
+    # Create notifications for admins/managers
+    try:
+        # Get all admins and managers in the organization
+        admin_members = (
+            db.query(OrganizationMember)
+            .filter(OrganizationMember.organization_id == org_id)
+            .filter(OrganizationMember.role.in_(["admin", "owner", "manager"]))
+            .filter(OrganizationMember.is_active == True)
+            .all()
+        )
+
+        # Create notification for each admin/manager
+        for member in admin_members:
+            # Don't notify the person who submitted (if they're also an admin)
+            if member.user_id == current_user.id:
+                continue
+
+            notification = Notification(
+                id=str(uuid.uuid4()),
+                user_id=member.user_id,
+                organization_id=org_id,
+                notification_type=NotificationType.EXPENSE_SUBMITTED,
+                title="New Expense Submitted",
+                message=f"{current_user.full_name or current_user.username} submitted a ${float(expense.amount):.2f} expense for {expense.vendor or 'Unknown vendor'} - awaiting approval",
+                expense_id=expense.id,
+                is_read=False,
+                created_at=datetime.utcnow()
+            )
+            db.add(notification)
+
+        db.commit()
+    except Exception as e:
+        # Log error but don't fail the request
+        print(f"Failed to create admin notifications: {str(e)}")
 
     return {
         "id": expense.id,
@@ -727,6 +764,26 @@ async def approve_expense(
     db.commit()
     db.refresh(expense)
 
+    # Create in-app notification for expense owner
+    try:
+        if expense_owner:
+            notification = Notification(
+                id=str(uuid.uuid4()),
+                user_id=expense_owner.id,
+                organization_id=org_id,
+                notification_type=NotificationType.EXPENSE_APPROVED,
+                title=f"Expense Approved",
+                message=f"Your expense of ${float(expense.amount):.2f} for {expense.vendor or 'Unknown vendor'} has been approved by {current_user.full_name or current_user.username}.",
+                expense_id=expense.id,
+                is_read=False,
+                created_at=datetime.utcnow()
+            )
+            db.add(notification)
+            db.commit()
+    except Exception as e:
+        # Log error but don't fail the approval
+        print(f"Failed to create in-app notification: {str(e)}")
+
     # Send approval notification email to expense owner
     try:
         if expense_owner and expense_owner.email:
@@ -821,6 +878,27 @@ async def reject_expense(
 
     db.commit()
     db.refresh(expense)
+
+    # Create in-app notification for expense owner
+    try:
+        expense_owner = db.query(User).filter(User.id == expense.user_id).first()
+        if expense_owner:
+            notification = Notification(
+                id=str(uuid.uuid4()),
+                user_id=expense_owner.id,
+                organization_id=org_id,
+                notification_type=NotificationType.EXPENSE_REJECTED,
+                title=f"Expense Rejected",
+                message=f"Your expense of ${float(expense.amount):.2f} for {expense.vendor or 'Unknown vendor'} was rejected by {current_user.full_name or current_user.username}. Reason: {reason}",
+                expense_id=expense.id,
+                is_read=False,
+                created_at=datetime.utcnow()
+            )
+            db.add(notification)
+            db.commit()
+    except Exception as e:
+        # Log error but don't fail the rejection
+        print(f"Failed to create in-app notification: {str(e)}")
 
     # Send rejection notification email to expense owner
     try:

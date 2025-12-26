@@ -9,7 +9,13 @@ from sqlalchemy.orm import Session
 from ..auth import AuthService, require_admin, require_manager
 from ..database import get_db
 from ..maintenance import DataRetentionService
-from ..models import Organization, User, UserRole
+from ..models import (
+    Organization,
+    OrganizationMember,
+    OrganizationRole,
+    User,
+    UserRole,
+)
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 

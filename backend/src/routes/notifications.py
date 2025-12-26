@@ -5,13 +5,14 @@ Handles notification creation, retrieval, and management
 
 from datetime import datetime, timedelta
 from typing import Optional
+import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_active_user
 from ..database import get_db
-from ..models import User
+from ..models import User, Notification, NotificationType
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
@@ -25,16 +26,31 @@ async def get_notifications(
 ):
     """
     Get notifications for the current user
-
-    This is a placeholder endpoint that returns an empty list.
-    In a production system, this would query a notifications table.
     """
-    # TODO: Implement actual notification storage and retrieval
-    # For now, return empty list to prevent frontend errors
+    query = db.query(Notification).filter(Notification.user_id == current_user.id)
+
+    if unread_only:
+        query = query.filter(Notification.is_read == False)
+
+    # Order by most recent first
+    notifications = (
+        query.order_by(Notification.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    # Get unread count
+    unread_count = (
+        db.query(Notification)
+        .filter(Notification.user_id == current_user.id)
+        .filter(Notification.is_read == False)
+        .count()
+    )
+
     return {
-        "notifications": [],
-        "total_count": 0,
-        "unread_count": 0,
+        "notifications": [n.to_dict() for n in notifications],
+        "total_count": len(notifications),
+        "unread_count": unread_count,
     }
 
 
@@ -45,13 +61,15 @@ async def get_unread_count(
 ):
     """
     Get count of unread notifications for the current user
-
-    This is a placeholder endpoint that returns 0.
-    In a production system, this would query a notifications table.
     """
-    # TODO: Implement actual notification counting
-    # For now, return 0 to prevent frontend errors
-    return {"unread_count": 0}
+    unread_count = (
+        db.query(Notification)
+        .filter(Notification.user_id == current_user.id)
+        .filter(Notification.is_read == False)
+        .count()
+    )
+
+    return {"unread_count": unread_count}
 
 
 @router.post("/{notification_id}/read")
@@ -62,11 +80,25 @@ async def mark_notification_read(
 ):
     """
     Mark a notification as read
-
-    This is a placeholder endpoint.
-    In a production system, this would update the notification in the database.
     """
-    # TODO: Implement actual notification update
+    notification = (
+        db.query(Notification)
+        .filter(Notification.id == notification_id)
+        .filter(Notification.user_id == current_user.id)
+        .first()
+    )
+
+    if not notification:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notification not found"
+        )
+
+    if not notification.is_read:
+        notification.is_read = True
+        notification.read_at = datetime.utcnow()
+        db.commit()
+
     return {"success": True, "message": "Notification marked as read"}
 
 
@@ -77,12 +109,23 @@ async def mark_all_notifications_read(
 ):
     """
     Mark all notifications as read for the current user
-
-    This is a placeholder endpoint.
-    In a production system, this would update all unread notifications in the database.
     """
-    # TODO: Implement actual bulk notification update
-    return {"success": True, "message": "All notifications marked as read"}
+    unread_notifications = (
+        db.query(Notification)
+        .filter(Notification.user_id == current_user.id)
+        .filter(Notification.is_read == False)
+        .all()
+    )
+
+    count = 0
+    for notification in unread_notifications:
+        notification.is_read = True
+        notification.read_at = datetime.utcnow()
+        count += 1
+
+    db.commit()
+
+    return {"success": True, "message": f"Marked {count} notifications as read"}
 
 
 @router.delete("/{notification_id}")
@@ -93,9 +136,21 @@ async def delete_notification(
 ):
     """
     Delete a notification
-
-    This is a placeholder endpoint.
-    In a production system, this would delete the notification from the database.
     """
-    # TODO: Implement actual notification deletion
+    notification = (
+        db.query(Notification)
+        .filter(Notification.id == notification_id)
+        .filter(Notification.user_id == current_user.id)
+        .first()
+    )
+
+    if not notification:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notification not found"
+        )
+
+    db.delete(notification)
+    db.commit()
+
     return {"success": True, "message": "Notification deleted"}
