@@ -18,9 +18,13 @@ import { useToast } from "../hooks/useToast";
 import billingAPI from "../services/billingAPI";
 import organizationAPI from "../services/organizationAPI";
 
-const MARKETPLACE_URL =
+// GCP Marketplace URLs
+const MARKETPLACE_PRODUCT_URL =
   import.meta.env.VITE_GCP_MARKETPLACE_URL ||
   "https://console.cloud.google.com/marketplace";
+
+const MARKETPLACE_SUBSCRIPTIONS_URL =
+  "https://console.cloud.google.com/marketplace/subscriptions";
 
 /**
  * Billing Dashboard
@@ -41,6 +45,16 @@ const BillingDashboard = () => {
   const [usage, setUsage] = useState(null);
   const [organization, setOrganization] = useState(null);
   const [tiers, setTiers] = useState([]);
+
+  // Determine correct marketplace URL based on subscription status
+  const getMarketplaceURL = () => {
+    if (subscription?.gcp_entitlement_id) {
+      // User has GCP subscription - send to subscriptions page
+      return MARKETPLACE_SUBSCRIPTIONS_URL;
+    }
+    // No subscription - send to product page to subscribe
+    return MARKETPLACE_PRODUCT_URL;
+  };
 
   useEffect(() => {
     loadBillingData();
@@ -135,11 +149,11 @@ const BillingDashboard = () => {
   };
 
   const handleUpgrade = (tierName) => {
-    window.open(MARKETPLACE_URL, "_blank");
+    window.open(getMarketplaceURL(), "_blank");
   };
 
   const getUsagePercentage = (current, limit) => {
-    if (!limit || limit === null) return 0; // Unlimited
+    if (!limit || limit === null || limit === -1) return 0; // Unlimited
     return Math.min((current / limit) * 100, 100);
   };
 
@@ -165,7 +179,8 @@ const BillingDashboard = () => {
     unit = "",
   }) => {
     const percentage = getUsagePercentage(current, limit);
-    const isUnlimited = limit === null || limit === undefined;
+    const isUnlimited = limit === null || limit === undefined || limit === -1;
+    const isNotAvailable = limit === 0;
 
     return (
       <div className="bg-white p-6 rounded-lg border border-gray-200">
@@ -173,9 +188,15 @@ const BillingDashboard = () => {
           <div>
             <h3 className="font-semibold text-gray-900">{label}</h3>
             <p className="text-sm text-gray-500 mt-1">
-              {current?.toLocaleString() || 0} {unit}
-              {!isUnlimited && ` / ${limit?.toLocaleString()} ${unit}`}
-              {isUnlimited && " (Unlimited)"}
+              {isNotAvailable ? (
+                <span className="text-gray-400 italic">Manual only - Not available on this plan</span>
+              ) : (
+                <>
+                  {current?.toLocaleString() || 0} {unit}
+                  {!isUnlimited && ` / ${limit?.toLocaleString()} ${unit}`}
+                  {isUnlimited && " (Unlimited)"}
+                </>
+              )}
             </p>
           </div>
           {overage > 0 && (
@@ -185,7 +206,7 @@ const BillingDashboard = () => {
           )}
         </div>
 
-        {!isUnlimited && (
+        {!isUnlimited && !isNotAvailable && (
           <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
             <div
               className={`h-2 rounded-full transition-all ${getProgressBarColor(percentage)}`}
@@ -194,9 +215,19 @@ const BillingDashboard = () => {
           </div>
         )}
 
+        {isNotAvailable && (
+          <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
+            <div className="h-2 rounded-full bg-gray-300" style={{ width: "0%" }} />
+          </div>
+        )}
+
         <div className="flex justify-between items-center text-sm">
           <span className="text-gray-600">
-            {isUnlimited ? "∞ Unlimited" : `${percentage.toFixed(1)}% used`}
+            {isNotAvailable
+              ? "Upgrade to enable"
+              : isUnlimited
+                ? "∞ Unlimited"
+                : `${percentage.toFixed(1)}% used`}
           </span>
           {overageFee > 0 && (
             <span className="text-orange-600 font-medium">
@@ -329,7 +360,7 @@ const BillingDashboard = () => {
             </div>
 
             <a
-              href={MARKETPLACE_URL}
+              href={getMarketplaceURL()}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
@@ -354,7 +385,7 @@ const BillingDashboard = () => {
               {usage?.usage?.active_users?.quantity || 0}
             </p>
             <p className="text-xs text-gray-500 mt-2">
-              Limit: {subscription?.limits?.max_users || "Unlimited"}
+              Limit: {subscription?.limits?.max_users === -1 || subscription?.limits?.max_users == null ? "Unlimited" : subscription?.limits?.max_users}
             </p>
           </div>
 
@@ -366,10 +397,19 @@ const BillingDashboard = () => {
               <BarChart3 className="w-5 h-5 text-blue-500" />
             </div>
             <p className="text-gray-600 text-sm mb-1">AI Categorizations</p>
-            <p className="text-3xl font-bold text-gray-900">
-              {usage?.usage?.ai_categorization?.quantity || 0}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">This month</p>
+            {subscription?.limits?.max_ai_categorizations === 0 ? (
+              <>
+                <p className="text-2xl font-bold text-gray-400">Manual only</p>
+                <p className="text-xs text-gray-500 mt-2">Not available on Free plan</p>
+              </>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-gray-900">
+                  {usage?.usage?.ai_categorization?.quantity || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-2">This month</p>
+              </>
+            )}
           </div>
 
           <div className="bg-white p-6 rounded-lg border border-gray-200">
@@ -450,7 +490,7 @@ const BillingDashboard = () => {
           </h2>
 
           <div className="space-y-4">
-            <div className="flex justify-between items-center pb-4 border-b">
+            <div className="flex justify-between items-center pb-4">
               <span className="text-gray-700">Base Subscription</span>
               <span className="text-2xl font-bold text-gray-900">
                 ${estimatedBill.toFixed(2)}
@@ -547,21 +587,21 @@ const BillingDashboard = () => {
                     <ul className="space-y-2 mb-6 text-sm">
                       <li className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-green-500" />
-                        {tier.limits?.max_users == null
+                        {tier.limits?.max_users == null || tier.limits?.max_users === -1
                           ? "Unlimited"
                           : tier.limits.max_users}{" "}
                         users
                       </li>
                       <li className="flex items-center gap-2">
                         <Zap className="w-4 h-4 text-green-500" />
-                        {tier.limits?.max_ai_categorizations == null
+                        {tier.limits?.max_ai_categorizations == null || tier.limits?.max_ai_categorizations === -1
                           ? "Unlimited"
                           : tier.limits.max_ai_categorizations.toLocaleString()}{" "}
                         AI categorizations
                       </li>
                       <li className="flex items-center gap-2">
                         <CreditCard className="w-4 h-4 text-green-500" />
-                        {tier.limits?.max_ap2_transactions == null
+                        {tier.limits?.max_ap2_transactions == null || tier.limits?.max_ap2_transactions === -1
                           ? "Unlimited"
                           : tier.limits.max_ap2_transactions}{" "}
                         AP2 transactions
@@ -598,49 +638,43 @@ const BillingDashboard = () => {
         <div className="flex gap-4 mt-8">
           <button
             onClick={() => {
-              // Generate billing report as CSV
+              // Helper function to properly escape CSV fields
+              const escapeCSV = (field) => {
+                if (field === null || field === undefined) return '""';
+                const str = String(field);
+                // Wrap in quotes if contains comma, newline, or quote
+                if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+                  return `"${str.replace(/"/g, '""')}"`;
+                }
+                return `"${str}"`;
+              };
+
+              // Generate billing report as CSV with proper formatting
               const reportData = [
-                ["AP2 Expense Agent - Billing Report"],
+                ["AP2 Expense Agent - Billing Report", ""],
                 ["Generated", new Date().toLocaleString()],
                 ["Organization", organization?.name || "N/A"],
-                [""],
-                ["Current Plan"],
-                [
-                  "Tier",
-                  subscription?.tier_display_name ||
-                    subscription?.tier ||
-                    "N/A",
-                ],
+                ["", ""],
+                ["Current Plan", ""],
+                ["Tier", subscription?.tier_display_name || subscription?.tier || "N/A"],
                 ["Monthly Price", `$${estimatedBill.toFixed(2)}`],
-                [
-                  "Billing Period",
-                  new Date().toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  }),
-                ],
-                [""],
-                ["Usage This Month"],
+                ["Billing Period", new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })],
+                ["", ""],
+                ["Usage This Month", "Quantity"],
                 ["Active Users", usage?.usage?.active_users?.quantity || 0],
-                [
-                  "AI Categorizations",
-                  usage?.usage?.ai_categorization?.quantity || 0,
-                ],
-                [
-                  "AP2 Transactions",
-                  usage?.usage?.ap2_transaction?.quantity || 0,
-                ],
+                ["AI Categorizations", usage?.usage?.ai_categorization?.quantity || 0],
+                ["AP2 Transactions", usage?.usage?.ap2_transaction?.quantity || 0],
                 ["OCR Scans", usage?.usage?.ocr_scan?.quantity || 0],
                 ["Expenses Submitted", usage?.usage?.expense?.quantity || 0],
-                [""],
-                ["Estimated Bill"],
+                ["", ""],
+                ["Estimated Bill", "Amount"],
                 ["Base Subscription", `$${estimatedBill.toFixed(2)}`],
                 ["Usage Overages", `$${totalOverage.toFixed(2)}`],
                 ["Total Estimated", `$${totalEstimated.toFixed(2)}`],
               ];
 
               const csvContent = reportData
-                .map((row) => row.join(","))
+                .map((row) => row.map(escapeCSV).join(","))
                 .join("\n");
               const blob = new Blob([csvContent], {
                 type: "text/csv;charset=utf-8;",
@@ -653,12 +687,65 @@ const BillingDashboard = () => {
               link.click();
               document.body.removeChild(link);
               URL.revokeObjectURL(url);
-              success("Billing report exported successfully");
+              success("Billing report exported as CSV");
             }}
             className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             <Download className="w-4 h-4" />
-            Export Report
+            Export CSV
+          </button>
+
+          <button
+            onClick={() => {
+              // Generate billing report as JSON
+              const reportData = {
+                report_title: "AP2 Expense Agent - Billing Report",
+                generated_at: new Date().toISOString(),
+                organization: {
+                  name: organization?.name || "N/A",
+                  id: organization?.id
+                },
+                current_plan: {
+                  tier: subscription?.tier_display_name || subscription?.tier || "N/A",
+                  monthly_price: estimatedBill,
+                  billing_period: new Date().toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  }),
+                },
+                usage_this_month: {
+                  active_users: usage?.usage?.active_users?.quantity || 0,
+                  ai_categorizations: usage?.usage?.ai_categorization?.quantity || 0,
+                  ap2_transactions: usage?.usage?.ap2_transaction?.quantity || 0,
+                  ocr_scans: usage?.usage?.ocr_scan?.quantity || 0,
+                  expenses_submitted: usage?.usage?.expense?.quantity || 0,
+                },
+                estimated_bill: {
+                  base_subscription: estimatedBill,
+                  usage_overages: totalOverage,
+                  total_estimated: totalEstimated,
+                  currency: "USD"
+                }
+              };
+
+              const jsonContent = JSON.stringify(reportData, null, 2);
+              const blob = new Blob([jsonContent], {
+                type: "application/json;charset=utf-8;",
+              });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = `billing-report-${new Date().toISOString().split("T")[0]}.json`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              success("Billing report exported as JSON");
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <Download className="w-4 h-4" />
+            Export JSON
           </button>
         </div>
       </div>

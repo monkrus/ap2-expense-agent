@@ -53,7 +53,7 @@ def seed_tiers():
             {
                 "tier_name": "professional",
                 "display_name": "Professional",
-                "description": "For growing businesses",
+                "description": "For growing businesses up to 100 users",
                 "base_price_monthly": 99,
                 "currency": "USD",
                 "limits": {
@@ -66,25 +66,7 @@ def seed_tiers():
                     "data_retention_days": 730
                 },
                 "overage_pricing": {"expense_overage_per_100": 3},
-                "features": ["basic_expense_tracking", "ocr_receipt_scanning", "basic_reports", "ai_categorization", "team_collaboration", "custom_categories", "advanced_analytics", "approval_workflows", "integrations", "priority_support"]
-            },
-            {
-                "tier_name": "enterprise",
-                "display_name": "Enterprise",
-                "description": "For large organizations",
-                "base_price_monthly": 299,
-                "currency": "USD",
-                "limits": {
-                    "max_users": -1,  # Unlimited
-                    "max_organizations": -1,  # Unlimited
-                    "max_expenses_per_month": -1,  # Unlimited
-                    "max_ai_categorizations": -1,  # Unlimited
-                    "max_ap2_transactions": -1,  # Unlimited
-                    "ocr_scans_included": -1,  # Unlimited
-                    "data_retention_days": -1  # Unlimited
-                },
-                "overage_pricing": {},
-                "features": ["basic_expense_tracking", "ocr_receipt_scanning", "basic_reports", "ai_categorization", "team_collaboration", "custom_categories", "advanced_analytics", "approval_workflows", "integrations", "priority_support", "dedicated_support", "custom_integrations", "sla_guarantee", "advanced_security"]
+                "features": ["basic_expense_tracking", "ocr_receipt_scanning", "basic_reports", "ai_categorization", "team_collaboration", "custom_categories", "advanced_analytics", "approval_workflows", "integrations", "priority_support", "api_access"]
             }
         ]
 

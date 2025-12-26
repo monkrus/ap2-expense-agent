@@ -88,7 +88,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
         formData.append("files", file);
       });
 
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       const response = await fetch("/api/v1/receipts/batch-upload", {
         method: "POST",
         headers: {

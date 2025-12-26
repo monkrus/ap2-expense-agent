@@ -23,7 +23,7 @@ import billingAPI from "../services/billingAPI";
  * and clear feature comparison
  */
 
-// Define the 4 pricing tiers
+// Define the 3 pricing tiers
 const PRICING_TIERS = [
   {
     id: "free",
@@ -92,15 +92,16 @@ const PRICING_TIERS = [
     name: "Professional",
     tagline: "Best for growing teams",
     description:
-      "Scale your business with unlimited AI categorization, advanced workflows, and priority support.",
+      "Scale your business with powerful AI, advanced workflows, and priority support. Perfect for companies up to 100 users.",
     highlights: [
+      "100 users included",
       "2,000 expenses/month",
       "1,000 AI categorizations",
       "500 AP2 transactions",
       "Advanced approval workflows",
       "Priority support",
     ],
-    icon: Users,
+    icon: Building2,
     color: "indigo",
     popular: true,
     buttonText: "Subscribe in GCP",
@@ -125,46 +126,10 @@ const PRICING_TIERS = [
       dataRetention: "730 days (2 years)",
     },
   },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    tagline: "Unlimited Everything",
-    description:
-      "Built for enterprises requiring maximum security, compliance, dedicated support, and custom solutions.",
-    highlights: [
-      "Unlimited everything",
-      "SSO & SAML integration",
-      "Dedicated account manager",
-      "24/7 premium support",
-      "Custom integrations",
-    ],
-    icon: Building2,
-    color: "purple",
-    buttonText: "Subscribe in GCP",
-    monthlyPrice: 299,
-    annualPrice: 249,
-    features: {
-      users: "Unlimited users",
-      organizations: "Unlimited organizations",
-      expenses: "Unlimited expenses",
-      aiCategorization: "Unlimited AI",
-      receiptScanning: "Unlimited OCR",
-      ap2Transactions: "Unlimited AP2 payments",
-      support: "24/7 phone & email",
-      reporting: "Custom dashboards",
-      integrations: "Custom integrations",
-      apiAccess: true,
-      customCategories: true,
-      approvalWorkflows: true,
-      sso: true,
-      dedicatedManager: true,
-      sla: "99.99% uptime SLA",
-      dataRetention: "Unlimited",
-    },
-  },
 ];
 
-const MARKETPLACE_URL =
+// GCP Marketplace product page URL (where users can subscribe)
+const MARKETPLACE_PRODUCT_URL =
   import.meta.env.VITE_GCP_MARKETPLACE_URL ||
   "https://console.cloud.google.com/marketplace";
 
@@ -269,7 +234,7 @@ const PricingPlans = () => {
     }
 
     setProcessingTier(tierId);
-    window.open(MARKETPLACE_URL, "_blank");
+    window.open(MARKETPLACE_PRODUCT_URL, "_blank");
     setProcessingTier(null);
   };
 
@@ -352,7 +317,7 @@ const PricingPlans = () => {
 
       {/* Pricing Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
           {PRICING_TIERS.map((tier) => {
             const TierIcon = tier.icon;
             const isProcessing = processingTier === tier.id;
@@ -574,6 +539,27 @@ const PricingPlans = () => {
               </div>
             );
           })}
+        </div>
+
+        {/* Contact Sales CTA */}
+        <div className="max-w-4xl mx-auto mt-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 text-center text-white shadow-xl">
+          <h3 className="text-2xl font-bold mb-3">Need more than 100 users?</h3>
+          <p className="text-indigo-100 mb-6 text-lg">
+            We offer custom enterprise solutions with SSO, dedicated support, and tailored pricing for large teams.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <a
+              href="mailto:sales@ap2expense.com"
+              className="inline-flex items-center gap-2 bg-white text-indigo-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all hover:shadow-lg"
+            >
+              Contact Sales
+              <ArrowRight className="w-5 h-5" />
+            </a>
+            <span className="text-indigo-200 text-sm flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Custom pricing based on your needs
+            </span>
+          </div>
         </div>
       </div>
 

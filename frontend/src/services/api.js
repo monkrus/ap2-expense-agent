@@ -384,7 +384,7 @@ export const expenseAPI = {
 
   // Get all pending expenses (admin only)
   getAllPendingExpenses: async () => {
-    return request("/admin/expenses?status=pending", {
+    return request("/api/v1/admin/expenses?status=pending", {
       method: "GET",
     });
   },
@@ -392,7 +392,7 @@ export const expenseAPI = {
   // Get all expenses with optional status filter (admin only)
   getAllExpenses: async (status = null) => {
     const queryParam = status ? `?status=${status}` : "";
-    return request(`/admin/expenses${queryParam}`, {
+    return request(`/api/v1/admin/expenses${queryParam}`, {
       method: "GET",
     });
   },
@@ -406,42 +406,42 @@ export const expenseAPI = {
 
   // Clear all expense history (admin only) - DEPRECATED
   clearExpenseHistory: async () => {
-    return request("/admin/expenses/clear", {
+    return request("/api/v1/admin/expenses/clear", {
       method: "DELETE",
     });
   },
 
   // Archive all non-pending expenses (admin only)
   archiveAllExpenses: async () => {
-    return request("/admin/expenses/archive-all", {
+    return request("/api/v1/admin/expenses/archive-all", {
       method: "POST",
     });
   },
 
   // Archive a single expense (admin only)
   archiveExpense: async (expenseId) => {
-    return request(`/admin/expenses/${expenseId}/archive`, {
+    return request(`/api/v1/admin/expenses/${expenseId}/archive`, {
       method: "POST",
     });
   },
 
   // Unarchive a single expense (admin only)
   unarchiveExpense: async (expenseId) => {
-    return request(`/admin/expenses/${expenseId}/unarchive`, {
+    return request(`/api/v1/admin/expenses/${expenseId}/unarchive`, {
       method: "POST",
     });
   },
 
   // Unarchive all archived expenses (admin only)
   unarchiveAllExpenses: async () => {
-    return request("/admin/expenses/unarchive-all", {
+    return request("/api/v1/admin/expenses/unarchive-all", {
       method: "POST",
     });
   },
 
   // Get archived expenses (admin only)
   getArchivedExpenses: async () => {
-    return request("/admin/expenses/archived", {
+    return request("/api/v1/admin/expenses/archived", {
       method: "GET",
     });
   },
