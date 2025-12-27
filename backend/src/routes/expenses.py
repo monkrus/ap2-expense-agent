@@ -226,7 +226,11 @@ async def create_expense(
         admin_members = (
             db.query(OrganizationMember)
             .filter(OrganizationMember.organization_id == org_id)
-            .filter(OrganizationMember.role.in_(["admin", "owner", "manager"]))
+            .filter(OrganizationMember.role.in_([
+                OrganizationRole.ADMIN.value,
+                OrganizationRole.OWNER.value,
+                OrganizationRole.MANAGER.value
+            ]))
             .filter(OrganizationMember.is_active == True)
             .all()
         )

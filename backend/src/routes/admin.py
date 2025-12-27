@@ -1280,6 +1280,54 @@ async def create_user(
     db.commit()
     db.refresh(new_user)
 
+    # Auto-add user to admin's current organization
+    # Get the organization context from request header
+    import logging
+    logger = logging.getLogger(__name__)
+
+    org_id = request.headers.get("X-Organization-Id")
+    if org_id:
+        # Verify the admin is a member of this organization
+        admin_membership = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.user_id == current_user.id,
+                OrganizationMember.organization_id == org_id,
+                OrganizationMember.is_active == True,
+            )
+            .first()
+        )
+
+        if admin_membership:
+            # Add new user to the same organization
+            # Map UserRole to OrganizationRole
+            org_role = OrganizationRole.MEMBER  # Default
+            if user_data.role in [UserRole.ADMIN, UserRole.MANAGER]:
+                org_role = OrganizationRole.ADMIN
+            elif user_data.role == UserRole.ACCOUNTANT:
+                org_role = OrganizationRole.ADMIN  # Accountants get admin privileges
+
+            membership = OrganizationMember(
+                id=str(uuid.uuid4()),
+                organization_id=org_id,
+                user_id=new_user.id,
+                role=org_role,
+                is_active=True,
+            )
+            db.add(membership)
+            db.commit()
+            logger.info(
+                f"[ADMIN-CREATE-USER] Added {new_user.username} to organization {org_id} with role {org_role}"
+            )
+        else:
+            logger.warning(
+                f"[ADMIN-CREATE-USER] Admin {current_user.username} not a member of org {org_id}"
+            )
+    else:
+        logger.warning(
+            f"[ADMIN-CREATE-USER] No organization context provided for user {new_user.username}"
+        )
+
     # Log audit event
     AuthService.log_audit(
         db=db,
