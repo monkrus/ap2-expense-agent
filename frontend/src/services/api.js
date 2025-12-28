@@ -384,15 +384,15 @@ export const expenseAPI = {
 
   // Get all pending expenses (admin only)
   getAllPendingExpenses: async () => {
-    return request("/api/v1/admin/expenses?status=pending", {
+    return request("/expenses?status_filter=pending", {
       method: "GET",
     });
   },
 
   // Get all expenses with optional status filter (admin only)
   getAllExpenses: async (status = null) => {
-    const queryParam = status ? `?status=${status}` : "";
-    return request(`/api/v1/admin/expenses${queryParam}`, {
+    const queryParam = status ? `?status_filter=${status}` : "";
+    return request(`/expenses${queryParam}`, {
       method: "GET",
     });
   },
@@ -441,7 +441,7 @@ export const expenseAPI = {
 
   // Get archived expenses (admin only)
   getArchivedExpenses: async () => {
-    return request("/api/v1/admin/expenses/archived", {
+    return request("/admin/expenses/archived", {
       method: "GET",
     });
   },

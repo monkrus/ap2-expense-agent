@@ -19,6 +19,37 @@ from src.models_billing import BillingTier
 # Billing tier definitions
 BILLING_TIERS = [
     {
+        "tier_name": "free",
+        "display_name": "Free",
+        "description": "Free tier with basic features - test approval workflows with 2 users",
+        "base_price_monthly": 0.00,
+        "currency": "USD",
+        "limits": {
+            "max_users": 2,
+            "max_expenses_per_month": 20,
+            "max_receipt_size_mb": 5,
+            "max_storage_gb": 0.5,
+            "ap2_transactions_included": 0,
+            "ai_categorizations_included": 0,
+            "ocr_scans_included": 5
+        },
+        "overage_pricing": {
+            "per_additional_user": 0,
+            "per_additional_expense": 0,
+            "per_additional_ap2_transaction": 0,
+            "per_additional_ai_categorization": 0,
+            "per_additional_ocr_scan": 0
+        },
+        "features": [
+            "Basic expense tracking",
+            "Receipt upload & storage",
+            "Manual categorization",
+            "Email notifications",
+            "CSV export",
+            "Community support"
+        ]
+    },
+    {
         "tier_name": "starter",
         "display_name": "Starter",
         "description": "Perfect for small teams getting started with expense management",
@@ -151,7 +182,7 @@ def seed_billing_tiers():
             ).first()
 
             if existing_tier:
-                print(f"⚠️  Tier '{tier_data['tier_name']}' already exists. Skipping.")
+                print(f"[!] Tier '{tier_data['tier_name']}' already exists. Skipping.")
                 stats["skipped"] += 1
                 continue
 
@@ -173,7 +204,7 @@ def seed_billing_tiers():
             )
 
             db.add(tier)
-            print(f"✓ Created tier: {tier_data['display_name']} (${tier_data['base_price_monthly']}/month)")
+            print(f"[+] Created tier: {tier_data['display_name']} (${tier_data['base_price_monthly']}/month)")
             stats["created"] += 1
 
         db.commit()
@@ -205,7 +236,7 @@ def seed_billing_tiers():
 
     except Exception as e:
         db.rollback()
-        print(f"\n❌ Error seeding billing tiers: {str(e)}")
+        print(f"\n[X] Error seeding billing tiers: {str(e)}")
         raise
     finally:
         db.close()
@@ -215,5 +246,5 @@ if __name__ == "__main__":
         stats = seed_billing_tiers()
         sys.exit(0)
     except Exception as e:
-        print(f"\n❌ Failed to seed billing tiers: {str(e)}")
+        print(f"\n[X] Failed to seed billing tiers: {str(e)}")
         sys.exit(1)

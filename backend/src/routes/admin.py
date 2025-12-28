@@ -948,6 +948,11 @@ async def get_archived_expenses(
             if e.archived_by
             else None
         )
+        approver = (
+            db.query(UserModel).filter(UserModel.id == e.approved_by).first()
+            if e.approved_by
+            else None
+        )
 
         result.append(
             {
@@ -959,12 +964,18 @@ async def get_archived_expenses(
                 "status": e.status.value,
                 "date": e.date.isoformat() if e.date else None,
                 "created_at": e.created_at.isoformat() if e.created_at else None,
+                "updated_at": e.updated_at.isoformat() if e.updated_at else None,
                 "archived_at": e.archived_at.isoformat() if e.archived_at else None,
                 "user_id": e.user_id,
                 "user_email": user.email if user else "Unknown",
                 "user_name": user.full_name if user else "Unknown",
                 "archived_by_name": archiver.full_name if archiver else None,
                 "archived_by_email": archiver.email if archiver else None,
+                "approved_by": e.approved_by,
+                "approved_by_name": approver.full_name if approver else None,
+                "approved_at": e.approved_at.isoformat() if e.approved_at else None,
+                "transaction_id": e.transaction_id,
+                "rejection_reason": e.rejection_reason,
             }
         )
 

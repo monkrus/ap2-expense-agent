@@ -179,7 +179,7 @@ class LimitEnforcer:
     ) -> OrgLimits:
         return OrgLimits(
             tier_name=tier_name,
-            max_users=1,
+            max_users=2,
             max_organizations=1,
             max_expenses_per_month=20,
             max_ai_categorizations=0,

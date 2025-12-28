@@ -318,8 +318,18 @@ async def list_expenses(
 
     expenses = query.all()
 
-    return [
-        {
+    # Fetch user details and approval metadata for each expense
+    expense_list = []
+    for e in expenses:
+        # Get expense owner details
+        expense_owner = db.query(User).filter(User.id == e.user_id).first()
+
+        # Get approver details if expense was approved/rejected
+        approver = None
+        if e.approved_by:
+            approver = db.query(User).filter(User.id == e.approved_by).first()
+
+        expense_list.append({
             "id": e.id,
             "amount": e.amount,
             "vendor": e.vendor,
@@ -328,10 +338,19 @@ async def list_expenses(
             "status": e.status.value if hasattr(e.status, 'value') else e.status,
             "date": e.date.isoformat() if e.date else None,
             "user_id": e.user_id,
+            "user_name": expense_owner.full_name if expense_owner else "Unknown User",
+            "user_email": expense_owner.email if expense_owner else "unknown@example.com",
             "created_at": e.created_at.isoformat() if e.created_at else None,
-        }
-        for e in expenses
-    ]
+            "updated_at": e.updated_at.isoformat() if e.updated_at else None,
+            "approved_by": e.approved_by,
+            "approved_by_name": approver.full_name if approver else None,
+            "approved_at": e.approved_at.isoformat() if e.approved_at else None,
+            "transaction_id": e.transaction_id,
+            "rejection_reason": e.rejection_reason,
+        })
+
+    # Return expenses in wrapped format for frontend
+    return {"expenses": expense_list}
 
 
 @router.get("/report")
