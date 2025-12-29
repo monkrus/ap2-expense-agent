@@ -1247,10 +1247,19 @@ async def create_user(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Create a new user (Admin only)"""
-    import uuid
+    """Create a new user (Admin only)
 
+    Requires X-Organization-Id header to specify which organization the user belongs to.
+    """
+    import uuid
     import bcrypt
+    import logging
+    from ..utils.validators import HeaderValidator
+
+    logger = logging.getLogger(__name__)
+
+    # REQUIRED: Validate X-Organization-Id header is present
+    org_id = HeaderValidator.require_organization_id(request)
 
     # Check if email already exists
     existing_email = db.query(User).filter(User.email == user_data.email).first()
@@ -1291,12 +1300,7 @@ async def create_user(
     db.commit()
     db.refresh(new_user)
 
-    # Auto-add user to admin's current organization
-    # Get the organization context from request header
-    import logging
-    logger = logging.getLogger(__name__)
-
-    org_id = request.headers.get("X-Organization-Id")
+    # Auto-add user to the specified organization
     if org_id:
         # Verify the admin is a member of this organization
         admin_membership = (

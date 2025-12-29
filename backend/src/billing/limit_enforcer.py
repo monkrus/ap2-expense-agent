@@ -181,11 +181,11 @@ class LimitEnforcer:
             tier_name=tier_name,
             max_users=2,
             max_organizations=1,
-            max_expenses_per_month=20,
+            max_expenses_per_month=30,  # Fixed: was 20, should be 30
             max_ai_categorizations=0,
-            max_ap2_transactions=0,
-            ocr_scans_included=5,
-            data_retention_days=30,
+            max_ap2_transactions=20,  # Fixed: was 0, should be 20
+            ocr_scans_included=20,  # Fixed: was 5, should be 20
+            data_retention_days=90,  # Fixed: was 30, should be 90
             features={
                 "api_access": False,
                 "sso_enabled": False,

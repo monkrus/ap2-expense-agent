@@ -21,6 +21,8 @@ import {
 import { useToast } from "../hooks/useToast";
 import { useAuth } from "../contexts/AuthContext";
 import adminAPI from "../services/adminAPI";
+import { API_BASE_URL } from "../config/constants";
+import { extractUserData, extractErrorMessage } from "../services/apiHelpers";
 
 const UserManagementDashboard = () => {
   const { user: currentUser, getAuthHeaders, fetchWithAuth } = useAuth();
@@ -95,7 +97,11 @@ const UserManagementDashboard = () => {
         role: createForm.role.toLowerCase(),
         department_id: createForm.department_id || null,
       });
-      success(`User ${data.username} created successfully!`);
+
+      // Use helper to safely extract user data (handles both nested and flat structures)
+      const userData = extractUserData(data);
+      success(`User ${userData.username} created successfully!`);
+
       setShowCreateModal(false);
       setCreateForm({
         email: "",
@@ -107,7 +113,8 @@ const UserManagementDashboard = () => {
       });
       fetchUsers();
     } catch (err) {
-      showError(err.message);
+      // Use helper to extract user-friendly error message
+      showError(extractErrorMessage(err));
     } finally {
       setProcessing(false);
     }
