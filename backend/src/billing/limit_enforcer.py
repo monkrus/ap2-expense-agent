@@ -96,16 +96,14 @@ class LimitEnforcer:
             ),
             max_ai_categorizations=self._normalize_limit(
                 limits.get("max_ai_categorizations")
-                or limits.get("ai_categorizations_included")
             ),
             max_ap2_transactions=self._normalize_limit(
                 limits.get("max_ap2_transactions")
-                or limits.get("ap2_transactions_included")
             ),
             ocr_scans_included=self._normalize_limit(
                 limits.get("ocr_scans_included")
             ),
-            data_retention_days=limits.get("data_retention_days"),
+            data_retention_days=self._normalize_limit(limits.get("data_retention_days")),
             features=features,
             has_subscription=True,
         )
@@ -245,13 +243,18 @@ class LimitEnforcer:
         }
         rank = tier_rank.get((tier_name or "").lower(), 0)
 
+        # Feature availability by tier:
+        # Free (0): None of these features
+        # Starter (1): approval_workflows, advanced_analytics, priority_support
+        # Professional (2): Everything in Starter + API access
+        # Enterprise (3): Everything + SSO, custom_integrations
         return {
-            "api_access": ("api" in " ".join(normalized)) or rank >= 3,
-            "sso_enabled": ("sso" in " ".join(normalized)) or rank >= 3,
-            "custom_integrations": ("integration" in " ".join(normalized)) or rank >= 3,
-            "advanced_analytics": ("analytics" in " ".join(normalized)) or rank >= 2,
-            "approval_workflows": ("approval" in " ".join(normalized)) or rank >= 2,
-            "priority_support": ("priority" in " ".join(normalized)) or rank >= 2,
+            "api_access": ("api" in " ".join(normalized)) or rank >= 2,  # Professional+
+            "sso_enabled": ("sso" in " ".join(normalized)) or rank >= 3,  # Enterprise+
+            "custom_integrations": ("integration" in " ".join(normalized)) or rank >= 3,  # Enterprise+
+            "advanced_analytics": ("analytics" in " ".join(normalized)) or rank >= 1,  # Starter+
+            "approval_workflows": ("approval" in " ".join(normalized)) or rank >= 1,  # Starter+
+            "priority_support": ("priority" in " ".join(normalized)) or rank >= 1,  # Starter+
         }
 
     def check_user_limit(
