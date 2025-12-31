@@ -36,6 +36,7 @@ from .routes.budgets import router as budgets_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
 from .startup_checks import validate_settings
 from .tenant_context import tenant_middleware
+from .utils.error_tracking import ErrorTrackingMiddleware
 
 # Try to import database-integrated agent, fallback to in-memory agent
 try:
@@ -85,6 +86,10 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 # Add security middleware
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestIDMiddleware)
+
+# Add error tracking middleware for pattern detection
+app.add_middleware(ErrorTrackingMiddleware)
+
 # HTTPS redirect (enable in production/staging)
 if settings.environment in ("production", "staging"):
     app.add_middleware(HTTPSRedirectMiddleware)

@@ -179,17 +179,17 @@ class LimitEnforcer:
             tier_name=tier_name,
             max_users=2,
             max_organizations=1,
-            max_expenses_per_month=30,  # Fixed: was 20, should be 30
+            max_expenses_per_month=30,
             max_ai_categorizations=0,
-            max_ap2_transactions=20,  # Fixed: was 0, should be 20
-            ocr_scans_included=20,  # Fixed: was 5, should be 20
-            data_retention_days=90,  # Fixed: was 30, should be 90
+            max_ap2_transactions=20,
+            ocr_scans_included=30,  # FIXED: 20 → 30 to match pricing
+            data_retention_days=90,
             features={
                 "api_access": False,
                 "sso_enabled": False,
                 "custom_integrations": False,
                 "advanced_analytics": False,
-                "approval_workflows": False,
+                "approval_workflows": True,  # FIXED: Available in ALL tiers including Free
                 "priority_support": False,
             },
             has_subscription=has_subscription,
@@ -244,16 +244,16 @@ class LimitEnforcer:
         rank = tier_rank.get((tier_name or "").lower(), 0)
 
         # Feature availability by tier:
-        # Free (0): None of these features
-        # Starter (1): approval_workflows, advanced_analytics, priority_support
-        # Professional (2): Everything in Starter + API access
+        # Free (0): approval_workflows (basic)
+        # Starter (1): approval_workflows, priority_support
+        # Professional (2): Everything in Starter + API access, multi-level approvals
         # Enterprise (3): Everything + SSO, custom_integrations
         return {
             "api_access": ("api" in " ".join(normalized)) or rank >= 2,  # Professional+
             "sso_enabled": ("sso" in " ".join(normalized)) or rank >= 3,  # Enterprise+
             "custom_integrations": ("integration" in " ".join(normalized)) or rank >= 3,  # Enterprise+
-            "advanced_analytics": ("analytics" in " ".join(normalized)) or rank >= 1,  # Starter+
-            "approval_workflows": ("approval" in " ".join(normalized)) or rank >= 1,  # Starter+
+            "advanced_analytics": False,  # REMOVED: Not implemented
+            "approval_workflows": True,  # FIXED: Available in ALL tiers
             "priority_support": ("priority" in " ".join(normalized)) or rank >= 1,  # Starter+
         }
 
@@ -515,16 +515,17 @@ class LimitEnforcer:
 
         max_ap2 = limits.max_ap2_transactions
 
-        # Free tier has 0 AP2 transactions - always block
+        # FIXED: Free tier now has 20 AP2 transactions, not 0
+        # Only block if explicitly set to 0 (which shouldn't happen with current tiers)
         if max_ap2 == 0:
-            if limits.tier_name.lower() == "free" and raise_error:
+            if raise_error:
                 raise LimitExceededError(
                     feature="AP2 Transactions",
                     limit=0,
                     current=0,
                     upgrade_message="Upgrade to Starter to unlock AP2 automated payments.",
                 )
-            return False, "AP2 transactions not available on Free tier"
+            return False, "AP2 transactions not available"
 
         if max_ap2 is None:  # Unlimited
             return True, "Unlimited AP2 transactions allowed"
@@ -537,6 +538,13 @@ class LimitEnforcer:
             message = f"AP2 transaction limit would be exceeded ({current_ap2 + count}/{max_ap2})"
 
             if limits.tier_name.lower() == "free" and raise_error:
+                raise LimitExceededError(
+                    feature="AP2 Transactions",
+                    limit=max_ap2,
+                    current=current_ap2,
+                    upgrade_message=f"You've used {current_ap2} of {max_ap2} free AP2 transactions this month. Upgrade to Starter for 100 transactions/month.",
+                )
+            elif raise_error:
                 raise LimitExceededError(
                     feature="AP2 Transactions",
                     limit=max_ap2,

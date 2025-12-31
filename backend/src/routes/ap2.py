@@ -289,6 +289,28 @@ async def execute_payment(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+    # Check AP2 transaction limit BEFORE executing payment (BILLING ENFORCEMENT)
+    from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
+    from ..models import OrganizationMember
+
+    # Get user's organization
+    membership = (
+        db.query(OrganizationMember)
+        .filter(OrganizationMember.user_id == current_user.id)
+        .filter(OrganizationMember.is_active == True)
+        .first()
+    )
+
+    if membership:
+        try:
+            limit_enforcer = LimitEnforcer(db)
+            limit_enforcer.check_ap2_transaction_limit(membership.organization_id, raise_error=True)
+        except LimitExceededError as e:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail=str(e)
+            )
+
     ap2_service = AP2PaymentService(db)
 
     # Track AP2 transaction usage

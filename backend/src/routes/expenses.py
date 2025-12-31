@@ -140,6 +140,17 @@ async def create_expense(
     # Verify organization access (CRITICAL SECURITY CHECK)
     ensure_org_access(current_user.id, org_id, db)
 
+    # Check tier limits (BILLING ENFORCEMENT)
+    from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
+    try:
+        limit_enforcer = LimitEnforcer(db)
+        limit_enforcer.check_expense_limit(org_id, raise_error=True)
+    except LimitExceededError as e:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=str(e)
+        )
+
     # Validate expense amount
     if data.amount <= 0:
         raise HTTPException(
