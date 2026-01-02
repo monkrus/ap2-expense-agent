@@ -317,26 +317,36 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                 </div>
               )}
 
-              {/* Upload Button */}
+              {/* Upload Button - PROMINENT */}
               {files.length > 0 && (
-                <div className="flex justify-end mt-4">
-                  <button
-                    onClick={handleUploadAndExtract}
-                    disabled={uploading}
-                    className="flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {uploading ? (
-                      <>
-                        <Loader className="w-5 h-5 animate-spin" />
-                        Extracting Data...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-5 h-5" />
-                        Upload & Extract Data
-                      </>
-                    )}
-                  </button>
+                <div className="mt-6 p-4 bg-teal-50 border-2 border-teal-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-gray-900 mb-1">
+                        Ready to upload {files.length} file{files.length > 1 ? 's' : ''}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Click the button to upload and extract receipt data
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleUploadAndExtract}
+                      disabled={uploading}
+                      className="flex items-center gap-2 px-8 py-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader className="w-6 h-6 animate-spin" />
+                          Extracting Data...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-6 h-6" />
+                          Upload & Extract Data
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

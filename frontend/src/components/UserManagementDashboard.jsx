@@ -9,7 +9,6 @@ import {
   Unlock,
   Search,
   Filter,
-  RefreshCw,
   Eye,
   Check,
   X,
@@ -432,16 +431,6 @@ const UserManagementDashboard = () => {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={fetchUsers}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-              >
-                <RefreshCw
-                  className={`w-5 h-5 ${loading ? "animate-spin" : ""}`}
-                />
-                Refresh
-              </button>
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
