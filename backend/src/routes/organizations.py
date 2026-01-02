@@ -291,6 +291,27 @@ async def create_organization(
         )
         db.add(membership)
 
+        # Create Free tier subscription for the new organization
+        from ..models_billing import BillingTier
+        free_tier = (
+            db.query(BillingTier)
+            .filter(BillingTier.tier_name == "free", BillingTier.is_active == True)
+            .first()
+        )
+        if free_tier:
+            subscription = OrganizationSubscription(
+                id=str(uuid.uuid4()),
+                organization_id=organization.id,
+                tier_id=free_tier.id,
+                tier_name=free_tier.tier_name,
+                status="active",
+                billing_period_start=datetime.utcnow(),
+            )
+            db.add(subscription)
+            logger.info(f"Created Free tier subscription for organization {organization.id}")
+        else:
+            logger.warning(f"Free tier not found, skipping subscription creation for org {organization.id}")
+
         db.commit()
         db.refresh(organization)
 
