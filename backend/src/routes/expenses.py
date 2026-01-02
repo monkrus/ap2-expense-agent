@@ -313,9 +313,15 @@ async def list_expenses(
     # Base query
     query = db.query(Expense).filter(Expense.organization_id == org_id)
 
-    # Apply status filter
+    # Apply status filter (convert to uppercase for enum matching)
     if status_filter:
-        query = query.filter(Expense.status == status_filter)
+        # Convert string to ExpenseStatus enum (case-insensitive)
+        try:
+            status_enum = ExpenseStatus[status_filter.upper()]
+            query = query.filter(Expense.status == status_enum)
+        except KeyError:
+            # Invalid status filter - ignore it
+            pass
 
     # Role-based filtering
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
@@ -665,11 +671,11 @@ async def delete_expense(
     db: Session = Depends(get_db),
 ):
     """
-    Delete an expense
+    Withdraw an expense (soft delete by setting status to WITHDRAWN)
 
-    - Employees can delete their own PENDING expenses
-    - Admins can delete any expense
-    - Accountants CANNOT delete expenses (audit trail protection)
+    - Employees can withdraw their own PENDING expenses
+    - Admins can withdraw any expense
+    - Accountants CANNOT withdraw expenses (audit trail protection)
     """
     org_id = request.headers.get("X-Organization-Id")
 
@@ -684,30 +690,32 @@ async def delete_expense(
     # DEBUG: Log user role
     import logging
     logger = logging.getLogger(__name__)
-    logger.info(f"DELETE EXPENSE - User: {current_user.username}, Role: {current_user.role}, RoleType: {type(current_user.role)}")
-    logger.info(f"DELETE EXPENSE - Checking if role == UserRole.ACCOUNTANT: {current_user.role == UserRole.ACCOUNTANT}")
+    logger.info(f"WITHDRAW EXPENSE - User: {current_user.username}, Role: {current_user.role}, RoleType: {type(current_user.role)}")
+    logger.info(f"WITHDRAW EXPENSE - Checking if role == UserRole.ACCOUNTANT: {current_user.role == UserRole.ACCOUNTANT}")
 
-    # CRITICAL: Accountants cannot delete expenses (audit trail protection)
+    # CRITICAL: Accountants cannot withdraw expenses (audit trail protection)
     # Check both enum and string value to handle all cases
     user_role_value = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role)
     if current_user.role == UserRole.ACCOUNTANT or user_role_value == "accountant":
-        logger.info("DELETE EXPENSE - BLOCKING ACCOUNTANT DELETE")
+        logger.info("WITHDRAW EXPENSE - BLOCKING ACCOUNTANT WITHDRAW")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Accountants cannot delete expenses to maintain audit trail integrity"
+            detail="Accountants cannot withdraw expenses to maintain audit trail integrity"
         )
 
-    # Check delete permission
+    # Check withdraw permission
     if not can_modify_expense(expense, current_user, org_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You cannot delete this expense"
+            detail="You cannot withdraw this expense"
         )
 
-    db.delete(expense)
+    # Soft delete: Set status to WITHDRAWN instead of hard deleting
+    expense.status = ExpenseStatus.WITHDRAWN
+    expense.updated_at = datetime.utcnow()
     db.commit()
 
-    return {"message": "Expense deleted successfully"}
+    return {"message": "Expense withdrawn successfully"}
 
 
 # ============================================================================

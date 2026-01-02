@@ -82,3 +82,7 @@ marketplace/screenshots/*.jpg
 # Temporary test data
 test-data/
 sample-data-*.json
+
+# Sample receipts for testing
+sample_receipts/
+!sample_receipts/README.md

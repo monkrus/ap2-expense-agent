@@ -202,21 +202,31 @@ async def get_dashboard_stats(
 ):
     """Get platform-wide statistics for admin dashboard"""
 
-    # User statistics
-    total_users = db.query(func.count(User.id)).scalar()
+    # User statistics (only count active users)
+    total_users = (
+        db.query(func.count(User.id))
+        .filter(User.is_active == True)
+        .scalar()
+    )
     active_users_30d = (
         db.query(func.count(User.id))
+        .filter(User.is_active == True)
         .filter(User.last_login >= datetime.utcnow() - timedelta(days=30))
         .scalar()
     )
     new_users_7d = (
         db.query(func.count(User.id))
+        .filter(User.is_active == True)
         .filter(User.created_at >= datetime.utcnow() - timedelta(days=7))
         .scalar()
     )
 
-    # Organization statistics
-    total_orgs = db.query(func.count(Organization.id)).scalar()
+    # Organization statistics (only count active organizations)
+    total_orgs = (
+        db.query(func.count(Organization.id))
+        .filter(Organization.is_active == True)
+        .scalar()
+    )
     active_orgs = (
         db.query(func.count(Organization.id))
         .filter(Organization.is_active == True)
@@ -243,13 +253,26 @@ async def get_dashboard_stats(
     try:
         from ..models_billing import OrganizationSubscription
 
-        active_subscriptions = (
-            db.query(func.count(OrganizationSubscription.id))
-            .filter(OrganizationSubscription.status == "active")
-            .scalar()
+        active_subscriptions_query = (
+            db.query(OrganizationSubscription)
+            .filter(OrganizationSubscription.status.in_(["active", "trialing"]))
+            .all()
         )
-        # For now, monthly revenue calculation would need pricing info
-        monthly_revenue = 0
+
+        active_subscriptions = len(active_subscriptions_query)
+
+        # Calculate monthly revenue from active subscriptions
+        tier_prices = {
+            'free': 0,
+            'starter': 29,
+            'professional': 79,
+            'enterprise': 199
+        }
+
+        monthly_revenue = sum(
+            tier_prices.get(sub.tier_name.lower(), 0)
+            for sub in active_subscriptions_query
+        )
     except:
         active_subscriptions = 0
         monthly_revenue = 0

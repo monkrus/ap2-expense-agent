@@ -211,9 +211,9 @@ const AdminDashboard = () => {
         setLoading(true);
       }
       const data = await expenseAPI.getAllPendingExpenses();
-      if (data.expenses && Array.isArray(data.expenses)) {
-        setPendingExpenses(data.expenses);
-      }
+      // Handle both formats: {expenses: [...]} or plain [...]
+      const expenses = Array.isArray(data) ? data : (data.expenses || []);
+      setPendingExpenses(expenses);
     } catch (err) {
       console.error("Error fetching pending expenses:", err);
       if (err instanceof APIError && err.status === 401) {
@@ -262,12 +262,9 @@ const AdminDashboard = () => {
 
       const data = await expenseAPI.getAllExpenses(filterValue);
 
-      if (data.expenses && Array.isArray(data.expenses)) {
-        setAllExpenses(data.expenses);
-      } else {
-        console.warn("[AdminDashboard] Invalid response format:", data);
-        setAllExpenses([]);
-      }
+      // Handle both formats: {expenses: [...]} or plain [...]
+      const expenses = Array.isArray(data) ? data : (data.expenses || []);
+      setAllExpenses(expenses);
     } catch (err) {
       console.error("Error fetching all expenses:", err);
       console.error("Error details:", err.message, err.status, err.data);
@@ -378,9 +375,9 @@ const AdminDashboard = () => {
         setLoading(true);
       }
       const data = await expenseAPI.getArchivedExpenses();
-      if (data.expenses && Array.isArray(data.expenses)) {
-        setArchivedExpenses(data.expenses);
-      }
+      // Handle both formats: {expenses: [...]} or plain [...]
+      const expenses = Array.isArray(data) ? data : (data.expenses || []);
+      setArchivedExpenses(expenses);
     } catch (err) {
       console.error("Error fetching archived expenses:", err);
       if (err instanceof APIError && err.status === 401) {
@@ -561,9 +558,12 @@ const AdminDashboard = () => {
         fetchArchivedExpenses(false),
       ]);
 
+      // Switch to "All Expenses" tab to show the restored expenses
+      setActiveTab("all");
+
       // Clear selections and show success after data is refreshed
       setSelectedExpenses([]);
-      success(`Successfully restored ${selectedExpenses.length} expense(s)!`);
+      success(`Successfully restored ${selectedExpenses.length} expense(s)! Switched to "All Expenses" tab.`);
     } catch (err) {
       const errorMsg =
         err instanceof APIError
@@ -594,8 +594,11 @@ const AdminDashboard = () => {
           fetchArchivedExpenses(false),
         ]);
 
+        // Switch to "All Expenses" tab to show the restored expenses
+        setActiveTab("all");
+
         success(
-          `Successfully restored ${result.statistics.expenses_unarchived} expense(s)!`,
+          `Successfully restored ${result.statistics.expenses_unarchived} expense(s)! Switched to "All Expenses" tab.`,
         );
       }
     } catch (err) {

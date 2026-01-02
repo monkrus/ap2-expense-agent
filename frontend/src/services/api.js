@@ -406,35 +406,35 @@ export const expenseAPI = {
 
   // Clear all expense history (admin only) - DEPRECATED
   clearExpenseHistory: async () => {
-    return request("/api/v1/admin/expenses/clear", {
+    return request("/admin/expenses/clear", {
       method: "DELETE",
     });
   },
 
   // Archive all non-pending expenses (admin only)
   archiveAllExpenses: async () => {
-    return request("/api/v1/admin/expenses/archive-all", {
+    return request("/admin/expenses/archive-all", {
       method: "POST",
     });
   },
 
   // Archive a single expense (admin only)
   archiveExpense: async (expenseId) => {
-    return request(`/api/v1/admin/expenses/${expenseId}/archive`, {
+    return request(`/admin/expenses/${expenseId}/archive`, {
       method: "POST",
     });
   },
 
   // Unarchive a single expense (admin only)
   unarchiveExpense: async (expenseId) => {
-    return request(`/api/v1/admin/expenses/${expenseId}/unarchive`, {
+    return request(`/admin/expenses/${expenseId}/unarchive`, {
       method: "POST",
     });
   },
 
   // Unarchive all archived expenses (admin only)
   unarchiveAllExpenses: async () => {
-    return request("/api/v1/admin/expenses/unarchive-all", {
+    return request("/admin/expenses/unarchive-all", {
       method: "POST",
     });
   },
