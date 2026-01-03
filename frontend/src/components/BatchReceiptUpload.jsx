@@ -99,6 +99,14 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // Handle 402 Payment Required (limit exceeded)
+        if (response.status === 402 && errorData.detail?.error === 'limit_exceeded') {
+          const detail = errorData.detail;
+          const message = `${detail.message || 'Limit exceeded'}\n\nCurrent: ${detail.current}/${detail.limit} ${detail.feature}\n\n${detail.upgrade_message || 'Please upgrade your plan.'}`;
+          throw new Error(message);
+        }
+
         throw new Error(errorData.detail || "Upload failed");
       }
 
@@ -158,7 +166,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
     }
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       const response = await fetch("/api/v1/receipts/create-from-extraction", {
         method: "POST",
         headers: {
@@ -224,6 +232,19 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
     }
   };
 
+  const handleClose = () => {
+    // Check if any expenses were created
+    const hasCreatedExpenses = extractedData.some((item) => item.created);
+
+    if (hasCreatedExpenses) {
+      // Refresh the expense list before closing
+      onSuccess();
+    } else {
+      // Just close without refreshing
+      onCancel();
+    }
+  };
+
   const categories = [
     "Travel",
     "Meals",
@@ -246,7 +267,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
             </h2>
           </div>
           <button
-            onClick={onCancel}
+            onClick={handleClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-gray-500" />
@@ -342,7 +363,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                       ) : (
                         <>
                           <Upload className="w-6 h-6" />
-                          Upload & Extract Data
+                          Process Receipts with AI
                         </>
                       )}
                     </button>
@@ -587,7 +608,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
         {/* Footer */}
         <div className="sticky bottom-0 bg-gray-50 border-t px-6 py-4 flex items-center justify-end gap-3">
           <button
-            onClick={onCancel}
+            onClick={handleClose}
             className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
           >
             Close
