@@ -29,6 +29,12 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
     e.preventDefault();
     e.stopPropagation();
 
+    // Prevent adding more files if already at limit
+    if (files.length >= 10) {
+      showError("Maximum 10 files per batch - cannot add more files");
+      return;
+    }
+
     const droppedFiles = Array.from(e.dataTransfer.files);
     handleFiles(droppedFiles);
   };
@@ -62,7 +68,10 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
     });
 
     if (files.length + validFiles.length > 10) {
-      showError("Maximum 10 files per batch");
+      const remaining = 10 - files.length;
+      showError(
+        `Cannot add ${validFiles.length} file(s). You can only add ${remaining} more file(s) (10 file maximum)`
+      );
       return;
     }
 
@@ -99,40 +108,58 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
 
       if (!response.ok) {
         const errorData = await response.json();
-
-        // Handle 402 Payment Required (limit exceeded)
-        if (response.status === 402 && errorData.detail?.error === 'limit_exceeded') {
-          const detail = errorData.detail;
-          const message = `${detail.message || 'Limit exceeded'}\n\nCurrent: ${detail.current}/${detail.limit} ${detail.feature}\n\n${detail.upgrade_message || 'Please upgrade your plan.'}`;
-          throw new Error(message);
-        }
-
         throw new Error(errorData.detail || "Upload failed");
       }
 
       const data = await response.json();
 
-      // Process results
-      const extracted = data.results.map((result, index) => ({
-        originalFile: files[index].name,
-        tempFilename: result.temp_filename,
-        contentType: result.content_type,
-        success: result.success,
-        error: result.error,
-        extractedData: result.extracted_data || {},
-        vendor: result.extracted_data?.vendor || "",
-        amount: result.extracted_data?.amount || "",
-        category: result.extracted_data?.category || "Other",
-        description: result.extracted_data?.description || "",
-        confidence: result.extracted_data?.confidence || 0,
-      }));
+      // Auto-create expenses immediately
+      let successCount = 0;
+      const token2 = localStorage.getItem("access_token");
 
-      setExtractedData(extracted);
-      showSuccess(
-        `Extracted data from ${extracted.filter((e) => e.success).length}/${files.length} receipts`,
-      );
+      for (let i = 0; i < data.results.length; i++) {
+        const result = data.results[i];
+        if (!result.success) continue;
+
+        try {
+          // Use filename as vendor, default amount $1.00
+          const vendor = files[i].name.replace(/\.[^/.]+$/, ""); // Remove extension
+          const amount = 1.00;
+
+          const expenseResponse = await fetch("/api/v1/receipts/create-from-extraction", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token2}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              vendor: vendor,
+              amount: amount,
+              category: "Other",
+              description: "Batch upload - please review and edit",
+              temp_filename: result.temp_filename,
+              original_filename: files[i].name,
+              content_type: result.content_type,
+            }),
+          });
+
+          if (expenseResponse.ok) {
+            successCount++;
+          }
+        } catch (err) {
+          console.error(`Failed to create expense ${i}:`, err);
+        }
+      }
+
+      showSuccess(`Created ${successCount} expenses successfully! Please review and edit them.`);
+
+      // Close modal and refresh
+      setTimeout(() => {
+        onSuccess();
+      }, 1500);
+
     } catch (err) {
-      showError(err.message || "Failed to upload and extract receipts");
+      showError(err.message || "Failed to upload receipts");
       console.error(err);
     } finally {
       setUploading(false);
@@ -279,15 +306,35 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
           {/* Upload Area */}
           {extractedData.length === 0 && (
             <div>
+              {/* File Counter */}
+              {files.length > 0 && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm font-medium text-blue-800">
+                    {files.length} / 10 files selected
+                    {files.length === 10 && (
+                      <span className="ml-2 text-orange-600">
+                        (Maximum reached)
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+
               <div
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-teal-400 hover:bg-teal-50 transition-colors cursor-pointer"
+                onClick={() => files.length < 10 && fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
+                  files.length >= 10
+                    ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
+                    : "border-gray-300 hover:border-teal-400 hover:bg-teal-50 cursor-pointer"
+                }`}
               >
                 <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-lg font-medium text-gray-700 mb-2">
-                  Drop receipt images here or click to browse
+                  {files.length >= 10
+                    ? "Maximum 10 files reached"
+                    : "Drop receipt images here or click to browse"}
                 </p>
                 <p className="text-sm text-gray-500">
                   Supports JPG, PNG, GIF, PDF (max 10MB per file, up to 10
@@ -347,7 +394,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                         Ready to upload {files.length} file{files.length > 1 ? 's' : ''}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Click the button to upload and extract receipt data
+                        Expenses will be created automatically with receipts attached
                       </p>
                     </div>
                     <button
@@ -358,12 +405,12 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                       {uploading ? (
                         <>
                           <Loader className="w-6 h-6 animate-spin" />
-                          Extracting Data...
+                          Creating Expenses...
                         </>
                       ) : (
                         <>
                           <Upload className="w-6 h-6" />
-                          Process Receipts with AI
+                          Upload & Create
                         </>
                       )}
                     </button>

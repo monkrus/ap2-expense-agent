@@ -211,7 +211,7 @@ async def create_expense(
                 "vendor": expense.vendor,
                 "category": expense.category,
                 "description": expense.description,
-                "status": expense.status.value,
+                "status": expense.status.value.lower(),
                 "date": expense.date.isoformat() if expense.date else None,
                 "created_at": expense.created_at.isoformat() if expense.created_at else None,
                 "auto_approved": True,
@@ -276,7 +276,7 @@ async def create_expense(
         "vendor": expense.vendor,
         "category": expense.category,
         "description": expense.description,
-        "status": expense.status.value,
+        "status": expense.status.value.lower(),
         "date": expense.date.isoformat() if expense.date else None,
         "created_at": expense.created_at.isoformat() if expense.created_at else None,
         "auto_approved": False,
@@ -471,9 +471,9 @@ async def get_expense_report(
                 ),
                 "description": expense.description,
                 "status": (
-                    expense.status.value
+                    expense.status.value.lower()
                     if hasattr(expense.status, "value")
-                    else expense.status
+                    else (expense.status.lower() if isinstance(expense.status, str) else expense.status)
                 ),
                 "date": expense.date.isoformat() if expense.date else None,
                 "transaction_id": expense.transaction_id,
@@ -588,7 +588,7 @@ async def get_expense(
         "vendor": expense.vendor,
         "category": expense.category,
         "description": expense.description,
-        "status": expense.status.value if hasattr(expense.status, 'value') else expense.status,
+        "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else (expense.status.lower() if isinstance(expense.status, str) else expense.status)),
         "date": expense.date.isoformat() if expense.date else None,
         "user_id": expense.user_id,
         "organization_id": expense.organization_id,
@@ -654,7 +654,7 @@ async def update_expense(
         "vendor": expense.vendor,
         "category": expense.category,
         "description": expense.description,
-        "status": expense.status.value if hasattr(expense.status, 'value') else expense.status,
+        "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else (expense.status.lower() if isinstance(expense.status, str) else expense.status)),
         "date": expense.date.isoformat() if expense.date else None,
         "user_id": expense.user_id,
         "organization_id": expense.organization_id,
@@ -849,7 +849,7 @@ async def approve_expense(
 
     return {
         "id": expense.id,
-        "status": expense.status.value if hasattr(expense.status, 'value') else expense.status,
+        "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else (expense.status.lower() if isinstance(expense.status, str) else expense.status)),
         "message": f"Expense approved by {current_user.username}",
         "approved_by": current_user.id,
         "approved_at": expense.approved_at.isoformat()
@@ -967,7 +967,7 @@ async def reject_expense(
 
     return {
         "id": expense.id,
-        "status": expense.status.value if hasattr(expense.status, 'value') else expense.status,
+        "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else (expense.status.lower() if isinstance(expense.status, str) else expense.status)),
         "message": f"Expense rejected by {current_user.username}",
         "reason": reason,
         "rejected_at": datetime.utcnow().isoformat()

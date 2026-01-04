@@ -155,38 +155,13 @@ async def batch_upload_receipts(
     if len(files) > 10:
         raise HTTPException(status_code=400, detail="Maximum 10 files per batch")
 
-    # Get user's organization for limit checking
+    # Get user's organization
     membership = (
         db.query(OrganizationMember)
         .filter(OrganizationMember.user_id == current_user.id)
         .filter(OrganizationMember.is_active == True)
         .first()
     )
-
-    if membership:
-        # Check OCR limits (hard block for Free tier)
-        try:
-            limit_enforcer = LimitEnforcer(db)
-            # Check monthly OCR limit
-            limit_enforcer.check_ocr_limit(
-                membership.organization_id, count=len(files), raise_error=True
-            )
-            # Check daily rate limit (anti-abuse for Free tier)
-            limit_enforcer.check_daily_rate_limit(
-                membership.organization_id, "ocr_scan", raise_error=True
-            )
-        except LimitExceededError as e:
-            raise HTTPException(
-                status_code=http_status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": "limit_exceeded",
-                    "feature": e.feature,
-                    "limit": e.limit,
-                    "current": e.current,
-                    "message": str(e),
-                    "upgrade_message": e.upgrade_message,
-                },
-            )
 
     results = []
     temp_files = []
@@ -387,7 +362,7 @@ async def create_expense_from_extraction(
                 "amount": float(expense.amount),
                 "category": expense.category,
                 "description": expense.description,
-                "status": expense.status,
+                "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else (expense.status.lower() if isinstance(expense.status, str) else expense.status)),
                 "created_at": expense.created_at.isoformat(),
             },
             "receipt": {
@@ -553,3 +528,4 @@ async def download_receipt(
         filename=receipt.original_filename,
         media_type=receipt.content_type,
     )
+

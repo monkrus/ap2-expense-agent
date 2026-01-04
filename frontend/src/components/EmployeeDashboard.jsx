@@ -312,12 +312,15 @@ const EmployeeDashboard = () => {
   };
 
   // Filter expenses based on active tab and filters
-  const activeExpenses = expenses.filter((e) => e.status === "pending");
+  // IMPORTANT: Use .toLowerCase() for case-insensitive comparison as a defensive safeguard.
+  // Backend now returns lowercase status values ("pending", "approved", etc.) but we normalize
+  // here as well to prevent future case sensitivity issues if the backend changes.
+  const activeExpenses = expenses.filter((e) => e.status?.toLowerCase() === "pending");
   const historyExpenses = expenses.filter((e) => {
     // History tab should exclude pending expenses (those are in Active tab)
-    if (e.status === "pending") return false;
+    if (e.status?.toLowerCase() === "pending") return false;
     if (statusFilter === "all") return true;
-    return e.status === statusFilter;
+    return e.status?.toLowerCase() === statusFilter?.toLowerCase();
   });
 
   // Apply search filter
