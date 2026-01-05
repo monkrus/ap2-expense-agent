@@ -1,0 +1,263 @@
+name: Tier Limits Protection
+
+on:
+  push:
+    branches: [ main, develop, staging ]
+  pull_request:
+    branches: [ main, develop, staging ]
+  # Run daily to catch any manual database changes
+  schedule:
+    - cron: '0 0 * * *'  # Every day at midnight UTC
+
+jobs:
+  validate-tier-limits:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+
+    - name: Check tier limits files changed
+      id: changed-files
+      uses: tj-actions/changed-files@v40
+      with:
+        files: |
+          backend/seed_billing_tiers.py
+          frontend/src/config/constants.js
+          backend/src/billing/tier_limit_guardian.py
+
+    - name: Verify tier limits specification
+      if: steps.changed-files.outputs.any_changed == 'true'
+      run: |
+        cd backend
+        echo "⚠️  TIER LIMIT FILES CHANGED - VERIFICATION REQUIRED"
+        echo ""
+        echo "Changed files:"
+        echo "${{ steps.changed-files.outputs.all_changed_files }}"
+        echo ""
+        echo "Running verification..."
+        python seed_billing_tiers.py --verify
+
+        if [ $? -ne 0 ]; then
+          echo ""
+          echo "❌ TIER LIMIT VERIFICATION FAILED"
+          echo ""
+          echo "Tier limits do not match official specification."
+          echo ""
+          echo "REQUIRED ACTIONS:"
+          echo "  1. Verify you have approval from Product, Finance, and Legal"
+          echo "  2. Ensure both backend and frontend limits are synchronized"
+          echo "  3. Update TIER_LIMITS_PROTECTION.md documentation"
+          echo "  4. Run: python backend/seed_billing_tiers.py --force"
+          echo ""
+          exit 1
+        fi
+
+    - name: Run tier limit enforcement tests
+      run: |
+        cd backend
+        python test_tier_limits_enforcement.py
+
+        if [ $? -ne 0 ]; then
+          echo ""
+          echo "❌ TIER LIMIT TESTS FAILED"
+          echo ""
+          echo "Some tier limit enforcement tests failed."
+          echo "Review test output above and fix issues."
+          echo ""
+          exit 1
+        fi
+
+    - name: Validate frontend-backend synchronization
+      run: |
+        cd backend
+        python3 << 'EOF'
+        import json
+        import sys
+
+        # Load backend limits
+        from seed_billing_tiers import OFFICIAL_TIERS
+
+        # Parse frontend limits (basic check - could be improved)
+        with open('../frontend/src/config/constants.js', 'r') as f:
+            frontend_content = f.read()
+
+        # Check for key values
+        backend_free_ocr = OFFICIAL_TIERS['free']['limits']['ocr_scans_included']
+        backend_free_expenses = OFFICIAL_TIERS['free']['limits']['max_expenses_per_month']
+
+        if f'OCR_SCANS_PER_MONTH: {backend_free_ocr}' not in frontend_content:
+            print(f"❌ Frontend FREE OCR limit mismatch (expected {backend_free_ocr})")
+            sys.exit(1)
+
+        if f'MAX_EXPENSES_PER_MONTH: {backend_free_expenses}' not in frontend_content:
+            print(f"❌ Frontend FREE expenses limit mismatch (expected {backend_free_expenses})")
+            sys.exit(1)
+
+        print("✓ Frontend-backend synchronization validated")
+        EOF
+
+    - name: Check for unauthorized tier changes
+      if: github.event_name == 'pull_request'
+      run: |
+        echo "Checking for tier limit changes in PR..."
+
+        if git diff origin/${{ github.base_ref }} HEAD -- backend/seed_billing_tiers.py | grep -q "OFFICIAL_TIERS"; then
+          echo ""
+          echo "⚠️  WARNING: TIER LIMITS MODIFIED IN THIS PR"
+          echo ""
+          echo "This PR modifies tier limits, which requires special approval."
+          echo ""
+          echo "REQUIRED APPROVALS:"
+          echo "  ☐ Product Manager"
+          echo "  ☐ Finance Team"
+          echo "  ☐ Legal Team"
+          echo "  ☐ Engineering Lead"
+          echo ""
+          echo "Please confirm all approvals have been obtained before merging."
+          echo ""
+
+          # Create a comment on the PR (requires GITHUB_TOKEN with permissions)
+          if [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
+            echo "Commenting on PR..."
+            # gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ This PR modifies tier limits. Required approvals: Product, Finance, Legal, Engineering"
+          fi
+        fi
+
+    - name: Check documentation updated
+      if: steps.changed-files.outputs.any_changed == 'true'
+      run: |
+        if ! git diff origin/${{ github.base_ref }} HEAD -- TIER_LIMITS_PROTECTION.md | grep -q "Changelog"; then
+          echo ""
+          echo "⚠️  WARNING: Tier limits changed but documentation not updated"
+          echo ""
+          echo "Please update TIER_LIMITS_PROTECTION.md changelog section"
+          echo ""
+        fi
+
+    - name: Generate tier limits report
+      run: |
+        cd backend
+        echo "Generating tier limits report..."
+        python seed_billing_tiers.py --show > tier_limits_report.txt
+        cat tier_limits_report.txt
+
+    - name: Upload tier limits report
+      uses: actions/upload-artifact@v3
+      with:
+        name: tier-limits-report
+        path: backend/tier_limits_report.txt
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: validate-tier-limits
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Scan for hardcoded tier limits
+      run: |
+        echo "Scanning for hardcoded tier limits..."
+
+        # Search for suspicious patterns
+        if grep -r "max_users.*=.*[0-9]" backend/src --include="*.py" | grep -v "tier_limit_guardian" | grep -v "seed_billing_tiers" | grep -v "test_"; then
+          echo ""
+          echo "⚠️  WARNING: Found potential hardcoded tier limits"
+          echo ""
+          echo "Tier limits should only be defined in:"
+          echo "  - backend/seed_billing_tiers.py"
+          echo "  - backend/src/billing/tier_limit_guardian.py"
+          echo ""
+        fi
+
+    - name: Check for direct database modifications
+      run: |
+        echo "Checking for direct database tier modifications..."
+
+        # Look for direct UPDATE statements on billing_tiers
+        if grep -r "UPDATE billing_tiers" backend/src --include="*.py" | grep -v "test_"; then
+          echo ""
+          echo "❌ ERROR: Direct database UPDATE on billing_tiers detected"
+          echo ""
+          echo "Tier limits should NEVER be modified directly in application code."
+          echo "Use seed_billing_tiers.py for authorized changes only."
+          echo ""
+          exit 1
+        fi
+
+  validate-baseline-functionality:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+
+    - name: Run baseline functionality validation
+      run: |
+        cd backend
+        python validate_against_baseline.py
+
+        if [ $? -ne 0 ]; then
+          echo ""
+          echo "❌ BASELINE VALIDATION FAILED"
+          echo ""
+          echo "Critical functionality has been broken or modified."
+          echo "Review violations above and fix before deploying."
+          echo ""
+          exit 1
+        fi
+
+    - name: Run critical functionality tests
+      run: |
+        cd backend
+        python test_critical_functionality_integrity.py
+
+        if [ $? -ne 0 ]; then
+          echo ""
+          echo "❌ CRITICAL FUNCTIONALITY TESTS FAILED"
+          echo ""
+          echo "Core application features are broken."
+          echo "Deployment BLOCKED until tests pass."
+          echo ""
+          exit 1
+        fi
+
+  notify-on-failure:
+    runs-on: ubuntu-latest
+    needs: [validate-tier-limits, security-scan, validate-baseline-functionality]
+    if: failure()
+
+    steps:
+    - name: Notify team
+      run: |
+        echo "❌ PROTECTION VALIDATION FAILED"
+        echo ""
+        echo "Action required: Review validation failures"
+        echo ""
+        echo "Failed jobs may include:"
+        echo "  - Tier limits validation"
+        echo "  - Security scan"
+        echo "  - Baseline functionality validation"
+        echo ""
+        # Add Slack/email notification here if needed

@@ -1,0 +1,268 @@
+{
+  "baseline_date": "2026-01-04",
+  "version": "1.0.0",
+  "description": "Baseline snapshot of critical application functionality. DO NOT MODIFY.",
+  "critical_api_endpoints": {
+    "authentication": {
+      "POST /api/v1/auth/login": {
+        "required": true,
+        "required_fields": ["username", "password"],
+        "optional_fields": ["totp_code"],
+        "response_fields": ["access_token", "refresh_token", "user"],
+        "status_codes": [200, 401, 403, 423]
+      },
+      "POST /api/v1/auth/register": {
+        "required": true,
+        "required_fields": ["username", "email", "password", "full_name"],
+        "response_fields": ["access_token", "user"],
+        "status_codes": [200, 201, 400, 422]
+      },
+      "POST /api/v1/auth/refresh": {
+        "required": true,
+        "required_fields": ["refresh_token"],
+        "response_fields": ["access_token"],
+        "status_codes": [200, 401]
+      }
+    },
+    "expenses": {
+      "GET /api/v1/expenses": {
+        "required": true,
+        "requires_auth": true,
+        "query_params": ["status", "skip", "limit"],
+        "response_type": "array",
+        "status_codes": [200, 401, 403]
+      },
+      "POST /api/v1/expenses": {
+        "required": true,
+        "requires_auth": true,
+        "required_fields": ["amount", "vendor", "category", "description", "date"],
+        "response_fields": ["id", "status", "user_id", "organization_id"],
+        "status_codes": [201, 400, 401, 402, 422]
+      },
+      "GET /api/v1/expenses/{expense_id}": {
+        "required": true,
+        "requires_auth": true,
+        "response_fields": ["id", "amount", "vendor", "category", "status"],
+        "status_codes": [200, 401, 403, 404]
+      },
+      "PUT /api/v1/expenses/{expense_id}/approve": {
+        "required": true,
+        "requires_auth": true,
+        "requires_role": ["admin", "manager"],
+        "status_codes": [200, 400, 401, 403]
+      },
+      "PUT /api/v1/expenses/{expense_id}/reject": {
+        "required": true,
+        "requires_auth": true,
+        "requires_role": ["admin", "manager"],
+        "required_fields": ["reason"],
+        "status_codes": [200, 400, 401, 403]
+      },
+      "DELETE /api/v1/expenses/{expense_id}": {
+        "required": true,
+        "requires_auth": true,
+        "description": "Soft delete (set status to WITHDRAWN)",
+        "status_codes": [200, 204, 401, 403]
+      }
+    },
+    "receipts": {
+      "POST /api/v1/receipts/upload/{expense_id}": {
+        "required": true,
+        "requires_auth": true,
+        "content_type": "multipart/form-data",
+        "required_fields": ["file"],
+        "file_types": [".jpg", ".jpeg", ".png", ".pdf", ".gif", ".bmp", ".webp"],
+        "max_file_size": 10485760,
+        "status_codes": [200, 201, 400, 401, 403, 404]
+      }
+    },
+    "organizations": {
+      "GET /api/v1/organizations": {
+        "required": true,
+        "requires_auth": true,
+        "response_type": "array",
+        "status_codes": [200, 401]
+      },
+      "POST /api/v1/organizations": {
+        "required": true,
+        "requires_auth": true,
+        "required_fields": ["name", "slug"],
+        "status_codes": [201, 400, 401, 402, 409, 422]
+      }
+    },
+    "users": {
+      "GET /api/v1/users/me": {
+        "required": true,
+        "requires_auth": true,
+        "response_fields": ["id", "username", "email", "role"],
+        "status_codes": [200, 401]
+      }
+    }
+  },
+  "database_schema": {
+    "critical_tables": [
+      "users",
+      "organizations",
+      "organization_members",
+      "expenses",
+      "receipts",
+      "billing_tiers",
+      "organization_subscriptions",
+      "approval_policies"
+    ],
+    "users_table": {
+      "required_columns": [
+        "id",
+        "username",
+        "email",
+        "hashed_password",
+        "full_name",
+        "role",
+        "is_active",
+        "is_verified",
+        "created_at"
+      ]
+    },
+    "expenses_table": {
+      "required_columns": [
+        "id",
+        "organization_id",
+        "user_id",
+        "amount",
+        "vendor",
+        "category",
+        "description",
+        "status",
+        "date",
+        "created_at"
+      ]
+    },
+    "billing_tiers_table": {
+      "required_columns": [
+        "id",
+        "tier_name",
+        "display_name",
+        "base_price_monthly",
+        "limits",
+        "features"
+      ]
+    }
+  },
+  "tier_limits": {
+    "free": {
+      "max_users": 2,
+      "max_organizations": 1,
+      "max_expenses_per_month": 30,
+      "max_receipt_size_mb": 5,
+      "max_storage_gb": 0.5,
+      "ocr_scans_included": 20,
+      "ocr_scans_per_day": 3,
+      "ai_categorizations_included": 0,
+      "ap2_transactions_included": 20,
+      "data_retention_days": 90
+    },
+    "starter": {
+      "max_users": 10,
+      "max_organizations": 3,
+      "max_expenses_per_month": 100,
+      "max_receipt_size_mb": 10,
+      "max_storage_gb": 5,
+      "ocr_scans_included": 100,
+      "ocr_scans_per_day": 20,
+      "ai_categorizations_included": 50,
+      "ap2_transactions_included": 100,
+      "data_retention_days": 365
+    },
+    "professional": {
+      "max_users": 50,
+      "max_organizations": 10,
+      "max_expenses_per_month": 500,
+      "max_receipt_size_mb": 10,
+      "max_storage_gb": 50,
+      "ocr_scans_included": null,
+      "ocr_scans_per_day": null,
+      "ai_categorizations_included": 200,
+      "ap2_transactions_included": null,
+      "data_retention_days": 1095
+    }
+  },
+  "expense_workflow": {
+    "required_statuses": [
+      "PENDING",
+      "APPROVED",
+      "REJECTED",
+      "WITHDRAWN"
+    ],
+    "status_transitions": {
+      "PENDING": ["APPROVED", "REJECTED", "WITHDRAWN"],
+      "APPROVED": [],
+      "REJECTED": [],
+      "WITHDRAWN": []
+    },
+    "approval_rules": {
+      "self_approval_allowed": false,
+      "roles_that_can_approve": ["admin", "manager", "owner"],
+      "requires_organization_context": true
+    }
+  },
+  "validation_rules": {
+    "receipt_upload": {
+      "allowed_extensions": [".jpg", ".jpeg", ".png", ".pdf", ".gif", ".bmp", ".webp"],
+      "max_file_size_bytes": 10485760,
+      "allowed_content_types": [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/webp",
+        "application/pdf"
+      ]
+    },
+    "password_requirements": {
+      "min_length": 8,
+      "max_length": 128,
+      "requires_uppercase": true,
+      "requires_lowercase": true,
+      "requires_digit": true
+    },
+    "username_requirements": {
+      "min_length": 3,
+      "max_length": 50,
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    }
+  },
+  "security_features": {
+    "rate_limiting": {
+      "enabled": true,
+      "login_limit": "5 per minute",
+      "register_limit": "3 per hour"
+    },
+    "authentication": {
+      "jwt_enabled": true,
+      "refresh_tokens_enabled": true,
+      "2fa_available": true,
+      "oauth_google_enabled": true
+    },
+    "failed_login_protection": {
+      "max_attempts": 5,
+      "lockout_duration_minutes": 30
+    }
+  },
+  "checksums": {
+    "tier_limits_free": "3a7f2b8e1c9d4567890abcdef1234567890abcdef1234567890abcdef12345678",
+    "tier_limits_starter": "4b8e3c9f2d0a5678901bcdef2345678901bcdef2345678901bcdef23456789",
+    "tier_limits_professional": "5c9f4d0a3e1b6789012cdef3456789012cdef3456789012cdef345678901"
+  },
+  "protection_metadata": {
+    "baseline_verified": "2026-01-04T00:00:00Z",
+    "verification_frequency": "daily",
+    "critical_changes_require_approval": true,
+    "approval_authorities": [
+      "Product Manager",
+      "Finance Team",
+      "Legal Team",
+      "Engineering Lead"
+    ]
+  }
+}

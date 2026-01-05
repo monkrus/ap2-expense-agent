@@ -240,6 +240,16 @@ except Exception:
 async def startup_event():
     init_db()
 
+    # CRITICAL: Verify tier limits before starting application
+    # This ensures tier limits haven't been tampered with
+    try:
+        from .billing.tier_limit_guardian import verify_tier_limits_on_startup
+        verify_tier_limits_on_startup()
+    except Exception as e:
+        print(f"[CRITICAL] Tier limit verification failed: {e}")
+        print("[CRITICAL] Application startup blocked for security")
+        raise
+
     # Seed default users
     from .seed_data import ensure_default_users_exist
 
