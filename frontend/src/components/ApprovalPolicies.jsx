@@ -1,0 +1,888 @@
+import React, { useState, useEffect } from "react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Power,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  DollarSign,
+  Users,
+  Calendar,
+  Clock,
+  Tag,
+  Building,
+  TrendingUp,
+  TestTube,
+  Save,
+  X,
+} from "lucide-react";
+import { useToast } from "../hooks/useToast";
+
+const EXPENSE_CATEGORIES = [
+  "MEALS",
+  "TRAVEL",
+  "OFFICE_SUPPLIES",
+  "EQUIPMENT",
+  "SOFTWARE",
+  "MARKETING",
+  "ENTERTAINMENT",
+  "PARKING",
+  "FUEL",
+  "SHIPPING",
+  "OTHER",
+];
+
+const ApprovalPolicies = () => {
+  const { success, error: showError } = useToast();
+  const [policies, setPolicies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState(null);
+  const [testingPolicy, setTestingPolicy] = useState(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    priority: 100,
+    auto_approve: true,
+    require_receipt: false,
+    notify_on_auto_approve: true,
+    max_amount_per_expense: "",
+    daily_limit_per_user: "",
+    monthly_limit_per_user: "",
+    yearly_limit_per_user: "",
+    conditions: {
+      categories: [],
+      vendors: [],
+      exclude_vendors: [],
+      min_amount: "",
+    },
+  });
+
+  // Test form state
+  const [testData, setTestData] = useState({
+    amount: "",
+    category: "MEALS",
+    vendor: "",
+    has_receipt: true,
+  });
+  const [testResult, setTestResult] = useState(null);
+
+  useEffect(() => {
+    loadPolicies();
+  }, []);
+
+  const loadPolicies = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/v1/approval-policies", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to load policies");
+
+      const data = await response.json();
+      setPolicies(data);
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem("token");
+      const payload = {
+        ...formData,
+        max_amount_per_expense: formData.max_amount_per_expense
+          ? parseFloat(formData.max_amount_per_expense)
+          : null,
+        daily_limit_per_user: formData.daily_limit_per_user
+          ? parseFloat(formData.daily_limit_per_user)
+          : null,
+        monthly_limit_per_user: formData.monthly_limit_per_user
+          ? parseFloat(formData.monthly_limit_per_user)
+          : null,
+        yearly_limit_per_user: formData.yearly_limit_per_user
+          ? parseFloat(formData.yearly_limit_per_user)
+          : null,
+        conditions: {
+          ...formData.conditions,
+          min_amount: formData.conditions.min_amount
+            ? parseFloat(formData.conditions.min_amount)
+            : undefined,
+        },
+      };
+
+      const url = editingPolicy
+        ? `/api/v1/approval-policies/${editingPolicy.id}`
+        : "/api/v1/approval-policies";
+
+      const response = await fetch(url, {
+        method: editingPolicy ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) throw new Error("Failed to save policy");
+
+      success(editingPolicy ? "Policy updated!" : "Policy created!");
+      setShowCreateForm(false);
+      setEditingPolicy(null);
+      resetForm();
+      loadPolicies();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const handleDelete = async (policyId) => {
+    if (!confirm("Are you sure you want to delete this policy?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/v1/approval-policies/${policyId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to delete policy");
+
+      success("Policy deleted!");
+      loadPolicies();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const handleToggleActive = async (policy) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/v1/approval-policies/${policy.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          is_active: !policy.is_active,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update policy");
+
+      success(
+        policy.is_active ? "Policy deactivated!" : "Policy activated!"
+      );
+      loadPolicies();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const handleTest = async (e) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/v1/approval-policies/test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...testData,
+          amount: parseFloat(testData.amount),
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to test policy");
+
+      const result = await response.json();
+      setTestResult(result);
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      priority: 100,
+      auto_approve: true,
+      require_receipt: false,
+      notify_on_auto_approve: true,
+      max_amount_per_expense: "",
+      daily_limit_per_user: "",
+      monthly_limit_per_user: "",
+      yearly_limit_per_user: "",
+      conditions: {
+        categories: [],
+        vendors: [],
+        exclude_vendors: [],
+        min_amount: "",
+      },
+    });
+  };
+
+  const startEdit = (policy) => {
+    setEditingPolicy(policy);
+    setFormData({
+      name: policy.name,
+      description: policy.description || "",
+      priority: policy.priority,
+      auto_approve: policy.auto_approve,
+      require_receipt: policy.require_receipt,
+      notify_on_auto_approve: policy.notify_on_auto_approve,
+      max_amount_per_expense: policy.limits?.max_amount_per_expense || "",
+      daily_limit_per_user: policy.limits?.daily_limit_per_user || "",
+      monthly_limit_per_user: policy.limits?.monthly_limit_per_user || "",
+      yearly_limit_per_user: policy.limits?.yearly_limit_per_user || "",
+      conditions: policy.conditions || {
+        categories: [],
+        vendors: [],
+        exclude_vendors: [],
+        min_amount: "",
+      },
+    });
+    setShowCreateForm(true);
+  };
+
+  const toggleCategory = (category) => {
+    setFormData((prev) => ({
+      ...prev,
+      conditions: {
+        ...prev.conditions,
+        categories: prev.conditions.categories.includes(category)
+          ? prev.conditions.categories.filter((c) => c !== category)
+          : [...prev.conditions.categories, category],
+      },
+    }));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading policies...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Approval Policies
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Configure automatic expense approval rules
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setShowCreateForm(true);
+            setEditingPolicy(null);
+            resetForm();
+          }}
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          Create Policy
+        </button>
+      </div>
+
+      {/* Info Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex">
+          <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-blue-800">
+              How Auto-Approval Works
+            </h3>
+            <p className="mt-1 text-sm text-blue-700">
+              Policies are evaluated in priority order (highest first). When an
+              expense matches a policy's conditions and is within limits, it's
+              automatically approved. Otherwise, it requires manual approval.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Create/Edit Form */}
+      {showCreateForm && (
+        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {editingPolicy ? "Edit Policy" : "Create New Policy"}
+            </h3>
+            <button
+              onClick={() => {
+                setShowCreateForm(false);
+                setEditingPolicy(null);
+                resetForm();
+              }}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Basic Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Policy Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., Small Expenses"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Priority (0-1000)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="1000"
+                  value={formData.priority}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      priority: parseInt(e.target.value),
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Higher priority policies are checked first
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                rows="2"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="What does this policy do?"
+              />
+            </div>
+
+            {/* Amount Limits */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                <DollarSign className="h-4 w-4 mr-2 text-green-600" />
+                Amount Limits
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">
+                    Max per expense ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.max_amount_per_expense}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        max_amount_per_expense: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="e.g., 100.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">
+                    Min amount ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.conditions.min_amount}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        conditions: {
+                          ...formData.conditions,
+                          min_amount: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* User Spending Limits */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                <Users className="h-4 w-4 mr-2 text-blue-600" />
+                Per-User Spending Limits
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">
+                    Daily limit ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.daily_limit_per_user}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        daily_limit_per_user: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="Optional"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">
+                    Monthly limit ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.monthly_limit_per_user}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        monthly_limit_per_user: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="Optional"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">
+                    Yearly limit ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.yearly_limit_per_user}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        yearly_limit_per_user: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Categories */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                <Tag className="h-4 w-4 mr-2 text-purple-600" />
+                Allowed Categories
+              </h4>
+              <p className="text-xs text-gray-500 mb-3">
+                Leave empty to allow all categories
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {EXPENSE_CATEGORIES.map((category) => (
+                  <label
+                    key={category}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.conditions.categories.includes(
+                        category
+                      )}
+                      onChange={() => toggleCategory(category)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{category}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Options */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                Options
+              </h4>
+              <div className="space-y-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.auto_approve}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        auto_approve: e.target.checked,
+                      })
+                    }
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">
+                    Auto-approve matching expenses
+                  </span>
+                </label>
+
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.notify_on_auto_approve}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        notify_on_auto_approve: e.target.checked,
+                      })
+                    }
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">
+                    Notify user on auto-approval
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end space-x-3 pt-4 border-t">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setEditingPolicy(null);
+                  resetForm();
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {editingPolicy ? "Update Policy" : "Create Policy"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Test Policy */}
+      <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <TestTube className="h-5 w-5 mr-2 text-orange-600" />
+          Test Policies
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Test if an expense would be auto-approved by your current policies
+        </p>
+
+        <form onSubmit={handleTest} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Amount ($)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                value={testData.amount}
+                onChange={(e) =>
+                  setTestData({ ...testData, amount: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="50.00"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
+              <select
+                value={testData.category}
+                onChange={(e) =>
+                  setTestData({ ...testData, category: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                {EXPENSE_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vendor
+              </label>
+              <input
+                type="text"
+                value={testData.vendor}
+                onChange={(e) =>
+                  setTestData({ ...testData, vendor: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="e.g., Amazon"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <button
+                type="submit"
+                className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700"
+              >
+                Test
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {testResult && (
+          <div
+            className={`mt-4 p-4 rounded-lg ${
+              testResult.would_auto_approve
+                ? "bg-green-50 border border-green-200"
+                : "bg-yellow-50 border border-yellow-200"
+            }`}
+          >
+            <div className="flex items-start">
+              {testResult.would_auto_approve ? (
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+              )}
+              <div className="ml-3">
+                <h4
+                  className={`text-sm font-medium ${
+                    testResult.would_auto_approve
+                      ? "text-green-800"
+                      : "text-yellow-800"
+                  }`}
+                >
+                  {testResult.would_auto_approve
+                    ? "Would Auto-Approve"
+                    : "Requires Manual Approval"}
+                </h4>
+                <p
+                  className={`mt-1 text-sm ${
+                    testResult.would_auto_approve
+                      ? "text-green-700"
+                      : "text-yellow-700"
+                  }`}
+                >
+                  {testResult.reason}
+                </p>
+                {testResult.matching_policy && (
+                  <p className="mt-2 text-xs text-gray-600">
+                    Matched Policy: <strong>{testResult.matching_policy.name}</strong>
+                  </p>
+                )}
+                {testResult.remaining_limits && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    <strong>Remaining Limits:</strong>
+                    {testResult.remaining_limits.daily_remaining && (
+                      <span className="ml-2">
+                        Daily: ${testResult.remaining_limits.daily_remaining}
+                      </span>
+                    )}
+                    {testResult.remaining_limits.monthly_remaining && (
+                      <span className="ml-2">
+                        Monthly: ${testResult.remaining_limits.monthly_remaining}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Policies List */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Active Policies ({policies.length})
+          </h3>
+        </div>
+
+        {policies.length === 0 ? (
+          <div className="p-12 text-center">
+            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No policies configured
+            </h3>
+            <p className="text-gray-500 mb-4">
+              Create your first auto-approval policy to get started
+            </p>
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Create Policy
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-200">
+            {policies
+              .sort((a, b) => b.priority - a.priority)
+              .map((policy) => (
+                <div
+                  key={policy.id}
+                  className={`p-6 ${
+                    !policy.is_active ? "bg-gray-50" : ""
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <h4 className="text-lg font-medium text-gray-900">
+                          {policy.name}
+                        </h4>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            policy.is_active
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {policy.is_active ? "Active" : "Inactive"}
+                        </span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Priority: {policy.priority}
+                        </span>
+                      </div>
+
+                      {policy.description && (
+                        <p className="mt-1 text-sm text-gray-600">
+                          {policy.description}
+                        </p>
+                      )}
+
+                      <div className="mt-3 flex flex-wrap gap-2 text-sm text-gray-600">
+                        {policy.limits?.max_amount_per_expense && (
+                          <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100">
+                            <DollarSign className="h-3 w-3 mr-1" />
+                            Max: ${policy.limits.max_amount_per_expense}
+                          </span>
+                        )}
+                        {policy.limits?.daily_limit_per_user && (
+                          <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            Daily: ${policy.limits.daily_limit_per_user}
+                          </span>
+                        )}
+                        {policy.limits?.monthly_limit_per_user && (
+                          <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100">
+                            <TrendingUp className="h-3 w-3 mr-1" />
+                            Monthly: ${policy.limits.monthly_limit_per_user}
+                          </span>
+                        )}
+                        {policy.conditions?.categories?.length > 0 && (
+                          <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100">
+                            <Tag className="h-3 w-3 mr-1" />
+                            {policy.conditions.categories.length} categories
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 ml-4">
+                      <button
+                        onClick={() => handleToggleActive(policy)}
+                        className={`p-2 rounded-md ${
+                          policy.is_active
+                            ? "text-green-600 hover:bg-green-50"
+                            : "text-gray-400 hover:bg-gray-100"
+                        }`}
+                        title={policy.is_active ? "Deactivate" : "Activate"}
+                      >
+                        <Power className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => startEdit(policy)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-md"
+                        title="Edit"
+                      >
+                        <Edit2 className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(policy.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-md"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ApprovalPolicies;

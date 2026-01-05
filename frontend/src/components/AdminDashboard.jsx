@@ -47,6 +47,7 @@ import { getRoleTheme } from "../utils/roleThemes";
 import AIAssistant from "../pages/AIAssistant";
 import RecurringExpenses from "../pages/RecurringExpenses";
 import BudgetManagement from "../pages/BudgetManagement";
+import ApprovalPolicies from "./ApprovalPolicies";
 import NotificationCenter from "./NotificationCenter";
 import { UpgradeBanner, UsageLimitWarning, SidebarUpgradeCard } from "./upsell";
 
@@ -1137,6 +1138,17 @@ const AdminDashboard = () => {
                 <TrendingUp className="w-5 h-5" />
                 Budgets
               </button>
+              <button
+                onClick={() => setActiveTab("approval-policies")}
+                className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                  activeTab === "approval-policies"
+                    ? getTabActiveClasses()
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                <CheckCircle className="w-5 h-5" />
+                Auto-Approval
+              </button>
             </div>
           </div>
 
@@ -1301,6 +1313,9 @@ const AdminDashboard = () => {
 
           {/* Budget Management Tab */}
           {activeTab === "budgets" && <BudgetManagement />}
+
+          {/* Approval Policies Tab */}
+          {activeTab === "approval-policies" && <ApprovalPolicies />}
 
           {/* Expenses List - Show for pending, all, and archived tabs */}
           {(activeTab === "pending" ||
