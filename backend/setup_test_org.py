@@ -42,8 +42,6 @@ try:
             # Determine role based on user role
             if user.role == UserRole.ADMIN:
                 org_role = OrganizationRole.ADMIN
-            elif user.role == UserRole.MANAGER:
-                org_role = OrganizationRole.MANAGER
             else:
                 org_role = OrganizationRole.MEMBER
 

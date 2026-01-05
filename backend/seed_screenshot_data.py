@@ -95,17 +95,10 @@ def create_demo_data(db: Session):
             "org_role": "owner",
         },
         {
-            "username": "mike.manager",
-            "email": "mike.manager@acme.com",
-            "full_name": "Mike Manager",
-            "role": UserRole.MANAGER,
-            "org_role": "manager",
-        },
-        {
-            "username": "john.employee",
-            "email": "john.employee@acme.com",
-            "full_name": "John Employee",
-            "role": UserRole.EMPLOYEE,
+            "username": "john.user",
+            "email": "john.user@acme.com",
+            "full_name": "John User",
+            "role": UserRole.USER,
             "org_role": "member",
         },
     ]

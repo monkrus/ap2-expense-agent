@@ -37,11 +37,10 @@ http_bearer = HTTPBearer()
 
 # Role-based concurrent session limits
 # EMPLOYEE: 1 session (single device only)
-# MANAGER: 2 sessions (e.g., desktop + mobile)
+# USER: 2 sessions (e.g., desktop + mobile)
 # ADMIN: unlimited sessions
 ROLE_SESSION_LIMITS = {
-    UserRole.EMPLOYEE: 1,
-    UserRole.MANAGER: 2,
+    UserRole.USER: 2,
     UserRole.ADMIN: None,  # None = unlimited
 }
 
@@ -355,4 +354,3 @@ def require_role(*roles: UserRole):
 
 # Specific role dependencies
 require_admin = require_role(UserRole.ADMIN)
-require_manager = require_role(UserRole.ADMIN, UserRole.MANAGER)

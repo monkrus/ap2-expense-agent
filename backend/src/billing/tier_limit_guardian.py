@@ -193,7 +193,7 @@ class TierLimitGuardian:
                 f"See logs for details. Application startup blocked for security."
             )
 
-        logger.info("✓ Tier limits verification passed - all limits are correct")
+        logger.info("[PASS] Tier limits verification passed - all limits are correct")
         return True
 
     def get_tier_limits(self, tier_name: str, db: Session) -> Dict[str, Any]:
@@ -317,9 +317,9 @@ def verify_tier_limits_on_startup():
 
     try:
         guardian.verify_tier_limits(db)
-        logger.info("✓ Tier limits verification passed - application startup allowed")
+        logger.info("[PASS] Tier limits verification passed - application startup allowed")
     except TierLimitTamperError as e:
-        logger.critical(f"✗ Tier limits verification FAILED - application startup BLOCKED")
+        logger.critical(f"[FAIL] Tier limits verification FAILED - application startup BLOCKED")
         logger.critical(f"Error: {e}")
         raise
     finally:

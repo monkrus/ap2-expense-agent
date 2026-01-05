@@ -105,8 +105,8 @@ class Permission(str, Enum):
 # ROLE-TO-PERMISSION MAPPINGS
 # ============================================================================
 
-# Define employee permissions first
-_EMPLOYEE_PERMISSIONS = {
+# Define user permissions
+_USER_PERMISSIONS = {
     # Expenses - Own only
     Permission.EXPENSE_SUBMIT,
     Permission.EXPENSE_VIEW_OWN,
@@ -131,49 +131,8 @@ _EMPLOYEE_PERMISSIONS = {
 }
 
 ROLE_PERMISSIONS: dict[UserRole, Set[Permission]] = {
-    # ===== EMPLOYEE ROLE =====
-    UserRole.EMPLOYEE: _EMPLOYEE_PERMISSIONS,
-    # ===== MANAGER ROLE =====
-    UserRole.MANAGER: {
-        # All employee permissions
-        *_EMPLOYEE_PERMISSIONS,
-        # Expenses - View/approve/edit department only (with $5K limit for approval)
-        Permission.EXPENSE_VIEW_DEPARTMENT,
-        Permission.EXPENSE_EDIT_DEPARTMENT,
-        Permission.EXPENSE_APPROVE_DEPARTMENT,  # Can only APPROVE ≤ $5,000
-        Permission.EXPENSE_REJECT_DEPARTMENT,
-        Permission.EXPENSE_BULK_APPROVE,
-        Permission.EXPENSE_BULK_REJECT,
-        # Receipts - Department
-        Permission.RECEIPT_VIEW_ALL,
-        # Users - Department
-        Permission.USER_VIEW_DEPARTMENT,
-        # Reports - Department
-        Permission.REPORT_VIEW_DEPARTMENT,
-        Permission.REPORT_EXPORT,
-        # Audit - Department
-        Permission.AUDIT_VIEW_DEPARTMENT,
-    },
-    # ===== ACCOUNTANT ROLE =====
-    # Read-only role with full visibility for audit and compliance
-    UserRole.ACCOUNTANT: {
-        # All employee permissions
-        *_EMPLOYEE_PERMISSIONS,
-        # Expenses - View all (read-only, cannot approve)
-        Permission.EXPENSE_VIEW_ALL,
-        Permission.EXPENSE_VIEW_DEPARTMENT,
-        # Receipts - View all
-        Permission.RECEIPT_VIEW_ALL,
-        # Users - View all
-        Permission.USER_VIEW_ALL,
-        # Reports - View and export all
-        Permission.REPORT_VIEW_ALL,
-        Permission.REPORT_VIEW_DEPARTMENT,
-        Permission.REPORT_EXPORT,
-        # Audit - View all
-        Permission.AUDIT_VIEW_ALL,
-        Permission.AUDIT_VIEW_DEPARTMENT,
-    },
+    # ===== USER ROLE =====
+    UserRole.USER: _USER_PERMISSIONS,
     # ===== ADMIN ROLE =====
     UserRole.ADMIN: {
         # All permissions (superuser)

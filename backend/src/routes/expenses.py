@@ -239,8 +239,7 @@ async def create_expense(
             .filter(OrganizationMember.organization_id == org_id)
             .filter(OrganizationMember.role.in_([
                 OrganizationRole.ADMIN.value,
-                OrganizationRole.OWNER.value,
-                OrganizationRole.MANAGER.value
+                OrganizationRole.OWNER.value
             ]))
             .filter(OrganizationMember.is_active == True)
             .all()
