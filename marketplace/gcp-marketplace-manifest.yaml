@@ -61,12 +61,16 @@ pricing:
         currency: "USD"
         period: "MONTH"
       features:
-        - "Up to 25 users"
+        - "3 organizations"
+        - "10 users"
         - "100 expenses/month"
-        - "Basic receipt OCR"
-        - "AI categorization (500/month)"
-        - "30-day data retention"
-        - "Standard support"
+        - "100 OCR scans/month"
+        - "50 AI categorizations/month"
+        - "100 AP2 transactions/month"
+        - "Approval workflows"
+        - "Advanced analytics"
+        - "1 year data retention"
+        - "Email support"
 
     - name: "Professional"
       displayName: "Professional Plan"
@@ -75,47 +79,24 @@ pricing:
         currency: "USD"
         period: "MONTH"
       features:
-        - "Up to 100 users"
-        - "Unlimited expenses"
-        - "Advanced receipt OCR"
-        - "AI categorization (5,000/month)"
-        - "AP2 automated payments (100/month)"
-        - "90-day data retention"
-        - "Priority support"
-        - "Custom approval workflows"
-      recommended: true
-
-    - name: "Enterprise"
-      displayName: "Enterprise Plan"
-      price:
-        amount: 399.00
-        currency: "USD"
-        period: "MONTH"
-      features:
-        - "Up to 500 users"
-        - "Unlimited everything"
-        - "Unlimited AI categorization"
+        - "10 organizations"
+        - "50 users"
+        - "500 expenses/month"
+        - "Unlimited OCR scans"
+        - "200 AI categorizations/month"
         - "Unlimited AP2 transactions"
-        - "365-day data retention"
-        - "Dedicated support"
-        - "Custom integrations"
-        - "SSO/SAML"
-        - "SLA guarantee (99.9%)"
-
-    - name: "Enterprise Plus"
-      displayName: "Enterprise Plus"
-      price:
-        contact: true
-      features:
-        - "Unlimited users"
-        - "White-label options"
-        - "On-premise deployment"
-        - "Custom SLA (99.95%+)"
-        - "Dedicated account manager"
-        - "Custom feature development"
+        - "API access"
+        - "Approval workflows"
+        - "Advanced analytics"
+        - "3 years data retention"
+        - "Priority support"
+      recommended: true
 
 trial:
   enabled: true
   days: 14
-  description: "14-day free trial, no credit card required"
+  description: "14-day free trial with Starter plan features - no credit card required"
+
+# Note: Free tier (1 org, 2 users, 30 expenses/mo) is available for development/testing
+# but not listed in marketplace pricing. Users start with Free tier and can upgrade anytime.
 
