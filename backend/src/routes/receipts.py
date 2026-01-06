@@ -405,7 +405,6 @@ async def get_receipts(
 
     if expense.user_id != current_user.id and current_user.role not in [
         UserRole.ADMIN,
-        UserRole.MANAGER,
     ]:
         raise HTTPException(
             status_code=403, detail="Not authorized to view these receipts"
@@ -512,7 +511,6 @@ async def download_receipt(
 
     if expense.user_id != current_user.id and current_user.role not in [
         UserRole.ADMIN,
-        UserRole.MANAGER,
     ]:
         raise HTTPException(
             status_code=403, detail="Not authorized to download this receipt"

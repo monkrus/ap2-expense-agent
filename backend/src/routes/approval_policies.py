@@ -114,7 +114,7 @@ def get_user_organization(db: Session, user_id: str) -> Optional[str]:
 def check_admin_or_owner(user: User, organization_id: str, db: Session) -> bool:
     """Check if user is admin or organization owner"""
     # System admin
-    if user.role in [UserRole.ADMIN, UserRole.MANAGER]:
+    if user.role == UserRole.ADMIN:
         return True
 
     # Organization owner/admin

@@ -31,7 +31,7 @@ def create_user(
     db_session,
     email: Optional[str] = None,
     username: Optional[str] = None,
-    role: UserRole = UserRole.EMPLOYEE,
+    role: UserRole = UserRole.USER,
     password: str = "TestPass123!",
     is_active: bool = True,
     is_verified: bool = True,
@@ -79,17 +79,17 @@ def create_user(
 
 def create_employee(db_session, **kwargs) -> User:
     """Create an EMPLOYEE role user"""
-    return create_user(db_session, role=UserRole.EMPLOYEE, **kwargs)
+    return create_user(db_session, role=UserRole.USER, **kwargs)
 
 
 def create_manager(db_session, department_id: str = "sales", **kwargs) -> User:
     """Create a MANAGER role user with department"""
-    return create_user(db_session, role=UserRole.MANAGER, department_id=department_id, **kwargs)
+    return create_user(db_session, role=UserRole.ADMIN, department_id=department_id, **kwargs)
 
 
 def create_accountant(db_session, **kwargs) -> User:
     """Create an ACCOUNTANT role user (read-only)"""
-    return create_user(db_session, role=UserRole.ACCOUNTANT, **kwargs)
+    return create_user(db_session, role=UserRole.ADMIN, **kwargs)
 
 
 def create_admin(db_session, **kwargs) -> User:

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import desc, func, text
 from sqlalchemy.orm import Session
 
-from ..auth import AuthService, require_admin, require_manager
+from ..auth import AuthService, require_admin
 from ..database import get_db
 from ..maintenance import DataRetentionService
 from ..models import (
@@ -599,7 +599,7 @@ async def unlock_user_account(
 async def get_all_expenses(
     request: Request,
     status_filter: Optional[str] = Query(None, alias="status"),
-    current_user: User = Depends(require_manager),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """Get all expenses from all users with optional status filter (admin and manager)"""
@@ -1340,10 +1340,8 @@ async def create_user(
             # Add new user to the same organization
             # Map UserRole to OrganizationRole
             org_role = OrganizationRole.MEMBER  # Default
-            if user_data.role in [UserRole.ADMIN, UserRole.MANAGER]:
+            if user_data.role == UserRole.ADMIN:
                 org_role = OrganizationRole.ADMIN
-            elif user_data.role == UserRole.ACCOUNTANT:
-                org_role = OrganizationRole.ADMIN  # Accountants get admin privileges
 
             membership = OrganizationMember(
                 id=str(uuid.uuid4()),

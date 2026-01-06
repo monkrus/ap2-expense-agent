@@ -219,7 +219,7 @@ def create_budget(
         )
 
     # Only admins and managers can create budgets
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admins and managers can create budgets",
@@ -307,7 +307,7 @@ def list_budgets(
         query = query.where(Budget.is_active == True)
 
     # Non-admins can only see organization-wide budgets or their own
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+    if current_user.role != UserRole.ADMIN:
         query = query.where(
             (Budget.user_id == None) | (Budget.user_id == current_user.id)
         )
@@ -383,7 +383,7 @@ def get_budget(
         )
 
     # Check access
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+    if current_user.role != UserRole.ADMIN:
         if budget.user_id and budget.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -433,7 +433,7 @@ def update_budget(
     """Update a budget"""
 
     # Only admins and managers can update budgets
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admins and managers can update budgets",
@@ -583,7 +583,7 @@ def get_budget_alerts(
         )
 
     # Check access
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+    if current_user.role != UserRole.ADMIN:
         if budget.user_id and budget.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

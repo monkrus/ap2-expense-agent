@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from ..auth import AuthService, get_current_active_user, require_admin, require_manager
+from ..auth import AuthService, get_current_active_user, require_admin
 from ..database import get_db
 from ..models import Session as UserSession
 from ..models import User, UserRole
@@ -25,7 +25,7 @@ async def list_users(
     limit: int = 100,
     role: Optional[UserRole] = None,
     is_active: Optional[bool] = None,
-    current_user: User = Depends(require_manager),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """List all users (requires manager or admin role)"""
@@ -51,7 +51,6 @@ async def get_user(
     # Users can view their own profile, managers can view all
     if current_user.id != user_id and current_user.role not in [
         UserRole.ADMIN,
-        UserRole.MANAGER,
     ]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -235,7 +234,6 @@ async def get_user_sessions(
     # Users can only view their own sessions, admins/managers can view all
     if current_user.id != user_id and current_user.role not in [
         UserRole.ADMIN,
-        UserRole.MANAGER,
     ]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -270,7 +268,6 @@ async def revoke_session(
     # Users can only revoke their own sessions, admins/managers can revoke any
     if current_user.id != user_id and current_user.role not in [
         UserRole.ADMIN,
-        UserRole.MANAGER,
     ]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

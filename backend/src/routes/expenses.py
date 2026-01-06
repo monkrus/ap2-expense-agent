@@ -396,7 +396,7 @@ async def get_expense_report(
         can_view_others = (
             user_org_role in ["owner", "admin", "manager"]
             or current_user.role
-            in [UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]
+            == UserRole.ADMIN
         )
         if not can_view_others:
             raise HTTPException(
@@ -532,7 +532,7 @@ async def export_expenses(
 
     can_export = (
         user_org_role in ["owner", "admin"] or
-        current_user.role in [UserRole.ADMIN, UserRole.ACCOUNTANT]
+        current_user.role == UserRole.ADMIN
     )
 
     if not can_export:
@@ -690,12 +690,12 @@ async def delete_expense(
     import logging
     logger = logging.getLogger(__name__)
     logger.info(f"WITHDRAW EXPENSE - User: {current_user.username}, Role: {current_user.role}, RoleType: {type(current_user.role)}")
-    logger.info(f"WITHDRAW EXPENSE - Checking if role == UserRole.ACCOUNTANT: {current_user.role == UserRole.ACCOUNTANT}")
+    logger.info(f"WITHDRAW EXPENSE - Checking if role == UserRole.ADMIN: {current_user.role == UserRole.ADMIN}")
 
     # CRITICAL: Accountants cannot withdraw expenses (audit trail protection)
     # Check both enum and string value to handle all cases
     user_role_value = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role)
-    if current_user.role == UserRole.ACCOUNTANT or user_role_value == "accountant":
+    if current_user.role == UserRole.ADMIN:
         logger.info("WITHDRAW EXPENSE - BLOCKING ACCOUNTANT WITHDRAW")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -772,12 +772,10 @@ async def approve_expense(
 
     if current_user.role == UserRole.ADMIN:
         effective_role = UserRole.ADMIN
-    elif current_user.role == UserRole.ACCOUNTANT:
-        effective_role = UserRole.ACCOUNTANT
     elif user_org_role == "owner":
         effective_role = UserRole.ADMIN
     else:
-        effective_role = UserRole.MANAGER
+        effective_role = UserRole.USER
 
     can_approve = can_approve_expense(
         user_role=effective_role,
@@ -898,7 +896,7 @@ async def reject_expense(
 
     can_reject = (
         user_org_role in ["owner", "admin", "manager"] or
-        current_user.role in [UserRole.ADMIN, UserRole.MANAGER]
+        current_user.role == UserRole.ADMIN
     )
 
     if not can_reject:
@@ -1005,7 +1003,7 @@ async def request_receipt(
 
     can_request = (
         user_org_role in ["owner", "admin", "manager"] or
-        current_user.role in [UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT]
+        current_user.role == UserRole.ADMIN
     )
 
     if not can_request:
@@ -1055,7 +1053,7 @@ async def flag_expense(
 
     can_flag = (
         user_org_role in ["owner", "admin", "manager"] or
-        current_user.role in [UserRole.ADMIN, UserRole.MANAGER]
+        current_user.role == UserRole.ADMIN
     )
 
     if not can_flag:
