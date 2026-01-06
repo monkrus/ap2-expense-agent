@@ -18,6 +18,7 @@
 | **AI Categorization** | 0 | 50 | 500 |
 | **Data Retention** | 90 days | 1 year | 3 years |
 | **Approvals** | ✅ Basic | ✅ Basic | ✅ Multi-level |
+| **Dashboard Analytics** | ❌ | ✅ Charts & Trends | ✅ Charts & Trends |
 | **Export** | ✅ CSV/Excel/PDF | ✅ CSV/Excel/PDF | ✅ CSV/Excel/PDF |
 | **Email Notifications** | ✅ | ✅ | ✅ |
 | **Support** | Community | Email | Priority + Manager |
@@ -135,15 +136,26 @@ Margin:         66.3%
 
 ---
 
+## What We Have Now (2026-01-06 Update)
+
+✅ **Dashboard Analytics**: IMPLEMENTED
+- Interactive charts and visualizations (Recharts)
+- Spending trends over time (line charts)
+- Category breakdown (pie charts)
+- Top spenders and vendors (bar charts)
+- Status distribution (donut charts)
+- Month-over-month comparisons
+- Available in Starter and Professional tiers
+
 ## What We Intentionally DON'T Have (Yet)
 
-These features are mentioned in seed data but not implemented:
-- ❌ Dashboard analytics/charts
-- ❌ Advanced reporting
-- ❌ Public API access
-- ❌ Bulk operations UI
+These features could be added in future tiers:
+- ❌ Advanced reporting (custom report builder, scheduled reports)
+- ❌ Predictive analytics (forecasting, anomaly detection alerts)
+- ❌ Public API access (REST API for integrations)
+- ❌ Bulk operations UI (mass approval, bulk edits)
 
-**Strategy**: Launch with honest, deliverable features. Add these as differentiators for future "Business" tier at $149/month.
+**Strategy**: Current features are production-ready and honest. Advanced features above could differentiate a future "Business" tier at $149/month.
 
 ---
 

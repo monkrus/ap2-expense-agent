@@ -43,10 +43,11 @@ The Agent Payments Protocol enables AI agents to autonomously complete purchases
 - SSO/SAML (Enterprise)
 - Built‑in compliance (GDPR, PCI DSS)
 
-#### Advanced Analytics
-- Real‑time dashboards and reports
+#### Dashboard Analytics
+- Interactive charts and visualizations
+- Spending trends and category breakdowns
 - Budget management and alerts
-- Exports to Excel/PDF and BI tools
+- Exports to Excel/PDF
 - Tax‑aware categorization
 
 ---

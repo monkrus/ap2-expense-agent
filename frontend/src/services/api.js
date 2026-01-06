@@ -445,6 +445,20 @@ export const expenseAPI = {
       method: "GET",
     });
   },
+
+  // Get analytics dashboard data
+  getAnalytics: async (days = 30) => {
+    return request(`/analytics/dashboard?days=${days}`, {
+      method: "GET",
+    });
+  },
+
+  // Get analytics summary
+  getAnalyticsSummary: async () => {
+    return request("/analytics/summary", {
+      method: "GET",
+    });
+  },
 };
 
 // Chat API (if you want to add AI chat functionality)

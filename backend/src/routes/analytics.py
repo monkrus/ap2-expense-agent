@@ -3,7 +3,7 @@ Analytics endpoints for organization-level insights
 Provides chart-ready data for dashboard visualizations
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, case
@@ -187,7 +187,7 @@ async def get_dashboard_analytics(
         },
         "spending_over_time": [
             {
-                "date": d.date.isoformat() if hasattr(d.date, 'isoformat') else str(d.date),
+                "date": d.date.isoformat() if isinstance(d.date, (date, datetime)) else str(d.date),
                 "count": d.count,
                 "amount": float(d.total_amount or 0),
             }

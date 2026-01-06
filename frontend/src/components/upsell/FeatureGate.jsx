@@ -6,11 +6,11 @@ import { Lock, Sparkles, ArrowRight, Crown } from "lucide-react";
  *
  * Usage:
  * <FeatureGate
- *   feature="Advanced Analytics"
- *   requiredPlan="Professional"
+ *   feature="Dashboard Analytics"
+ *   requiredPlan="Starter"
  *   userPlan="Free"
  * >
- *   <AdvancedAnalyticsDashboard />
+ *   <AnalyticsDashboard />
  * </FeatureGate>
  */
 const FeatureGate = ({

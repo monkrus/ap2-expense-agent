@@ -68,7 +68,7 @@ pricing:
         - "50 AI categorizations/month"
         - "100 AP2 transactions/month"
         - "Approval workflows"
-        - "Advanced analytics"
+        - "Dashboard analytics with charts"
         - "1 year data retention"
         - "Email support"
 
@@ -87,7 +87,7 @@ pricing:
         - "Unlimited AP2 transactions"
         - "API access"
         - "Approval workflows"
-        - "Advanced analytics"
+        - "Dashboard analytics with charts"
         - "3 years data retention"
         - "Priority support"
       recommended: true

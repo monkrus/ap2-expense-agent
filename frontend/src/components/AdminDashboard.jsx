@@ -29,7 +29,6 @@ import {
   Database,
   CreditCard,
   Building2,
-  Bot,
   Repeat,
 } from "lucide-react";
 import { expenseAPI, APIError } from "../services/api";
@@ -44,11 +43,11 @@ import RoleBadge from "./RoleBadge";
 import ReceiptUpload from "./ReceiptUpload";
 import ReceiptList from "./ReceiptList";
 import { getRoleTheme } from "../utils/roleThemes";
-import AIAssistant from "../pages/AIAssistant";
 import RecurringExpenses from "../pages/RecurringExpenses";
 import BudgetManagement from "../pages/BudgetManagement";
 import ApprovalPolicies from "./ApprovalPolicies";
 import NotificationCenter from "./NotificationCenter";
+import AnalyticsDashboard from "./AnalyticsDashboard";
 import { UpgradeBanner, UsageLimitWarning, SidebarUpgradeCard } from "./upsell";
 
 const AdminDashboard = () => {
@@ -63,7 +62,7 @@ const AdminDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState("pending"); // 'pending', 'all', 'archived', 'users', 'billing', 'ai-assistant', 'recurring-expenses', or 'budgets'
+  const [activeTab, setActiveTab] = useState("pending"); // 'pending', 'all', 'archived', 'users', 'recurring-expenses', 'budgets', 'approval-policies', 'analytics'
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [archivedExpenses, setArchivedExpenses] = useState([]);
@@ -1102,18 +1101,6 @@ const AdminDashboard = () => {
                   User Management
                 </button>
               )}
-              {/* AI Assistant Tab */}
-              <button
-                onClick={() => setActiveTab("ai-assistant")}
-                className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
-                  activeTab === "ai-assistant"
-                    ? getTabActiveClasses()
-                    : "text-gray-600 hover:text-gray-800"
-                }`}
-              >
-                <Bot className="w-5 h-5" />
-                AI Assistant
-              </button>
               {/* Recurring Expenses Tab */}
               <button
                 onClick={() => setActiveTab("recurring-expenses")}
@@ -1148,6 +1135,18 @@ const AdminDashboard = () => {
               >
                 <CheckCircle className="w-5 h-5" />
                 Auto-Approval
+              </button>
+              {/* Analytics Tab */}
+              <button
+                onClick={() => setActiveTab("analytics")}
+                className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                  activeTab === "analytics"
+                    ? getTabActiveClasses()
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                <TrendingUp className="w-5 h-5" />
+                Analytics
               </button>
             </div>
           </div>
@@ -1305,9 +1304,6 @@ const AdminDashboard = () => {
           {/* User Management Tab */}
           {activeTab === "users" && <UserManagementDashboard />}
 
-          {/* AI Assistant Tab */}
-          {activeTab === "ai-assistant" && <AIAssistant />}
-
           {/* Recurring Expenses Tab */}
           {activeTab === "recurring-expenses" && <RecurringExpenses />}
 
@@ -1316,6 +1312,9 @@ const AdminDashboard = () => {
 
           {/* Approval Policies Tab */}
           {activeTab === "approval-policies" && <ApprovalPolicies />}
+
+          {/* Analytics Tab */}
+          {activeTab === "analytics" && <AnalyticsDashboard />}
 
           {/* Expenses List - Show for pending, all, and archived tabs */}
           {(activeTab === "pending" ||

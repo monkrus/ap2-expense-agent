@@ -115,7 +115,7 @@ const PRICING_TIERS = [
       receiptScanning: "1,000 OCR scans",
       ap2Transactions: "500 AP2 payments/month",
       support: "Priority support",
-      reporting: "Advanced analytics",
+      reporting: "Dashboard analytics",
       integrations: "All integrations",
       apiAccess: true,
       customCategories: true,

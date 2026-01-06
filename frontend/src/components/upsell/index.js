@@ -45,11 +45,11 @@
  * import { FeatureGate } from '../components/upsell';
  *
  * <FeatureGate
- *   feature="Advanced Analytics"
- *   requiredPlan="Professional"
+ *   feature="Dashboard Analytics"
+ *   requiredPlan="Starter"
  *   userPlan={user.plan}
  * >
- *   <AdvancedAnalyticsDashboard />
+ *   <AnalyticsDashboard />
  * </FeatureGate>
  * ```
  *

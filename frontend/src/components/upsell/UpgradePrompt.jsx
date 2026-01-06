@@ -105,7 +105,7 @@ const UpgradePrompt = ({
                 <BenefitItem text="1,000 AI categorizations/month" />
                 <BenefitItem text="500 receipt scans/month" />
                 <BenefitItem text="Priority support" />
-                <BenefitItem text="Advanced analytics" />
+                <BenefitItem text="Dashboard analytics" />
               </>
             ) : (
               <>
