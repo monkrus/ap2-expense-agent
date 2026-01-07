@@ -1,0 +1,874 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-8.4.2, pluggy-1.6.0 -- C:\Users\robot\AppData\Local\Programs\Python\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\robot\Desktop\ap2-expense-agent\backend
+configfile: pytest.ini
+plugins: anyio-4.12.0, asyncio-1.2.0, cov-7.0.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 69 items
+
+tests/test_auth.py::TestRegistration::test_register_new_user PASSED      [  1%]
+tests/test_auth.py::TestRegistration::test_register_duplicate_email PASSED [  2%]
+tests/test_auth.py::TestRegistration::test_register_weak_password PASSED [  4%]
+tests/test_auth.py::TestLogin::test_login_success PASSED                 [  5%]
+tests/test_auth.py::TestLogin::test_login_wrong_password PASSED          [  7%]
+tests/test_auth.py::TestLogin::test_login_nonexistent_user PASSED        [  8%]
+tests/test_auth.py::TestGetCurrentUser::test_get_current_user PASSED     [ 10%]
+tests/test_auth.py::TestGetCurrentUser::test_get_current_user_unauthorized PASSED [ 11%]
+tests/test_auth.py::TestAdminAccess::test_admin_can_access_admin_endpoint PASSED [ 13%]
+tests/test_auth.py::TestAdminAccess::test_regular_user_cannot_access_admin_endpoint PASSED [ 14%]
+tests/test_auth.py::TestAuthService::test_hash_password PASSED           [ 15%]
+tests/test_auth.py::TestAuthService::test_hash_password_long PASSED      [ 17%]
+tests/test_auth.py::TestAuthService::test_verify_password_correct PASSED [ 18%]
+tests/test_auth.py::TestAuthService::test_verify_password_incorrect PASSED [ 20%]
+tests/test_auth.py::TestAuthService::test_verify_password_long PASSED    [ 21%]
+tests/test_auth.py::TestAuthService::test_create_access_token PASSED     [ 23%]
+tests/test_auth.py::TestAuthService::test_create_access_token_with_custom_expiry PASSED [ 24%]
+tests/test_auth.py::TestAuthService::test_verify_token_valid PASSED      [ 26%]
+tests/test_auth.py::TestAuthService::test_verify_token_invalid PASSED    [ 27%]
+tests/test_auth.py::TestAuthService::test_create_refresh_token PASSED    [ 28%]
+tests/test_auth.py::TestAuthService::test_verify_refresh_token_valid PASSED [ 30%]
+tests/test_auth.py::TestAuthService::test_verify_refresh_token_invalid PASSED [ 31%]
+tests/test_auth.py::TestAuthService::test_verify_refresh_token_revoked PASSED [ 33%]
+tests/test_auth.py::TestAuthService::test_revoke_refresh_token PASSED    [ 34%]
+tests/test_auth.py::TestAuthService::test_revoke_refresh_token_nonexistent PASSED [ 36%]
+tests/test_auth.py::TestAuthService::test_log_audit PASSED               [ 37%]
+tests/test_auth.py::TestTOTPService::test_generate_secret PASSED         [ 39%]
+tests/test_auth.py::TestTOTPService::test_generate_qr_code PASSED        [ 40%]
+tests/test_auth.py::TestTOTPService::test_verify_totp_valid PASSED       [ 42%]
+tests/test_auth.py::TestTOTPService::test_verify_totp_invalid PASSED     [ 43%]
+tests/test_auth.py::TestTOTPService::test_generate_backup_codes PASSED   [ 44%]
+tests/test_auth.py::TestTOTPService::test_generate_backup_codes_custom_count PASSED [ 46%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_create_expense_success FAILED [ 47%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_create_expense_missing_required_fields PASSED [ 49%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_create_expense_invalid_amount PASSED [ 50%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_get_expenses_list FAILED [ 52%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_get_expenses_with_pagination PASSED [ 53%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_get_expenses_with_status_filter PASSED [ 55%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_get_single_expense PASSED [ 56%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_get_nonexistent_expense PASSED [ 57%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_update_expense PASSED [ 59%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_update_expense_invalid_status_transition PASSED [ 60%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_delete_expense PASSED [ 62%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_delete_nonexistent_expense PASSED [ 63%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_approve_expense_as_manager PASSED [ 65%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_approve_expense_as_employee_forbidden PASSED [ 66%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_reject_expense PASSED [ 68%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_bulk_approve_expenses SKIPPED [ 69%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_export_expenses PASSED [ 71%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_get_expense_statistics SKIPPED [ 72%]
+tests/test_api_expenses.py::TestExpenseAPIRoutes::test_create_expense_without_auth PASSED [ 73%]
+tests/test_api_expenses.py::TestExpenseCommentsAPI::test_add_comment_to_expense SKIPPED [ 75%]
+tests/test_api_expenses.py::TestExpenseCommentsAPI::test_get_expense_comments SKIPPED [ 76%]
+tests/test_api_expenses.py::TestReceiptAPI::test_upload_receipt PASSED   [ 78%]
+tests/test_api_expenses.py::TestReceiptAPI::test_upload_receipt_invalid_file_type PASSED [ 79%]
+tests/test_api_expenses.py::TestReceiptAPI::test_get_expense_receipts PASSED [ 81%]
+tests/test_users.py::TestUserManagement::test_get_current_user PASSED    [ 82%]
+tests/test_users.py::TestUserManagement::test_list_users_as_manager PASSED [ 84%]
+tests/test_users.py::TestUserManagement::test_list_users_as_employee_forbidden PASSED [ 85%]
+tests/test_users.py::TestUserManagement::test_create_user_as_admin FAILED [ 86%]
+tests/test_users.py::TestUserManagement::test_create_user_as_employee_forbidden PASSED [ 88%]
+tests/test_users.py::TestUserManagement::test_update_own_profile PASSED  [ 89%]
+tests/test_users.py::TestUserManagement::test_update_other_user_as_employee_forbidden PASSED [ 91%]
+tests/test_users.py::TestUserManagement::test_update_user_role_as_admin FAILED [ 92%]
+tests/test_users.py::TestUserManagement::test_employee_cannot_change_own_role PASSED [ 94%]
+tests/test_users.py::TestUserManagement::test_delete_user_as_admin PASSED [ 95%]
+tests/test_users.py::TestUserManagement::test_admin_cannot_delete_self PASSED [ 97%]
+tests/test_users.py::TestSessionManagement::test_get_user_sessions PASSED [ 98%]
+tests/test_users.py::TestSessionManagement::test_revoke_session PASSED   [100%]
+
+================================== FAILURES ===================================
+______________ TestExpenseAPIRoutes.test_create_expense_success _______________
+tests\test_api_expenses.py:33: in test_create_expense_success
+    assert expense["status"] == "PENDING"
+E   AssertionError: assert 'pending' == 'PENDING'
+E     
+E     - PENDING
+E     + pending
+---------------------------- Captured stdout setup ----------------------------
+2026-01-06 19:57:34,714 - asyncio - DEBUG - Using proactor: IocpProactor
+2026-01-06 19:57:34,716 - src.billing.tier_limit_guardian - INFO - Verifying tier limits on application startup...
+2026-01-06 19:57:34,716 - src.billing.tier_limit_guardian - INFO - Starting tier limits verification
+2026-01-06 19:57:34,718 - src.billing.tier_limit_guardian - INFO - [PASS] Tier limits verification passed - all limits are correct
+2026-01-06 19:57:34,718 - src.billing.tier_limit_guardian - INFO - [PASS] Tier limits verification passed - application startup allowed
+[SEED] All 1 default users already exist
+[STARTUP] Registered routes:
+  {'GET', 'HEAD'} /openapi.json
+  {'GET', 'HEAD'} /docs
+  {'GET', 'HEAD'} /docs/oauth2-redirect
+  {'GET', 'HEAD'} /redoc
+  {'POST'} /api/v1/auth/register
+  {'POST'} /api/v1/auth/login
+  {'POST'} /api/v1/auth/login/form
+  {'POST'} /api/v1/auth/refresh
+  {'POST'} /api/v1/auth/logout
+  {'POST'} /api/v1/auth/password/reset-request
+  {'POST'} /api/v1/auth/password/reset-confirm
+  {'POST'} /api/v1/auth/password/change
+  {'GET'} /api/v1/auth/me
+  {'POST'} /api/v1/auth/2fa/setup
+  {'POST'} /api/v1/auth/2fa/enable
+  {'POST'} /api/v1/auth/2fa/disable
+  {'POST'} /api/v1/auth/2fa/verify
+  {'POST'} /api/v1/auth/verify-email
+  {'POST'} /api/v1/auth/resend-verification
+  {'GET'} /api/v1/users/
+  {'GET'} /api/v1/users/{user_id}
+  {'POST'} /api/v1/users/
+  {'PATCH'} /api/v1/users/{user_id}
+  {'DELETE'} /api/v1/users/{user_id}
+  {'GET'} /api/v1/users/{user_id}/sessions
+  {'DELETE'} /api/v1/users/{user_id}/sessions/{session_id}
+  {'POST'} /api/v1/users/me/change-password
+  {'GET'} /api/v1/oauth2/authorize
+  {'POST'} /api/v1/oauth2/authorize
+  {'POST'} /api/v1/oauth2/token
+  {'GET'} /api/v1/oauth2/consent
+  {'GET'} /api/v1/oauth2/google/login
+  {'GET'} /api/v1/oauth2/google/callback
+  {'POST'} /api/v1/oauth2/google/token
+  {'POST'} /api/v1/admin/maintenance
+  {'POST'} /api/v1/admin/maintenance/audit-logs
+  {'POST'} /api/v1/admin/maintenance/sessions
+  {'POST'} /api/v1/admin/maintenance/tokens
+  {'GET'} /api/v1/admin/stats/database
+  {'GET'} /api/v1/admin/dashboard/stats
+  {'GET'} /api/v1/admin/users
+  {'PATCH'} /api/v1/admin/users/{user_id}/role
+  {'POST'} /api/v1/admin/users/{user_id}/suspend
+  {'GET'} /api/v1/admin/analytics/usage
+  {'GET'} /api/v1/admin/system/health
+  {'POST'} /api/v1/admin/users/{user_id}/unlock
+  {'GET'} /api/v1/admin/expenses
+  {'DELETE'} /api/v1/admin/expenses-pending/clear
+  {'POST'} /api/v1/admin/expenses/archive-all
+  {'GET'} /api/v1/admin/expenses/archived
+  {'POST'} /api/v1/admin/expenses/{expense_id}/archive
+  {'POST'} /api/v1/admin/expenses/{expense_id}/unarchive
+  {'POST'} /api/v1/admin/expenses/unarchive-all
+  {'DELETE'} /api/v1/admin/expenses/clear
+  {'POST'} /api/v1/admin/users/create
+  {'GET'} /api/v1/admin/users/{user_id}
+  {'PATCH'} /api/v1/admin/users/{user_id}/department
+  {'PATCH'} /api/v1/admin/users/{user_id}/email
+  {'PATCH'} /api/v1/admin/users/{user_id}/profile
+  {'POST'} /api/v1/admin/users/{user_id}/activate
+  {'DELETE'} /api/v1/admin/users/{user_id}
+  {'GET'} /api/v1/admin/users/{user_id}/permissions
+  {'GET'} /api/v1/admin/permissions/all
+  {'GET'} /api/v1/organizations/validate/name
+  {'GET'} /api/v1/organizations/validate/slug
+  {'POST'} /api/v1/organizations
+  {'GET'} /api/v1/organizations
+  {'GET'} /api/v1/organizations/{organization_id}
+  {'PATCH'} /api/v1/organizations/{organization_id}
+  {'DELETE'} /api/v1/organizations/{organization_id}
+  {'GET'} /api/v1/organizations/{organization_id}/members
+  {'PATCH'} /api/v1/organizations/{organization_id}/members/{member_id}/role
+  {'DELETE'} /api/v1/organizations/{organization_id}/members/{member_id}
+  {'POST'} /api/v1/organizations/{organization_id}/invitations
+  {'GET'} /api/v1/organizations/{organization_id}/invitations
+  {'POST'} /api/v1/organizations/invitations/{token}/accept
+  {'DELETE'} /api/v1/organizations/{organization_id}/invitations/{invitation_id}
+  {'GET'} /api/billing/org/subscription
+  {'GET'} /api/billing/org/usage/monthly
+  {'POST'} /api/billing/org/usage/track
+  {'GET'} /api/billing/org/usage/check-limit/{usage_type}
+  {'GET'} /api/billing/org/usage/summary
+  {'GET'} /api/billing/org/tiers
+  {'GET'} /api/billing/org/tiers/{tier_name}
+  {'PUT'} /api/billing/org/subscription/upgrade
+  {'POST'} /api/billing/org/subscription
+  {'POST'} /api/ap2/intent-mandate
+  {'POST'} /api/ap2/cart-mandate
+  {'POST'} /api/ap2/payment-mandate
+  {'POST'} /api/ap2/execute-payment
+  {'POST'} /api/ap2/complete-flow
+  {'GET'} /api/ap2/mandate/{mandate_id}/status
+  {'GET'} /api/ap2/user/mandates
+  {'GET'} /api/ap2/stats
+  {'POST'} /api/ap2/intent-mandate/{mandate_id}/revoke
+  {'POST'} /api/ap2/cart-mandate/{mandate_id}/revoke
+  {'POST'} /api/ap2/payment-mandate/{mandate_id}/revoke
+  {'POST'} /webhooks/stripe
+  {'GET'} /webhooks/health
+  {'POST'} /api/v1/expenses
+  {'GET'} /api/v1/expenses
+  {'GET'} /api/v1/expenses/report
+  {'GET'} /api/v1/expenses/export
+  {'GET'} /api/v1/expenses/{expense_id}
+  {'PATCH'} /api/v1/expenses/{expense_id}
+  {'PUT'} /api/v1/expenses/{expense_id}
+  {'DELETE'} /api/v1/expenses/{expense_id}
+  {'PUT'} /api/v1/expenses/{expense_id}/approve
+  {'PUT'} /api/v1/expenses/{expense_id}/reject
+  {'PUT'} /api/v1/expenses/{expense_id}/request-receipt
+  {'PUT'} /api/v1/expenses/{expense_id}/flag
+  {'POST'} /api/v1/receipts/upload/{expense_id}
+  {'POST'} /api/v1/receipts/batch-upload
+  {'POST'} /api/v1/receipts/create-from-extraction
+  {'GET'} /api/v1/receipts/{expense_id}
+  {'DELETE'} /api/v1/receipts/{receipt_id}
+  {'GET'} /api/v1/receipts/download/{receipt_id}
+  {'POST'} /api/v1/approval-policies
+  {'GET'} /api/v1/approval-policies
+  {'GET'} /api/v1/approval-policies/{policy_id}
+  {'PATCH'} /api/v1/approval-policies/{policy_id}
+  {'DELETE'} /api/v1/approval-policies/{policy_id}
+  {'POST'} /api/v1/approval-policies/{policy_id}/test
+  {'GET'} /api/v1/approval-policies/analytics/statistics
+  {'POST'} /api/budgets
+  {'GET'} /api/budgets
+  {'GET'} /api/budgets/{budget_id}
+  {'PATCH'} /api/budgets/{budget_id}
+  {'DELETE'} /api/budgets/{budget_id}
+  {'GET'} /api/budgets/{budget_id}/alerts
+  {'POST'} /api/budgets/{budget_id}/alerts/{alert_id}/acknowledge
+  {'GET'} /api/notifications
+  {'GET'} /api/notifications/unread-count
+  {'POST'} /api/notifications/{notification_id}/read
+  {'POST'} /api/notifications/mark-all-read
+  {'DELETE'} /api/notifications/{notification_id}
+  {'GET'} /api/v1/analytics/dashboard
+  {'GET'} /api/v1/analytics/summary
+  {'POST'} /api/recurring-expenses
+  {'GET'} /api/recurring-expenses
+  {'GET'} /api/recurring-expenses/{template_id}
+  {'PATCH'} /api/recurring-expenses/{template_id}
+  {'DELETE'} /api/recurring-expenses/{template_id}
+  {'POST'} /api/recurring-expenses/{template_id}/pause
+  {'POST'} /api/recurring-expenses/{template_id}/resume
+  {'GET'} /api/webhooks/gcp/health
+  {'POST'} /api/webhooks/gcp/procurement-simple
+  {'POST'} /api/webhooks/gcp/procurement
+  {'POST'} /api/webhooks/gcp/events
+  {'POST'} /api/webhooks/gcp/entitlement-updated
+  {'POST'} /api/webhooks/gcp/entitlement-cancelled
+  {'POST'} /api/webhooks/gcp/report-usage
+  {'GET'} /api/webhooks/gcp/health
+  {'POST'} /api/webhooks/gcp/process-trials
+  {'GET'} /api/admin/dlq/stats
+  {'GET'} /api/admin/dlq/failed-webhooks
+  {'POST'} /api/admin/dlq/retry/{event_id}
+  {'POST'} /api/admin/dlq/retry-all
+  {'DELETE'} /api/admin/dlq/purge
+  {'GET'} /api/admin/dlq/event/{event_id}
+  {'GET'} /health
+2026-01-06 19:57:35,094 - src.utils.error_tracking - INFO - {"timestamp": "2026-01-07T02:57:35.094622", "event_type": "api_call", "level": "INFO", "message": "POST /api/v1/auth/login -> 200", "endpoint": "/api/v1/auth/login", "method": "POST", "status_code": 200, "duration_ms": 190.27304649353027, "user_id": null, "organization_id": null}
+2026-01-06 19:57:35,095 - http.access - INFO - POST /api/v1/auth/login - 200
+2026-01-06 19:57:35,095 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+----------------------------- Captured log setup ------------------------------
+DEBUG    asyncio:proactor_events.py:633 Using proactor: IocpProactor
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:313 Verifying tier limits on application startup...
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:118 Starting tier limits verification
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:196 [PASS] Tier limits verification passed - all limits are correct
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:320 [PASS] Tier limits verification passed - application startup allowed
+INFO     src.utils.error_tracking:error_tracking.py:57 {"timestamp": "2026-01-07T02:57:35.094622", "event_type": "api_call", "level": "INFO", "message": "POST /api/v1/auth/login -> 200", "endpoint": "/api/v1/auth/login", "method": "POST", "status_code": 200, "duration_ms": 190.27304649353027, "user_id": null, "organization_id": null}
+INFO     http.access:logging_config.py:227 POST /api/v1/auth/login - 200
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+---------------------------- Captured stdout call -----------------------------
+2026-01-06 19:57:35,110 - src.utils.error_tracking - INFO - {"timestamp": "2026-01-07T02:57:35.109996", "event_type": "api_call", "level": "INFO", "message": "POST /api/v1/expenses -> 201", "endpoint": "/api/v1/expenses", "method": "POST", "status_code": 201, "duration_ms": 11.048555374145508, "user_id": null, "organization_id": null}
+2026-01-06 19:57:35,110 - http.access - INFO - POST /api/v1/expenses - 201
+2026-01-06 19:57:35,110 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/expenses "HTTP/1.1 201 Created"
+------------------------------ Captured log call ------------------------------
+INFO     src.utils.error_tracking:error_tracking.py:57 {"timestamp": "2026-01-07T02:57:35.109996", "event_type": "api_call", "level": "INFO", "message": "POST /api/v1/expenses -> 201", "endpoint": "/api/v1/expenses", "method": "POST", "status_code": 201, "duration_ms": 11.048555374145508, "user_id": null, "organization_id": null}
+INFO     http.access:logging_config.py:227 POST /api/v1/expenses - 201
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/expenses "HTTP/1.1 201 Created"
+_________________ TestExpenseAPIRoutes.test_get_expenses_list _________________
+tests\test_api_expenses.py:74: in test_get_expenses_list
+    assert isinstance(data, list) or "items" in data
+E   AssertionError: assert (False or 'items' in {'expenses': []})
+E    +  where False = isinstance({'expenses': []}, list)
+---------------------------- Captured stdout setup ----------------------------
+2026-01-06 19:57:36,177 - asyncio - DEBUG - Using proactor: IocpProactor
+2026-01-06 19:57:36,180 - src.billing.tier_limit_guardian - INFO - Verifying tier limits on application startup...
+2026-01-06 19:57:36,180 - src.billing.tier_limit_guardian - INFO - Starting tier limits verification
+2026-01-06 19:57:36,181 - src.billing.tier_limit_guardian - INFO - [PASS] Tier limits verification passed - all limits are correct
+2026-01-06 19:57:36,181 - src.billing.tier_limit_guardian - INFO - [PASS] Tier limits verification passed - application startup allowed
+[SEED] All 1 default users already exist
+[STARTUP] Registered routes:
+  {'GET', 'HEAD'} /openapi.json
+  {'GET', 'HEAD'} /docs
+  {'GET', 'HEAD'} /docs/oauth2-redirect
+  {'GET', 'HEAD'} /redoc
+  {'POST'} /api/v1/auth/register
+  {'POST'} /api/v1/auth/login
+  {'POST'} /api/v1/auth/login/form
+  {'POST'} /api/v1/auth/refresh
+  {'POST'} /api/v1/auth/logout
+  {'POST'} /api/v1/auth/password/reset-request
+  {'POST'} /api/v1/auth/password/reset-confirm
+  {'POST'} /api/v1/auth/password/change
+  {'GET'} /api/v1/auth/me
+  {'POST'} /api/v1/auth/2fa/setup
+  {'POST'} /api/v1/auth/2fa/enable
+  {'POST'} /api/v1/auth/2fa/disable
+  {'POST'} /api/v1/auth/2fa/verify
+  {'POST'} /api/v1/auth/verify-email
+  {'POST'} /api/v1/auth/resend-verification
+  {'GET'} /api/v1/users/
+  {'GET'} /api/v1/users/{user_id}
+  {'POST'} /api/v1/users/
+  {'PATCH'} /api/v1/users/{user_id}
+  {'DELETE'} /api/v1/users/{user_id}
+  {'GET'} /api/v1/users/{user_id}/sessions
+  {'DELETE'} /api/v1/users/{user_id}/sessions/{session_id}
+  {'POST'} /api/v1/users/me/change-password
+  {'GET'} /api/v1/oauth2/authorize
+  {'POST'} /api/v1/oauth2/authorize
+  {'POST'} /api/v1/oauth2/token
+  {'GET'} /api/v1/oauth2/consent
+  {'GET'} /api/v1/oauth2/google/login
+  {'GET'} /api/v1/oauth2/google/callback
+  {'POST'} /api/v1/oauth2/google/token
+  {'POST'} /api/v1/admin/maintenance
+  {'POST'} /api/v1/admin/maintenance/audit-logs
+  {'POST'} /api/v1/admin/maintenance/sessions
+  {'POST'} /api/v1/admin/maintenance/tokens
+  {'GET'} /api/v1/admin/stats/database
+  {'GET'} /api/v1/admin/dashboard/stats
+  {'GET'} /api/v1/admin/users
+  {'PATCH'} /api/v1/admin/users/{user_id}/role
+  {'POST'} /api/v1/admin/users/{user_id}/suspend
+  {'GET'} /api/v1/admin/analytics/usage
+  {'GET'} /api/v1/admin/system/health
+  {'POST'} /api/v1/admin/users/{user_id}/unlock
+  {'GET'} /api/v1/admin/expenses
+  {'DELETE'} /api/v1/admin/expenses-pending/clear
+  {'POST'} /api/v1/admin/expenses/archive-all
+  {'GET'} /api/v1/admin/expenses/archived
+  {'POST'} /api/v1/admin/expenses/{expense_id}/archive
+  {'POST'} /api/v1/admin/expenses/{expense_id}/unarchive
+  {'POST'} /api/v1/admin/expenses/unarchive-all
+  {'DELETE'} /api/v1/admin/expenses/clear
+  {'POST'} /api/v1/admin/users/create
+  {'GET'} /api/v1/admin/users/{user_id}
+  {'PATCH'} /api/v1/admin/users/{user_id}/department
+  {'PATCH'} /api/v1/admin/users/{user_id}/email
+  {'PATCH'} /api/v1/admin/users/{user_id}/profile
+  {'POST'} /api/v1/admin/users/{user_id}/activate
+  {'DELETE'} /api/v1/admin/users/{user_id}
+  {'GET'} /api/v1/admin/users/{user_id}/permissions
+  {'GET'} /api/v1/admin/permissions/all
+  {'GET'} /api/v1/organizations/validate/name
+  {'GET'} /api/v1/organizations/validate/slug
+  {'POST'} /api/v1/organizations
+  {'GET'} /api/v1/organizations
+  {'GET'} /api/v1/organizations/{organization_id}
+  {'PATCH'} /api/v1/organizations/{organization_id}
+  {'DELETE'} /api/v1/organizations/{organization_id}
+  {'GET'} /api/v1/organizations/{organization_id}/members
+  {'PATCH'} /api/v1/organizations/{organization_id}/members/{member_id}/role
+  {'DELETE'} /api/v1/organizations/{organization_id}/members/{member_id}
+  {'POST'} /api/v1/organizations/{organization_id}/invitations
+  {'GET'} /api/v1/organizations/{organization_id}/invitations
+  {'POST'} /api/v1/organizations/invitations/{token}/accept
+  {'DELETE'} /api/v1/organizations/{organization_id}/invitations/{invitation_id}
+  {'GET'} /api/billing/org/subscription
+  {'GET'} /api/billing/org/usage/monthly
+  {'POST'} /api/billing/org/usage/track
+  {'GET'} /api/billing/org/usage/check-limit/{usage_type}
+  {'GET'} /api/billing/org/usage/summary
+  {'GET'} /api/billing/org/tiers
+  {'GET'} /api/billing/org/tiers/{tier_name}
+  {'PUT'} /api/billing/org/subscription/upgrade
+  {'POST'} /api/billing/org/subscription
+  {'POST'} /api/ap2/intent-mandate
+  {'POST'} /api/ap2/cart-mandate
+  {'POST'} /api/ap2/payment-mandate
+  {'POST'} /api/ap2/execute-payment
+  {'POST'} /api/ap2/complete-flow
+  {'GET'} /api/ap2/mandate/{mandate_id}/status
+  {'GET'} /api/ap2/user/mandates
+  {'GET'} /api/ap2/stats
+  {'POST'} /api/ap2/intent-mandate/{mandate_id}/revoke
+  {'POST'} /api/ap2/cart-mandate/{mandate_id}/revoke
+  {'POST'} /api/ap2/payment-mandate/{mandate_id}/revoke
+  {'POST'} /webhooks/stripe
+  {'GET'} /webhooks/health
+  {'POST'} /api/v1/expenses
+  {'GET'} /api/v1/expenses
+  {'GET'} /api/v1/expenses/report
+  {'GET'} /api/v1/expenses/export
+  {'GET'} /api/v1/expenses/{expense_id}
+  {'PATCH'} /api/v1/expenses/{expense_id}
+  {'PUT'} /api/v1/expenses/{expense_id}
+  {'DELETE'} /api/v1/expenses/{expense_id}
+  {'PUT'} /api/v1/expenses/{expense_id}/approve
+  {'PUT'} /api/v1/expenses/{expense_id}/reject
+  {'PUT'} /api/v1/expenses/{expense_id}/request-receipt
+  {'PUT'} /api/v1/expenses/{expense_id}/flag
+  {'POST'} /api/v1/receipts/upload/{expense_id}
+  {'POST'} /api/v1/receipts/batch-upload
+  {'POST'} /api/v1/receipts/create-from-extraction
+  {'GET'} /api/v1/receipts/{expense_id}
+  {'DELETE'} /api/v1/receipts/{receipt_id}
+  {'GET'} /api/v1/receipts/download/{receipt_id}
+  {'POST'} /api/v1/approval-policies
+  {'GET'} /api/v1/approval-policies
+  {'GET'} /api/v1/approval-policies/{policy_id}
+  {'PATCH'} /api/v1/approval-policies/{policy_id}
+  {'DELETE'} /api/v1/approval-policies/{policy_id}
+  {'POST'} /api/v1/approval-policies/{policy_id}/test
+  {'GET'} /api/v1/approval-policies/analytics/statistics
+  {'POST'} /api/budgets
+  {'GET'} /api/budgets
+  {'GET'} /api/budgets/{budget_id}
+  {'PATCH'} /api/budgets/{budget_id}
+  {'DELETE'} /api/budgets/{budget_id}
+  {'GET'} /api/budgets/{budget_id}/alerts
+  {'POST'} /api/budgets/{budget_id}/alerts/{alert_id}/acknowledge
+  {'GET'} /api/notifications
+  {'GET'} /api/notifications/unread-count
+  {'POST'} /api/notifications/{notification_id}/read
+  {'POST'} /api/notifications/mark-all-read
+  {'DELETE'} /api/notifications/{notification_id}
+  {'GET'} /api/v1/analytics/dashboard
+  {'GET'} /api/v1/analytics/summary
+  {'POST'} /api/recurring-expenses
+  {'GET'} /api/recurring-expenses
+  {'GET'} /api/recurring-expenses/{template_id}
+  {'PATCH'} /api/recurring-expenses/{template_id}
+  {'DELETE'} /api/recurring-expenses/{template_id}
+  {'POST'} /api/recurring-expenses/{template_id}/pause
+  {'POST'} /api/recurring-expenses/{template_id}/resume
+  {'GET'} /api/webhooks/gcp/health
+  {'POST'} /api/webhooks/gcp/procurement-simple
+  {'POST'} /api/webhooks/gcp/procurement
+  {'POST'} /api/webhooks/gcp/events
+  {'POST'} /api/webhooks/gcp/entitlement-updated
+  {'POST'} /api/webhooks/gcp/entitlement-cancelled
+  {'POST'} /api/webhooks/gcp/report-usage
+  {'GET'} /api/webhooks/gcp/health
+  {'POST'} /api/webhooks/gcp/process-trials
+  {'GET'} /api/admin/dlq/stats
+  {'GET'} /api/admin/dlq/failed-webhooks
+  {'POST'} /api/admin/dlq/retry/{event_id}
+  {'POST'} /api/admin/dlq/retry-all
+  {'DELETE'} /api/admin/dlq/purge
+  {'GET'} /api/admin/dlq/event/{event_id}
+  {'GET'} /health
+2026-01-06 19:57:36,556 - src.utils.error_tracking - INFO - {"timestamp": "2026-01-07T02:57:36.556643", "event_type": "api_call", "level": "INFO", "message": "POST /api/v1/auth/login -> 200", "endpoint": "/api/v1/auth/login", "method": "POST", "status_code": 200, "duration_ms": 187.18576431274414, "user_id": null, "organization_id": null}
+2026-01-06 19:57:36,556 - http.access - INFO - POST /api/v1/auth/login - 200
+2026-01-06 19:57:36,557 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+----------------------------- Captured log setup ------------------------------
+DEBUG    asyncio:proactor_events.py:633 Using proactor: IocpProactor
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:313 Verifying tier limits on application startup...
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:118 Starting tier limits verification
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:196 [PASS] Tier limits verification passed - all limits are correct
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:320 [PASS] Tier limits verification passed - application startup allowed
+INFO     src.utils.error_tracking:error_tracking.py:57 {"timestamp": "2026-01-07T02:57:36.556643", "event_type": "api_call", "level": "INFO", "message": "POST /api/v1/auth/login -> 200", "endpoint": "/api/v1/auth/login", "method": "POST", "status_code": 200, "duration_ms": 187.18576431274414, "user_id": null, "organization_id": null}
+INFO     http.access:logging_config.py:227 POST /api/v1/auth/login - 200
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+---------------------------- Captured stdout call -----------------------------
+2026-01-06 19:57:36,561 - src.utils.error_tracking - INFO - {"timestamp": "2026-01-07T02:57:36.561510", "event_type": "api_call", "level": "INFO", "message": "GET /api/v1/expenses -> 200", "endpoint": "/api/v1/expenses", "method": "GET", "status_code": 200, "duration_ms": 2.6617050170898438, "user_id": null, "organization_id": null}
+2026-01-06 19:57:36,561 - http.access - INFO - GET /api/v1/expenses - 200
+2026-01-06 19:57:36,562 - httpx - INFO - HTTP Request: GET http://testserver/api/v1/expenses "HTTP/1.1 200 OK"
+------------------------------ Captured log call ------------------------------
+INFO     src.utils.error_tracking:error_tracking.py:57 {"timestamp": "2026-01-07T02:57:36.561510", "event_type": "api_call", "level": "INFO", "message": "GET /api/v1/expenses -> 200", "endpoint": "/api/v1/expenses", "method": "GET", "status_code": 200, "duration_ms": 2.6617050170898438, "user_id": null, "organization_id": null}
+INFO     http.access:logging_config.py:227 GET /api/v1/expenses - 200
+INFO     httpx:_client.py:1025 HTTP Request: GET http://testserver/api/v1/expenses "HTTP/1.1 200 OK"
+________________ TestUserManagement.test_create_user_as_admin _________________
+tests\test_users.py:43: in test_create_user_as_admin
+    assert response.status_code == 201
+E   assert 422 == 201
+E    +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+---------------------------- Captured stdout setup ----------------------------
+2026-01-06 19:57:44,269 - asyncio - DEBUG - Using proactor: IocpProactor
+2026-01-06 19:57:44,272 - src.billing.tier_limit_guardian - INFO - Verifying tier limits on application startup...
+2026-01-06 19:57:44,272 - src.billing.tier_limit_guardian - INFO - Starting tier limits verification
+2026-01-06 19:57:44,273 - src.billing.tier_limit_guardian - INFO - [PASS] Tier limits verification passed - all limits are correct
+2026-01-06 19:57:44,273 - src.billing.tier_limit_guardian - INFO - [PASS] Tier limits verification passed - application startup allowed
+[SEED] All 1 default users already exist
+[STARTUP] Registered routes:
+  {'GET', 'HEAD'} /openapi.json
+  {'GET', 'HEAD'} /docs
+  {'GET', 'HEAD'} /docs/oauth2-redirect
+  {'GET', 'HEAD'} /redoc
+  {'POST'} /api/v1/auth/register
+  {'POST'} /api/v1/auth/login
+  {'POST'} /api/v1/auth/login/form
+  {'POST'} /api/v1/auth/refresh
+  {'POST'} /api/v1/auth/logout
+  {'POST'} /api/v1/auth/password/reset-request
+  {'POST'} /api/v1/auth/password/reset-confirm
+  {'POST'} /api/v1/auth/password/change
+  {'GET'} /api/v1/auth/me
+  {'POST'} /api/v1/auth/2fa/setup
+  {'POST'} /api/v1/auth/2fa/enable
+  {'POST'} /api/v1/auth/2fa/disable
+  {'POST'} /api/v1/auth/2fa/verify
+  {'POST'} /api/v1/auth/verify-email
+  {'POST'} /api/v1/auth/resend-verification
+  {'GET'} /api/v1/users/
+  {'GET'} /api/v1/users/{user_id}
+  {'POST'} /api/v1/users/
+  {'PATCH'} /api/v1/users/{user_id}
+  {'DELETE'} /api/v1/users/{user_id}
+  {'GET'} /api/v1/users/{user_id}/sessions
+  {'DELETE'} /api/v1/users/{user_id}/sessions/{session_id}
+  {'POST'} /api/v1/users/me/change-password
+  {'GET'} /api/v1/oauth2/authorize
+  {'POST'} /api/v1/oauth2/authorize
+  {'POST'} /api/v1/oauth2/token
+  {'GET'} /api/v1/oauth2/consent
+  {'GET'} /api/v1/oauth2/google/login
+  {'GET'} /api/v1/oauth2/google/callback
+  {'POST'} /api/v1/oauth2/google/token
+  {'POST'} /api/v1/admin/maintenance
+  {'POST'} /api/v1/admin/maintenance/audit-logs
+  {'POST'} /api/v1/admin/maintenance/sessions
+  {'POST'} /api/v1/admin/maintenance/tokens
+  {'GET'} /api/v1/admin/stats/database
+  {'GET'} /api/v1/admin/dashboard/stats
+  {'GET'} /api/v1/admin/users
+  {'PATCH'} /api/v1/admin/users/{user_id}/role
+  {'POST'} /api/v1/admin/users/{user_id}/suspend
+  {'GET'} /api/v1/admin/analytics/usage
+  {'GET'} /api/v1/admin/system/health
+  {'POST'} /api/v1/admin/users/{user_id}/unlock
+  {'GET'} /api/v1/admin/expenses
+  {'DELETE'} /api/v1/admin/expenses-pending/clear
+  {'POST'} /api/v1/admin/expenses/archive-all
+  {'GET'} /api/v1/admin/expenses/archived
+  {'POST'} /api/v1/admin/expenses/{expense_id}/archive
+  {'POST'} /api/v1/admin/expenses/{expense_id}/unarchive
+  {'POST'} /api/v1/admin/expenses/unarchive-all
+  {'DELETE'} /api/v1/admin/expenses/clear
+  {'POST'} /api/v1/admin/users/create
+  {'GET'} /api/v1/admin/users/{user_id}
+  {'PATCH'} /api/v1/admin/users/{user_id}/department
+  {'PATCH'} /api/v1/admin/users/{user_id}/email
+  {'PATCH'} /api/v1/admin/users/{user_id}/profile
+  {'POST'} /api/v1/admin/users/{user_id}/activate
+  {'DELETE'} /api/v1/admin/users/{user_id}
+  {'GET'} /api/v1/admin/users/{user_id}/permissions
+  {'GET'} /api/v1/admin/permissions/all
+  {'GET'} /api/v1/organizations/validate/name
+  {'GET'} /api/v1/organizations/validate/slug
+  {'POST'} /api/v1/organizations
+  {'GET'} /api/v1/organizations
+  {'GET'} /api/v1/organizations/{organization_id}
+  {'PATCH'} /api/v1/organizations/{organization_id}
+  {'DELETE'} /api/v1/organizations/{organization_id}
+  {'GET'} /api/v1/organizations/{organization_id}/members
+  {'PATCH'} /api/v1/organizations/{organization_id}/members/{member_id}/role
+  {'DELETE'} /api/v1/organizations/{organization_id}/members/{member_id}
+  {'POST'} /api/v1/organizations/{organization_id}/invitations
+  {'GET'} /api/v1/organizations/{organization_id}/invitations
+  {'POST'} /api/v1/organizations/invitations/{token}/accept
+  {'DELETE'} /api/v1/organizations/{organization_id}/invitations/{invitation_id}
+  {'GET'} /api/billing/org/subscription
+  {'GET'} /api/billing/org/usage/monthly
+  {'POST'} /api/billing/org/usage/track
+  {'GET'} /api/billing/org/usage/check-limit/{usage_type}
+  {'GET'} /api/billing/org/usage/summary
+  {'GET'} /api/billing/org/tiers
+  {'GET'} /api/billing/org/tiers/{tier_name}
+  {'PUT'} /api/billing/org/subscription/upgrade
+  {'POST'} /api/billing/org/subscription
+  {'POST'} /api/ap2/intent-mandate
+  {'POST'} /api/ap2/cart-mandate
+  {'POST'} /api/ap2/payment-mandate
+  {'POST'} /api/ap2/execute-payment
+  {'POST'} /api/ap2/complete-flow
+  {'GET'} /api/ap2/mandate/{mandate_id}/status
+  {'GET'} /api/ap2/user/mandates
+  {'GET'} /api/ap2/stats
+  {'POST'} /api/ap2/intent-mandate/{mandate_id}/revoke
+  {'POST'} /api/ap2/cart-mandate/{mandate_id}/revoke
+  {'POST'} /api/ap2/payment-mandate/{mandate_id}/revoke
+  {'POST'} /webhooks/stripe
+  {'GET'} /webhooks/health
+  {'POST'} /api/v1/expenses
+  {'GET'} /api/v1/expenses
+  {'GET'} /api/v1/expenses/report
+  {'GET'} /api/v1/expenses/export
+  {'GET'} /api/v1/expenses/{expense_id}
+  {'PATCH'} /api/v1/expenses/{expense_id}
+  {'PUT'} /api/v1/expenses/{expense_id}
+  {'DELETE'} /api/v1/expenses/{expense_id}
+  {'PUT'} /api/v1/expenses/{expense_id}/approve
+  {'PUT'} /api/v1/expenses/{expense_id}/reject
+  {'PUT'} /api/v1/expenses/{expense_id}/request-receipt
+  {'PUT'} /api/v1/expenses/{expense_id}/flag
+  {'POST'} /api/v1/receipts/upload/{expense_id}
+  {'POST'} /api/v1/receipts/batch-upload
+  {'POST'} /api/v1/receipts/create-from-extraction
+  {'GET'} /api/v1/receipts/{expense_id}
+  {'DELETE'} /api/v1/receipts/{receipt_id}
+  {'GET'} /api/v1/receipts/download/{receipt_id}
+  {'POST'} /api/v1/approval-policies
+  {'GET'} /api/v1/approval-policies
+  {'GET'} /api/v1/approval-policies/{policy_id}
+  {'PATCH'} /api/v1/approval-policies/{policy_id}
+  {'DELETE'} /api/v1/approval-policies/{policy_id}
+  {'POST'} /api/v1/approval-policies/{policy_id}/test
+  {'GET'} /api/v1/approval-policies/analytics/statistics
+  {'POST'} /api/budgets
+  {'GET'} /api/budgets
+  {'GET'} /api/budgets/{budget_id}
+  {'PATCH'} /api/budgets/{budget_id}
+  {'DELETE'} /api/budgets/{budget_id}
+  {'GET'} /api/budgets/{budget_id}/alerts
+  {'POST'} /api/budgets/{budget_id}/alerts/{alert_id}/acknowledge
+  {'GET'} /api/notifications
+  {'GET'} /api/notifications/unread-count
+  {'POST'} /api/notifications/{notification_id}/read
+  {'POST'} /api/notifications/mark-all-read
+  {'DELETE'} /api/notifications/{notification_id}
+  {'GET'} /api/v1/analytics/dashboard
+  {'GET'} /api/v1/analytics/summary
+  {'POST'} /api/recurring-expenses
+  {'GET'} /api/recurring-expenses
+  {'GET'} /api/recurring-expenses/{template_id}
+  {'PATCH'} /api/recurring-expenses/{template_id}
+  {'DELETE'} /api/recurring-expenses/{template_id}
+  {'POST'} /api/recurring-expenses/{template_id}/pause
+  {'POST'} /api/recurring-expenses/{template_id}/resume
+  {'GET'} /api/webhooks/gcp/health
+  {'POST'} /api/webhooks/gcp/procurement-simple
+  {'POST'} /api/webhooks/gcp/procurement
+  {'POST'} /api/webhooks/gcp/events
+  {'POST'} /api/webhooks/gcp/entitlement-updated
+  {'POST'} /api/webhooks/gcp/entitlement-cancelled
+  {'POST'} /api/webhooks/gcp/report-usage
+  {'GET'} /api/webhooks/gcp/health
+  {'POST'} /api/webhooks/gcp/process-trials
+  {'GET'} /api/admin/dlq/stats
+  {'GET'} /api/admin/dlq/failed-webhooks
+  {'POST'} /api/admin/dlq/retry/{event_id}
+  {'POST'} /api/admin/dlq/retry-all
+  {'DELETE'} /api/admin/dlq/purge
+  {'GET'} /api/admin/dlq/event/{event_id}
+  {'GET'} /health
+2026-01-06 19:57:44,651 - src.utils.error_tracking - INFO - {"timestamp": "2026-01-07T02:57:44.651659", "event_type": "api_call", "level": "INFO", "message": "POST /api/v1/auth/login -> 200", "endpoint": "/api/v1/auth/login", "method": "POST", "status_code": 200, "duration_ms": 191.2064552307129, "user_id": null, "organization_id": null}
+2026-01-06 19:57:44,652 - http.access - INFO - POST /api/v1/auth/login - 200
+2026-01-06 19:57:44,652 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+----------------------------- Captured log setup ------------------------------
+DEBUG    asyncio:proactor_events.py:633 Using proactor: IocpProactor
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:313 Verifying tier limits on application startup...
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:118 Starting tier limits verification
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:196 [PASS] Tier limits verification passed - all limits are correct
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:320 [PASS] Tier limits verification passed - application startup allowed
+INFO     src.utils.error_tracking:error_tracking.py:57 {"timestamp": "2026-01-07T02:57:44.651659", "event_type": "api_call", "level": "INFO", "message": "POST /api/v1/auth/login -> 200", "endpoint": "/api/v1/auth/login", "method": "POST", "status_code": 200, "duration_ms": 191.2064552307129, "user_id": null, "organization_id": null}
+INFO     http.access:logging_config.py:227 POST /api/v1/auth/login - 200
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+---------------------------- Captured stdout call -----------------------------
+2026-01-06 19:57:44,744 - src.error_handlers - WARNING - Validation Error: 1 field(s) failed validation
+2026-01-06 19:57:44,745 - src.utils.error_tracking - INFO - {"timestamp": "2026-01-07T02:57:44.745168", "event_type": "api_call", "level": "INFO", "message": "POST /api/v1/users/ -> 422", "endpoint": "/api/v1/users/", "method": "POST", "status_code": 422, "duration_ms": 91.41254425048828, "user_id": null, "organization_id": null}
+2026-01-06 19:57:44,745 - http.access - INFO - POST /api/v1/users/ - 422
+2026-01-06 19:57:44,745 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/users/ "HTTP/1.1 422 Unprocessable Entity"
+------------------------------ Captured log call ------------------------------
+WARNING  src.error_handlers:error_handlers.py:247 Validation Error: 1 field(s) failed validation
+INFO     src.utils.error_tracking:error_tracking.py:57 {"timestamp": "2026-01-07T02:57:44.745168", "event_type": "api_call", "level": "INFO", "message": "POST /api/v1/users/ -> 422", "endpoint": "/api/v1/users/", "method": "POST", "status_code": 422, "duration_ms": 91.41254425048828, "user_id": null, "organization_id": null}
+INFO     http.access:logging_config.py:227 POST /api/v1/users/ - 422
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/users/ "HTTP/1.1 422 Unprocessable Entity"
+______________ TestUserManagement.test_update_user_role_as_admin ______________
+tests\test_users.py:92: in test_update_user_role_as_admin
+    assert response.status_code == 200
+E   assert 422 == 200
+E    +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+---------------------------- Captured stdout setup ----------------------------
+2026-01-06 19:57:46,153 - asyncio - DEBUG - Using proactor: IocpProactor
+2026-01-06 19:57:46,156 - src.billing.tier_limit_guardian - INFO - Verifying tier limits on application startup...
+2026-01-06 19:57:46,156 - src.billing.tier_limit_guardian - INFO - Starting tier limits verification
+2026-01-06 19:57:46,157 - src.billing.tier_limit_guardian - INFO - [PASS] Tier limits verification passed - all limits are correct
+2026-01-06 19:57:46,158 - src.billing.tier_limit_guardian - INFO - [PASS] Tier limits verification passed - application startup allowed
+[SEED] All 1 default users already exist
+[STARTUP] Registered routes:
+  {'GET', 'HEAD'} /openapi.json
+  {'GET', 'HEAD'} /docs
+  {'GET', 'HEAD'} /docs/oauth2-redirect
+  {'GET', 'HEAD'} /redoc
+  {'POST'} /api/v1/auth/register
+  {'POST'} /api/v1/auth/login
+  {'POST'} /api/v1/auth/login/form
+  {'POST'} /api/v1/auth/refresh
+  {'POST'} /api/v1/auth/logout
+  {'POST'} /api/v1/auth/password/reset-request
+  {'POST'} /api/v1/auth/password/reset-confirm
+  {'POST'} /api/v1/auth/password/change
+  {'GET'} /api/v1/auth/me
+  {'POST'} /api/v1/auth/2fa/setup
+  {'POST'} /api/v1/auth/2fa/enable
+  {'POST'} /api/v1/auth/2fa/disable
+  {'POST'} /api/v1/auth/2fa/verify
+  {'POST'} /api/v1/auth/verify-email
+  {'POST'} /api/v1/auth/resend-verification
+  {'GET'} /api/v1/users/
+  {'GET'} /api/v1/users/{user_id}
+  {'POST'} /api/v1/users/
+  {'PATCH'} /api/v1/users/{user_id}
+  {'DELETE'} /api/v1/users/{user_id}
+  {'GET'} /api/v1/users/{user_id}/sessions
+  {'DELETE'} /api/v1/users/{user_id}/sessions/{session_id}
+  {'POST'} /api/v1/users/me/change-password
+  {'GET'} /api/v1/oauth2/authorize
+  {'POST'} /api/v1/oauth2/authorize
+  {'POST'} /api/v1/oauth2/token
+  {'GET'} /api/v1/oauth2/consent
+  {'GET'} /api/v1/oauth2/google/login
+  {'GET'} /api/v1/oauth2/google/callback
+  {'POST'} /api/v1/oauth2/google/token
+  {'POST'} /api/v1/admin/maintenance
+  {'POST'} /api/v1/admin/maintenance/audit-logs
+  {'POST'} /api/v1/admin/maintenance/sessions
+  {'POST'} /api/v1/admin/maintenance/tokens
+  {'GET'} /api/v1/admin/stats/database
+  {'GET'} /api/v1/admin/dashboard/stats
+  {'GET'} /api/v1/admin/users
+  {'PATCH'} /api/v1/admin/users/{user_id}/role
+  {'POST'} /api/v1/admin/users/{user_id}/suspend
+  {'GET'} /api/v1/admin/analytics/usage
+  {'GET'} /api/v1/admin/system/health
+  {'POST'} /api/v1/admin/users/{user_id}/unlock
+  {'GET'} /api/v1/admin/expenses
+  {'DELETE'} /api/v1/admin/expenses-pending/clear
+  {'POST'} /api/v1/admin/expenses/archive-all
+  {'GET'} /api/v1/admin/expenses/archived
+  {'POST'} /api/v1/admin/expenses/{expense_id}/archive
+  {'POST'} /api/v1/admin/expenses/{expense_id}/unarchive
+  {'POST'} /api/v1/admin/expenses/unarchive-all
+  {'DELETE'} /api/v1/admin/expenses/clear
+  {'POST'} /api/v1/admin/users/create
+  {'GET'} /api/v1/admin/users/{user_id}
+  {'PATCH'} /api/v1/admin/users/{user_id}/department
+  {'PATCH'} /api/v1/admin/users/{user_id}/email
+  {'PATCH'} /api/v1/admin/users/{user_id}/profile
+  {'POST'} /api/v1/admin/users/{user_id}/activate
+  {'DELETE'} /api/v1/admin/users/{user_id}
+  {'GET'} /api/v1/admin/users/{user_id}/permissions
+  {'GET'} /api/v1/admin/permissions/all
+  {'GET'} /api/v1/organizations/validate/name
+  {'GET'} /api/v1/organizations/validate/slug
+  {'POST'} /api/v1/organizations
+  {'GET'} /api/v1/organizations
+  {'GET'} /api/v1/organizations/{organization_id}
+  {'PATCH'} /api/v1/organizations/{organization_id}
+  {'DELETE'} /api/v1/organizations/{organization_id}
+  {'GET'} /api/v1/organizations/{organization_id}/members
+  {'PATCH'} /api/v1/organizations/{organization_id}/members/{member_id}/role
+  {'DELETE'} /api/v1/organizations/{organization_id}/members/{member_id}
+  {'POST'} /api/v1/organizations/{organization_id}/invitations
+  {'GET'} /api/v1/organizations/{organization_id}/invitations
+  {'POST'} /api/v1/organizations/invitations/{token}/accept
+  {'DELETE'} /api/v1/organizations/{organization_id}/invitations/{invitation_id}
+  {'GET'} /api/billing/org/subscription
+  {'GET'} /api/billing/org/usage/monthly
+  {'POST'} /api/billing/org/usage/track
+  {'GET'} /api/billing/org/usage/check-limit/{usage_type}
+  {'GET'} /api/billing/org/usage/summary
+  {'GET'} /api/billing/org/tiers
+  {'GET'} /api/billing/org/tiers/{tier_name}
+  {'PUT'} /api/billing/org/subscription/upgrade
+  {'POST'} /api/billing/org/subscription
+  {'POST'} /api/ap2/intent-mandate
+  {'POST'} /api/ap2/cart-mandate
+  {'POST'} /api/ap2/payment-mandate
+  {'POST'} /api/ap2/execute-payment
+  {'POST'} /api/ap2/complete-flow
+  {'GET'} /api/ap2/mandate/{mandate_id}/status
+  {'GET'} /api/ap2/user/mandates
+  {'GET'} /api/ap2/stats
+  {'POST'} /api/ap2/intent-mandate/{mandate_id}/revoke
+  {'POST'} /api/ap2/cart-mandate/{mandate_id}/revoke
+  {'POST'} /api/ap2/payment-mandate/{mandate_id}/revoke
+  {'POST'} /webhooks/stripe
+  {'GET'} /webhooks/health
+  {'POST'} /api/v1/expenses
+  {'GET'} /api/v1/expenses
+  {'GET'} /api/v1/expenses/report
+  {'GET'} /api/v1/expenses/export
+  {'GET'} /api/v1/expenses/{expense_id}
+  {'PATCH'} /api/v1/expenses/{expense_id}
+  {'PUT'} /api/v1/expenses/{expense_id}
+  {'DELETE'} /api/v1/expenses/{expense_id}
+  {'PUT'} /api/v1/expenses/{expense_id}/approve
+  {'PUT'} /api/v1/expenses/{expense_id}/reject
+  {'PUT'} /api/v1/expenses/{expense_id}/request-receipt
+  {'PUT'} /api/v1/expenses/{expense_id}/flag
+  {'POST'} /api/v1/receipts/upload/{expense_id}
+  {'POST'} /api/v1/receipts/batch-upload
+  {'POST'} /api/v1/receipts/create-from-extraction
+  {'GET'} /api/v1/receipts/{expense_id}
+  {'DELETE'} /api/v1/receipts/{receipt_id}
+  {'GET'} /api/v1/receipts/download/{receipt_id}
+  {'POST'} /api/v1/approval-policies
+  {'GET'} /api/v1/approval-policies
+  {'GET'} /api/v1/approval-policies/{policy_id}
+  {'PATCH'} /api/v1/approval-policies/{policy_id}
+  {'DELETE'} /api/v1/approval-policies/{policy_id}
+  {'POST'} /api/v1/approval-policies/{policy_id}/test
+  {'GET'} /api/v1/approval-policies/analytics/statistics
+  {'POST'} /api/budgets
+  {'GET'} /api/budgets
+  {'GET'} /api/budgets/{budget_id}
+  {'PATCH'} /api/budgets/{budget_id}
+  {'DELETE'} /api/budgets/{budget_id}
+  {'GET'} /api/budgets/{budget_id}/alerts
+  {'POST'} /api/budgets/{budget_id}/alerts/{alert_id}/acknowledge
+  {'GET'} /api/notifications
+  {'GET'} /api/notifications/unread-count
+  {'POST'} /api/notifications/{notification_id}/read
+  {'POST'} /api/notifications/mark-all-read
+  {'DELETE'} /api/notifications/{notification_id}
+  {'GET'} /api/v1/analytics/dashboard
+  {'GET'} /api/v1/analytics/summary
+  {'POST'} /api/recurring-expenses
+  {'GET'} /api/recurring-expenses
+  {'GET'} /api/recurring-expenses/{template_id}
+  {'PATCH'} /api/recurring-expenses/{template_id}
+  {'DELETE'} /api/recurring-expenses/{template_id}
+  {'POST'} /api/recurring-expenses/{template_id}/pause
+  {'POST'} /api/recurring-expenses/{template_id}/resume
+  {'GET'} /api/webhooks/gcp/health
+  {'POST'} /api/webhooks/gcp/procurement-simple
+  {'POST'} /api/webhooks/gcp/procurement
+  {'POST'} /api/webhooks/gcp/events
+  {'POST'} /api/webhooks/gcp/entitlement-updated
+  {'POST'} /api/webhooks/gcp/entitlement-cancelled
+  {'POST'} /api/webhooks/gcp/report-usage
+  {'GET'} /api/webhooks/gcp/health
+  {'POST'} /api/webhooks/gcp/process-trials
+  {'GET'} /api/admin/dlq/stats
+  {'GET'} /api/admin/dlq/failed-webhooks
+  {'POST'} /api/admin/dlq/retry/{event_id}
+  {'POST'} /api/admin/dlq/retry-all
+  {'DELETE'} /api/admin/dlq/purge
+  {'GET'} /api/admin/dlq/event/{event_id}
+  {'GET'} /health
+2026-01-06 19:57:46,534 - src.utils.error_tracking - INFO - {"timestamp": "2026-01-07T02:57:46.534930", "event_type": "api_call", "level": "INFO", "message": "POST /api/v1/auth/login -> 200", "endpoint": "/api/v1/auth/login", "method": "POST", "status_code": 200, "duration_ms": 190.9799575805664, "user_id": null, "organization_id": null}
+2026-01-06 19:57:46,535 - http.access - INFO - POST /api/v1/auth/login - 200
+2026-01-06 19:57:46,536 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+----------------------------- Captured log setup ------------------------------
+DEBUG    asyncio:proactor_events.py:633 Using proactor: IocpProactor
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:313 Verifying tier limits on application startup...
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:118 Starting tier limits verification
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:196 [PASS] Tier limits verification passed - all limits are correct
+INFO     src.billing.tier_limit_guardian:tier_limit_guardian.py:320 [PASS] Tier limits verification passed - application startup allowed
+INFO     src.utils.error_tracking:error_tracking.py:57 {"timestamp": "2026-01-07T02:57:46.534930", "event_type": "api_call", "level": "INFO", "message": "POST /api/v1/auth/login -> 200", "endpoint": "/api/v1/auth/login", "method": "POST", "status_code": 200, "duration_ms": 190.9799575805664, "user_id": null, "organization_id": null}
+INFO     http.access:logging_config.py:227 POST /api/v1/auth/login - 200
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+---------------------------- Captured stdout call -----------------------------
+2026-01-06 19:57:46,722 - src.error_handlers - WARNING - Validation Error: 1 field(s) failed validation
+2026-01-06 19:57:46,722 - src.utils.error_tracking - INFO - {"timestamp": "2026-01-07T02:57:46.722465", "event_type": "api_call", "level": "INFO", "message": "PATCH /api/v1/users/31d20434-93f1-408b-99d7-e890cd96be47 -> 422", "endpoint": "/api/v1/users/31d20434-93f1-408b-99d7-e890cd96be47", "method": "PATCH", "status_code": 422, "duration_ms": 2.6428699493408203, "user_id": null, "organization_id": null}
+2026-01-06 19:57:46,722 - http.access - INFO - PATCH /api/v1/users/31d20434-93f1-408b-99d7-e890cd96be47 - 422
+2026-01-06 19:57:46,723 - httpx - INFO - HTTP Request: PATCH http://testserver/api/v1/users/31d20434-93f1-408b-99d7-e890cd96be47 "HTTP/1.1 422 Unprocessable Entity"
+------------------------------ Captured log call ------------------------------
+WARNING  src.error_handlers:error_handlers.py:247 Validation Error: 1 field(s) failed validation
+INFO     src.utils.error_tracking:error_tracking.py:57 {"timestamp": "2026-01-07T02:57:46.722465", "event_type": "api_call", "level": "INFO", "message": "PATCH /api/v1/users/31d20434-93f1-408b-99d7-e890cd96be47 -> 422", "endpoint": "/api/v1/users/31d20434-93f1-408b-99d7-e890cd96be47", "method": "PATCH", "status_code": 422, "duration_ms": 2.6428699493408203, "user_id": null, "organization_id": null}
+INFO     http.access:logging_config.py:227 PATCH /api/v1/users/31d20434-93f1-408b-99d7-e890cd96be47 - 422
+INFO     httpx:_client.py:1025 HTTP Request: PATCH http://testserver/api/v1/users/31d20434-93f1-408b-99d7-e890cd96be47 "HTTP/1.1 422 Unprocessable Entity"
+=========================== short test summary info ===========================
+FAILED tests/test_api_expenses.py::TestExpenseAPIRoutes::test_create_expense_success - AssertionError: assert 'pending' == 'PENDING'
+  
+  - PENDING
+  + pending
+FAILED tests/test_api_expenses.py::TestExpenseAPIRoutes::test_get_expenses_list - AssertionError: assert (False or 'items' in {'expenses': []})
+ +  where False = isinstance({'expenses': []}, list)
+FAILED tests/test_users.py::TestUserManagement::test_create_user_as_admin - assert 422 == 201
+ +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+FAILED tests/test_users.py::TestUserManagement::test_update_user_role_as_admin - assert 422 == 200
+ +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+================== 4 failed, 61 passed, 4 skipped in 19.45s ===================
