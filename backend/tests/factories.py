@@ -195,7 +195,7 @@ def create_organization_with_owner(
         Tuple of (Organization, Owner User)
     """
     if owner is None:
-        owner = create_user(db_session, role=UserRole.EMPLOYEE)
+        owner = create_user(db_session, role=UserRole.USER)
 
     org = create_organization(db_session, name=org_name, **kwargs)
     add_user_to_organization(db_session, owner, org, OrganizationRole.OWNER)

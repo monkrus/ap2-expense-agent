@@ -638,7 +638,7 @@ async def get_all_expenses(
     # Apply status filter if provided
     if status_filter and status_filter != "all":
         try:
-            status_enum = ExpenseStatus(status_filter.lower())
+            status_enum = ExpenseStatus(status_filter.upper())
             logger.info(
                 f"[admin.get_all_expenses] Filtering by status enum: {status_enum}"
             )
