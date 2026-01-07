@@ -753,8 +753,8 @@ async def approve_expense(
             detail=f"Cannot approve expense with status {expense.status.value}. Only PENDING expenses can be approved."
         )
 
-    # Prevent self-approval
-    if expense.user_id == current_user.id:
+    # Prevent self-approval (except for system admins)
+    if expense.user_id == current_user.id and current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You cannot approve your own expense"
@@ -884,8 +884,8 @@ async def reject_expense(
             detail=f"Cannot reject expense with status {expense.status.value}. Only PENDING expenses can be rejected."
         )
 
-    # Prevent self-rejection (same logic as approval)
-    if expense.user_id == current_user.id:
+    # Prevent self-rejection (except for system admins)
+    if expense.user_id == current_user.id and current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You cannot reject your own expense"
