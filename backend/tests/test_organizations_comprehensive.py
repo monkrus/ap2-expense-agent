@@ -231,8 +231,14 @@ class TestOrganizationCreation:
 class TestOrganizationLimits:
     """Test free tier organization limits"""
 
-    def test_free_tier_one_organization_limit(self, client, auth_headers, db):
-        """Test that free tier users can only create 1 organization"""
+    def test_free_tier_one_organization_limit(self, client, auth_headers, db, monkeypatch):
+        """Test that free tier users can only create 1 organization
+
+        Note: Limits are bypassed when TESTING=true, so we temporarily disable it.
+        """
+        # Temporarily disable testing bypass to actually test limits
+        monkeypatch.delenv("TESTING", raising=False)
+
         # Create first organization (should succeed)
         org1_data = {
             "name": "First Organization",
@@ -386,8 +392,14 @@ class TestOrganizationEditing:
 class TestOrganizationLifecycle:
     """Test complete organization lifecycle flows"""
 
-    def test_create_delete_create_flow(self, client, auth_headers, db):
-        """Test: Create org → Delete org → Create new org"""
+    def test_create_delete_create_flow(self, client, auth_headers, db, monkeypatch):
+        """Test: Create org → Delete org → Create new org
+
+        Note: Limits are bypassed when TESTING=true, so we temporarily disable it.
+        """
+        # Temporarily disable testing bypass to actually test limits
+        monkeypatch.delenv("TESTING", raising=False)
+
         # Step 1: Create first organization
         org1_data = {
             "name": "First Org",

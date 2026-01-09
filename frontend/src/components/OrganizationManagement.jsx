@@ -706,14 +706,14 @@ const OrganizationManagement = () => {
                       <div className="bg-blue-50 rounded-lg p-6">
                         <Users className="w-8 h-8 text-blue-600 mb-2" />
                         <p className="text-2xl font-bold text-blue-900">
-                          {members.length}
+                          {members?.length || 0}
                         </p>
                         <p className="text-blue-700 text-sm">Team Members</p>
                       </div>
                       <div className="bg-yellow-50 rounded-lg p-6">
                         <Mail className="w-8 h-8 text-yellow-600 mb-2" />
                         <p className="text-2xl font-bold text-yellow-900">
-                          {invitations.length}
+                          {invitations?.length || 0}
                         </p>
                         <p className="text-yellow-700 text-sm">
                           Pending Invitations

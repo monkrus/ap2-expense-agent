@@ -304,8 +304,14 @@ class TestUsageTracking:
 class TestFreeTierLimits:
     """Test free tier limit enforcement"""
 
-    def test_free_tier_organization_limit(self, client, auth_headers, test_user, db):
-        """Test that free tier users can only create 1 organization"""
+    def test_free_tier_organization_limit(self, client, auth_headers, test_user, db, monkeypatch):
+        """Test that free tier users can only create 1 organization
+
+        Note: Limits are bypassed when TESTING=true, so we temporarily disable it.
+        """
+        # Temporarily disable testing bypass to actually test limits
+        monkeypatch.delenv("TESTING", raising=False)
+
         # Create first organization (should succeed)
         org1_data = {
             "name": "First Free Org",
