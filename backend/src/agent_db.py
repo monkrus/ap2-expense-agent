@@ -358,7 +358,7 @@ class ExpenseManagementAgent:
             "vendor": expense.vendor,
             "category": expense.category.value,
             "description": expense.description,
-            "status": expense.status.value,
+            "status": expense.status.value.lower(),
             "date": expense.date.isoformat(),
             "created_at": (
                 expense.created_at.isoformat() if expense.created_at else None
@@ -424,7 +424,7 @@ class ExpenseManagementAgent:
                 "vendor": expense.vendor,
                 "category": expense.category.value,
                 "description": expense.description,
-                "status": expense.status.value,
+                "status": expense.status.value.lower(),
                 "transaction_id": expense.transaction_id,
                 "approved_by": expense.approved_by,
                 "approved_at": (

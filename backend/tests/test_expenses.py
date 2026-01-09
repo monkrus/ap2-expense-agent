@@ -28,7 +28,7 @@ class TestExpenseCreation:
         expense = response.json()
         assert expense["amount"] == 150.00
         assert expense["vendor"] == "Test Restaurant"
-        assert expense["status"] == "PENDING"
+        assert expense["status"] == "pending"
         assert "id" in expense
         assert "auto_approved" in expense
 
@@ -144,11 +144,13 @@ class TestExpenseDelete:
         )
         assert response.status_code in [200, 204]
 
-        # Verify expense is deleted
+        # Verify expense is soft-deleted (withdrawn)
         get_response = client.get(
             f"/api/v1/expenses/{test_expense.id}", headers=org_headers
         )
-        assert get_response.status_code == 404
+        assert get_response.status_code == 200
+        expense_data = get_response.json()
+        assert expense_data["status"] == "withdrawn"
 
 
 class TestExpenseFiltering:

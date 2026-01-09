@@ -144,7 +144,9 @@ export const AuthProvider = ({ children }) => {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || "Registration failed");
+        // Handle both error formats: standard HTTPException (error.detail) and custom API errors (error.error.message)
+        const errorMessage = error.detail || error.error?.message || "Registration failed";
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();

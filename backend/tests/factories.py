@@ -84,12 +84,12 @@ def create_employee(db_session, **kwargs) -> User:
 
 def create_manager(db_session, department_id: str = "sales", **kwargs) -> User:
     """Create a MANAGER role user with department"""
-    return create_user(db_session, role=UserRole.ADMIN, department_id=department_id, **kwargs)
+    return create_user(db_session, role=UserRole.MANAGER, department_id=department_id, **kwargs)
 
 
 def create_accountant(db_session, **kwargs) -> User:
     """Create an ACCOUNTANT role user (read-only)"""
-    return create_user(db_session, role=UserRole.ADMIN, **kwargs)
+    return create_user(db_session, role=UserRole.ACCOUNTANT, **kwargs)
 
 
 def create_admin(db_session, **kwargs) -> User:

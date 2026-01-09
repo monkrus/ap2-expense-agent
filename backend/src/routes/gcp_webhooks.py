@@ -4,6 +4,7 @@ Handles procurement, entitlement changes, and cancellations
 """
 
 import json
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
@@ -27,6 +28,7 @@ from ..gcp.usage_reporter import run_hourly_usage_reporting
 from ..services.trial_service import TrialService
 
 router = APIRouter(prefix="/api/webhooks/gcp", tags=["gcp-webhooks"])
+logger = logging.getLogger(__name__)
 
 
 def verify_gcp_signature(request_body: bytes, signature: Optional[str]) -> bool:
@@ -47,14 +49,11 @@ def verify_gcp_signature(request_body: bytes, signature: Optional[str]) -> bool:
     """
     if not settings.gcp_webhook_secret:
         # SECURITY: Fail closed - never allow unsigned webhooks
-        print("ERROR: GCP webhook secret not configured. Rejecting webhook.")
-        print(
-            "Set GCP_WEBHOOK_SECRET environment variable with test or production secret."
-        )
+        logger.error("GCP webhook secret not configured. Rejecting webhook. Set GCP_WEBHOOK_SECRET environment variable.")
         return False
 
     if not signature:
-        print("ERROR: Missing X-Goog-Signature header. Possible forged webhook.")
+        logger.error("Missing X-Goog-Signature header. Possible forged webhook.")
         return False
 
     # Always verify signature, regardless of environment
@@ -63,9 +62,7 @@ def verify_gcp_signature(request_body: bytes, signature: Optional[str]) -> bool:
     )
 
     if not is_valid:
-        print(
-            f"ERROR: GCP webhook signature verification failed (env: {settings.environment})"
-        )
+        logger.error(f"GCP webhook signature verification failed (env: {settings.environment})")
 
     return is_valid
 
@@ -100,7 +97,7 @@ def verify_google_oidc_token(
             return False
         return True
     except Exception as e:
-        print(f"OIDC token verification failed: {e}")
+        logger.error(f"OIDC token verification failed: {e}", exc_info=True)
         return False
 
 

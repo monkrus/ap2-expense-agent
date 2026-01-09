@@ -9,6 +9,7 @@ This module provides comprehensive expense management endpoints with:
 - Audit trails
 """
 
+import logging
 import uuid
 from datetime import datetime
 from typing import List, Optional
@@ -40,6 +41,7 @@ from ..permissions import can_approve_expense
 from ..email_service import EmailService
 
 router = APIRouter(prefix="/api/v1/expenses", tags=["expenses"])
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -151,6 +153,10 @@ async def create_expense(
             detail=str(e)
         )
 
+    # =====================================================================
+    # COMPREHENSIVE INPUT VALIDATION
+    # =====================================================================
+
     # Validate expense amount
     if data.amount <= 0:
         raise HTTPException(
@@ -158,10 +164,54 @@ async def create_expense(
             detail="Expense amount must be positive"
         )
 
-    # Parse expense date
+    # Maximum amount validation (prevent unrealistic expenses)
+    MAX_EXPENSE_AMOUNT = 100000.00  # $100,000
+    if data.amount > MAX_EXPENSE_AMOUNT:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Expense amount cannot exceed ${MAX_EXPENSE_AMOUNT:,.2f}. Please contact admin for special approval."
+        )
+
+    # Decimal precision validation (currency should have max 2 decimal places)
+    if round(data.amount, 2) != data.amount:
+        raise HTTPException(
+            status_code=400,
+            detail="Expense amount must have at most 2 decimal places"
+        )
+
+    # Parse and validate expense date
     expense_date = (
         datetime.fromisoformat(data.date) if data.date else datetime.utcnow()
     )
+
+    # Date validation: cannot be in the future
+    if expense_date > datetime.utcnow():
+        raise HTTPException(
+            status_code=400,
+            detail="Expense date cannot be in the future"
+        )
+
+    # Date validation: cannot be too old (more than 1 year)
+    one_year_ago = datetime.utcnow().replace(year=datetime.utcnow().year - 1)
+    if expense_date < one_year_ago:
+        raise HTTPException(
+            status_code=400,
+            detail="Expense date cannot be older than 1 year. Please contact admin if you need to submit an older expense."
+        )
+
+    # Vendor validation
+    if data.vendor and len(data.vendor) > 200:
+        raise HTTPException(
+            status_code=400,
+            detail="Vendor name cannot exceed 200 characters"
+        )
+
+    # Description validation
+    if data.description and len(data.description) > 1000:
+        raise HTTPException(
+            status_code=400,
+            detail="Description cannot exceed 1000 characters"
+        )
 
     # Create expense with PENDING status initially
     expense = Expense(
@@ -211,7 +261,7 @@ async def create_expense(
                 "vendor": expense.vendor,
                 "category": expense.category,
                 "description": expense.description,
-                "status": expense.status.value,
+                "status": expense.status.value.lower(),
                 "date": expense.date.isoformat() if expense.date else None,
                 "created_at": expense.created_at.isoformat() if expense.created_at else None,
                 "auto_approved": True,
@@ -267,7 +317,7 @@ async def create_expense(
         db.commit()
     except Exception as e:
         # Log error but don't fail the request
-        print(f"Failed to create admin notifications: {str(e)}")
+        logger.error(f"Failed to create admin notifications: {str(e)}", exc_info=True)
 
     return {
         "id": expense.id,
@@ -351,7 +401,7 @@ async def list_expenses(
             "vendor": e.vendor,
             "category": e.category,
             "description": e.description,
-            "status": e.status.value if hasattr(e.status, 'value') else e.status,
+            "status": (e.status.value.lower() if hasattr(e.status, 'value') else str(e.status).lower()),
             "date": e.date.isoformat() if e.date else None,
             "user_id": e.user_id,
             "user_name": expense_owner.full_name if expense_owner else "Unknown User",
@@ -365,8 +415,8 @@ async def list_expenses(
             "rejection_reason": e.rejection_reason,
         })
 
-    # Return expenses in wrapped format for frontend
-    return {"expenses": expense_list}
+    # Return expenses as direct list (API contract)
+    return expense_list
 
 
 @router.get("/report")
@@ -507,15 +557,22 @@ async def get_expense_report(
 @router.get("/export")
 async def export_expenses(
     request: Request,
-    format: str = "csv",
+    format: str = "pdf",
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
     """
-    Export expenses to CSV
+    Export expenses to PDF or CSV
 
     Permissions: Accountants, admins
+
+    Args:
+        format: Export format - 'pdf' or 'csv' (default: pdf)
     """
+    from fastapi.responses import StreamingResponse
+    from ..services.pdf_generator import PDFExpenseReportGenerator
+    import io
+
     org_id = request.headers.get("X-Organization-Id")
 
     if not org_id:
@@ -532,7 +589,8 @@ async def export_expenses(
 
     can_export = (
         user_org_role in ["owner", "admin"] or
-        current_user.role == UserRole.ADMIN
+        current_user.role == UserRole.ADMIN or
+        current_user.role == UserRole.ACCOUNTANT
     )
 
     if not can_export:
@@ -541,19 +599,40 @@ async def export_expenses(
             detail="You do not have permission to export expenses"
         )
 
+    # Get organization details
+    organization = db.query(Organization).filter(Organization.id == org_id).first()
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found"
+        )
+
     # Get all expenses for organization
     expenses = db.query(Expense).filter(Expense.organization_id == org_id).all()
 
-    # In a real implementation, generate actual CSV file
-    # For now, return metadata
+    # Generate export file
+    generator = PDFExpenseReportGenerator()
+    file_bytes = generator.generate_expense_report(
+        expenses=expenses,
+        organization=organization,
+        generated_by=current_user,
+        format_type=format.lower()
+    )
 
-    return {
-        "message": "Export ready",
-        "format": format,
-        "expense_count": len(expenses),
-        "exported_by": current_user.username,
-        "exported_at": datetime.utcnow().isoformat()
-    }
+    # Determine content type and filename
+    if format.lower() == "csv":
+        content_type = "text/csv"
+        filename = f"expenses_{organization.slug}_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+    else:
+        content_type = "application/pdf"
+        filename = f"expenses_{organization.slug}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
+
+    # Return file as streaming response
+    return StreamingResponse(
+        io.BytesIO(file_bytes),
+        media_type=content_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
 @router.get("/{expense_id}")
@@ -587,7 +666,7 @@ async def get_expense(
         "vendor": expense.vendor,
         "category": expense.category,
         "description": expense.description,
-        "status": (expense.status.value if hasattr(expense.status, 'value') else expense.status),
+        "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else str(expense.status).lower()),
         "date": expense.date.isoformat() if expense.date else None,
         "user_id": expense.user_id,
         "organization_id": expense.organization_id,
@@ -653,7 +732,7 @@ async def update_expense(
         "vendor": expense.vendor,
         "category": expense.category,
         "description": expense.description,
-        "status": (expense.status.value if hasattr(expense.status, 'value') else expense.status),
+        "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else str(expense.status).lower()),
         "date": expense.date.isoformat() if expense.date else None,
         "user_id": expense.user_id,
         "organization_id": expense.organization_id,
@@ -770,12 +849,19 @@ async def approve_expense(
 
     expense_owner = db.query(User).filter(User.id == expense.user_id).first()
 
+    # Determine effective role for approval permission checking
+    # Priority: User's system role first, then organization role
     if current_user.role == UserRole.ADMIN:
         effective_role = UserRole.ADMIN
     elif user_org_role == "owner":
         effective_role = UserRole.ADMIN
+    elif user_org_role == "admin" and current_user.role == UserRole.MANAGER:
+        # Manager with admin org role should still respect manager limits
+        effective_role = UserRole.MANAGER
+    elif user_org_role == "manager":
+        effective_role = UserRole.MANAGER
     else:
-        effective_role = UserRole.USER
+        effective_role = current_user.role if current_user.role else UserRole.USER
 
     can_approve = can_approve_expense(
         user_role=effective_role,
@@ -821,7 +907,7 @@ async def approve_expense(
             db.commit()
     except Exception as e:
         # Log error but don't fail the approval
-        print(f"Failed to create in-app notification: {str(e)}")
+        logger.error(f"Failed to create in-app notification for expense {expense.id}: {str(e)}", exc_info=True)
 
     # Send approval notification email to expense owner
     try:
@@ -842,14 +928,55 @@ async def approve_expense(
             )
     except Exception as e:
         # Log error but don't fail the approval
-        print(f"Failed to send approval email: {str(e)}")
+        logger.error(f"Failed to send approval email for expense {expense.id}: {str(e)}", exc_info=True)
+
+    # Create AP2 payment mandates for approved expense
+    ap2_result = None
+    try:
+        from ..payments.ap2_service import AP2PaymentService
+
+        ap2_service = AP2PaymentService(db)
+
+        # Prepare cart items from expense
+        cart_items = [{
+            "description": expense.description or f"Expense: {expense.vendor}",
+            "amount": float(expense.amount),
+            "vendor": expense.vendor or "Unknown Vendor",
+            "category": str(expense.category.value if hasattr(expense.category, 'value') else expense.category),
+        }]
+
+        # Create complete AP2 flow
+        ap2_result = await ap2_service.complete_ap2_flow(
+            user_id=expense.user_id,
+            items=cart_items,
+            merchant=expense.vendor or "Unknown Vendor",
+            constraints={
+                "max_amount": float(expense.amount) * 1.05,  # 5% buffer
+                "merchant": expense.vendor or "Unknown Vendor",
+                "approval_required": False,  # Already approved
+            },
+        )
+
+        # Update expense with AP2 mandate IDs
+        expense.intent_mandate_id = ap2_result.get("intent_mandate_id")
+        expense.cart_mandate_id = ap2_result.get("cart_mandate_id")
+        expense.payment_mandate_id = ap2_result.get("payment_mandate_id")
+        expense.transaction_id = ap2_result.get("payment_mandate_id")  # Use payment mandate ID as transaction ID
+        db.commit()
+
+        logger.info(f"AP2 mandates created for expense {expense.id}: {ap2_result.get('intent_mandate_id')}")
+    except Exception as e:
+        # Log error but don't fail the approval (AP2 is optional)
+        logger.error(f"Failed to create AP2 mandates (non-blocking) for expense {expense.id}: {str(e)}", exc_info=True)
 
     return {
         "id": expense.id,
-        "status": (expense.status.value if hasattr(expense.status, 'value') else expense.status),
+        "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else str(expense.status).lower()),
         "message": f"Expense approved by {current_user.username}",
         "approved_by": current_user.id,
-        "approved_at": expense.approved_at.isoformat()
+        "approved_at": expense.approved_at.isoformat(),
+        "ap2_mandates_created": ap2_result is not None and ap2_result.get("ap2_flow_complete", False),
+        "transaction_id": expense.transaction_id,
     }
 
 
@@ -937,7 +1064,7 @@ async def reject_expense(
             db.commit()
     except Exception as e:
         # Log error but don't fail the rejection
-        print(f"Failed to create in-app notification: {str(e)}")
+        logger.error(f"Failed to create in-app notification for expense {expense.id}: {str(e)}", exc_info=True)
 
     # Send rejection notification email to expense owner
     try:
@@ -960,11 +1087,11 @@ async def reject_expense(
             )
     except Exception as e:
         # Log error but don't fail the rejection
-        print(f"Failed to send rejection email: {str(e)}")
+        logger.error(f"Failed to send rejection email for expense {expense.id}: {str(e)}", exc_info=True)
 
     return {
         "id": expense.id,
-        "status": (expense.status.value if hasattr(expense.status, 'value') else expense.status),
+        "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else str(expense.status).lower()),
         "message": f"Expense rejected by {current_user.username}",
         "reason": reason,
         "rejected_at": datetime.utcnow().isoformat()

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 
@@ -18,6 +19,7 @@ from ..models import (
 )
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
+logger = logging.getLogger(__name__)
 
 
 class UpdateUserRoleRequest(BaseModel):
@@ -1783,11 +1785,7 @@ async def delete_user(
 
     except Exception as e:
         db.rollback()
-        import traceback
-
-        error_trace = traceback.format_exc()
-        print(f"Error deleting user {user_id}: {str(e)}")
-        print(f"Traceback: {error_trace}")
+        logger.error(f"Error deleting user {user_id}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete user: {str(e)}",

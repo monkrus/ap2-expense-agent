@@ -9,9 +9,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 
-def test_expense_report_returns_lowercase_status(client: TestClient, auth_headers):
+def test_expense_report_returns_lowercase_status(client: TestClient, org_headers):
     """Test that /expenses/report returns lowercase status values"""
-    response = client.get("/api/v1/expenses/report", headers=auth_headers)
+    response = client.get("/api/v1/expenses/report", headers=org_headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -29,7 +29,7 @@ def test_expense_report_returns_lowercase_status(client: TestClient, auth_header
                 )
 
 
-def test_create_expense_returns_lowercase_status(client: TestClient, auth_headers):
+def test_create_expense_returns_lowercase_status(client: TestClient, org_headers):
     """Test that POST /expenses returns lowercase status values"""
     expense_data = {
         "amount": 100.00,
@@ -41,7 +41,7 @@ def test_create_expense_returns_lowercase_status(client: TestClient, auth_header
     response = client.post(
         "/api/v1/expenses",
         json=expense_data,
-        headers=auth_headers
+        headers=org_headers
     )
 
     # Should return 201 Created or 200 OK
@@ -54,11 +54,11 @@ def test_create_expense_returns_lowercase_status(client: TestClient, auth_header
         )
 
 
-def test_get_expense_returns_lowercase_status(client: TestClient, auth_headers, sample_expense):
+def test_get_expense_returns_lowercase_status(client: TestClient, org_headers, test_expense):
     """Test that GET /expenses/{id} returns lowercase status values"""
     response = client.get(
-        f"/api/v1/expenses/{sample_expense.id}",
-        headers=auth_headers
+        f"/api/v1/expenses/{test_expense.id}",
+        headers=org_headers
     )
 
     assert response.status_code == 200
@@ -72,13 +72,13 @@ def test_get_expense_returns_lowercase_status(client: TestClient, auth_headers, 
 
 def test_approve_expense_returns_lowercase_status(
     client: TestClient,
-    auth_headers,
-    sample_expense,
+    org_headers,
+    test_expense,
     admin_headers
 ):
     """Test that PUT /expenses/{id}/approve returns lowercase status values"""
     response = client.put(
-        f"/api/v1/expenses/{sample_expense.id}/approve",
+        f"/api/v1/expenses/{test_expense.id}/approve",
         headers=admin_headers
     )
 
@@ -93,15 +93,15 @@ def test_approve_expense_returns_lowercase_status(
 
 def test_reject_expense_returns_lowercase_status(
     client: TestClient,
-    auth_headers,
-    sample_expense,
+    org_headers,
+    test_expense,
     admin_headers
 ):
     """Test that PUT /expenses/{id}/reject returns lowercase status values"""
     reject_data = {"reason": "Test rejection"}
 
     response = client.put(
-        f"/api/v1/expenses/{sample_expense.id}/reject",
+        f"/api/v1/expenses/{test_expense.id}/reject",
         json=reject_data,
         headers=admin_headers
     )
@@ -115,9 +115,9 @@ def test_reject_expense_returns_lowercase_status(
             )
 
 
-def test_gdpr_export_returns_lowercase_status(client: TestClient, auth_headers):
+def test_gdpr_export_returns_lowercase_status(client: TestClient, org_headers):
     """Test that GDPR export returns lowercase status values"""
-    response = client.get("/api/v1/gdpr/export", headers=auth_headers)
+    response = client.get("/api/v1/gdpr/export", headers=org_headers)
 
     # Should return 200 OK
     if response.status_code == 200:

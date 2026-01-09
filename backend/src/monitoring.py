@@ -383,6 +383,7 @@ class AlertManager:
                             }
                         ],
                     },
+                    timeout=10,  # 10 second timeout to prevent hangs
                 )
             except Exception as e:
                 logger.error(f"Failed to send Slack alert: {e}")
@@ -405,6 +406,7 @@ class AlertManager:
                             "custom_details": alert_data,
                         },
                     },
+                    timeout=10,  # 10 second timeout to prevent hangs
                 )
             except Exception as e:
                 logger.error(f"Failed to send PagerDuty alert: {e}")

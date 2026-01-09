@@ -119,7 +119,7 @@ class TestExpenseCompliance:
         assert expense["amount"] == 100.50
         assert expense["vendor"] == "Acme Corp"
         assert expense["category"] == "TRAVEL"
-        assert expense["status"] == "PENDING"
+        assert expense["status"] == "pending"
 
     def test_expense_creation_requires_positive_amount(self, expense_repo):
         """Test that expenses must have positive amounts"""

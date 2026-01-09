@@ -47,6 +47,8 @@ def client():
 @pytest.fixture(scope="module")
 def admin_auth(client):
     """Create and authenticate admin user"""
+    from src.models import UserRole
+
     # Register admin
     response = client.post(
         "/api/v1/auth/register",
@@ -57,6 +59,16 @@ def admin_auth(client):
         },
     )
     assert response.status_code == 201
+
+    # Upgrade user to ADMIN role in database
+    db = TestingSessionLocal()
+    try:
+        user = db.query(User).filter(User.username == "testadmin").first()
+        if user:
+            user.role = UserRole.ADMIN
+            db.commit()
+    finally:
+        db.close()
 
     # Login
     response = client.post(
@@ -151,7 +163,7 @@ def test_complete_expense_workflow(client, admin_auth, organization):
     assert response.status_code == 201
     expense = response.json()
     expense_id = expense["id"]
-    assert expense["status"] == "PENDING"
+    assert expense["status"] == "pending"
 
     # Step 4: Admin views pending expenses
     response = client.get(
@@ -176,7 +188,7 @@ def test_complete_expense_workflow(client, admin_auth, organization):
     )
     assert response.status_code == 200
     approved_expense = response.json()
-    assert approved_expense["status"] == "APPROVED"
+    assert approved_expense["status"] == "approved"
     assert approved_expense["approved_by"] is not None
 
     # Step 6: Employee views approved expense
@@ -189,7 +201,7 @@ def test_complete_expense_workflow(client, admin_auth, organization):
     )
     assert response.status_code == 200
     final_expense = response.json()
-    assert final_expense["status"] == "APPROVED"
+    assert final_expense["status"] == "approved"
 
 
 def test_missing_organization_header_error(client, admin_auth):
@@ -266,7 +278,7 @@ def test_expense_rejection_workflow(client, admin_auth, organization):
     assert response.status_code == 200
     rejected = response.json()
 
-    assert rejected["status"] == "REJECTED"
+    assert rejected["status"] == "rejected"
     assert rejected["rejection_reason"] == "Exceeds policy limit"
 
 

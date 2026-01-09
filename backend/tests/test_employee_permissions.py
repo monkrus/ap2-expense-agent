@@ -79,7 +79,7 @@ class TestEmployeePermissions:
         assert response.status_code == status.HTTP_201_CREATED
         expense = response.json()
         assert expense["amount"] == 100.0
-        assert expense["status"] == "PENDING"  # API returns uppercase
+        assert expense["status"] == "pending"  # API returns lowercase
 
     # ========================================================================
     # ROLE-EMP-002: Employee can view own expense

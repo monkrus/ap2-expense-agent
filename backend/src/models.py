@@ -72,6 +72,9 @@ class StringEnum(TypeDecorator):
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
     USER = "user"
+    EMPLOYEE = "employee"
+    MANAGER = "manager"
+    ACCOUNTANT = "accountant"
 
 
 class OrganizationRole(str, enum.Enum):

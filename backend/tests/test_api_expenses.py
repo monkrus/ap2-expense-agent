@@ -30,7 +30,7 @@ class TestExpenseAPIRoutes:
         expense = response.json()
         assert expense["amount"] == 100.50
         assert expense["description"] == "Office supplies"
-        assert expense["status"] == "PENDING"
+        assert expense["status"] == "pending"
         assert "id" in expense
         assert "auto_approved" in expense
 

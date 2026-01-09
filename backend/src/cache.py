@@ -143,7 +143,8 @@ def cache_key(*args, **kwargs) -> str:
     key_parts = [str(arg) for arg in args]
     key_parts.extend([f"{k}={v}" for k, v in sorted(kwargs.items())])
     key_string = ":".join(key_parts)
-    return hashlib.md5(key_string.encode()).hexdigest()
+    # MD5 used for cache key generation only, not for security
+    return hashlib.md5(key_string.encode(), usedforsecurity=False).hexdigest()
 
 
 def cached(ttl: int = 300, key_prefix: str = ""):

@@ -64,7 +64,7 @@ class TestAutoApprovalEndToEnd:
 
         # Step 3: Verify expense was AUTO-APPROVED
         assert expense["auto_approved"] == True, "Expense should be auto-approved"
-        assert expense["status"] == "APPROVED", f"Status should be APPROVED, got {expense['status']}"
+        assert expense["status"] == "approved", f"Status should be approved, got {expense['status']}"
         assert expense["approval_policy_id"] == policy_id, "Should link to policy"
         assert "Auto-approved by policy" in expense.get("message", "")
 
@@ -109,7 +109,7 @@ class TestAutoApprovalEndToEnd:
 
         # Should NOT be auto-approved
         assert expense["auto_approved"] == False, "Expense should NOT be auto-approved"
-        assert expense["status"] == "PENDING", "Status should be PENDING"
+        assert expense["status"] == "pending", "Status should be pending"
         assert "manual approval" in expense.get("message", "").lower()
 
     def test_category_filtering(self, client, admin_org_headers, test_admin, db_session):
@@ -371,7 +371,7 @@ class TestAutoApprovalEndToEnd:
         assert response.status_code == 201
         expense = response.json()
         assert expense["auto_approved"] == False
-        assert expense["status"] == "PENDING"
+        assert expense["status"] == "pending"
         assert "manual approval" in expense.get("message", "").lower()
 
 
