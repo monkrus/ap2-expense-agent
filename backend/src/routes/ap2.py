@@ -350,6 +350,27 @@ async def complete_ap2_flow(
     Use this for simple payment flows. For complex flows with user approvals,
     use individual endpoints.
     """
+    # CRITICAL: Check AP2 transaction limit BEFORE processing (FREE TIER ENFORCEMENT)
+    from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
+    from ..models import OrganizationMember
+
+    membership = (
+        db.query(OrganizationMember)
+        .filter(OrganizationMember.user_id == current_user.id)
+        .filter(OrganizationMember.is_active == True)
+        .first()
+    )
+
+    if membership:
+        try:
+            limit_enforcer = LimitEnforcer(db)
+            limit_enforcer.check_ap2_transaction_limit(membership.organization_id, raise_error=True)
+        except LimitExceededError as e:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail=str(e)
+            )
+
     ap2_service = AP2PaymentService(db)
 
     # Track AP2 transaction usage

@@ -490,3 +490,207 @@ class AP2PaymentService:
             "payment_result": payment_result,
             "ap2_flow_complete": payment_result["success"],
         }
+
+    def find_matching_intent_mandate(
+        self,
+        user_id: str,
+        amount: float,
+        category: str,
+        merchant: str,
+        organization_id: str
+    ) -> Optional[IntentMandate]:
+        """
+        Find active Intent Mandate that authorizes this expense.
+
+        This is the CORE of AP2 autonomous approval - checks if user has
+        pre-authorized an AI agent to approve expenses matching these criteria.
+
+        Args:
+            user_id: User submitting the expense
+            amount: Expense amount
+            category: Expense category
+            merchant: Vendor/merchant name
+            organization_id: Organization context
+
+        Returns:
+            IntentMandate if match found, None otherwise
+
+        Example:
+            Intent Mandate: "Auto-approve Amazon office_supplies up to $200/month"
+            Expense: $45 from Amazon for office_supplies
+            Result: Match! Auto-approve via AP2
+        """
+        now = datetime.utcnow()
+
+        # Find active, non-expired Intent Mandates for this user
+        mandates = (
+            self.db.query(IntentMandate)
+            .filter(
+                IntentMandate.user_id == user_id,
+                IntentMandate.status == "active",
+                IntentMandate.expiration > now
+            )
+            .all()
+        )
+
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[AP2] Found {len(mandates)} active Intent Mandates for user {user_id}")
+
+        # Try each mandate (most specific first if we add priority later)
+        for mandate in mandates:
+            try:
+                constraints = json.loads(mandate.constraints)
+
+                # Check if expense matches this mandate's constraints
+                if self._expense_matches_constraints(
+                    amount, category, merchant, constraints, mandate.id, organization_id
+                ):
+                    logger.info(
+                        f"[AP2] Expense matches Intent Mandate {mandate.id}: "
+                        f"${amount} from {merchant} ({category})"
+                    )
+                    return mandate
+                else:
+                    logger.debug(
+                        f"[AP2] Expense does not match Intent Mandate {mandate.id}"
+                    )
+            except Exception as e:
+                logger.error(f"[AP2] Error evaluating Intent Mandate {mandate.id}: {e}")
+                continue
+
+        logger.info(f"[AP2] No matching Intent Mandate found for expense")
+        return None
+
+    def _expense_matches_constraints(
+        self,
+        amount: float,
+        category: str,
+        merchant: str,
+        constraints: Dict,
+        mandate_id: str,
+        organization_id: str
+    ) -> bool:
+        """
+        Check if expense satisfies Intent Mandate constraints.
+
+        Validates:
+        - Amount limits (max_amount)
+        - Category restrictions
+        - Merchant whitelist
+        - Monthly spending limits
+
+        Args:
+            amount: Expense amount
+            category: Expense category
+            merchant: Merchant name
+            constraints: Mandate constraints dict
+            mandate_id: Intent Mandate ID (for usage tracking)
+            organization_id: Organization context
+
+        Returns:
+            True if expense matches all constraints, False otherwise
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # 1. Check per-expense amount limit
+        if "max_amount" in constraints:
+            max_amt = float(constraints["max_amount"])
+            if amount > max_amt:
+                logger.debug(f"[AP2] Amount ${amount} exceeds max ${max_amt}")
+                return False
+
+        # 2. Check category restrictions
+        allowed_categories = constraints.get("categories") or constraints.get("category")
+        if allowed_categories:
+            # Normalize to list
+            if isinstance(allowed_categories, str):
+                allowed_categories = [allowed_categories]
+
+            # Case-insensitive matching
+            normalized_categories = {
+                str(cat).strip().lower()
+                for cat in allowed_categories
+                if cat
+            }
+
+            if normalized_categories:
+                category_lower = str(category).strip().lower()
+                if category_lower not in normalized_categories:
+                    logger.debug(
+                        f"[AP2] Category '{category}' not in allowed: {normalized_categories}"
+                    )
+                    return False
+
+        # 3. Check merchant restrictions
+        allowed_merchants = constraints.get("merchants") or constraints.get("merchant")
+        if allowed_merchants:
+            # Normalize to list
+            if isinstance(allowed_merchants, str):
+                allowed_merchants = [allowed_merchants]
+
+            # Case-insensitive matching
+            normalized_merchants = {
+                str(merch).strip().lower()
+                for merch in allowed_merchants
+                if merch
+            }
+
+            if normalized_merchants:
+                merchant_lower = str(merchant).strip().lower()
+                if merchant_lower not in normalized_merchants:
+                    logger.debug(
+                        f"[AP2] Merchant '{merchant}' not in allowed: {normalized_merchants}"
+                    )
+                    return False
+
+        # 4. Check monthly spending limit
+        if "monthly_limit" in constraints:
+            monthly_limit = float(constraints["monthly_limit"])
+            current_usage = self._get_mandate_monthly_usage(mandate_id, organization_id)
+
+            if current_usage + amount > monthly_limit:
+                logger.debug(
+                    f"[AP2] Monthly limit exceeded: ${current_usage + amount} > ${monthly_limit}"
+                )
+                return False
+
+        # All constraints satisfied
+        logger.debug(f"[AP2] All constraints satisfied for mandate {mandate_id}")
+        return True
+
+    def _get_mandate_monthly_usage(
+        self, mandate_id: str, organization_id: str
+    ) -> float:
+        """
+        Calculate total spending this month for a specific Intent Mandate.
+
+        Sums all expenses auto-approved via this mandate in current calendar month.
+
+        Args:
+            mandate_id: Intent Mandate ID
+            organization_id: Organization context
+
+        Returns:
+            Total amount spent via this mandate this month
+        """
+        from ..models import Expense
+        from sqlalchemy import func
+
+        now = datetime.utcnow()
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # Sum expenses approved via this Intent Mandate this month
+        total = (
+            self.db.query(func.coalesce(func.sum(Expense.amount), 0))
+            .filter(
+                Expense.intent_mandate_id == mandate_id,
+                Expense.organization_id == organization_id,
+                Expense.auto_approved == True,
+                Expense.created_at >= start_of_month
+            )
+            .scalar()
+        ) or 0
+
+        return float(total)

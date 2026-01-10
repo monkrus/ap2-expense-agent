@@ -6,7 +6,37 @@ This file provides context and best practices for Claude Code and subagents work
 
 **Stack**: Python FastAPI (backend) + React (frontend) + SQLite/PostgreSQL
 **Architecture**: Multi-tenant SaaS with Google Cloud Marketplace integration
-**Key Features**: Expense management, AP2 protocol, Marketplace billing, organization management
+
+### 🎯 **CORE VALUE PROPOSITION: AP2 Autonomous Agent**
+
+**This is NOT just another expense management app.** Our competitive advantage is:
+
+**✨ AI Agent Auto-Approves 60-70% of Expenses Instantly Using AP2 Protocol**
+
+**How it works:**
+1. **User sets Intent Mandates once** - "Auto-approve Amazon office supplies up to $200/month"
+2. **Employee submits expense** - Agent checks Intent Mandates in real-time
+3. **Instant approval** - No manager bottleneck for routine expenses
+4. **Cryptographic audit trail** - Full AP2 compliance (GDPR, SOC 2 ready)
+
+**Key Differentiators:**
+- ✅ **True autonomous agent** - Not just OCR or categorization
+- ✅ **AP2 protocol** - Open standard with cryptographic guarantees
+- ✅ **Manager time saved** - Focus on exceptions, not routine approvals
+- ✅ **Faster reimbursements** - Seconds instead of days
+
+**Competitors:**
+- Expensify: Manual approval or OCR only
+- Concur: Rules-based but no AI agent
+- Ramp: ML categorization but still manual approval
+- **Us**: Autonomous agent with cryptographic AP2 guarantees
+
+**Key Features** (Priority Order):
+1. **AP2 Autonomous Approval** - Intent Mandates → Auto-approval (CORE SELLING POINT)
+2. Expense management - Submit, track, export
+3. Approval workflows - Manual approval for exceptions
+4. Organization management - Multi-tenant with RBAC
+5. Marketplace billing - Google Cloud integration
 
 ---
 
@@ -126,6 +156,164 @@ pages/
   └── Organizations.jsx    # Organization management
 components/               # Reusable React components
 api/                     # API client functions
+```
+
+---
+
+## 🤖 AP2 Autonomous Agent Architecture
+
+### **Current State vs. Goal**
+
+**❌ CURRENT (BROKEN):** AP2 triggers AFTER manual approval
+```python
+# expenses.py:965 - WRONG: Retroactive AP2 creation
+expense.status = APPROVED  # Manager approved manually
+ap2_service.complete_ap2_flow()  # Creates mandates after decision
+```
+
+**✅ GOAL (CORRECT):** Intent Mandates enable auto-approval
+```python
+# expenses.py:240 - RIGHT: Intent Mandate drives decision
+matching_mandate = ap2_service.find_matching_intent_mandate(expense)
+if matching_mandate:
+    # Auto-approve via AP2 (no human needed!)
+    expense.status = APPROVED
+    expense.auto_approved = True
+else:
+    # Manual approval needed
+    expense.status = PENDING
+```
+
+### **AP2 Protocol Components**
+
+Located in `backend/src/payments/ap2_service.py`:
+
+1. **Intent Mandate** - User's authorization constraints
+   - Created BEFORE expenses are submitted
+   - Example: "Auto-approve Amazon up to $200/month for office_supplies"
+   - Stored in `intent_mandates` table
+
+2. **Cart Mandate** - Specific expense items for approval
+   - Created when expense matches Intent Mandate
+   - Contains: items, total, merchant, user_signature
+   - Validates against Intent Mandate constraints
+
+3. **Payment Mandate** - Payment execution record
+   - Created after Cart Mandate approval
+   - Includes: payment_method, audit_trail, timestamp
+   - Triggers Stripe payment
+
+### **Implementation Checklist**
+
+**Phase 1: Core Autonomy (PRIORITY)** ⭐
+
+- [ ] `backend/src/payments/ap2_service.py`:
+  - [ ] Add `find_matching_intent_mandate()` method
+  - [ ] Add `_expense_matches_constraints()` helper
+  - [ ] Add `_get_mandate_monthly_usage()` for spending limits
+
+- [ ] `backend/src/routes/expenses.py`:
+  - [ ] Check Intent Mandates BEFORE creating expense (line ~240)
+  - [ ] Auto-approve if mandate matches
+  - [ ] REMOVE AP2 from manual approval endpoint (lines 965-1003)
+
+- [ ] Database:
+  - [ ] Add `auto_approved` boolean to expenses table
+  - [ ] Add `intent_mandate_id` to expenses table (already exists)
+
+**Phase 2: User Experience**
+
+- [ ] `frontend/src/components/ExpenseForm.jsx`:
+  - [ ] Show "Will auto-approve" indicator
+  - [ ] Suggest Intent Mandate creation for common expenses
+
+- [ ] `frontend/src/pages/AIAssistant.jsx`:
+  - [ ] Intent Mandate creation wizard
+  - [ ] Dashboard showing auto-approval stats
+  - [ ] Manager time saved metrics
+
+- [ ] `frontend/src/components/IntentMandateManager.jsx`:
+  - [ ] Intuitive constraint builder
+  - [ ] Monthly spending limits
+  - [ ] Activity preview
+
+**Phase 3: Advanced Features**
+
+- [ ] Learning: "Create mandate based on last 10 expenses?"
+- [ ] Analytics: Auto-approval rate, time saved
+- [ ] Manager override: Revoke mandate if abuse detected
+
+### **AP2 Files Reference**
+
+**Backend:**
+- `backend/src/payments/ap2_service.py` - AP2 protocol implementation
+- `backend/src/routes/ap2.py` - API endpoints (Intent/Cart/Payment Mandates)
+- `backend/src/models.py:766-833` - AP2 database models
+- `backend/src/security/kms_service.py` - Cryptographic signing
+
+**Frontend:**
+- `frontend/src/pages/AIAssistant.jsx` - Main AP2 interface
+- `frontend/src/components/IntentMandateManager.jsx` - Mandate CRUD
+- `frontend/src/components/AgentActivityMonitor.jsx` - Transaction history
+- `frontend/src/components/ConstraintBuilder.jsx` - Constraint UI
+
+**Tests:**
+- `backend/tests/test_ap2_protocol.py` - AP2 compliance tests
+- `backend/tests/test_ap2_payment_service.py` - Service tests
+
+### **AP2 Usage Limits (Billing)**
+
+Per tier AP2 transaction limits:
+- **Free**: 20 transactions/month (hook users on core feature)
+- **Starter**: 100 transactions/month
+- **Professional**: 500 transactions/month
+- **Enterprise**: Unlimited
+
+**Enforcement:** `backend/src/routes/ap2.py:307, 367`
+
+### **Common AP2 Patterns**
+
+**Creating Intent Mandate (User Setup):**
+```python
+# backend/src/payments/ap2_service.py
+mandate = await ap2_service.create_intent_mandate(
+    user_id=user.id,
+    constraints={
+        "max_amount": 200.00,
+        "category": "office_supplies",
+        "merchant": "Amazon",
+        "monthly_limit": 500.00
+    },
+    expiration_hours=720  # 30 days
+)
+```
+
+**Auto-Approving Expense (On Submission):**
+```python
+# backend/src/routes/expenses.py
+matching_mandate = ap2_service.find_matching_intent_mandate(
+    user_id=user.id,
+    amount=expense.amount,
+    category=expense.category,
+    merchant=expense.vendor,
+    organization_id=org_id
+)
+
+if matching_mandate:
+    ap2_result = await ap2_service.complete_ap2_flow(
+        user_id=user.id,
+        items=[expense_as_cart_item],
+        merchant=expense.vendor,
+        intent_mandate_id=matching_mandate.id
+    )
+    expense.auto_approved = True
+```
+
+**Revoking Intent Mandate (GDPR):**
+```python
+# backend/src/routes/ap2.py:580
+# POST /api/ap2/intent-mandate/{id}/revoke
+# Cascade revokes all dependent Cart/Payment Mandates
 ```
 
 ---
@@ -286,11 +474,29 @@ This is critical for sustainable economics - see `documents/PRICING_STRUCTURE.md
 
 ## Project-Specific Warnings
 
+⚠️ **AP2 IS THE SELLING POINT**: Intent Mandates must enable auto-approval, not document it retroactively
 ⚠️ **Multi-tenant Data**: Always filter by `organization_id` and `is_active=True`
 ⚠️ **Soft Deletes**: Never hard delete organizations/users - use `is_active=False`
 ⚠️ **Tier Limits**: Free tier has hard enforcement - test carefully
 ⚠️ **Windows Paths**: Use forward slashes in code, backslashes in shell commands
 ⚠️ **Server Restart**: Code changes require backend restart (no hot reload for imports)
+
+### ⚠️ Critical AP2 Pattern
+
+**NEVER** create Intent Mandates after approval decisions:
+```python
+# ❌ WRONG - Retroactive documentation
+expense.status = APPROVED  # Human decided
+ap2_service.complete_ap2_flow()  # Creates mandates after
+
+# ✅ RIGHT - Intent Mandate drives decision
+matching_mandate = find_matching_intent_mandate(expense)
+if matching_mandate:
+    expense.status = APPROVED  # AI decided
+    expense.auto_approved = True
+```
+
+**Why this matters**: AP2's value is autonomous decision-making, not audit trails for manual decisions.
 
 ---
 
@@ -441,6 +647,79 @@ git commit -m "refactor: improve X without breaking Y"
 ## 📝 Recent Changes Log
 
 Keep this updated when making significant changes (newest first):
+
+### 2026-01-09: Strategic Pivot - AP2 Autonomous Agent as Core Value Proposition 🎯
+
+**CRITICAL SHIFT**: AP2 is now the **primary selling point**, not just a technical feature.
+
+**Problem Identified:**
+- ❌ AP2 currently triggers AFTER manual approval (backwards!)
+- ❌ Creates Intent Mandates retroactively (defeats purpose)
+- ❌ Adds complexity without delivering autonomous agent value
+- ❌ Just duplicates existing expense/approval workflow
+
+**New Strategic Goal:**
+- ✅ **Intent Mandates drive auto-approval** (not retroactive documentation)
+- ✅ **AI Agent approves 60-70% of expenses instantly** (no manager needed)
+- ✅ **True autonomous agent** as competitive differentiator
+- ✅ **Measurable ROI**: Manager time saved, faster reimbursements
+
+**Implementation Roadmap:**
+
+**Phase 1: Core Autonomy (WEEK 1 PRIORITY)** ⭐
+```python
+# New flow in expenses.py line ~240:
+matching_mandate = find_matching_intent_mandate(expense)
+if matching_mandate:
+    auto_approve_via_ap2()  # Instant approval!
+else:
+    manual_approval_flow()  # Exception handling
+```
+
+Changes needed:
+1. `ap2_service.py`: Add `find_matching_intent_mandate()` method
+2. `expenses.py:240`: Check mandates BEFORE submitting
+3. `expenses.py:965-1003`: REMOVE retroactive AP2 (broken pattern)
+4. Database: `auto_approved` boolean field
+
+**Phase 2: User Experience (WEEK 2)**
+1. Expense submission shows "Will auto-approve" indicator
+2. Intent Mandate creation wizard
+3. Dashboard: Auto-approval rate, time saved
+4. Email: "Your expense was auto-approved by AI"
+
+**Phase 3: Advanced Features (WEEK 3)**
+1. AI suggests Intent Mandates from patterns
+2. Monthly spending limits per mandate
+3. Manager override/revoke capabilities
+4. Usage analytics
+
+**Marketing Value:**
+- **Before**: Generic expense app (same as competitors)
+- **After**: "AI auto-approves 70% of expenses instantly"
+
+**Competitive Position:**
+- Expensify: Manual approval only
+- Concur: Rules but no AI agent
+- Ramp: ML categorization but still manual
+- **Us**: True autonomous AP2 agent ✨
+
+**Success Metrics:**
+- Auto-approval rate: 60-70%
+- Time to approval: <1 minute (vs 2-3 days)
+- Manager time saved: Hours/month
+- User satisfaction: Instant reimbursement
+
+**Files to Update:**
+- ✅ `documents/CLAUDE.md` - Updated with new strategy
+- [ ] `backend/src/payments/ap2_service.py` - Add matching logic
+- [ ] `backend/src/routes/expenses.py` - Reorder AP2 flow
+- [ ] `frontend/src/components/ExpenseForm.jsx` - Add indicators
+- [ ] `frontend/src/pages/AIAssistant.jsx` - Enhanced dashboard
+
+**Status**: Documentation updated, implementation pending
+
+---
 
 ### 2025-12-30: Pricing Structure Finalized ✅
 
@@ -617,6 +896,31 @@ When spawning subagents:
 - **API Docs**: http://localhost:8000/docs
 - **Test Coverage**: backend/htmlcov/index.html (after running with --cov)
 
+### Quick AP2 Reference
+
+**What AP2 Does:**
+1. User creates Intent Mandate: "Auto-approve office supplies from Amazon up to $200/month"
+2. Employee submits $45 Amazon office supplies expense
+3. AI Agent checks Intent Mandate → Matches! → Auto-approves instantly
+4. Manager only sees exceptions that don't match any mandates
+
+**Key Endpoints:**
+- `POST /api/ap2/intent-mandate` - Create authorization rules
+- `GET /api/ap2/user/mandates` - List user's mandates
+- `GET /api/ap2/stats` - Usage statistics
+- `POST /api/ap2/intent-mandate/{id}/revoke` - GDPR revocation
+
+**Database Tables:**
+- `intent_mandates` - User authorization constraints
+- `cart_mandates` - Approved expense items
+- `payment_mandates` - Payment execution records
+- `expenses.auto_approved` - Boolean flag for AI decisions
+
+**Success Criteria:**
+- 60-70% of expenses auto-approved
+- <1 minute approval time (vs 2-3 days manual)
+- Clear ROI: "AI saved 8 hours this month"
+
 ---
 
 ## Git Workflow
@@ -641,6 +945,7 @@ gh pr create --title "Feature: Organization name validation" --body "..."
 ## Questions or Clarifications Needed?
 
 If you need clarification on:
+- **🎯 AP2 Strategy & Implementation**: See AP2 section above (lines 163-318)
 - **Architecture**: Read `README.md` and code in `backend/src/`
 - **Billing & Pricing**: See `documents/PRICING_STRUCTURE.md`, `backend/src/billing/`, and `backend/src/models_billing.py`
 - **Testing**: Check `backend/tests/` for examples (30 test files)
@@ -648,5 +953,7 @@ If you need clarification on:
 - **Error Prevention**: See `documents/ADDITIONAL_SAFEGUARDS.md`
 - **Deployment**: Check `backend/GCP_MARKETPLACE_TESTING.md` and `backend/CLOUD_RUN_DEPLOYMENT.md`
 - **Legal/Compliance**: See `legal/PRIVACY_POLICY.md` and `legal/TERMS_OF_SERVICE.md`
+
+**Key Principle**: AP2 autonomous agents are our competitive advantage. Intent Mandates enable instant auto-approval, not retroactive documentation.
 
 **Use `/clear` before starting a new, unrelated task to maintain focus.**

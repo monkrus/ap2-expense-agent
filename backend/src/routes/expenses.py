@@ -234,8 +234,105 @@ async def create_expense(
     db.flush()  # Flush to get ID but don't commit yet
 
     # =====================================================================
-    # AUTO-APPROVAL EVALUATION
+    # AUTO-APPROVAL EVALUATION (TWO-TIER HIERARCHY)
     # =====================================================================
+    # TIER 1: Check Intent Mandates FIRST (AP2 - Premium AI Agent Feature)
+    # TIER 2: Check Approval Policies (Free organizational efficiency)
+    # =====================================================================
+
+    # TIER 1: AP2 INTENT MANDATE AUTO-APPROVAL (Premium Feature)
+    try:
+        from ..payments.ap2_service import AP2PaymentService
+
+        ap2_service = AP2PaymentService(db)
+
+        # Find matching Intent Mandate for this expense
+        matching_mandate = ap2_service.find_matching_intent_mandate(
+            user_id=current_user.id,
+            amount=float(amount),
+            category=category.value if hasattr(category, 'value') else str(category),
+            merchant=vendor,
+            organization_id=org_id
+        )
+
+        if matching_mandate:
+            logger.info(f"[AP2] Auto-approving expense {expense.id} via Intent Mandate {matching_mandate.id}")
+
+            # Create complete AP2 flow for cryptographic audit trail
+            cart_items = [{
+                "description": description or f"Expense: {vendor}",
+                "amount": float(amount),
+                "vendor": vendor or "Unknown Vendor",
+                "category": category.value if hasattr(category, 'value') else str(category),
+            }]
+
+            ap2_result = await ap2_service.complete_ap2_flow(
+                user_id=current_user.id,
+                items=cart_items,
+                merchant=vendor or "Unknown Vendor",
+                constraints={
+                    "max_amount": float(amount) * 1.05,  # 5% buffer
+                    "merchant": vendor,
+                    "approval_required": False,  # Already authorized via Intent Mandate
+                }
+            )
+
+            # AUTO-APPROVE VIA AP2
+            expense.status = ExpenseStatus.APPROVED
+            expense.approved_by = "ai_agent"  # AI agent approved
+            expense.approved_at = datetime.utcnow()
+            expense.auto_approved = True
+            expense.auto_approved_via = "intent_mandate"  # Track AP2 auto-approval
+            expense.intent_mandate_id = ap2_result.get("intent_mandate_id")
+            expense.cart_mandate_id = ap2_result.get("cart_mandate_id")
+            expense.payment_mandate_id = ap2_result.get("payment_mandate_id")
+
+            db.commit()
+            db.refresh(expense)
+
+            # Track expense submission for billing
+            try:
+                from ..billing.usage_tracker import UsageTracker
+                tracker = UsageTracker(db)
+                tracker.track_usage(
+                    user_id=current_user.id,
+                    usage_type="expense",
+                    quantity=1,
+                    organization_id=org_id,
+                    metadata={
+                        "expense_id": expense.id,
+                        "amount": float(expense.amount),
+                        "auto_approved": True,
+                        "auto_approved_via": "intent_mandate",
+                        "intent_mandate_id": matching_mandate.id
+                    }
+                )
+                logger.info(f"[AP2] Tracked auto-approved expense via Intent Mandate: {expense.id}")
+            except Exception as e:
+                logger.error(f"Failed to track expense usage: {str(e)}")
+
+            return {
+                "id": expense.id,
+                "amount": expense.amount,
+                "vendor": expense.vendor,
+                "category": expense.category,
+                "description": expense.description,
+                "status": expense.status.value.lower(),
+                "date": expense.date.isoformat() if expense.date else None,
+                "created_at": expense.created_at.isoformat() if expense.created_at else None,
+                "auto_approved": True,
+                "auto_approved_via": "intent_mandate",
+                "intent_mandate_id": matching_mandate.id,
+                "message": "✨ Auto-approved by AI agent via Intent Mandate (AP2)"
+            }
+
+    except ImportError:
+        logger.debug("AP2 service not available, skipping Intent Mandate check")
+    except Exception as e:
+        # Log error but don't fail - fall through to Approval Policy check
+        logger.error(f"[AP2] Intent Mandate evaluation failed (non-blocking): {e}")
+
+    # TIER 2: APPROVAL POLICY AUTO-APPROVAL (Free Feature)
     try:
         from ..services.approval_policy_service import ApprovalPolicyService
 
@@ -245,11 +342,14 @@ async def create_expense(
         )
 
         if should_auto_approve and matching_policy:
-            # AUTO-APPROVE THE EXPENSE
+            logger.info(f"Auto-approving expense {expense.id} via Approval Policy {matching_policy.id}")
+
+            # AUTO-APPROVE VIA APPROVAL POLICY
             expense.status = ExpenseStatus.APPROVED
             expense.approved_by = current_user.id  # Self-approval via policy
             expense.approved_at = datetime.utcnow()
             expense.auto_approved = True
+            expense.auto_approved_via = "approval_policy"  # Track policy auto-approval
             expense.approval_policy_id = matching_policy.id
 
             db.commit()
@@ -264,11 +364,16 @@ async def create_expense(
                     usage_type="expense",
                     quantity=1,
                     organization_id=org_id,
-                    metadata={"expense_id": expense.id, "amount": float(expense.amount), "auto_approved": True}
+                    metadata={
+                        "expense_id": expense.id,
+                        "amount": float(expense.amount),
+                        "auto_approved": True,
+                        "auto_approved_via": "approval_policy",
+                        "approval_policy_id": matching_policy.id
+                    }
                 )
-                logger.info(f"Tracked auto-approved expense submission for billing: {expense.id}")
+                logger.info(f"Tracked auto-approved expense via policy: {expense.id}")
             except Exception as e:
-                # Log error but don't fail the request
                 logger.error(f"Failed to track expense usage: {str(e)}")
 
             return {
@@ -281,16 +386,13 @@ async def create_expense(
                 "date": expense.date.isoformat() if expense.date else None,
                 "created_at": expense.created_at.isoformat() if expense.created_at else None,
                 "auto_approved": True,
+                "auto_approved_via": "approval_policy",
                 "approval_policy_id": matching_policy.id,
                 "message": f"Auto-approved by policy: {matching_policy.name}"
             }
     except ImportError:
-        # Approval policy service not available, continue with manual approval
-        pass
+        logger.debug("Approval policy service not available, continuing with manual approval")
     except Exception as e:
-        # Log error but don't fail the request
-        import logging
-        logger = logging.getLogger(__name__)
         logger.error(f"Auto-approval evaluation failed: {e}")
 
     # MANUAL APPROVAL REQUIRED (or auto-approval failed)
@@ -445,6 +547,8 @@ async def list_expenses(
             "approved_at": e.approved_at.isoformat() if e.approved_at else None,
             "transaction_id": e.transaction_id,
             "rejection_reason": e.rejection_reason,
+            "auto_approved": e.auto_approved,
+            "auto_approved_via": e.auto_approved_via,
         })
 
     # Return expenses as direct list (API contract)
@@ -962,44 +1066,15 @@ async def approve_expense(
         # Log error but don't fail the approval
         logger.error(f"Failed to send approval email for expense {expense.id}: {str(e)}", exc_info=True)
 
-    # Create AP2 payment mandates for approved expense
-    ap2_result = None
-    try:
-        from ..payments.ap2_service import AP2PaymentService
-
-        ap2_service = AP2PaymentService(db)
-
-        # Prepare cart items from expense
-        cart_items = [{
-            "description": expense.description or f"Expense: {expense.vendor}",
-            "amount": float(expense.amount),
-            "vendor": expense.vendor or "Unknown Vendor",
-            "category": str(expense.category.value if hasattr(expense.category, 'value') else expense.category),
-        }]
-
-        # Create complete AP2 flow
-        ap2_result = await ap2_service.complete_ap2_flow(
-            user_id=expense.user_id,
-            items=cart_items,
-            merchant=expense.vendor or "Unknown Vendor",
-            constraints={
-                "max_amount": float(expense.amount) * 1.05,  # 5% buffer
-                "merchant": expense.vendor or "Unknown Vendor",
-                "approval_required": False,  # Already approved
-            },
-        )
-
-        # Update expense with AP2 mandate IDs
-        expense.intent_mandate_id = ap2_result.get("intent_mandate_id")
-        expense.cart_mandate_id = ap2_result.get("cart_mandate_id")
-        expense.payment_mandate_id = ap2_result.get("payment_mandate_id")
-        expense.transaction_id = ap2_result.get("payment_mandate_id")  # Use payment mandate ID as transaction ID
-        db.commit()
-
-        logger.info(f"AP2 mandates created for expense {expense.id}: {ap2_result.get('intent_mandate_id')}")
-    except Exception as e:
-        # Log error but don't fail the approval (AP2 is optional)
-        logger.error(f"Failed to create AP2 mandates (non-blocking) for expense {expense.id}: {str(e)}", exc_info=True)
+    # NOTE: AP2 mandates are NOT created here for manual approvals.
+    # Rationale:
+    # - If expense matched an Intent Mandate, it was auto-approved at submission (lines 243-327)
+    # - If expense matched an Approval Policy, it was auto-approved without AP2 (free feature)
+    # - Manual approval means NO Intent Mandate authorized it
+    # - Creating Intent Mandates retroactively defeats AP2's purpose (autonomous approval)
+    #
+    # AP2 is ONLY used when Intent Mandates enable autonomous agent approval.
+    # Manual approvals follow traditional workflow without AP2 overhead.
 
     return {
         "id": expense.id,
@@ -1007,8 +1082,6 @@ async def approve_expense(
         "message": f"Expense approved by {current_user.username}",
         "approved_by": current_user.id,
         "approved_at": expense.approved_at.isoformat(),
-        "ap2_mandates_created": ap2_result is not None and ap2_result.get("ap2_flow_complete", False),
-        "transaction_id": expense.transaction_id,
     }
 
 

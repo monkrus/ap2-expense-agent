@@ -230,7 +230,15 @@ const EmployeeDashboard = () => {
         description: "",
         date: "",
       });
-      success("Expense submitted successfully! Awaiting approval.");
+
+      // Show different message based on auto-approval
+      if (result.auto_approved && result.auto_approved_via === "intent_mandate") {
+        success("✨ Auto-approved by AI agent via Intent Mandate (AP2)!");
+      } else if (result.auto_approved && result.auto_approved_via === "approval_policy") {
+        success(`Auto-approved by policy: ${result.message || "Approval Policy"}`);
+      } else {
+        success("Expense submitted successfully! Awaiting approval.");
+      }
     } catch (err) {
       // Rollback optimistic update
       setExpenses((prev) => prev.filter((e) => e.id !== tempId));
@@ -266,6 +274,32 @@ const EmployeeDashboard = () => {
         {status.toUpperCase()}
       </span>
     );
+  };
+
+  const getAutoApprovalBadge = (expense) => {
+    if (!expense.auto_approved) return null;
+
+    if (expense.auto_approved_via === "intent_mandate") {
+      return (
+        <span
+          className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-800 ml-2"
+          title="Auto-approved by AI agent using Intent Mandate (AP2 Protocol)"
+        >
+          ✨ AI Agent
+        </span>
+      );
+    } else if (expense.auto_approved_via === "approval_policy") {
+      return (
+        <span
+          className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800 ml-2"
+          title="Auto-approved by organization policy"
+        >
+          📋 Policy
+        </span>
+      );
+    }
+
+    return null;
   };
 
   // Sorting function
@@ -946,6 +980,7 @@ const EmployeeDashboard = () => {
                           </td>
                           <td className="py-3 px-4 text-center">
                             {getStatusBadge(expense.status)}
+                            {getAutoApprovalBadge(expense)}
                           </td>
                           <td className="py-3 px-4">
                             {expense.status?.toLowerCase() === "pending" &&

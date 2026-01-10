@@ -404,6 +404,7 @@ class Expense(Base):
 
     # Auto-approval tracking
     auto_approved = Column(Boolean, nullable=False, default=False)
+    auto_approved_via = Column(String(50), nullable=True)  # "intent_mandate" or "approval_policy"
     approval_policy_id = Column(String(255), ForeignKey("approval_policies.id", ondelete="SET NULL"), nullable=True)
 
     # AP2 Integration
