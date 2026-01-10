@@ -44,7 +44,17 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 async def register(
     request: Request, user_data: UserCreate, db: Session = Depends(get_db)
 ):
-    """Register a new user"""
+    """Register a new user
+
+    SAFEGUARD: If this is the first user in the system (e.g., after Google Cloud
+    Marketplace purchase), they are automatically granted ADMIN role regardless of
+    the requested role. This ensures the purchaser can fully manage the system.
+    """
+    # Debug logging to see what data is received
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[REGISTER-DEBUG] Received registration data: email={user_data.email}, username={user_data.username}, full_name={user_data.full_name}, role={user_data.role}")
+
     # Check if user already exists
     existing_user = (
         db.query(User)
@@ -58,6 +68,20 @@ async def register(
             detail="User with this email or username already exists",
         )
 
+    # SAFEGUARD: Check if this is the first user (e.g., post-marketplace purchase)
+    # If there are no users, make this user an ADMIN automatically
+    user_count = db.query(User).count()
+    is_first_user = user_count == 0
+
+    # Determine role: First user is always ADMIN, others use requested role
+    if is_first_user:
+        user_role = UserRole.ADMIN
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[FIRST-USER] Creating first admin user: {user_data.username}")
+    else:
+        user_role = user_data.role
+
     # Create new user
     user = User(
         id=str(uuid.uuid4()),
@@ -65,7 +89,7 @@ async def register(
         username=user_data.username,
         full_name=user_data.full_name,
         hashed_password=AuthService.hash_password(user_data.password),
-        role=user_data.role.value,
+        role=user_role.value if hasattr(user_role, 'value') else user_role,
         is_active=True,
         is_verified=False,
     )

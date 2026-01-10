@@ -380,77 +380,78 @@ const BillingDashboard = () => {
         </div>
 
         {/* Usage Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-purple-600" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-purple-600" />
               </div>
-              <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
-            <p className="text-gray-600 text-sm mb-1">Active Users</p>
-            <p className="text-3xl font-bold text-gray-900">
+            <p className="text-gray-600 text-xs mb-1">Active Users</p>
+            <p className="text-2xl font-bold text-gray-900">
               {usage?.usage?.active_users?.quantity || 0}
             </p>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-gray-500 mt-1">
               Limit: {subscription?.limits?.max_users === -1 || subscription?.limits?.max_users == null ? "Unlimited" : subscription?.limits?.max_users}
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <Zap className="w-6 h-6 text-green-600" />
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <BarChart3 className="w-5 h-5 text-green-600" />
               </div>
-              <BarChart3 className="w-5 h-5 text-blue-500" />
             </div>
-            <p className="text-gray-600 text-sm mb-1">AI Categorizations</p>
-            {subscription?.limits?.max_ai_categorizations === 0 ? (
-              <>
-                <p className="text-2xl font-bold text-gray-400">Manual only</p>
-                <p className="text-xs text-gray-500 mt-2">Not available on Free plan</p>
-              </>
-            ) : (
-              <>
-                <p className="text-3xl font-bold text-gray-900">
-                  {usage?.usage?.ai_categorization?.quantity || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-2">This month</p>
-              </>
-            )}
+            <p className="text-gray-600 text-xs mb-1">Expenses</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {usage?.usage?.expense?.quantity || 0}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">This month</p>
           </div>
 
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <CreditCard className="w-6 h-6 text-purple-600" />
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-blue-600" />
               </div>
-              <DollarSign className="w-5 h-5 text-orange-500" />
             </div>
-            <p className="text-gray-600 text-sm mb-1">AP2 Transactions</p>
-            <p className="text-3xl font-bold text-gray-900">
+            <p className="text-gray-600 text-xs mb-1">AP2 Transactions</p>
+            <p className="text-2xl font-bold text-gray-900">
               {usage?.usage?.ap2_transaction?.quantity || 0}
             </p>
-            <p className="text-xs text-gray-500 mt-2">This month</p>
+            <p className="text-xs text-gray-500 mt-1">This month</p>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Zap className="w-5 h-5 text-orange-600" />
+              </div>
+            </div>
+            <p className="text-gray-600 text-xs mb-1">OCR Scans</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {usage?.usage?.ocr_scan?.quantity || 0}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">This month</p>
           </div>
         </div>
 
         {/* Usage Metrics */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Usage This Month
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            Usage Details
           </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <UsageProgressBar
-              label="AI Categorizations"
-              current={usage?.usage?.ai_categorization?.quantity || 0}
+              label="Expenses Submitted"
+              current={usage?.usage?.expense?.quantity || 0}
               limit={
-                usage?.usage?.ai_categorization?.limit ??
-                subscription?.limits?.max_ai_categorizations
+                usage?.usage?.expense?.limit ??
+                subscription?.limits?.max_expenses_per_month
               }
-              overage={usage?.usage?.ai_categorization?.overage || 0}
-              overageFee={usage?.usage?.ai_categorization?.overage_fee || 0}
-              unit="categorizations"
+              overage={usage?.usage?.expense?.overage || 0}
+              overageFee={usage?.usage?.expense?.overage_fee || 0}
+              unit="expenses"
             />
 
             <UsageProgressBar
@@ -478,15 +479,15 @@ const BillingDashboard = () => {
             />
 
             <UsageProgressBar
-              label="Expenses Submitted"
-              current={usage?.usage?.expense?.quantity || 0}
+              label="Active Users"
+              current={usage?.usage?.active_users?.quantity || 0}
               limit={
-                usage?.usage?.expense?.limit ??
-                subscription?.limits?.max_expenses_per_month
+                usage?.usage?.active_users?.limit ??
+                subscription?.limits?.max_users
               }
-              overage={usage?.usage?.expense?.overage || 0}
-              overageFee={usage?.usage?.expense?.overage_fee || 0}
-              unit="expenses"
+              overage={usage?.usage?.active_users?.overage || 0}
+              overageFee={usage?.usage?.active_users?.overage_fee || 0}
+              unit="users"
             />
           </div>
         </div>
@@ -561,86 +562,262 @@ const BillingDashboard = () => {
           </div>
         </div>
 
-        {/* Available Plans (if direct customer) */}
-        {!subscription?.gcp_entitlement_id && tiers.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Upgrade Your Plan
-            </h2>
+        {/* Available Plans */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">
+            Choose Your Plan
+          </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {tiers.map((tier) => {
-                const isCurrent = tier.tier === subscription?.tier;
-                const isHigher = tier.price_monthly > estimatedBill;
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Free Tier */}
+            <div className={`relative rounded-xl border-2 p-6 flex flex-col ${
+              subscription?.tier === 'free'
+                ? 'border-purple-600 bg-purple-50'
+                : 'border-gray-200 hover:border-purple-300'
+            }`}>
+              {subscription?.tier === 'free' && (
+                <div className="absolute top-4 right-4">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
+                    Current Plan
+                  </span>
+                </div>
+              )}
 
-                return (
-                  <div
-                    key={tier.tier}
-                    className={`p-6 rounded-lg border-2 ${
-                      isCurrent
-                        ? "border-purple-600 bg-purple-50"
-                        : "border-gray-200 hover:border-purple-300"
-                    }`}
-                  >
-                    <h3 className="text-xl font-bold mb-2">
-                      {tier.display_name || tier.tier}
-                    </h3>
-                    <p className="text-3xl font-bold text-gray-900 mb-4">
-                      ${tier.price_monthly}
-                      <span className="text-lg font-normal text-gray-600">
-                        /mo
-                      </span>
-                    </p>
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Free</h3>
+                <div className="mb-4">
+                  <span className="text-4xl font-bold text-gray-900">$0</span>
+                  <span className="text-gray-600">/month</span>
+                </div>
+                <p className="text-sm text-gray-600">Perfect for getting started</p>
+              </div>
 
-                    <ul className="space-y-2 mb-6 text-sm">
-                      <li className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-green-500" />
-                        {tier.limits?.max_users == null || tier.limits?.max_users === -1
-                          ? "Unlimited"
-                          : tier.limits.max_users}{" "}
-                        users
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-green-500" />
-                        {tier.limits?.max_ai_categorizations == null || tier.limits?.max_ai_categorizations === -1
-                          ? "Unlimited"
-                          : tier.limits.max_ai_categorizations.toLocaleString()}{" "}
-                        AI categorizations
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-green-500" />
-                        {tier.limits?.max_ap2_transactions == null || tier.limits?.max_ap2_transactions === -1
-                          ? "Unlimited"
-                          : tier.limits.max_ap2_transactions}{" "}
-                        AP2 transactions
-                      </li>
-                    </ul>
+              <ul className="space-y-3 mb-6 flex-grow">
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>1 Organization</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>2 Users</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>30 Expenses/month</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>20 AP2 Transactions</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>0.5GB Storage</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>90 days retention</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>Approval Workflows</span>
+                </li>
+              </ul>
 
-                    {isCurrent ? (
-                      <button
-                        disabled
-                        className="w-full py-2 bg-purple-600 text-white rounded-lg font-semibold opacity-50 cursor-not-allowed"
-                      >
-                        Current Plan
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleUpgrade(tier.tier)}
-                        className={`w-full py-2 rounded-lg font-semibold ${
-                          isHigher
-                            ? "bg-purple-600 text-white hover:bg-purple-700"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        {isHigher ? "Upgrade" : "Downgrade"}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+              <div className="mt-auto">
+              {subscription?.tier === 'free' ? (
+                <button
+                  disabled
+                  className="w-full py-3 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
+                >
+                  Current Plan
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleUpgrade('free')}
+                  className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200"
+                >
+                  Downgrade
+                </button>
+              )}
+              </div>
+            </div>
+
+            {/* Starter Tier */}
+            <div className={`relative rounded-xl border-2 p-6 flex flex-col ${
+              subscription?.tier === 'starter'
+                ? 'border-purple-600 bg-purple-50'
+                : 'border-gray-200 hover:border-purple-300'
+            }`}>
+              {subscription?.tier === 'starter' && (
+                <div className="absolute top-4 right-4">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
+                    Current Plan
+                  </span>
+                </div>
+              )}
+
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Starter</h3>
+                <div className="mb-4">
+                  <span className="text-4xl font-bold text-gray-900">$29</span>
+                  <span className="text-gray-600">/month</span>
+                </div>
+                <p className="text-sm text-gray-600">For growing teams</p>
+              </div>
+
+              <ul className="space-y-3 mb-6 flex-grow">
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>3 Organizations</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>10 Users</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>100 Expenses/month</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>100 AP2 Transactions</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>5GB Storage</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>1 year retention</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>Approval Workflows</span>
+                </li>
+              </ul>
+
+              <div className="mt-auto">
+              {subscription?.tier === 'starter' ? (
+                <button
+                  disabled
+                  className="w-full py-3 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
+                >
+                  Current Plan
+                </button>
+              ) : (
+                <a
+                  href={getMarketplaceURL()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full py-3 bg-purple-600 text-white text-center rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                >
+                  {subscription?.tier === 'free' ? 'Upgrade' : 'Change Plan'}
+                </a>
+              )}
+              </div>
+            </div>
+
+            {/* Professional Tier */}
+            <div className={`relative rounded-xl border-2 p-6 flex flex-col ${
+              subscription?.tier === 'professional'
+                ? 'border-purple-600 bg-purple-50'
+                : 'border-purple-300 hover:border-purple-400 shadow-lg'
+            }`}>
+              {subscription?.tier === 'professional' && (
+                <div className="absolute top-4 right-4">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
+                    Current Plan
+                  </span>
+                </div>
+              )}
+
+              {subscription?.tier !== 'professional' && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="inline-flex items-center px-4 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
+                    POPULAR
+                  </span>
+                </div>
+              )}
+
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Professional</h3>
+                <div className="mb-4">
+                  <span className="text-4xl font-bold text-gray-900">$99</span>
+                  <span className="text-gray-600">/month</span>
+                </div>
+                <p className="text-sm text-gray-600">For large organizations</p>
+              </div>
+
+              <ul className="space-y-3 mb-6 flex-grow">
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>10 Organizations</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>50 Users</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>500 Expenses/month</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span><strong>Unlimited</strong> AP2 Transactions</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>50GB Storage</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>3 years retention</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>API Access</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>Approval Workflows</span>
+                </li>
+              </ul>
+
+              <div className="mt-auto">
+              {subscription?.tier === 'professional' ? (
+                <button
+                  disabled
+                  className="w-full py-3 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
+                >
+                  Current Plan
+                </button>
+              ) : (
+                <a
+                  href={getMarketplaceURL()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full py-3 bg-purple-600 text-white text-center rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                >
+                  Upgrade Now
+                </a>
+              )}
+              </div>
             </div>
           </div>
-        )}
+
+          <div className="mt-6 text-center text-sm text-gray-600">
+            All plans managed via{" "}
+            <a
+              href={getMarketplaceURL()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-purple-600 hover:text-purple-700 font-medium inline-flex items-center gap-1"
+            >
+              Google Cloud Marketplace
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        </div>
 
         {/* Actions */}
         <div className="flex gap-4 mt-8">
@@ -670,10 +847,9 @@ const BillingDashboard = () => {
                 ["", ""],
                 ["Usage This Month", "Quantity"],
                 ["Active Users", usage?.usage?.active_users?.quantity || 0],
-                ["AI Categorizations", usage?.usage?.ai_categorization?.quantity || 0],
+                ["Expenses Submitted", usage?.usage?.expense?.quantity || 0],
                 ["AP2 Transactions", usage?.usage?.ap2_transaction?.quantity || 0],
                 ["OCR Scans", usage?.usage?.ocr_scan?.quantity || 0],
-                ["Expenses Submitted", usage?.usage?.expense?.quantity || 0],
                 ["", ""],
                 ["Estimated Bill", "Amount"],
                 ["Base Subscription", `$${estimatedBill.toFixed(2)}`],
@@ -723,10 +899,9 @@ const BillingDashboard = () => {
                 },
                 usage_this_month: {
                   active_users: usage?.usage?.active_users?.quantity || 0,
-                  ai_categorizations: usage?.usage?.ai_categorization?.quantity || 0,
+                  expenses_submitted: usage?.usage?.expense?.quantity || 0,
                   ap2_transactions: usage?.usage?.ap2_transaction?.quantity || 0,
                   ocr_scans: usage?.usage?.ocr_scan?.quantity || 0,
-                  expenses_submitted: usage?.usage?.expense?.quantity || 0,
                 },
                 estimated_bill: {
                   base_subscription: estimatedBill,

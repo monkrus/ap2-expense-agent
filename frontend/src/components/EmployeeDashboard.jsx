@@ -948,7 +948,7 @@ const EmployeeDashboard = () => {
                             {getStatusBadge(expense.status)}
                           </td>
                           <td className="py-3 px-4">
-                            {expense.status === "pending" &&
+                            {expense.status?.toLowerCase() === "pending" &&
                               !expense._optimistic && (
                                 <div className="flex gap-1 justify-center">
                                   <button
@@ -1015,7 +1015,7 @@ const EmployeeDashboard = () => {
                           </tr>
                         )}
                         {/* Rejection reason row */}
-                        {expense.status === "rejected" &&
+                        {expense.status?.toLowerCase() === "rejected" &&
                           expense.rejection_reason && (
                             <tr className="border-b border-gray-100">
                               <td colSpan="8" className="py-2 px-4 bg-red-50">

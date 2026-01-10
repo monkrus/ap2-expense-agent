@@ -149,9 +149,15 @@ export const getUserDetails = async (userId) => {
  * @param {object} userData - User data
  */
 export const createUser = async (userData) => {
+  const orgId = localStorage.getItem("current_organization_id");
+  const headers = {
+    ...getAuthHeaders(),
+    "X-Organization-Id": orgId,
+  };
+
   const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/create`, {
     method: "POST",
-    headers: getAuthHeaders(),
+    headers: headers,
     body: JSON.stringify(userData),
   });
 

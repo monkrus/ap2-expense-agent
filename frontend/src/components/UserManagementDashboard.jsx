@@ -88,6 +88,16 @@ const UserManagementDashboard = () => {
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
+
+    // Validate organization exists
+    const orgId = localStorage.getItem("current_organization_id");
+    if (!orgId) {
+      showError(
+        "No organization found. Please log out and log back in, or contact support if the issue persists."
+      );
+      return;
+    }
+
     setProcessing(true);
 
     try {

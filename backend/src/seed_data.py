@@ -98,11 +98,31 @@ def ensure_default_users_exist(db: Session) -> None:
     """
     Ensures default users exist in the database.
     Called automatically on application startup.
+
+    SAFEGUARD for Google Cloud Marketplace:
+    - In PRODUCTION or when DISABLE_DEFAULT_ADMIN=true, this does NOT create
+      the default admin user. This allows the first registered user (after
+      marketplace purchase) to become the admin.
+    - In DEVELOPMENT/TESTING, it creates a default admin for convenience.
     """
+    import os
+    from .config import settings
+
+    # Skip default user creation in production or when explicitly disabled
+    # This ensures first registered user becomes admin (marketplace safeguard)
+    is_production = settings.environment == "production"
+    disable_default_admin = os.getenv("DISABLE_DEFAULT_ADMIN", "false").lower() == "true"
+
+    if is_production or disable_default_admin:
+        print("[SEED] Skipping default admin creation (production/marketplace mode)")
+        print("[SEED] First registered user will be granted ADMIN role")
+        return
+
+    # Development/testing mode: create default admin for convenience
     stats = seed_default_users(db, force_password_reset=False)
 
     if stats["created"] > 0:
-        print(f"[SEED] Created {stats['created']} default users")
+        print(f"[SEED] Created {stats['created']} default users (dev mode)")
     if stats["updated"] > 0:
         print(f"[SEED] Updated {stats['updated']} default users")
     if stats["created"] == 0 and stats["updated"] == 0:

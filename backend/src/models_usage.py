@@ -37,7 +37,7 @@ class UsageEvent(Base):
     id = Column(String(36), primary_key=True)
     organization_id = Column(
         String(36),
-        ForeignKey("organizations.id", ondelete="CASCADE"),
+        ForeignKey("organizations.id", ondelete="RESTRICT"),  # SAFEGUARD: Preserve billing history
         nullable=False,
         index=True,
     )
@@ -83,7 +83,7 @@ class BillingEvent(Base):
     id = Column(String(36), primary_key=True)
     organization_id = Column(
         String(36),
-        ForeignKey("organizations.id", ondelete="CASCADE"),
+        ForeignKey("organizations.id", ondelete="RESTRICT"),  # SAFEGUARD: Preserve billing history
         nullable=False,
         index=True,
     )
@@ -135,7 +135,7 @@ class UsageReportingLog(Base):
     id = Column(String(36), primary_key=True)
     organization_id = Column(
         String(36),
-        ForeignKey("organizations.id", ondelete="CASCADE"),
+        ForeignKey("organizations.id", ondelete="RESTRICT"),  # SAFEGUARD: Preserve billing history
         nullable=False,
         index=True,
     )

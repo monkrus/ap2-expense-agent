@@ -62,6 +62,40 @@ class LimitEnforcer:
         )
 
         if not org_subscription:
+            # BUGFIX: Look up free tier from database instead of using hardcoded defaults
+            # This ensures limits match the billing_tiers table configuration
+            free_tier = (
+                self.db.query(BillingTier)
+                .filter(BillingTier.tier_name == "free")
+                .first()
+            )
+
+            if free_tier:
+                limits = self._normalize_limits(free_tier.limits)
+                features = self._feature_flags(free_tier.features, "free")
+
+                return OrgLimits(
+                    tier_name="free",
+                    max_users=self._normalize_limit(limits.get("max_users")),
+                    max_organizations=self._normalize_limit(limits.get("max_organizations")),
+                    max_expenses_per_month=self._normalize_limit(
+                        limits.get("max_expenses_per_month")
+                    ),
+                    max_ai_categorizations=self._normalize_limit(
+                        limits.get("max_ai_categorizations") or limits.get("ai_categorizations_included")
+                    ),
+                    max_ap2_transactions=self._normalize_limit(
+                        limits.get("max_ap2_transactions") or limits.get("ap2_transactions_included")
+                    ),
+                    ocr_scans_included=self._normalize_limit(
+                        limits.get("ocr_scans_included")
+                    ),
+                    data_retention_days=self._normalize_limit(limits.get("data_retention_days")),
+                    features=features,
+                    has_subscription=False,
+                )
+
+            # Fallback to hardcoded defaults only if free tier not found in DB
             return self._default_limits(has_subscription=False)
 
         tier = None

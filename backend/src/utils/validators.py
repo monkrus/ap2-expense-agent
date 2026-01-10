@@ -33,8 +33,8 @@ class HeaderValidator:
                 detail={
                     "success": False,
                     "error": "MISSING_REQUIRED_HEADER",
-                    "message": "Required header not provided",
-                    "detail": "X-Organization-Id header is required for this operation",
+                    "message": "Organization context required",
+                    "detail": "You must select an organization before performing this action. Please ensure you are logged in and have an organization assigned to your account.",
                     "required_header": "X-Organization-Id",
                 },
             )

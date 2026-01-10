@@ -255,6 +255,22 @@ async def create_expense(
             db.commit()
             db.refresh(expense)
 
+            # Track expense submission for billing (auto-approved case)
+            try:
+                from ..billing.usage_tracker import UsageTracker
+                tracker = UsageTracker(db)
+                tracker.track_usage(
+                    user_id=current_user.id,
+                    usage_type="expense",
+                    quantity=1,
+                    organization_id=org_id,
+                    metadata={"expense_id": expense.id, "amount": float(expense.amount), "auto_approved": True}
+                )
+                logger.info(f"Tracked auto-approved expense submission for billing: {expense.id}")
+            except Exception as e:
+                # Log error but don't fail the request
+                logger.error(f"Failed to track expense usage: {str(e)}")
+
             return {
                 "id": expense.id,
                 "amount": expense.amount,
@@ -280,6 +296,22 @@ async def create_expense(
     # MANUAL APPROVAL REQUIRED (or auto-approval failed)
     db.commit()
     db.refresh(expense)
+
+    # Track expense submission for billing
+    try:
+        from ..billing.usage_tracker import UsageTracker
+        tracker = UsageTracker(db)
+        tracker.track_usage(
+            user_id=current_user.id,
+            usage_type="expense",
+            quantity=1,
+            organization_id=org_id,
+            metadata={"expense_id": expense.id, "amount": float(expense.amount)}
+        )
+        logger.info(f"Tracked expense submission for billing: {expense.id}")
+    except Exception as e:
+        # Log error but don't fail the request
+        logger.error(f"Failed to track expense usage: {str(e)}")
 
     # Create notifications for admins/managers
     try:

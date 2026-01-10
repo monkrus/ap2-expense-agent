@@ -219,6 +219,23 @@ def get_monthly_usage(
             usage_by_type[metric.metric_type] = 0
         usage_by_type[metric.metric_type] += metric.metric_value
 
+    # CRITICAL FIX: Use actual expense count, not usage metrics
+    # Usage metrics track API calls (60), but we need actual expenses (11)
+    # This matches what LimitEnforcer.check_expense_limit() uses
+    from ..models import Expense
+    actual_expense_count = (
+        db.query(func.count(Expense.id))
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.created_at >= period_start,
+            Expense.created_at <= period_end,
+        )
+        .scalar()
+        or 0
+    )
+    # Override the usage metrics sum with actual expense count
+    usage_by_type["expense"] = actual_expense_count
+
     # Calculate overage fees
     total_overage = Decimal("0")
     usage_details = {}
@@ -255,16 +272,24 @@ def get_monthly_usage(
                 else f"max_{usage_type}"
             )
 
-            # Map usage types to limit keys
+            # Map usage types to limit keys (try multiple keys for compatibility)
             limit_mapping = {
-                "ai_categorization": "max_ai_categorizations",
-                "ap2_transaction": "max_ap2_transactions",
-                "ocr_scan": "ocr_scans_included",
-                "expense": "max_expenses_per_month",
+                "ai_categorization": ["max_ai_categorizations", "ai_categorizations_included"],
+                "ap2_transaction": ["max_ap2_transactions", "ap2_transactions_included"],
+                "ocr_scan": ["ocr_scans_included"],
+                "expense": ["max_expenses_per_month"],
             }
 
-            limit_key = limit_mapping.get(usage_type, limit_key)
-            limit = normalize_limit(limits.get(limit_key))
+            # Try multiple keys to find the limit
+            limit_keys = limit_mapping.get(usage_type, [limit_key])
+            if not isinstance(limit_keys, list):
+                limit_keys = [limit_keys]
+
+            limit = None
+            for key in limit_keys:
+                limit = normalize_limit(limits.get(key))
+                if limit is not None:
+                    break
 
             overage = 0
             overage_fee = Decimal("0")
@@ -301,6 +326,32 @@ def get_monthly_usage(
             "overage": 0,
             "overage_fee": 0.0,
         }
+
+        # BUGFIX: Always include all metric types even if they have 0 usage
+        # This ensures the frontend can display all metrics consistently
+        all_metric_types = ["expense", "ai_categorization", "ocr_scan", "ap2_transaction"]
+        for metric_type in all_metric_types:
+            if metric_type not in usage_details:
+                # Map usage types to limit keys (try multiple keys for compatibility)
+                limit_mapping = {
+                    "ai_categorization": ["max_ai_categorizations", "ai_categorizations_included"],
+                    "ap2_transaction": ["max_ap2_transactions", "ap2_transactions_included"],
+                    "ocr_scan": ["ocr_scans_included"],
+                    "expense": ["max_expenses_per_month"],
+                }
+                # Try multiple keys to find the limit
+                limit_keys = limit_mapping.get(metric_type, [])
+                limit = None
+                for key in limit_keys:
+                    limit = normalize_limit(limits.get(key))
+                    if limit is not None:
+                        break
+                usage_details[metric_type] = {
+                    "quantity": 0,
+                    "limit": limit,
+                    "overage": 0,
+                    "overage_fee": 0.0,
+                }
     else:
         # No tier limits, just return usage
         for usage_type, quantity in usage_by_type.items():
@@ -318,6 +369,17 @@ def get_monthly_usage(
             "overage": 0,
             "overage_fee": 0.0,
         }
+
+        # BUGFIX: Always include all metric types even if they have 0 usage
+        all_metric_types = ["expense", "ai_categorization", "ocr_scan", "ap2_transaction"]
+        for metric_type in all_metric_types:
+            if metric_type not in usage_details:
+                usage_details[metric_type] = {
+                    "quantity": 0,
+                    "limit": None,
+                    "overage": 0,
+                    "overage_fee": 0.0,
+                }
 
     return {
         "period_start": period_start,

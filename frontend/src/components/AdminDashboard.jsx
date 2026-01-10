@@ -1601,17 +1601,17 @@ const AdminDashboard = () => {
                               }
                               disabled={
                                 activeTab === "all" &&
-                                expense.status === "pending"
+                                expense.status?.toLowerCase() === "pending"
                               }
                               className={`w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 ${
                                 activeTab === "all" &&
-                                expense.status === "pending"
+                                expense.status?.toLowerCase() === "pending"
                                   ? "cursor-not-allowed opacity-50"
                                   : "cursor-pointer"
                               }`}
                               title={
                                 activeTab === "all" &&
-                                expense.status === "pending"
+                                expense.status?.toLowerCase() === "pending"
                                   ? "Cannot archive pending expenses - approve or reject first"
                                   : "Select this expense"
                               }
