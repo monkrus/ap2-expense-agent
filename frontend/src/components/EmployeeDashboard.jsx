@@ -4,6 +4,7 @@ import {
   DollarSign,
   Clock,
   CheckCircle,
+  XCircle,
   Plus,
   Key,
   Trash2,
@@ -22,6 +23,7 @@ import {
   Search,
   Repeat,
   TrendingUp,
+  Bot,
 } from "lucide-react";
 import { expenseAPI, APIError } from "../services/api";
 import { useToast } from "../hooks/useToast";
@@ -37,6 +39,7 @@ import RecurringExpenses from "../pages/RecurringExpenses";
 import BudgetManagement from "../pages/BudgetManagement";
 import NotificationCenter from "./NotificationCenter";
 import BatchReceiptUpload from "./BatchReceiptUpload";
+import AIAssistant from "../pages/AIAssistant";
 
 const EmployeeDashboard = () => {
   const { user, logout } = useAuth();
@@ -50,9 +53,10 @@ const EmployeeDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState("active"); // 'active', 'history', 'recurring-expenses', or 'budgets'
+  const [activeTab, setActiveTab] = useState("active"); // 'active', 'history', 'recurring-expenses', 'budgets', or 'ai-assistant'
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmittingExpense, setIsSubmittingExpense] = useState(false); // Prevent duplicate submissions
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showReceiptUpload, setShowReceiptUpload] = useState(false);
@@ -177,6 +181,12 @@ const EmployeeDashboard = () => {
   };
 
   const handleExpenseSubmit = async () => {
+    // SAFEGUARD: Prevent duplicate submissions
+    if (isSubmittingExpense) {
+      console.log("Submission already in progress, ignoring duplicate click");
+      return;
+    }
+
     if (
       !newExpense.amount ||
       !newExpense.vendor ||
@@ -186,6 +196,9 @@ const EmployeeDashboard = () => {
       showError("Please fill in all required fields");
       return;
     }
+
+    // Set submitting state to prevent duplicate clicks
+    setIsSubmittingExpense(true);
 
     const tempId = `EXP-${Date.now()}`;
     const optimisticExpense = {
@@ -247,6 +260,9 @@ const EmployeeDashboard = () => {
         err instanceof APIError ? err.message : "Failed to submit expense";
       showError(errorMsg);
       setShowExpenseForm(true);
+    } finally {
+      // SAFEGUARD: Always reset submitting state
+      setIsSubmittingExpense(false);
     }
   };
 
@@ -386,10 +402,13 @@ const EmployeeDashboard = () => {
       )
     : sortedExpenses;
 
+  // IMPORTANT: Use toLowerCase() for case-insensitive comparison
+  // Backend may return "PENDING" or "pending" depending on endpoint
   const stats = {
     total: expenses.reduce((sum, e) => sum + e.amount, 0),
-    pending: expenses.filter((e) => e.status === "pending").length,
-    approved: expenses.filter((e) => e.status === "approved").length,
+    pending: expenses.filter((e) => e.status?.toLowerCase() === "pending").length,
+    approved: expenses.filter((e) => e.status?.toLowerCase() === "approved").length,
+    rejected: expenses.filter((e) => e.status?.toLowerCase() === "rejected").length,
   };
 
   const theme = getRoleTheme("EMPLOYEE");
@@ -488,7 +507,7 @@ const EmployeeDashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -524,6 +543,18 @@ const EmployeeDashboard = () => {
                 </p>
               </div>
               <CheckCircle className="w-10 h-10 text-green-500" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm">Rejected</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {stats.rejected}
+                </p>
+              </div>
+              <XCircle className="w-10 h-10 text-red-500" />
             </div>
           </div>
         </div>
@@ -581,6 +612,18 @@ const EmployeeDashboard = () => {
             >
               <TrendingUp className="w-5 h-5" />
               Budgets
+            </button>
+            <button
+              onClick={() => setActiveTab("ai-assistant")}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === "ai-assistant"
+                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+              title="AP2 Auto-Approval with AI Agent"
+            >
+              <Bot className="w-5 h-5" />
+              AI Assistant
             </button>
           </div>
         </div>
@@ -764,9 +807,10 @@ const EmployeeDashboard = () => {
                 </button>
                 <button
                   onClick={handleExpenseSubmit}
-                  className={`flex-1 px-4 py-2 ${theme.colors.button} text-white rounded-lg disabled:opacity-50`}
+                  disabled={isSubmittingExpense}
+                  className={`flex-1 px-4 py-2 ${theme.colors.button} text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  Submit
+                  {isSubmittingExpense ? "Submitting..." : "Submit"}
                 </button>
               </div>
             </div>
@@ -778,6 +822,9 @@ const EmployeeDashboard = () => {
 
         {/* Budget Management Tab */}
         {activeTab === "budgets" && <BudgetManagement />}
+
+        {/* AI Assistant Tab - AP2 Intent Mandates & Auto-Approval */}
+        {activeTab === "ai-assistant" && <AIAssistant />}
 
         {/* Expense List */}
         {(activeTab === "active" || activeTab === "history") && (

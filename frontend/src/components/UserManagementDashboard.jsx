@@ -28,6 +28,7 @@ const UserManagementDashboard = () => {
   const { success, error: showError } = useToast();
 
   const [users, setUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]); // Store all users for accurate stats
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -59,14 +60,37 @@ const UserManagementDashboard = () => {
     is_active: true,
   });
 
+  // Fetch all users for stats on initial load
   useEffect(() => {
-    // Debounce search to avoid too many API calls while typing
+    fetchAllUsersForStats();
+  }, []);
+
+  // Debounce search to avoid too many API calls while typing
+  useEffect(() => {
     const timer = setTimeout(() => {
       fetchUsers();
     }, 300); // 300ms delay
 
     return () => clearTimeout(timer);
   }, [searchTerm, roleFilter]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAllUsersForStats();
+      fetchUsers();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [searchTerm, roleFilter]);
+
+  const fetchAllUsersForStats = async () => {
+    try {
+      const data = await adminAPI.listUsers(1, 1000, null, null);
+      setAllUsers(data.users || []);
+    } catch (err) {
+      console.error("Error fetching all users for stats:", err);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);

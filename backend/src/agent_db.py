@@ -479,7 +479,7 @@ class ExpenseManagementAgent:
                     "vendor": e.vendor,
                     "category": e.category.value,
                     "description": e.description,
-                    "status": e.status.value,
+                    "status": e.status.value.lower(),
                     "date": e.date.isoformat() if e.date else None,
                     "transaction_id": e.transaction_id,
                     "created_at": e.created_at.isoformat() if e.created_at else None,

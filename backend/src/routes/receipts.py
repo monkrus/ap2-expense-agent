@@ -619,7 +619,7 @@ async def create_expense_from_extraction(
                 "amount": float(expense.amount),
                 "category": expense.category,
                 "description": expense.description,
-                "status": (expense.status.value if hasattr(expense.status, 'value') else expense.status),
+                "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else str(expense.status).lower()),
                 "created_at": expense.created_at.isoformat(),
             },
             "receipt": {

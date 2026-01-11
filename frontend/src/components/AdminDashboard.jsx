@@ -30,6 +30,7 @@ import {
   CreditCard,
   Building2,
   Repeat,
+  Bot,
 } from "lucide-react";
 import { expenseAPI, APIError } from "../services/api";
 import adminAPI from "../services/adminAPI";
@@ -48,6 +49,7 @@ import BudgetManagement from "../pages/BudgetManagement";
 import ApprovalPolicies from "./ApprovalPolicies";
 import NotificationCenter from "./NotificationCenter";
 import AnalyticsDashboard from "./AnalyticsDashboard";
+import AIAssistant from "../pages/AIAssistant";
 import { UpgradeBanner, UsageLimitWarning, SidebarUpgradeCard } from "./upsell";
 
 const AdminDashboard = () => {
@@ -62,7 +64,7 @@ const AdminDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState("pending"); // 'pending', 'all', 'archived', 'users', 'recurring-expenses', 'budgets', 'approval-policies', 'analytics'
+  const [activeTab, setActiveTab] = useState("pending"); // 'pending', 'all', 'archived', 'users', 'recurring-expenses', 'budgets', 'approval-policies', 'analytics', 'ai-assistant'
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [archivedExpenses, setArchivedExpenses] = useState([]);
@@ -171,6 +173,11 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (!orgReady) return;
     const interval = setInterval(() => {
+      // Always refresh dashboard stats to keep numbers in sync
+      if (user?.role === "admin") {
+        fetchDashboardStats();
+      }
+      // Refresh active tab data
       if (activeTab === "pending") {
         fetchPendingExpenses(false);
       } else if (activeTab === "all") {
@@ -181,7 +188,7 @@ const AdminDashboard = () => {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [activeTab, statusFilter, orgReady]);
+  }, [activeTab, statusFilter, orgReady, user?.role]);
 
   // Refresh all expenses when status filter changes on 'all' tab
   useEffect(() => {
@@ -317,8 +324,11 @@ const AdminDashboard = () => {
         setPendingExpenses((prev) => prev.filter((e) => e.id !== expense.id));
         success(`Expense ${expense.id} approved successfully!`);
 
-        // Always refresh all expenses to keep data in sync
+        // Always refresh all expenses and stats to keep data in sync
         fetchAllExpenses();
+        if (user?.role === "admin") {
+          fetchDashboardStats();
+        }
       }
     } catch (err) {
       const errorMsg =
@@ -355,8 +365,11 @@ const AdminDashboard = () => {
         setRejectingExpense(null);
         setRejectionReason("");
 
-        // Always refresh all expenses to keep data in sync
+        // Always refresh all expenses and stats to keep data in sync
         fetchAllExpenses();
+        if (user?.role === "admin") {
+          fetchDashboardStats();
+        }
       }
     } catch (err) {
       const errorMsg =
@@ -774,6 +787,21 @@ const AdminDashboard = () => {
     uniqueUsers: new Set(pendingExpenses.map((e) => e.user_id)).size,
   };
 
+  // Stats for all expenses tab - use case-insensitive comparison
+  const allExpensesStats = {
+    total: allExpenses.length,
+    totalAmount: allExpenses.reduce((sum, e) => sum + (e.amount || 0), 0),
+    pending: allExpenses.filter((e) => e.status?.toLowerCase() === "pending").length,
+    approved: allExpenses.filter((e) => e.status?.toLowerCase() === "approved").length,
+    rejected: allExpenses.filter((e) => e.status?.toLowerCase() === "rejected").length,
+    pendingAmount: allExpenses
+      .filter((e) => e.status?.toLowerCase() === "pending")
+      .reduce((sum, e) => sum + (e.amount || 0), 0),
+    approvedAmount: allExpenses
+      .filter((e) => e.status?.toLowerCase() === "approved")
+      .reduce((sum, e) => sum + (e.amount || 0), 0),
+  };
+
   // Apply search filter
   const getCurrentExpenseList = () => {
     if (activeTab === "pending") return pendingExpenses;
@@ -1148,6 +1176,19 @@ const AdminDashboard = () => {
                 <TrendingUp className="w-5 h-5" />
                 Analytics
               </button>
+              {/* AI Assistant Tab - AP2 Intent Mandates */}
+              <button
+                onClick={() => setActiveTab("ai-assistant")}
+                className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                  activeTab === "ai-assistant"
+                    ? getTabActiveClasses()
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+                title="AP2 Auto-Approval with AI Agent"
+              >
+                <Bot className="w-5 h-5" />
+                AI Assistant
+              </button>
             </div>
           </div>
 
@@ -1245,6 +1286,62 @@ const AdminDashboard = () => {
             </div>
           )}
 
+          {/* Stats Cards - Show for all expenses tab */}
+          {activeTab === "all" && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm">Total Expenses</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {allExpensesStats.total}
+                    </p>
+                  </div>
+                  <FileText className="w-8 h-8 text-blue-500 opacity-50" />
+                </div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm">Pending</p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      {allExpensesStats.pending}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      ${formatCurrency(allExpensesStats.pendingAmount)}
+                    </p>
+                  </div>
+                  <Clock className="w-8 h-8 text-yellow-500 opacity-50" />
+                </div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm">Approved</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {allExpensesStats.approved}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      ${formatCurrency(allExpensesStats.approvedAmount)}
+                    </p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-green-500 opacity-50" />
+                </div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm">Rejected</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {allExpensesStats.rejected}
+                    </p>
+                  </div>
+                  <XCircle className="w-8 h-8 text-red-500 opacity-50" />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Search and Filter - Show on pending, all, and archived tabs */}
           {(activeTab === "pending" ||
             activeTab === "all" ||
@@ -1315,6 +1412,9 @@ const AdminDashboard = () => {
 
           {/* Analytics Tab */}
           {activeTab === "analytics" && <AnalyticsDashboard />}
+
+          {/* AI Assistant Tab - AP2 Intent Mandates */}
+          {activeTab === "ai-assistant" && <AIAssistant />}
 
           {/* Expenses List - Show for pending, all, and archived tabs */}
           {(activeTab === "pending" ||

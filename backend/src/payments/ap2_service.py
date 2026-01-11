@@ -4,6 +4,7 @@ Implements Google's Agent Payments Protocol for cryptographic payment verificati
 """
 
 import json
+import logging
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, Optional
@@ -13,6 +14,8 @@ from sqlalchemy.orm import Session
 from ..models import CartMandate, IntentMandate, PaymentMandate, User
 from ..security import get_kms_service
 from .stripe_processor import StripePaymentProcessor
+
+logger = logging.getLogger(__name__)
 
 
 class AP2PaymentService:
@@ -429,9 +432,6 @@ class AP2PaymentService:
         # BUGFIX: Track AP2 transaction usage (was only tracked in API endpoints)
         # This ensures usage is tracked even when called directly from expense approval
         from ..billing.usage_tracker import UsageTracker
-        import logging
-
-        logger = logging.getLogger(__name__)
 
         try:
             tracker = UsageTracker(self.db)
@@ -533,8 +533,6 @@ class AP2PaymentService:
             .all()
         )
 
-        import logging
-        logger = logging.getLogger(__name__)
         logger.info(f"[AP2] Found {len(mandates)} active Intent Mandates for user {user_id}")
 
         # Try each mandate (most specific first if we add priority later)
@@ -591,9 +589,6 @@ class AP2PaymentService:
         Returns:
             True if expense matches all constraints, False otherwise
         """
-        import logging
-        logger = logging.getLogger(__name__)
-
         # 1. Check per-expense amount limit
         if "max_amount" in constraints:
             max_amt = float(constraints["max_amount"])

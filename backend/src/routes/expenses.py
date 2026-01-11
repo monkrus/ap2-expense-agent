@@ -213,6 +213,37 @@ async def create_expense(
             detail="Description cannot exceed 1000 characters"
         )
 
+    # =====================================================================
+    # DUPLICATE SUBMISSION DETECTION (SAFEGUARD)
+    # =====================================================================
+    # Check if an identical expense was submitted in the last 10 seconds
+    # This prevents accidental duplicate submissions from button double-clicks
+    from datetime import timedelta
+    duplicate_window = datetime.utcnow() - timedelta(seconds=10)
+
+    recent_duplicate = db.query(Expense).filter(
+        and_(
+            Expense.user_id == current_user.id,
+            Expense.organization_id == org_id,
+            Expense.amount == data.amount,
+            Expense.vendor == data.vendor,
+            Expense.category == data.category,
+            Expense.description == data.description,
+            Expense.created_at >= duplicate_window
+        )
+    ).first()
+
+    if recent_duplicate:
+        logger.warning(
+            f"Duplicate expense submission detected for user {current_user.id}. "
+            f"Identical expense {recent_duplicate.id} was created {(datetime.utcnow() - recent_duplicate.created_at).total_seconds():.1f}s ago. "
+            f"Rejecting duplicate to prevent accidental double-submission."
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Duplicate submission detected. An identical expense was just submitted {int((datetime.utcnow() - recent_duplicate.created_at).total_seconds())} seconds ago. Please wait before submitting again."
+        )
+
     # Create expense with PENDING status initially
     expense = Expense(
         id=str(uuid.uuid4()),
@@ -249,9 +280,9 @@ async def create_expense(
         # Find matching Intent Mandate for this expense
         matching_mandate = ap2_service.find_matching_intent_mandate(
             user_id=current_user.id,
-            amount=float(amount),
-            category=category.value if hasattr(category, 'value') else str(category),
-            merchant=vendor,
+            amount=float(data.amount),
+            category=data.category.value if hasattr(data.category, 'value') else str(data.category),
+            merchant=data.vendor,
             organization_id=org_id
         )
 
@@ -260,19 +291,19 @@ async def create_expense(
 
             # Create complete AP2 flow for cryptographic audit trail
             cart_items = [{
-                "description": description or f"Expense: {vendor}",
-                "amount": float(amount),
-                "vendor": vendor or "Unknown Vendor",
-                "category": category.value if hasattr(category, 'value') else str(category),
+                "description": data.description or f"Expense: {data.vendor}",
+                "amount": float(data.amount),
+                "vendor": data.vendor or "Unknown Vendor",
+                "category": data.category.value if hasattr(data.category, 'value') else str(data.category),
             }]
 
             ap2_result = await ap2_service.complete_ap2_flow(
                 user_id=current_user.id,
                 items=cart_items,
-                merchant=vendor or "Unknown Vendor",
+                merchant=data.vendor or "Unknown Vendor",
                 constraints={
-                    "max_amount": float(amount) * 1.05,  # 5% buffer
-                    "merchant": vendor,
+                    "max_amount": float(data.amount) * 1.05,  # 5% buffer
+                    "merchant": data.vendor,
                     "approval_required": False,  # Already authorized via Intent Mandate
                 }
             )
@@ -656,9 +687,9 @@ async def get_expense_report(
                 ),
                 "description": expense.description,
                 "status": (
-                    expense.status.value
+                    expense.status.value.lower()
                     if hasattr(expense.status, "value")
-                    else expense.status
+                    else str(expense.status).lower()
                 ),
                 "date": expense.date.isoformat() if expense.date else None,
                 "transaction_id": expense.transaction_id,
