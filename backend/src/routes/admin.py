@@ -236,13 +236,26 @@ async def get_dashboard_stats(
     )
 
     # Try to get expense statistics if the table exists
+    # Only count non-archived expenses to match "All Expenses" tab
     try:
-        from ..models import Expense
+        from ..models import Expense, ExpenseStatus
 
-        total_expenses = db.query(func.count(Expense.id)).scalar()
-        total_expense_value = db.query(func.sum(Expense.amount)).scalar() or 0
+        total_expenses = (
+            db.query(func.count(Expense.id))
+            .filter(Expense.is_archived == False)
+            .filter(Expense.status != ExpenseStatus.WITHDRAWN)
+            .scalar()
+        )
+        total_expense_value = (
+            db.query(func.sum(Expense.amount))
+            .filter(Expense.is_archived == False)
+            .filter(Expense.status != ExpenseStatus.WITHDRAWN)
+            .scalar() or 0
+        )
         expenses_this_month = (
             db.query(func.count(Expense.id))
+            .filter(Expense.is_archived == False)
+            .filter(Expense.status != ExpenseStatus.WITHDRAWN)
             .filter(Expense.created_at >= datetime.utcnow().replace(day=1))
             .scalar()
         )

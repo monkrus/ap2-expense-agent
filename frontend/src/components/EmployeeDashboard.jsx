@@ -36,7 +36,6 @@ import ReceiptList from "./ReceiptList";
 import RoleBadge from "./RoleBadge";
 import { getRoleTheme } from "../utils/roleThemes";
 import RecurringExpenses from "../pages/RecurringExpenses";
-import BudgetManagement from "../pages/BudgetManagement";
 import NotificationCenter from "./NotificationCenter";
 import BatchReceiptUpload from "./BatchReceiptUpload";
 import AIAssistant from "../pages/AIAssistant";
@@ -53,7 +52,7 @@ const EmployeeDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState("active"); // 'active', 'history', 'recurring-expenses', 'budgets', or 'ai-assistant'
+  const [activeTab, setActiveTab] = useState("active"); // 'active', 'history', 'recurring-expenses', or 'ai-assistant' (AP2 Automation)
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmittingExpense, setIsSubmittingExpense] = useState(false); // Prevent duplicate submissions
@@ -603,27 +602,16 @@ const EmployeeDashboard = () => {
               Recurring
             </button>
             <button
-              onClick={() => setActiveTab("budgets")}
-              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
-                activeTab === "budgets"
-                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              <TrendingUp className="w-5 h-5" />
-              Budgets
-            </button>
-            <button
               onClick={() => setActiveTab("ai-assistant")}
               className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
                 activeTab === "ai-assistant"
                   ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
                   : "text-gray-600 hover:text-gray-800"
               }`}
-              title="AP2 Auto-Approval with AI Agent"
+              title="AP2 Protocol - AI Agent Automation"
             >
               <Bot className="w-5 h-5" />
-              AI Assistant
+              AP2 Automation
             </button>
           </div>
         </div>
@@ -820,10 +808,7 @@ const EmployeeDashboard = () => {
         {/* Recurring Expenses Tab */}
         {activeTab === "recurring-expenses" && <RecurringExpenses />}
 
-        {/* Budget Management Tab */}
-        {activeTab === "budgets" && <BudgetManagement />}
-
-        {/* AI Assistant Tab - AP2 Intent Mandates & Auto-Approval */}
+        {/* AP2 Automation Tab - AP2 Intent Mandates & Agent Protocol */}
         {activeTab === "ai-assistant" && <AIAssistant />}
 
         {/* Expense List */}

@@ -440,13 +440,14 @@ const UserManagementDashboard = () => {
     return colors[role] || "bg-gray-100 text-gray-800";
   };
 
+  // Use allUsers for stats to show accurate totals regardless of search/filter
   const stats = {
-    total: users.length,
-    active: users.filter((u) => u.is_active).length,
-    admins: users.filter((u) => u.role?.toLowerCase() === "admin").length,
-    managers: users.filter((u) => u.role?.toLowerCase() === "manager").length,
-    employees: users.filter((u) => u.role?.toLowerCase() === "employee").length,
-    accountants: users.filter((u) => u.role?.toLowerCase() === "accountant").length,
+    total: allUsers.length,
+    active: allUsers.filter((u) => u.is_active).length,
+    admins: allUsers.filter((u) => u.role?.toLowerCase() === "admin").length,
+    managers: allUsers.filter((u) => u.role?.toLowerCase() === "manager").length,
+    employees: allUsers.filter((u) => u.role?.toLowerCase() === "employee").length,
+    accountants: allUsers.filter((u) => u.role?.toLowerCase() === "accountant").length,
   };
 
   return (

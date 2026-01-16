@@ -29,7 +29,6 @@ import {
   Database,
   CreditCard,
   Building2,
-  Repeat,
   Bot,
 } from "lucide-react";
 import { expenseAPI, APIError } from "../services/api";
@@ -44,8 +43,6 @@ import RoleBadge from "./RoleBadge";
 import ReceiptUpload from "./ReceiptUpload";
 import ReceiptList from "./ReceiptList";
 import { getRoleTheme } from "../utils/roleThemes";
-import RecurringExpenses from "../pages/RecurringExpenses";
-import BudgetManagement from "../pages/BudgetManagement";
 import ApprovalPolicies from "./ApprovalPolicies";
 import NotificationCenter from "./NotificationCenter";
 import AnalyticsDashboard from "./AnalyticsDashboard";
@@ -64,7 +61,7 @@ const AdminDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState("pending"); // 'pending', 'all', 'archived', 'users', 'recurring-expenses', 'budgets', 'approval-policies', 'analytics', 'ai-assistant'
+  const [activeTab, setActiveTab] = useState("pending"); // 'pending', 'all', 'archived', 'users', 'approval-policies' (Approval Rules), 'analytics', 'ai-assistant' (AP2 Automation)
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [archivedExpenses, setArchivedExpenses] = useState([]);
@@ -1129,30 +1126,7 @@ const AdminDashboard = () => {
                   User Management
                 </button>
               )}
-              {/* Recurring Expenses Tab */}
-              <button
-                onClick={() => setActiveTab("recurring-expenses")}
-                className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
-                  activeTab === "recurring-expenses"
-                    ? getTabActiveClasses()
-                    : "text-gray-600 hover:text-gray-800"
-                }`}
-              >
-                <Repeat className="w-5 h-5" />
-                Recurring
-              </button>
-              {/* Budget Management Tab */}
-              <button
-                onClick={() => setActiveTab("budgets")}
-                className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
-                  activeTab === "budgets"
-                    ? getTabActiveClasses()
-                    : "text-gray-600 hover:text-gray-800"
-                }`}
-              >
-                <TrendingUp className="w-5 h-5" />
-                Budgets
-              </button>
+              {/* Approval Rules Tab */}
               <button
                 onClick={() => setActiveTab("approval-policies")}
                 className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
@@ -1162,7 +1136,7 @@ const AdminDashboard = () => {
                 }`}
               >
                 <CheckCircle className="w-5 h-5" />
-                Auto-Approval
+                Approval Rules
               </button>
               {/* Analytics Tab */}
               <button
@@ -1176,7 +1150,7 @@ const AdminDashboard = () => {
                 <TrendingUp className="w-5 h-5" />
                 Analytics
               </button>
-              {/* AI Assistant Tab - AP2 Intent Mandates */}
+              {/* AP2 Automation Tab - AP2 Intent Mandates */}
               <button
                 onClick={() => setActiveTab("ai-assistant")}
                 className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
@@ -1184,10 +1158,10 @@ const AdminDashboard = () => {
                     ? getTabActiveClasses()
                     : "text-gray-600 hover:text-gray-800"
                 }`}
-                title="AP2 Auto-Approval with AI Agent"
+                title="AP2 Protocol - AI Agent Automation"
               >
                 <Bot className="w-5 h-5" />
-                AI Assistant
+                AP2 Automation
               </button>
             </div>
           </div>
@@ -1401,19 +1375,13 @@ const AdminDashboard = () => {
           {/* User Management Tab */}
           {activeTab === "users" && <UserManagementDashboard />}
 
-          {/* Recurring Expenses Tab */}
-          {activeTab === "recurring-expenses" && <RecurringExpenses />}
-
-          {/* Budget Management Tab */}
-          {activeTab === "budgets" && <BudgetManagement />}
-
-          {/* Approval Policies Tab */}
+          {/* Approval Rules Tab */}
           {activeTab === "approval-policies" && <ApprovalPolicies />}
 
           {/* Analytics Tab */}
           {activeTab === "analytics" && <AnalyticsDashboard />}
 
-          {/* AI Assistant Tab - AP2 Intent Mandates */}
+          {/* AP2 Automation Tab - AP2 Intent Mandates & Agent Protocol */}
           {activeTab === "ai-assistant" && <AIAssistant />}
 
           {/* Expenses List - Show for pending, all, and archived tabs */}
