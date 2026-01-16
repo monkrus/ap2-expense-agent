@@ -42,11 +42,24 @@ const ApprovalPolicies = () => {
   const [editingPolicy, setEditingPolicy] = useState(null);
   const [testingPolicy, setTestingPolicy] = useState(null);
 
+  // Priority mapping
+  const PRIORITY_LEVELS = {
+    low: 100,
+    medium: 500,
+    high: 900,
+  };
+
+  const getPriorityLabel = (numericPriority) => {
+    if (numericPriority >= 700) return "high";
+    if (numericPriority >= 300) return "medium";
+    return "low";
+  };
+
   // Form state
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    priority: 100,
+    priority: "medium",
     auto_approve: true,
     require_receipt: false,
     notify_on_auto_approve: true,
@@ -85,7 +98,7 @@ const ApprovalPolicies = () => {
         },
       });
 
-      if (!response.ok) throw new Error("Failed to load policies");
+      if (!response.ok) throw new Error("Failed to load rules");
 
       const data = await response.json();
       setPolicies(data);
@@ -103,6 +116,7 @@ const ApprovalPolicies = () => {
       const token = localStorage.getItem("token");
       const payload = {
         ...formData,
+        priority: PRIORITY_LEVELS[formData.priority], // Convert text to numeric
         max_amount_per_expense: formData.max_amount_per_expense
           ? parseFloat(formData.max_amount_per_expense)
           : null,
@@ -136,9 +150,9 @@ const ApprovalPolicies = () => {
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error("Failed to save policy");
+      if (!response.ok) throw new Error("Failed to save rule");
 
-      success(editingPolicy ? "Policy updated!" : "Policy created!");
+      success(editingPolicy ? "Rule updated!" : "Rule created!");
       setShowCreateForm(false);
       setEditingPolicy(null);
       resetForm();
@@ -149,7 +163,7 @@ const ApprovalPolicies = () => {
   };
 
   const handleDelete = async (policyId) => {
-    if (!confirm("Are you sure you want to delete this policy?")) return;
+    if (!confirm("Are you sure you want to delete this rule?")) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -160,9 +174,9 @@ const ApprovalPolicies = () => {
         },
       });
 
-      if (!response.ok) throw new Error("Failed to delete policy");
+      if (!response.ok) throw new Error("Failed to delete rule");
 
-      success("Policy deleted!");
+      success("Rule deleted!");
       loadPolicies();
     } catch (err) {
       showError(err.message);
@@ -183,10 +197,10 @@ const ApprovalPolicies = () => {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to update policy");
+      if (!response.ok) throw new Error("Failed to update rule");
 
       success(
-        policy.is_active ? "Policy deactivated!" : "Policy activated!"
+        policy.is_active ? "Rule deactivated!" : "Rule activated!"
       );
       loadPolicies();
     } catch (err) {
@@ -211,7 +225,7 @@ const ApprovalPolicies = () => {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to test policy");
+      if (!response.ok) throw new Error("Failed to test rules");
 
       const result = await response.json();
       setTestResult(result);
@@ -224,7 +238,7 @@ const ApprovalPolicies = () => {
     setFormData({
       name: "",
       description: "",
-      priority: 100,
+      priority: "medium",
       auto_approve: true,
       require_receipt: false,
       notify_on_auto_approve: true,
@@ -246,7 +260,7 @@ const ApprovalPolicies = () => {
     setFormData({
       name: policy.name,
       description: policy.description || "",
-      priority: policy.priority,
+      priority: getPriorityLabel(policy.priority), // Convert numeric to text
       auto_approve: policy.auto_approve,
       require_receipt: policy.require_receipt,
       notify_on_auto_approve: policy.notify_on_auto_approve,
@@ -281,7 +295,7 @@ const ApprovalPolicies = () => {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading policies...</p>
+          <p className="mt-4 text-gray-600">Loading approval rules...</p>
         </div>
       </div>
     );
@@ -293,10 +307,10 @@ const ApprovalPolicies = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">
-            Approval Policies
+            Approval Rules
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Configure automatic expense approval rules
+            Reduce your approval workload with automatic rule-based approvals
           </p>
         </div>
         <button
@@ -308,22 +322,25 @@ const ApprovalPolicies = () => {
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="h-5 w-5 mr-2" />
-          Create Policy
+          Create Rule
         </button>
       </div>
 
       {/* Info Banner */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex">
-          <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+          <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5" />
           <div className="ml-3">
             <h3 className="text-sm font-medium text-blue-800">
-              How Auto-Approval Works
+              How Approval Rules Work
             </h3>
             <p className="mt-1 text-sm text-blue-700">
-              Policies are evaluated in priority order (highest first). When an
-              expense matches a policy's conditions and is within limits, it's
-              automatically approved. Otherwise, it requires manual approval.
+              <strong>Save time on routine approvals.</strong> Rules automatically approve expenses that match your conditions (amount, category, etc.).
+              Rules are checked in priority order - if an expense matches a rule and stays within limits, it's instantly approved without manual review.
+              All other expenses still require your approval.
+            </p>
+            <p className="mt-2 text-xs text-blue-600">
+              💡 Example: "Auto-approve meals under $50 with receipt" - instantly approves qualifying lunch expenses
             </p>
           </div>
         </div>
@@ -334,7 +351,7 @@ const ApprovalPolicies = () => {
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">
-              {editingPolicy ? "Edit Policy" : "Create New Policy"}
+              {editingPolicy ? "Edit Rule" : "Create New Approval Rule"}
             </h3>
             <button
               onClick={() => {
@@ -353,7 +370,7 @@ const ApprovalPolicies = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Policy Name *
+                  Rule Name *
                 </label>
                 <input
                   type="text"
@@ -363,29 +380,30 @@ const ApprovalPolicies = () => {
                     setFormData({ ...formData, name: e.target.value })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., Small Expenses"
+                  placeholder="e.g., Small Meal Expenses"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Priority (0-1000)
+                  Priority
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="1000"
+                <select
                   value={formData.priority}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      priority: parseInt(e.target.value),
+                      priority: e.target.value,
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
                 <p className="mt-1 text-xs text-gray-500">
-                  Higher priority policies are checked first
+                  High priority rules are checked first
                 </p>
               </div>
             </div>
@@ -401,7 +419,7 @@ const ApprovalPolicies = () => {
                 }
                 rows="2"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="What does this policy do?"
+                placeholder="e.g., Auto-approve small team meals to save time"
               />
             </div>
 
@@ -615,21 +633,21 @@ const ApprovalPolicies = () => {
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {editingPolicy ? "Update Policy" : "Create Policy"}
+                {editingPolicy ? "Update Rule" : "Create Rule"}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Test Policy */}
+      {/* Test Rules */}
       <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <TestTube className="h-5 w-5 mr-2 text-orange-600" />
-          Test Policies
+          Test Your Rules
         </h3>
         <p className="text-sm text-gray-600 mb-4">
-          Test if an expense would be auto-approved by your current policies
+          Check if a sample expense would be automatically approved by your current rules
         </p>
 
         <form onSubmit={handleTest} className="space-y-4">
@@ -720,8 +738,8 @@ const ApprovalPolicies = () => {
                   }`}
                 >
                   {testResult.would_auto_approve
-                    ? "Would Auto-Approve"
-                    : "Requires Manual Approval"}
+                    ? "✓ Would Auto-Approve"
+                    : "⚠ Requires Manual Approval"}
                 </h4>
                 <p
                   className={`mt-1 text-sm ${
@@ -734,7 +752,7 @@ const ApprovalPolicies = () => {
                 </p>
                 {testResult.matching_policy && (
                   <p className="mt-2 text-xs text-gray-600">
-                    Matched Policy: <strong>{testResult.matching_policy.name}</strong>
+                    Matched Rule: <strong>{testResult.matching_policy.name}</strong>
                   </p>
                 )}
                 {testResult.remaining_limits && (
@@ -758,29 +776,29 @@ const ApprovalPolicies = () => {
         )}
       </div>
 
-      {/* Policies List */}
+      {/* Rules List */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">
-            Active Policies ({policies.length})
+            Your Approval Rules ({policies.length})
           </h3>
         </div>
 
         {policies.length === 0 ? (
           <div className="p-12 text-center">
-            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No policies configured
+              No approval rules yet
             </h3>
             <p className="text-gray-500 mb-4">
-              Create your first auto-approval policy to get started
+              Create your first rule to automatically approve routine expenses and save time
             </p>
             <button
               onClick={() => setShowCreateForm(true)}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
             >
               <Plus className="h-5 w-5 mr-2" />
-              Create Policy
+              Create Rule
             </button>
           </div>
         ) : (
@@ -809,8 +827,14 @@ const ApprovalPolicies = () => {
                         >
                           {policy.is_active ? "Active" : "Inactive"}
                         </span>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Priority: {policy.priority}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          getPriorityLabel(policy.priority) === "high"
+                            ? "bg-red-100 text-red-800"
+                            : getPriorityLabel(policy.priority) === "medium"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}>
+                          {getPriorityLabel(policy.priority).charAt(0).toUpperCase() + getPriorityLabel(policy.priority).slice(1)} Priority
                         </span>
                       </div>
 
