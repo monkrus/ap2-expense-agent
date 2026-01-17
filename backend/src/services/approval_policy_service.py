@@ -1,6 +1,6 @@
 """
 Approval Policy Service
-Handles automated expense approval logic based on configurable policies
+Handles automated expense approval logic based on configurable policies.
 """
 
 import logging
@@ -88,7 +88,7 @@ class ApprovalPolicyService:
             if expense.amount > policy.max_amount_per_expense:
                 return (
                     False,
-                    f"Amount ${expense.amount} exceeds max ${policy.max_amount_per_expense}",
+                    f"You exceeded the maximum allowed amount (${policy.max_amount_per_expense})",
                 )
 
         if "min_amount" in conditions:
@@ -207,10 +207,24 @@ class ApprovalPolicyService:
         return True, "All conditions matched"
 
     def _check_limits(
-        self, expense: Expense, user: User, policy: ApprovalPolicy
+        self,
+        expense: Expense,
+        user: User,
+        policy: ApprovalPolicy,
+        simulated_daily_spent: Optional[Decimal] = None,
+        simulated_monthly_spent: Optional[Decimal] = None,
+        simulated_yearly_spent: Optional[Decimal] = None
     ) -> Tuple[bool, str]:
         """
         Check if expense is within policy limits
+
+        Args:
+            expense: The expense to check
+            user: The user submitting the expense
+            policy: The approval policy to check against
+            simulated_daily_spent: Optional simulated daily spending (for testing)
+            simulated_monthly_spent: Optional simulated monthly spending (for testing)
+            simulated_yearly_spent: Optional simulated yearly spending (for testing)
 
         Returns:
             Tuple of (within_limits, reason)
@@ -219,16 +233,20 @@ class ApprovalPolicyService:
 
         # Daily limit check
         if policy.daily_limit_per_user:
-            today_start = datetime.combine(now.date(), time.min)
-            today_end = datetime.combine(now.date(), time.max)
+            # Use simulated value if provided, otherwise query database
+            if simulated_daily_spent is not None:
+                daily_total = Decimal(str(simulated_daily_spent))
+            else:
+                today_start = datetime.combine(now.date(), time.min)
+                today_end = datetime.combine(now.date(), time.max)
 
-            daily_total = self.db.query(func.sum(Expense.amount)).filter(
-                Expense.organization_id == expense.organization_id,
-                Expense.user_id == user.id,
-                Expense.auto_approved == True,
-                Expense.approved_at >= today_start,
-                Expense.approved_at <= today_end,
-            ).scalar() or Decimal(0)
+                daily_total = self.db.query(func.sum(Expense.amount)).filter(
+                    Expense.organization_id == expense.organization_id,
+                    Expense.user_id == user.id,
+                    Expense.auto_approved == True,
+                    Expense.approved_at >= today_start,
+                    Expense.approved_at <= today_end,
+                ).scalar() or Decimal(0)
 
             # Convert to Decimal for consistent arithmetic
             expense_amount = Decimal(str(expense.amount))
@@ -237,24 +255,28 @@ class ApprovalPolicyService:
             if (daily_total + expense_amount) > daily_limit:
                 return (
                     False,
-                    f"Would exceed daily limit of ${policy.daily_limit_per_user}",
+                    f"You exceeded your daily spending limit (${policy.daily_limit_per_user})",
                 )
 
         # Monthly limit check
         if policy.monthly_limit_per_user:
-            month_start = datetime(now.year, now.month, 1)
-            if now.month == 12:
-                month_end = datetime(now.year + 1, 1, 1) - timedelta(seconds=1)
+            # Use simulated value if provided, otherwise query database
+            if simulated_monthly_spent is not None:
+                monthly_total = Decimal(str(simulated_monthly_spent))
             else:
-                month_end = datetime(now.year, now.month + 1, 1) - timedelta(seconds=1)
+                month_start = datetime(now.year, now.month, 1)
+                if now.month == 12:
+                    month_end = datetime(now.year + 1, 1, 1) - timedelta(seconds=1)
+                else:
+                    month_end = datetime(now.year, now.month + 1, 1) - timedelta(seconds=1)
 
-            monthly_total = self.db.query(func.sum(Expense.amount)).filter(
-                Expense.organization_id == expense.organization_id,
-                Expense.user_id == user.id,
-                Expense.auto_approved == True,
-                Expense.approved_at >= month_start,
-                Expense.approved_at <= month_end,
-            ).scalar() or Decimal(0)
+                monthly_total = self.db.query(func.sum(Expense.amount)).filter(
+                    Expense.organization_id == expense.organization_id,
+                    Expense.user_id == user.id,
+                    Expense.auto_approved == True,
+                    Expense.approved_at >= month_start,
+                    Expense.approved_at <= month_end,
+                ).scalar() or Decimal(0)
 
             # Convert to Decimal for consistent arithmetic
             expense_amount = Decimal(str(expense.amount))
@@ -263,21 +285,25 @@ class ApprovalPolicyService:
             if (monthly_total + expense_amount) > monthly_limit:
                 return (
                     False,
-                    f"Would exceed monthly limit of ${policy.monthly_limit_per_user}",
+                    f"You exceeded your monthly spending limit (${policy.monthly_limit_per_user})",
                 )
 
         # Yearly limit check
         if policy.yearly_limit_per_user:
-            year_start = datetime(now.year, 1, 1)
-            year_end = datetime(now.year, 12, 31, 23, 59, 59)
+            # Use simulated value if provided, otherwise query database
+            if simulated_yearly_spent is not None:
+                yearly_total = Decimal(str(simulated_yearly_spent))
+            else:
+                year_start = datetime(now.year, 1, 1)
+                year_end = datetime(now.year, 12, 31, 23, 59, 59)
 
-            yearly_total = self.db.query(func.sum(Expense.amount)).filter(
-                Expense.organization_id == expense.organization_id,
-                Expense.user_id == user.id,
-                Expense.auto_approved == True,
-                Expense.approved_at >= year_start,
-                Expense.approved_at <= year_end,
-            ).scalar() or Decimal(0)
+                yearly_total = self.db.query(func.sum(Expense.amount)).filter(
+                    Expense.organization_id == expense.organization_id,
+                    Expense.user_id == user.id,
+                    Expense.auto_approved == True,
+                    Expense.approved_at >= year_start,
+                    Expense.approved_at <= year_end,
+                ).scalar() or Decimal(0)
 
             # Convert to Decimal for consistent arithmetic
             expense_amount = Decimal(str(expense.amount))
@@ -286,7 +312,7 @@ class ApprovalPolicyService:
             if (yearly_total + expense_amount) > yearly_limit:
                 return (
                     False,
-                    f"Would exceed yearly limit of ${policy.yearly_limit_per_user}",
+                    f"You exceeded your yearly spending limit (${policy.yearly_limit_per_user})",
                 )
 
         return True, "Within all limits"

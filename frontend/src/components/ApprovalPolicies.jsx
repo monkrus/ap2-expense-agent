@@ -82,6 +82,7 @@ const ApprovalPolicies = () => {
     category: "", // Empty = All Categories
     vendor: "",
     has_receipt: true,
+    test_limit_type: "", // "", "daily", "monthly", "yearly"
   });
   const [testResult, setTestResult] = useState(null);
 
@@ -241,26 +242,45 @@ const ApprovalPolicies = () => {
   const handleTest = async (e) => {
     e.preventDefault();
 
+    // Validate amount before sending
+    const amount = parseFloat(testData.amount);
+    if (isNaN(amount) || amount <= 0) {
+      showError("Please enter a valid amount greater than 0");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("access_token");
+
+      // Build payload with parsed numeric values
+      const payload = {
+        amount: amount,
+        category: testData.category,
+        vendor: testData.vendor,
+        has_receipt: testData.has_receipt,
+        test_limit_type: testData.test_limit_type || null,
+      };
+
       const response = await fetch("/api/v1/approval-policies/test", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...testData,
-          amount: parseFloat(testData.amount),
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error("Failed to test rules");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const errorMsg = errorData?.detail || "Failed to test rules";
+        throw new Error(errorMsg);
+      }
 
       const result = await response.json();
       setTestResult(result);
     } catch (err) {
       showError(err.message);
+      setTestResult(null);
     }
   };
 
@@ -719,6 +739,24 @@ const ApprovalPolicies = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Test Limit
+              </label>
+              <select
+                value={testData.test_limit_type}
+                onChange={(e) =>
+                  setTestData({ ...testData, test_limit_type: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">Per-expense only</option>
+                <option value="daily">Daily limit</option>
+                <option value="monthly">Monthly limit</option>
+                <option value="yearly">Yearly limit</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category
               </label>
               <select
@@ -751,15 +789,15 @@ const ApprovalPolicies = () => {
                 placeholder="e.g., Amazon"
               />
             </div>
+          </div>
 
-            <div className="flex items-end">
-              <button
-                type="submit"
-                className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700"
-              >
-                Test
-              </button>
-            </div>
+          <div className="mt-4">
+            <button
+              type="submit"
+              className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700"
+            >
+              Test
+            </button>
           </div>
         </form>
 
@@ -787,17 +825,15 @@ const ApprovalPolicies = () => {
                 >
                   {testResult.would_auto_approve
                     ? "✓ Would Auto-Approve"
-                    : "⚠ Requires Manual Approval"}
+                    : `⚠ ${testResult.reason}`}
                 </h4>
-                <p
-                  className={`mt-1 text-sm ${
-                    testResult.would_auto_approve
-                      ? "text-green-700"
-                      : "text-yellow-700"
-                  }`}
-                >
-                  {testResult.reason}
-                </p>
+                {testResult.would_auto_approve && (
+                  <p
+                    className="mt-1 text-sm text-green-700"
+                  >
+                    {testResult.reason}
+                  </p>
+                )}
                 {testResult.matching_policy && (
                   <p className="mt-2 text-xs text-gray-600">
                     Matched Rule: <strong>{testResult.matching_policy.name}</strong>
@@ -909,6 +945,12 @@ const ApprovalPolicies = () => {
                           <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100">
                             <TrendingUp className="h-3 w-3 mr-1" />
                             Monthly: ${policy.limits.monthly_limit_per_user}
+                          </span>
+                        )}
+                        {policy.limits?.yearly_limit_per_user && (
+                          <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100">
+                            <TrendingUp className="h-3 w-3 mr-1" />
+                            Yearly: ${policy.limits.yearly_limit_per_user}
                           </span>
                         )}
                         <span className="inline-flex items-center px-2 py-1 rounded bg-purple-100 text-purple-700">

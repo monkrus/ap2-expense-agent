@@ -84,6 +84,8 @@ class PolicyTestRequest(BaseModel):
     category: Optional[str] = None  # Empty = test against all categories
     vendor: str = ""
     has_receipt: bool = True
+    # Test which limit type to check: "daily", "monthly", "yearly", or None for per-expense only
+    test_limit_type: Optional[str] = None
 
 
 class PolicyTestResponse(BaseModel):
@@ -479,8 +481,56 @@ def test_all_policies(
         matches, reason = policy_service._matches_policy(mock_expense, current_user, policy)
 
         if matches:
+            # Simulate spending based on test_limit_type
+            # When a limit type is selected, simulate spending that brings the user to the limit
+            simulated_daily = None
+            simulated_monthly = None
+            simulated_yearly = None
+
+            test_amount = Decimal(str(test_data.amount))
+
+            # Check if user requested a specific limit test
+            limit_not_configured = None
+            if test_data.test_limit_type == "daily":
+                if policy.daily_limit_per_user:
+                    # Simulate spending that reaches the daily limit minus a small amount
+                    # so adding the test expense will exceed it
+                    simulated_daily = Decimal(str(policy.daily_limit_per_user)) - test_amount + Decimal("0.01")
+                    if simulated_daily < 0:
+                        simulated_daily = Decimal(0)
+                else:
+                    limit_not_configured = "daily"
+            elif test_data.test_limit_type == "monthly":
+                if policy.monthly_limit_per_user:
+                    simulated_monthly = Decimal(str(policy.monthly_limit_per_user)) - test_amount + Decimal("0.01")
+                    if simulated_monthly < 0:
+                        simulated_monthly = Decimal(0)
+                else:
+                    limit_not_configured = "monthly"
+            elif test_data.test_limit_type == "yearly":
+                if policy.yearly_limit_per_user:
+                    simulated_yearly = Decimal(str(policy.yearly_limit_per_user)) - test_amount + Decimal("0.01")
+                    if simulated_yearly < 0:
+                        simulated_yearly = Decimal(0)
+                else:
+                    limit_not_configured = "yearly"
+
+            # If user requested a limit that's not configured, show warning
+            if limit_not_configured:
+                return PolicyTestResponse(
+                    would_auto_approve=False,
+                    matching_policy=policy.to_dict(),
+                    reason=f"No {limit_not_configured} limit is configured on rule '{policy.name}'. Add a {limit_not_configured} limit to test this.",
+                    remaining_limits=None,
+                )
+
             within_limits, limit_reason = policy_service._check_limits(
-                mock_expense, current_user, policy
+                mock_expense,
+                current_user,
+                policy,
+                simulated_daily_spent=simulated_daily,
+                simulated_monthly_spent=simulated_monthly,
+                simulated_yearly_spent=simulated_yearly
             )
 
             if within_limits:
@@ -506,10 +556,10 @@ def test_all_policies(
                 return PolicyTestResponse(
                     would_auto_approve=False,
                     matching_policy=policy.to_dict(),
-                    reason=f"Matched rule '{policy.name}' but {limit_reason}",
+                    reason=limit_reason,  # Already formatted as "You exceeded..."
                     remaining_limits=None,
                 )
-        elif "exceeds max" in reason.lower() and not best_partial_match:
+        elif "exceeded the maximum" in reason.lower() and not best_partial_match:
             # This policy matched category/vendor/etc but amount was too high
             best_partial_match = (policy, reason)
 
@@ -519,7 +569,7 @@ def test_all_policies(
         return PolicyTestResponse(
             would_auto_approve=False,
             matching_policy=policy.to_dict(),
-            reason=f"Matched rule '{policy.name}' but {reason.lower()}",
+            reason=reason,  # Already formatted as "You exceeded..."
             remaining_limits=None,
         )
 
