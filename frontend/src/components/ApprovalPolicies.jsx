@@ -7,6 +7,7 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  AlertTriangle,
   DollarSign,
   Users,
   Calendar,
@@ -78,7 +79,7 @@ const ApprovalPolicies = () => {
   // Test form state
   const [testData, setTestData] = useState({
     amount: "",
-    category: "MEALS",
+    category: "", // Empty = All Categories
     vendor: "",
     has_receipt: true,
   });
@@ -91,7 +92,7 @@ const ApprovalPolicies = () => {
   const loadPolicies = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       const response = await fetch("/api/v1/approval-policies", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -113,22 +114,51 @@ const ApprovalPolicies = () => {
     e.preventDefault();
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
+
+      // Parse numeric values for validation
+      const maxPerExpense = formData.max_amount_per_expense
+        ? parseFloat(formData.max_amount_per_expense)
+        : null;
+      const dailyLimit = formData.daily_limit_per_user
+        ? parseFloat(formData.daily_limit_per_user)
+        : null;
+      const monthlyLimit = formData.monthly_limit_per_user
+        ? parseFloat(formData.monthly_limit_per_user)
+        : null;
+      const yearlyLimit = formData.yearly_limit_per_user
+        ? parseFloat(formData.yearly_limit_per_user)
+        : null;
+
+      // Validate limit logic
+      if (maxPerExpense && dailyLimit && dailyLimit < maxPerExpense) {
+        showError(
+          `Daily limit ($${dailyLimit}) must be at least $${maxPerExpense} (max per expense) to allow any expenses up to the maximum amount.`
+        );
+        return;
+      }
+
+      if (dailyLimit && monthlyLimit && monthlyLimit < dailyLimit) {
+        showError(
+          `Monthly limit ($${monthlyLimit}) must be at least $${dailyLimit} (daily limit).`
+        );
+        return;
+      }
+
+      if (monthlyLimit && yearlyLimit && yearlyLimit < monthlyLimit) {
+        showError(
+          `Yearly limit ($${yearlyLimit}) must be at least $${monthlyLimit} (monthly limit).`
+        );
+        return;
+      }
+
       const payload = {
         ...formData,
         priority: PRIORITY_LEVELS[formData.priority], // Convert text to numeric
-        max_amount_per_expense: formData.max_amount_per_expense
-          ? parseFloat(formData.max_amount_per_expense)
-          : null,
-        daily_limit_per_user: formData.daily_limit_per_user
-          ? parseFloat(formData.daily_limit_per_user)
-          : null,
-        monthly_limit_per_user: formData.monthly_limit_per_user
-          ? parseFloat(formData.monthly_limit_per_user)
-          : null,
-        yearly_limit_per_user: formData.yearly_limit_per_user
-          ? parseFloat(formData.yearly_limit_per_user)
-          : null,
+        max_amount_per_expense: maxPerExpense,
+        daily_limit_per_user: dailyLimit,
+        monthly_limit_per_user: monthlyLimit,
+        yearly_limit_per_user: yearlyLimit,
         conditions: {
           ...formData.conditions,
           min_amount: formData.conditions.min_amount
@@ -142,7 +172,7 @@ const ApprovalPolicies = () => {
         : "/api/v1/approval-policies";
 
       const response = await fetch(url, {
-        method: editingPolicy ? "PUT" : "POST",
+        method: editingPolicy ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -166,7 +196,7 @@ const ApprovalPolicies = () => {
     if (!confirm("Are you sure you want to delete this rule?")) return;
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       const response = await fetch(`/api/v1/approval-policies/${policyId}`, {
         method: "DELETE",
         headers: {
@@ -185,9 +215,9 @@ const ApprovalPolicies = () => {
 
   const handleToggleActive = async (policy) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       const response = await fetch(`/api/v1/approval-policies/${policy.id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -212,7 +242,7 @@ const ApprovalPolicies = () => {
     e.preventDefault();
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       const response = await fetch("/api/v1/approval-policies/test", {
         method: "POST",
         headers: {
@@ -497,9 +527,26 @@ const ApprovalPolicies = () => {
                         daily_limit_per_user: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className={`w-full px-3 py-2 border rounded-md ${
+                      formData.max_amount_per_expense &&
+                      formData.daily_limit_per_user &&
+                      parseFloat(formData.daily_limit_per_user) <
+                        parseFloat(formData.max_amount_per_expense)
+                        ? "border-red-300 bg-red-50"
+                        : "border-gray-300"
+                    }`}
                     placeholder="Optional"
                   />
+                  {formData.max_amount_per_expense &&
+                    formData.daily_limit_per_user &&
+                    parseFloat(formData.daily_limit_per_user) <
+                      parseFloat(formData.max_amount_per_expense) && (
+                      <p className="mt-1 text-xs text-red-600 flex items-center">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Must be ≥ ${formData.max_amount_per_expense} (max per
+                        expense)
+                      </p>
+                    )}
                 </div>
 
                 <div>
@@ -681,6 +728,7 @@ const ApprovalPolicies = () => {
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               >
+                <option value="">All Categories</option>
                 {EXPENSE_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -863,12 +911,15 @@ const ApprovalPolicies = () => {
                             Monthly: ${policy.limits.monthly_limit_per_user}
                           </span>
                         )}
-                        {policy.conditions?.categories?.length > 0 && (
-                          <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100">
-                            <Tag className="h-3 w-3 mr-1" />
-                            {policy.conditions.categories.length} categories
-                          </span>
-                        )}
+                        <span className="inline-flex items-center px-2 py-1 rounded bg-purple-100 text-purple-700">
+                          <Tag className="h-3 w-3 mr-1" />
+                          {policy.conditions?.categories?.length > 0
+                            ? policy.conditions.categories.length === 1
+                              ? policy.conditions.categories[0]
+                              : `${policy.conditions.categories.length} categories: ${policy.conditions.categories.join(', ')}`
+                            : "All Categories"
+                          }
+                        </span>
                       </div>
                     </div>
 

@@ -26,7 +26,7 @@ const BudgetForm = ({ budget, onSuccess, onCancel }) => {
     // Fetch users for user-specific budgets
     const fetchUsers = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("access_token");
         const response = await fetch("/api/v1/users/", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -87,7 +87,7 @@ const BudgetForm = ({ budget, onSuccess, onCancel }) => {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       const url = isEditing ? `/api/budgets/${budget.id}` : "/api/budgets";
 
       const method = isEditing ? "PATCH" : "POST";

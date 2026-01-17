@@ -81,8 +81,8 @@ class PolicyTestRequest(BaseModel):
     """Test if an expense would match a policy"""
 
     amount: float = Field(..., gt=0)
-    category: str
-    vendor: str
+    category: Optional[str] = None  # Empty = test against all categories
+    vendor: str = ""
     has_receipt: bool = True
 
 
@@ -413,6 +413,125 @@ def delete_approval_policy(
 # ============================================================================
 
 
+@router.post("/test", response_model=PolicyTestResponse)
+def test_all_policies(
+    test_data: PolicyTestRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Test if a hypothetical expense would be auto-approved by ANY policy
+
+    Tests against all active policies in priority order (highest first)
+    """
+    org_id = get_user_organization(db, current_user.id)
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is not a member of any organization",
+        )
+
+    # Get all active policies for this organization, ordered by priority
+    policies = (
+        db.query(ApprovalPolicy)
+        .filter(
+            ApprovalPolicy.organization_id == org_id,
+            ApprovalPolicy.is_active == True,
+        )
+        .order_by(ApprovalPolicy.priority.desc())
+        .all()
+    )
+
+    if not policies:
+        return PolicyTestResponse(
+            would_auto_approve=False,
+            matching_policy=None,
+            reason="No active approval rules configured",
+            remaining_limits=None,
+        )
+
+    # Create mock expense for testing
+    from decimal import Decimal
+
+    from ..models import Expense, ExpenseCategory
+
+    # Use a default category if none specified (for "All Categories" test)
+    # The category value doesn't matter when testing against policies with no category restrictions
+    test_category = test_data.category.strip() if test_data.category and test_data.category.strip() else "MEALS"
+
+    mock_expense = Expense(
+        id="test_expense",
+        organization_id=org_id,
+        user_id=current_user.id,
+        vendor=test_data.vendor,
+        amount=Decimal(str(test_data.amount)),
+        category=ExpenseCategory(test_category),
+        status="pending",
+    )
+    # Set receipts as an attribute (for testing purposes without DB persistence)
+    mock_expense._has_receipt = test_data.has_receipt
+
+    # Test against all policies in priority order
+    policy_service = ApprovalPolicyService(db)
+    best_partial_match = None  # Track policies that match except for amount
+
+    for policy in policies:
+        matches, reason = policy_service._matches_policy(mock_expense, current_user, policy)
+
+        if matches:
+            within_limits, limit_reason = policy_service._check_limits(
+                mock_expense, current_user, policy
+            )
+
+            if within_limits:
+                # Found a matching policy that approves
+                remaining_limits = policy_service.get_user_remaining_limits(
+                    current_user.id, org_id, policy.id
+                )
+
+                # Convert Decimal to float for JSON serialization
+                remaining_limits_json = {
+                    k: float(v) if isinstance(v, Decimal) else v
+                    for k, v in remaining_limits.items()
+                } if remaining_limits else None
+
+                return PolicyTestResponse(
+                    would_auto_approve=True,
+                    matching_policy=policy.to_dict(),
+                    reason=f"Matched rule: {policy.name}",
+                    remaining_limits=remaining_limits_json,
+                )
+            else:
+                # Matched conditions but exceeded limits - still show which rule matched
+                return PolicyTestResponse(
+                    would_auto_approve=False,
+                    matching_policy=policy.to_dict(),
+                    reason=f"Matched rule '{policy.name}' but {limit_reason}",
+                    remaining_limits=None,
+                )
+        elif "exceeds max" in reason.lower() and not best_partial_match:
+            # This policy matched category/vendor/etc but amount was too high
+            best_partial_match = (policy, reason)
+
+    # If we found a partial match (matched everything except amount), report it
+    if best_partial_match:
+        policy, reason = best_partial_match
+        return PolicyTestResponse(
+            would_auto_approve=False,
+            matching_policy=policy.to_dict(),
+            reason=f"Matched rule '{policy.name}' but {reason.lower()}",
+            remaining_limits=None,
+        )
+
+    # No policies matched at all
+    return PolicyTestResponse(
+        would_auto_approve=False,
+        matching_policy=None,
+        reason="No rules match this expense (amount, category, or other conditions)",
+        remaining_limits=None,
+    )
+
+
 @router.post("/{policy_id}/test", response_model=PolicyTestResponse)
 def test_policy(
     policy_id: str,
@@ -421,7 +540,7 @@ def test_policy(
     db: Session = Depends(get_db),
 ):
     """
-    Test if a hypothetical expense would match this policy
+    Test if a hypothetical expense would match this specific policy
 
     Useful for policy configuration and debugging
     """
@@ -452,16 +571,21 @@ def test_policy(
 
     from ..models import Expense, ExpenseCategory
 
+    # Use a default category if none specified (for "All Categories" test)
+    # The category value doesn't matter when testing against policies with no category restrictions
+    test_category = test_data.category.strip() if test_data.category and test_data.category.strip() else "MEALS"
+
     mock_expense = Expense(
         id="test_expense",
         organization_id=org_id,
         user_id=current_user.id,
         vendor=test_data.vendor,
         amount=Decimal(str(test_data.amount)),
-        category=ExpenseCategory(test_data.category),
+        category=ExpenseCategory(test_category),
         status="pending",
-        receipts=["mock_receipt"] if test_data.has_receipt else [],
     )
+    # Set receipts as an attribute (for testing purposes without DB persistence)
+    mock_expense._has_receipt = test_data.has_receipt
 
     # Evaluate
     policy_service = ApprovalPolicyService(db)
@@ -622,3 +746,4 @@ def get_policy_analytics(
         "policy_breakdown": policy_breakdown,
         "time_saved_estimate_hours": auto_approved * 0.05,  # Assume 3 min/expense saved
     }
+

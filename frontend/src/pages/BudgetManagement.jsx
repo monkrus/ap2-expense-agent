@@ -33,7 +33,7 @@ const BudgetManagement = () => {
   const fetchBudgets = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       const response = await fetch(
         `/api/budgets?active_only=${showActiveOnly}`,
         {
@@ -75,7 +75,7 @@ const BudgetManagement = () => {
     }
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       const response = await fetch(`/api/budgets/${budgetId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },

@@ -44,7 +44,7 @@ const AIAssistant = () => {
       // Fetch AP2 stats
       const statsResponse = await fetch("/api/ap2/stats", {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
       });
       if (statsResponse.ok) {
@@ -55,7 +55,7 @@ const AIAssistant = () => {
       // Fetch user's mandates
       const mandatesResponse = await fetch("/api/ap2/user/mandates?limit=50", {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
       });
       if (mandatesResponse.ok) {

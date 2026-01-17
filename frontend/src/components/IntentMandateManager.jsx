@@ -42,7 +42,7 @@ const IntentMandateManager = ({ mandates, onRefresh, onCreateMandate }) => {
       const response = await fetch(`/api/ap2/mandate/${mandateId}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
       });
 
