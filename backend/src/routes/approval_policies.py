@@ -426,6 +426,10 @@ def test_all_policies(
 
     Tests against all active policies in priority order (highest first)
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[TEST] Request: amount={test_data.amount}, test_limit_type='{test_data.test_limit_type}'")
+
     org_id = get_user_organization(db, current_user.id)
     if not org_id:
         raise HTTPException(
@@ -479,58 +483,70 @@ def test_all_policies(
 
     for policy in policies:
         matches, reason = policy_service._matches_policy(mock_expense, current_user, policy)
+        test_amount = Decimal(str(test_data.amount))
 
-        if matches:
-            # Simulate spending based on test_limit_type
-            # When a limit type is selected, simulate spending that brings the user to the limit
-            simulated_daily = None
-            simulated_monthly = None
-            simulated_yearly = None
-
-            test_amount = Decimal(str(test_data.amount))
-
-            # Check if user requested a specific limit test
+        # When a specific limit type is selected, test that specific limit
+        logger.info(f"[TEST] test_limit_type='{test_data.test_limit_type}', type={type(test_data.test_limit_type)}")
+        if test_data.test_limit_type and test_data.test_limit_type not in ['', 'None', None]:
+            logger.info(f"[TEST] Entering limit type check for '{test_data.test_limit_type}'")
+            # Check if the requested limit is configured on this policy
             limit_not_configured = None
+            limit_value = None
+            limit_label = test_data.test_limit_type
+
             if test_data.test_limit_type == "daily":
-                if policy.daily_limit_per_user:
-                    # Simulate spending that reaches the daily limit minus a small amount
-                    # so adding the test expense will exceed it
-                    simulated_daily = Decimal(str(policy.daily_limit_per_user)) - test_amount + Decimal("0.01")
-                    if simulated_daily < 0:
-                        simulated_daily = Decimal(0)
-                else:
+                limit_value = policy.daily_limit_per_user
+                if not limit_value:
                     limit_not_configured = "daily"
             elif test_data.test_limit_type == "monthly":
-                if policy.monthly_limit_per_user:
-                    simulated_monthly = Decimal(str(policy.monthly_limit_per_user)) - test_amount + Decimal("0.01")
-                    if simulated_monthly < 0:
-                        simulated_monthly = Decimal(0)
-                else:
+                limit_value = policy.monthly_limit_per_user
+                if not limit_value:
                     limit_not_configured = "monthly"
             elif test_data.test_limit_type == "yearly":
-                if policy.yearly_limit_per_user:
-                    simulated_yearly = Decimal(str(policy.yearly_limit_per_user)) - test_amount + Decimal("0.01")
-                    if simulated_yearly < 0:
-                        simulated_yearly = Decimal(0)
-                else:
+                limit_value = policy.yearly_limit_per_user
+                if not limit_value:
                     limit_not_configured = "yearly"
 
-            # If user requested a limit that's not configured, show warning
+            # If this policy doesn't have the requested limit, try next policy
             if limit_not_configured:
+                logger.info(f"[TEST] Policy '{policy.name}' has no {limit_not_configured} limit, trying next policy")
+                continue
+
+            # Note: We skip the per-expense max check here because user is specifically testing
+            # a spending limit (daily/monthly/yearly), not the per-expense limit
+
+            # Check if this single expense would exceed the selected limit
+            # (Assumes no prior spending - tests if expense fits within the limit)
+            limit_decimal = Decimal(str(limit_value))
+            logger.info(f"[TEST] Comparing: test_amount={test_amount} vs limit={limit_decimal}, max_per_expense={policy.max_amount_per_expense}")
+            if test_amount > limit_decimal:
                 return PolicyTestResponse(
                     would_auto_approve=False,
                     matching_policy=policy.to_dict(),
-                    reason=f"No {limit_not_configured} limit is configured on rule '{policy.name}'. Add a {limit_not_configured} limit to test this.",
+                    reason=f"You exceeded your {limit_label} spending limit (${limit_value})",
                     remaining_limits=None,
                 )
+            else:
+                # Amount is within the limit - would auto-approve
+                return PolicyTestResponse(
+                    would_auto_approve=True,
+                    matching_policy=policy.to_dict(),
+                    reason=f"Matched rule: {policy.name} (within {limit_label} limit of ${limit_value})",
+                    remaining_limits=None,
+                )
+
+        # Standard test (no specific limit type selected - "Per-expense only")
+        if matches:
+            logger.info(f"[TEST] Matched policy: {policy.name}")
+            logger.info(f"[TEST] Policy limits: daily={policy.daily_limit_per_user}, monthly={policy.monthly_limit_per_user}, yearly={policy.yearly_limit_per_user}")
 
             within_limits, limit_reason = policy_service._check_limits(
                 mock_expense,
                 current_user,
                 policy,
-                simulated_daily_spent=simulated_daily,
-                simulated_monthly_spent=simulated_monthly,
-                simulated_yearly_spent=simulated_yearly
+                simulated_daily_spent=None,
+                simulated_monthly_spent=None,
+                simulated_yearly_spent=None
             )
 
             if within_limits:
@@ -570,6 +586,16 @@ def test_all_policies(
             would_auto_approve=False,
             matching_policy=policy.to_dict(),
             reason=reason,  # Already formatted as "You exceeded..."
+            remaining_limits=None,
+        )
+
+    # If a specific limit type was requested but no policy had it configured
+    if test_data.test_limit_type and test_data.test_limit_type not in ['', 'None', None]:
+        limit_label = test_data.test_limit_type
+        return PolicyTestResponse(
+            would_auto_approve=False,
+            matching_policy=None,
+            reason=f"No rules have a {limit_label} limit configured. Add a {limit_label} limit to one of your rules to test this.",
             remaining_limits=None,
         )
 
