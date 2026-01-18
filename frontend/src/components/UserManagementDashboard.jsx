@@ -553,6 +553,9 @@ const UserManagementDashboard = () => {
                     Role
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Organization
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Department
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -569,7 +572,7 @@ const UserManagementDashboard = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
+                    <td colSpan="7" className="px-6 py-12 text-center">
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                         <span className="ml-3 text-gray-600">
@@ -581,7 +584,7 @@ const UserManagementDashboard = () => {
                 ) : filteredUsers.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="7"
                       className="px-6 py-12 text-center text-gray-500"
                     >
                       No users found
@@ -612,6 +615,20 @@ const UserManagementDashboard = () => {
                         >
                           {user.role}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {user.organizations && user.organizations.length > 0 ? (
+                          <div className="space-y-1">
+                            {user.organizations.map((org, idx) => (
+                              <div key={idx} className="flex items-center gap-1">
+                                <span className="font-medium text-gray-700">{org.name}</span>
+                                <span className="text-xs text-gray-400">({org.role})</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">No organization</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {user.department_id || (

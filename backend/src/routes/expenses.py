@@ -407,6 +407,26 @@ async def create_expense(
             except Exception as e:
                 logger.error(f"Failed to track expense usage: {str(e)}")
 
+            # Send notification if policy has notify_on_auto_approve enabled
+            if matching_policy.notify_on_auto_approve:
+                try:
+                    notification = Notification(
+                        id=str(uuid.uuid4()),
+                        user_id=current_user.id,
+                        organization_id=org_id,
+                        notification_type=NotificationType.EXPENSE_APPROVED,
+                        title="Expense Auto-Approved",
+                        message=f"Your ${float(expense.amount):.2f} expense for {expense.vendor or 'Unknown vendor'} was automatically approved by rule: {matching_policy.name}",
+                        expense_id=expense.id,
+                        is_read=False,
+                        created_at=datetime.utcnow()
+                    )
+                    db.add(notification)
+                    db.commit()
+                    logger.info(f"Notification sent for auto-approved expense {expense.id}")
+                except Exception as e:
+                    logger.error(f"Failed to create auto-approval notification: {str(e)}")
+
             return {
                 "id": expense.id,
                 "amount": expense.amount,

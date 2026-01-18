@@ -7,7 +7,10 @@ from sqlalchemy.orm import Session
 from ..auth import AuthService, get_current_active_user, require_admin
 from ..database import get_db
 from ..models import Session as UserSession
-from ..models import User, UserRole
+from ..models import User, UserRole, OrganizationMember, OrganizationRole
+import logging
+
+logger = logging.getLogger(__name__)
 from ..schemas import (
     PasswordChange,
     SessionResponse,
@@ -19,7 +22,7 @@ from ..schemas import (
 router = APIRouter(prefix="/api/v1/users", tags=["User Management"])
 
 
-@router.get("/", response_model=List[UserResponse])
+@router.get("/")
 async def list_users(
     skip: int = 0,
     limit: int = 100,
@@ -28,7 +31,9 @@ async def list_users(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """List all users (requires manager or admin role)"""
+    """List all users with their organization info (requires admin role)"""
+    from ..models import Organization
+
     query = db.query(User)
 
     if role:
@@ -38,7 +43,41 @@ async def list_users(
         query = query.filter(User.is_active == is_active)
 
     users = query.offset(skip).limit(limit).all()
-    return users
+
+    # Get organization info for each user
+    result = []
+    for user in users:
+        # Get user's organization memberships
+        memberships = (
+            db.query(OrganizationMember, Organization)
+            .join(Organization, OrganizationMember.organization_id == Organization.id)
+            .filter(OrganizationMember.user_id == user.id)
+            .filter(OrganizationMember.is_active == True)
+            .all()
+        )
+
+        organizations = [
+            {
+                "id": org.id,
+                "name": org.name,
+                "role": member.role
+            }
+            for member, org in memberships
+        ]
+
+        result.append({
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "full_name": user.full_name,
+            "role": user.role.value if hasattr(user.role, 'value') else user.role,
+            "is_active": user.is_active,
+            "is_verified": user.is_verified,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+            "organizations": organizations
+        })
+
+    return result
 
 
 @router.get("/{user_id}", response_model=UserResponse)
@@ -102,6 +141,28 @@ async def create_user(
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Add user to the admin's organization
+    admin_org_member = (
+        db.query(OrganizationMember)
+        .filter(OrganizationMember.user_id == current_user.id)
+        .first()
+    )
+
+    if admin_org_member:
+        # Add new user to the same organization as the admin
+        from datetime import datetime
+        new_member = OrganizationMember(
+            id=str(uuid.uuid4()),
+            user_id=user.id,
+            organization_id=admin_org_member.organization_id,
+            role=OrganizationRole.MEMBER.value,  # New users are members by default
+            is_active=True,
+            joined_at=datetime.utcnow()
+        )
+        db.add(new_member)
+        db.commit()
+        logger.info(f"Added user {user.username} to organization {admin_org_member.organization_id}")
 
     # Log audit event
     AuthService.log_audit(
