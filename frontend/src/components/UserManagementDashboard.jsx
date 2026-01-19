@@ -40,6 +40,7 @@ const UserManagementDashboard = () => {
   const [userPermissions, setUserPermissions] = useState([]);
   const [processing, setProcessing] = useState(false);
   const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [organizations, setOrganizations] = useState([]);
 
   // Form states
   const [createForm, setCreateForm] = useState({
@@ -57,12 +58,14 @@ const UserManagementDashboard = () => {
     email: "",
     role: "",
     department_id: "",
+    organization_id: "",
     is_active: true,
   });
 
   // Fetch all users for stats on initial load
   useEffect(() => {
     fetchAllUsersForStats();
+    fetchOrganizations();
   }, []);
 
   // Debounce search to avoid too many API calls while typing
@@ -89,6 +92,18 @@ const UserManagementDashboard = () => {
       setAllUsers(data.users || []);
     } catch (err) {
       console.error("Error fetching all users for stats:", err);
+    }
+  };
+
+  const fetchOrganizations = async () => {
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/organizations`);
+      if (response.ok) {
+        const data = await response.json();
+        setOrganizations(data.organizations || []);
+      }
+    } catch (err) {
+      console.error("Error fetching organizations:", err);
     }
   };
 
@@ -239,6 +254,29 @@ const UserManagementDashboard = () => {
         throw new Error("Failed to update department");
       }
 
+      // Update organization if changed
+      const currentOrgId = selectedUser.organizations && selectedUser.organizations.length > 0
+        ? selectedUser.organizations[0].id
+        : "";
+      if (editForm.organization_id && editForm.organization_id !== currentOrgId) {
+        const orgResponse = await fetchWithAuth(
+          `${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/organization`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              organization_id: editForm.organization_id,
+            }),
+          },
+        );
+
+        if (!orgResponse.ok) {
+          throw new Error("Failed to update organization");
+        }
+      }
+
       // Update active status if changed
       if (editForm.is_active !== selectedUser.is_active) {
         const endpoint = editForm.is_active ? "activate" : "suspend";
@@ -326,10 +364,13 @@ const UserManagementDashboard = () => {
       "expense:edit_department": "Edit department expenses",
       "expense:edit_all": "Edit all expenses",
       "expense:delete_own": "Delete own pending expenses",
+      "expense:delete_all": "Delete any expense",
       "expense:approve_department":
         "Approve department expenses (up to $5,000)",
       "expense:approve_all": "Approve any expense (unlimited amount)",
       "expense:reject": "Reject expenses",
+      "expense:reject_department": "Reject department expenses",
+      "expense:reject_all": "Reject any expense",
       "expense:bulk_approve": "Bulk approve multiple expenses",
       "expense:bulk_reject": "Bulk reject multiple expenses",
       "expense:withdraw": "Withdraw pending expenses",
@@ -344,6 +385,7 @@ const UserManagementDashboard = () => {
 
       // Comment permissions
       "comment:add": "Add comments to expenses",
+      "comment:create": "Add comments to expenses",
       "comment:view": "View expense comments",
       "comment:edit_own": "Edit own comments",
       "comment:delete_own": "Delete own comments",
@@ -359,6 +401,7 @@ const UserManagementDashboard = () => {
       "user:delete": "Delete user accounts",
       "user:change_role": "Change user roles",
       "user:suspend": "Suspend/activate user accounts",
+      "user:unlock": "Unlock user accounts",
 
       // Report permissions
       "report:view_own": "View own expense reports",
@@ -367,11 +410,24 @@ const UserManagementDashboard = () => {
       "report:export": "Export reports to file",
       "report:generate": "Generate custom reports",
 
+      // Audit permissions
+      "audit:view_own": "View own audit logs",
+      "audit:view_department": "View department audit logs",
+      "audit:view_all": "View all audit logs",
+
       // System permissions
       "system:configure": "Configure system settings",
       "system:maintenance": "Perform database maintenance",
       "system:health": "View system health status",
       "system:audit": "Access audit logs",
+      "system:analytics": "View system analytics",
+
+      // Organization permissions
+      "org:create": "Create organizations",
+      "org:view": "View organization details",
+      "org:edit": "Edit organization settings",
+      "org:delete": "Delete organizations",
+      "org:manage_members": "Manage organization members",
 
       // Billing permissions
       "billing:view": "View billing information",
@@ -412,12 +468,17 @@ const UserManagementDashboard = () => {
 
   const openEditModal = (user) => {
     setSelectedUser(user);
+    // Get the first organization ID if user has organizations
+    const userOrgId = user.organizations && user.organizations.length > 0
+      ? user.organizations[0].id
+      : "";
     setEditForm({
       username: user.username || "",
       full_name: user.full_name || "",
       email: user.email || "",
       role: user.role?.toUpperCase() || "EMPLOYEE",
       department_id: user.department_id || "",
+      organization_id: userOrgId,
       is_active: Boolean(user.is_active), // Convert to proper boolean
     });
     setShowEditModal(true);
@@ -445,9 +506,7 @@ const UserManagementDashboard = () => {
     total: allUsers.length,
     active: allUsers.filter((u) => u.is_active).length,
     admins: allUsers.filter((u) => u.role?.toLowerCase() === "admin").length,
-    managers: allUsers.filter((u) => u.role?.toLowerCase() === "manager").length,
     employees: allUsers.filter((u) => u.role?.toLowerCase() === "employee").length,
-    accountants: allUsers.filter((u) => u.role?.toLowerCase() === "accountant").length,
   };
 
   return (
@@ -478,7 +537,7 @@ const UserManagementDashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-gray-600 text-sm">Total Users</p>
             <p className="text-2xl font-bold text-indigo-600">{stats.total}</p>
@@ -490,18 +549,6 @@ const UserManagementDashboard = () => {
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-gray-600 text-sm">Admins</p>
             <p className="text-2xl font-bold text-red-600">{stats.admins}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-gray-600 text-sm">Managers</p>
-            <p className="text-2xl font-bold text-yellow-600">
-              {stats.managers}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-gray-600 text-sm">Accountants</p>
-            <p className="text-2xl font-bold text-purple-600">
-              {stats.accountants}
-            </p>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-gray-600 text-sm">Employees</p>
@@ -533,7 +580,6 @@ const UserManagementDashboard = () => {
               >
                 <option value="all">All Roles</option>
                 <option value="ADMIN">Admin</option>
-                <option value="MANAGER">Manager</option>
                 <option value="EMPLOYEE">Employee</option>
               </select>
             </div>
@@ -807,7 +853,6 @@ const UserManagementDashboard = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
                     <option value="EMPLOYEE">Employee</option>
-                    <option value="MANAGER">Manager</option>
                     <option value="ADMIN">Admin</option>
                   </select>
                 </div>
@@ -865,7 +910,7 @@ const UserManagementDashboard = () => {
         {/* Edit User Modal */}
         {showEditModal && selectedUser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
                   <Edit className="w-6 h-6 text-indigo-600" />
@@ -940,7 +985,6 @@ const UserManagementDashboard = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
                     <option value="EMPLOYEE">Employee</option>
-                    <option value="MANAGER">Manager</option>
                     <option value="ADMIN">Admin</option>
                   </select>
                 </div>
@@ -961,6 +1005,26 @@ const UserManagementDashboard = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="sales, engineering, etc."
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Organization
+                  </label>
+                  <select
+                    value={editForm.organization_id}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, organization_id: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="">No organization</option>
+                    {organizations.map((org) => (
+                      <option key={org.id} value={org.id}>
+                        {org.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">

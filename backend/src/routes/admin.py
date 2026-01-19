@@ -53,6 +53,10 @@ class UpdateUserProfileRequest(BaseModel):
     email: Optional[str] = None
 
 
+class UpdateUserOrganizationRequest(BaseModel):
+    organization_id: str
+
+
 @router.post("/maintenance", response_model=dict)
 async def run_maintenance(
     request: Request,
@@ -266,7 +270,7 @@ async def get_dashboard_stats(
 
     # Try to get subscription statistics if the table exists
     try:
-        from ..models_billing import OrganizationSubscription
+        from ..models_billing import OrganizationSubscription, BillingTier
 
         active_subscriptions_query = (
             db.query(OrganizationSubscription)
@@ -276,12 +280,11 @@ async def get_dashboard_stats(
 
         active_subscriptions = len(active_subscriptions_query)
 
-        # Calculate monthly revenue from active subscriptions
+        # Get tier prices from the database instead of hardcoding
+        billing_tiers = db.query(BillingTier).filter(BillingTier.is_active == True).all()
         tier_prices = {
-            'free': 0,
-            'starter': 29,
-            'professional': 79,
-            'enterprise': 199
+            tier.tier_name.lower(): tier.base_price_monthly
+            for tier in billing_tiers
         }
 
         monthly_revenue = sum(
@@ -317,7 +320,7 @@ async def get_dashboard_stats(
 @router.get("/users")
 async def list_users(
     page: int = Query(1, ge=1),
-    per_page: int = Query(50, ge=1, le=100),
+    per_page: int = Query(50, ge=1, le=1000),
     search: Optional[str] = None,
     role: Optional[str] = None,
     current_user: User = Depends(require_admin),
@@ -343,28 +346,70 @@ async def list_users(
     total = query.count()
     users = query.offset((page - 1) * per_page).limit(per_page).all()
 
-    return {
-        "users": [
+    # Build response with organization info for each user
+    users_data = []
+    for u in users:
+        # Get user's organization memberships
+        memberships = (
+            db.query(OrganizationMember, Organization)
+            .join(Organization, OrganizationMember.organization_id == Organization.id)
+            .filter(OrganizationMember.user_id == u.id)
+            .filter(OrganizationMember.is_active == True)
+            .all()
+        )
+
+        organizations = [
             {
-                "id": u.id,
-                "email": u.email,
-                "username": u.username,
-                "full_name": u.full_name,
-                "role": u.role.value,
-                "department_id": u.department_id,
-                "is_active": u.is_active,
-                "is_verified": u.is_verified,
-                "created_at": u.created_at.isoformat(),
-                "last_login": u.last_login.isoformat() if u.last_login else None,
+                "id": org.id,
+                "name": org.name,
+                "role": member.role
             }
-            for u in users
-        ],
+            for member, org in memberships
+        ]
+
+        users_data.append({
+            "id": u.id,
+            "email": u.email,
+            "username": u.username,
+            "full_name": u.full_name,
+            "role": u.role.value,
+            "department_id": u.department_id,
+            "is_active": u.is_active,
+            "is_verified": u.is_verified,
+            "created_at": u.created_at.isoformat(),
+            "last_login": u.last_login.isoformat() if u.last_login else None,
+            "organizations": organizations,
+        })
+
+    return {
+        "users": users_data,
         "pagination": {
             "page": page,
             "per_page": per_page,
             "total": total,
             "pages": (total + per_page - 1) // per_page,
         },
+    }
+
+
+@router.get("/organizations")
+async def list_organizations(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """List all organizations (Admin only)"""
+    organizations = db.query(Organization).all()
+
+    return {
+        "organizations": [
+            {
+                "id": org.id,
+                "name": org.name,
+                "slug": org.slug,
+                "is_active": org.is_active,
+            }
+            for org in organizations
+        ]
     }
 
 
@@ -510,11 +555,11 @@ async def get_usage_analytics(
     return {
         "period_days": days,
         "daily_active_users": [
-            {"date": d.date.isoformat(), "count": d.count} for d in daily_users
+            {"date": str(d.date), "count": d.count} for d in daily_users
         ],
         "daily_expenses": [
             {
-                "date": d.date.isoformat(),
+                "date": str(d.date),
                 "count": d.count,
                 "total_amount": float(d.total_amount or 0),
             }
@@ -1480,6 +1525,87 @@ async def update_user_department(
         "message": "Department updated successfully",
         "user_id": user_id,
         "department_id": user.department_id,
+    }
+
+
+@router.patch("/users/{user_id}/organization", response_model=dict)
+async def update_user_organization(
+    user_id: str,
+    request: Request,
+    org_data: UpdateUserOrganizationRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Update user's organization (Admin only)"""
+    import uuid as uuid_module
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    # Verify the organization exists
+    organization = db.query(Organization).filter(Organization.id == org_data.organization_id).first()
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
+        )
+
+    # Check if user already has a membership in this organization
+    existing_membership = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.user_id == user_id,
+            OrganizationMember.organization_id == org_data.organization_id,
+        )
+        .first()
+    )
+
+    if existing_membership:
+        # Reactivate if inactive
+        if not existing_membership.is_active:
+            existing_membership.is_active = True
+            db.commit()
+    else:
+        # Remove user from all other organizations first (single org per user for now)
+        db.query(OrganizationMember).filter(
+            OrganizationMember.user_id == user_id
+        ).delete(synchronize_session=False)
+
+        # Create new membership
+        new_member = OrganizationMember(
+            id=str(uuid_module.uuid4()),
+            user_id=user_id,
+            organization_id=org_data.organization_id,
+            role=OrganizationRole.MEMBER.value,
+            is_active=True,
+            joined_at=datetime.utcnow()
+        )
+        db.add(new_member)
+        db.commit()
+
+    # Log audit event
+    AuthService.log_audit(
+        db=db,
+        user_id=current_user.id,
+        action="admin.update_user_organization",
+        resource_type="user",
+        resource_id=user.id,
+        details={
+            "user": user.username,
+            "organization_id": org_data.organization_id,
+            "organization_name": organization.name,
+        },
+        request=request,
+    )
+
+    return {
+        "success": True,
+        "message": "Organization updated successfully",
+        "user_id": user_id,
+        "organization_id": org_data.organization_id,
+        "organization_name": organization.name,
     }
 
 
