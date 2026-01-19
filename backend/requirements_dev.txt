@@ -2,7 +2,7 @@ alembic==1.17.1
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==3.7.1
-Authlib==1.6.5
+Authlib==1.6.6
 bcrypt==5.0.0
 cachetools==6.2.1
 certifi==2025.10.5
@@ -16,7 +16,7 @@ dnspython==2.8.0
 dparse==0.6.4
 email-validator==2.1.0
 fastapi==0.121.1
-filelock==3.20.1
+filelock==3.20.3
 freezegun==1.5.1
 google-ai-generativelanguage==0.4.0
 google-api-core==2.28.1
@@ -58,7 +58,7 @@ Pillow==11.0.0
 pluggy==1.6.0
 proto-plus==1.26.1
 protobuf==4.25.8
-pyasn1==0.6.1
+pyasn1==0.6.2
 pyasn1_modules==0.4.2
 pycparser==2.23
 pydantic==2.12.4
