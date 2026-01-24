@@ -147,6 +147,53 @@ async def create_intent_mandate(
         "approval_required": true
     }
     """
+    # VALIDATION: Validate constraints before creating mandate
+    constraints = request.constraints or {}
+
+    # 1. Validate max_amount is positive
+    max_amount = constraints.get("max_amount")
+    if max_amount is not None and max_amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Constraint validation error: max_amount must be greater than zero"
+        )
+
+    # 2. Validate monthly_limit >= max_amount
+    monthly_limit = constraints.get("monthly_limit")
+    if monthly_limit is not None and max_amount is not None:
+        if monthly_limit < max_amount:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Constraint validation error: monthly_limit must be greater than or equal to max_amount"
+            )
+
+    # 3. Validate category is valid (if provided as single value)
+    valid_categories = [
+        "OFFICE_SUPPLIES", "SOFTWARE", "TRAVEL", "MEALS",
+        "ENTERTAINMENT", "UTILITIES", "MARKETING", "HARDWARE",
+        "PROFESSIONAL_SERVICES", "OTHER"
+    ]
+
+    # Check single category
+    if "category" in constraints:
+        category = constraints["category"].upper() if isinstance(constraints["category"], str) else constraints["category"]
+        if category not in valid_categories:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Constraint validation error: Invalid category '{constraints['category']}'. Must be one of: {', '.join(valid_categories)}"
+            )
+
+    # Check multiple categories
+    if "categories" in constraints:
+        categories = constraints["categories"]
+        if isinstance(categories, list):
+            invalid_cats = [c for c in categories if c.upper() not in valid_categories]
+            if invalid_cats:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Constraint validation error: Invalid categories: {', '.join(invalid_cats)}. Must be one of: {', '.join(valid_categories)}"
+                )
+
     ap2_service = AP2PaymentService(db)
 
     intent_mandate = await ap2_service.create_intent_mandate(
@@ -209,8 +256,8 @@ async def create_cart_mandate(
 @router.post("/payment-mandate")
 @limiter.limit("20/minute")  # Rate limit: 20 payment mandate creations per minute
 async def create_payment_mandate(
-    http_request: Request,
-    request: CreatePaymentMandateRequest,
+    request: Request,  # Required by rate limiter
+    data: CreatePaymentMandateRequest,  # Renamed to avoid conflict
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -219,10 +266,10 @@ async def create_payment_mandate(
     """
     ap2_service = AP2PaymentService(db)
 
-    ensure_cart_mandate_owner(db, request.cart_mandate_id, current_user.id)
+    ensure_cart_mandate_owner(db, data.cart_mandate_id, current_user.id)
 
     payment_mandate = await ap2_service.create_payment_mandate(
-        cart_mandate_id=request.cart_mandate_id, payment_method=request.payment_method
+        cart_mandate_id=data.cart_mandate_id, payment_method=data.payment_method
     )
 
     return {
@@ -237,8 +284,8 @@ async def create_payment_mandate(
 @router.post("/execute-payment")
 @limiter.limit("10/minute")  # Rate limit: 10 payments per minute per user
 async def execute_payment(
-    http_request: Request,
-    request: ExecutePaymentRequest,
+    request: Request,  # Required by rate limiter
+    data: ExecutePaymentRequest,  # Renamed to avoid conflict
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -256,14 +303,14 @@ async def execute_payment(
 
     from ..security.nonce_service import get_nonce_service
 
-    ensure_payment_mandate_owner(db, request.payment_mandate_id, current_user.id)
+    ensure_payment_mandate_owner(db, data.payment_mandate_id, current_user.id)
 
     # Validate nonce and timestamp (replay attack protection)
     nonce_service = get_nonce_service(db)
 
     try:
         request_timestamp = datetime.fromisoformat(
-            request.timestamp.replace("Z", "+00:00")
+            data.timestamp.replace("Z", "+00:00")
         )
     except ValueError:
         raise HTTPException(
@@ -274,7 +321,7 @@ async def execute_payment(
     # Validate and store nonce
     try:
         nonce_valid = nonce_service.validate_and_store_nonce(
-            nonce=request.nonce,
+            nonce=data.nonce,
             request_timestamp=request_timestamp,
             endpoint="execute_payment",
             user_id=current_user.id,
@@ -323,8 +370,8 @@ async def execute_payment(
         raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc))
 
     payment_result = await ap2_service.execute_payment(
-        payment_mandate_id=request.payment_mandate_id,
-        stripe_customer_id=request.stripe_customer_id,
+        payment_mandate_id=data.payment_mandate_id,
+        stripe_customer_id=data.stripe_customer_id,
     )
 
     return payment_result
@@ -333,8 +380,8 @@ async def execute_payment(
 @router.post("/complete-flow")
 @limiter.limit("5/minute")  # Rate limit: 5 complete flows per minute per user
 async def complete_ap2_flow(
-    http_request: Request,
-    request: CompleteAP2FlowRequest,
+    request: Request,  # Required by rate limiter - must be first and named 'request'
+    data: CompleteAP2FlowRequest,  # Renamed to avoid parameter conflict
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -384,10 +431,10 @@ async def complete_ap2_flow(
 
     result = await ap2_service.complete_ap2_flow(
         user_id=current_user.id,
-        items=request.items,
-        merchant=request.merchant,
-        constraints=request.constraints,
-        stripe_customer_id=request.stripe_customer_id,
+        items=data.items,  # Changed from request.items
+        merchant=data.merchant,  # Changed from request.merchant
+        constraints=data.constraints,  # Changed from request.constraints
+        stripe_customer_id=data.stripe_customer_id,  # Changed from request.stripe_customer_id
     )
 
     return result
