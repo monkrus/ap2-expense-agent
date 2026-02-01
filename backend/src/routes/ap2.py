@@ -429,13 +429,20 @@ async def complete_ap2_flow(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc))
 
-    result = await ap2_service.complete_ap2_flow(
-        user_id=current_user.id,
-        items=data.items,  # Changed from request.items
-        merchant=data.merchant,  # Changed from request.merchant
-        constraints=data.constraints,  # Changed from request.constraints
-        stripe_customer_id=data.stripe_customer_id,  # Changed from request.stripe_customer_id
-    )
+    try:
+        result = await ap2_service.complete_ap2_flow(
+            user_id=current_user.id,
+            items=data.items,  # Changed from request.items
+            merchant=data.merchant,  # Changed from request.merchant
+            constraints=data.constraints,  # Changed from request.constraints
+            stripe_customer_id=data.stripe_customer_id,  # Changed from request.stripe_customer_id
+        )
+    except ValueError as exc:
+        # Convert validation errors to proper HTTP 400 responses
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc)
+        )
 
     return result
 
@@ -502,6 +509,14 @@ async def get_user_mandates(
         )
 
         for mandate in intent_mandates:
+            # Parse constraints JSON
+            import json
+            constraints = {}
+            try:
+                constraints = json.loads(mandate.constraints) if mandate.constraints else {}
+            except:
+                constraints = {}
+
             results.append(
                 {
                     "type": "intent",
@@ -510,6 +525,11 @@ async def get_user_mandates(
                     "timestamp": mandate.timestamp,
                     "expiration": mandate.expiration,
                     "created_at": mandate.created_at,
+                    "merchant": constraints.get("merchant") or constraints.get("merchants", [None])[0] if isinstance(constraints.get("merchants"), list) else None,
+                    "max_amount": constraints.get("max_amount"),
+                    "monthly_limit": constraints.get("monthly_limit"),
+                    "category": constraints.get("category") or constraints.get("categories", [None])[0] if isinstance(constraints.get("categories"), list) else None,
+                    "constraints": constraints,
                 }
             )
 

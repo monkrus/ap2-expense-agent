@@ -122,11 +122,17 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel, currentUser }) => {
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
               required
             >
-              <option>Travel</option>
-              <option>Meals</option>
-              <option>Software</option>
-              <option>Office Supplies</option>
-              <option>Other</option>
+              <option value="">Select Category</option>
+              <option value="OFFICE_SUPPLIES">Office Supplies</option>
+              <option value="SOFTWARE">Software</option>
+              <option value="TRAVEL">Travel</option>
+              <option value="MEALS">Meals</option>
+              <option value="ENTERTAINMENT">Entertainment</option>
+              <option value="UTILITIES">Utilities</option>
+              <option value="MARKETING">Marketing</option>
+              <option value="HARDWARE">Hardware</option>
+              <option value="PROFESSIONAL_SERVICES">Professional Services</option>
+              <option value="OTHER">Other</option>
             </select>
           </div>
 

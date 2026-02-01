@@ -17,7 +17,7 @@ import {
 
 const AgentActivityMonitor = ({ mandates, stats }) => {
   const [filter, setFilter] = useState("all"); // 'all', 'intent', 'cart', 'payment'
-  const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'completed', 'pending', 'failed'
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'active', 'pending', 'completed', 'failed'
   const [searchQuery, setSearchQuery] = useState("");
   const [sortedMandates, setSortedMandates] = useState([]);
 
@@ -40,9 +40,24 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (m) =>
+          // Search by ID
           m.id.toLowerCase().includes(query) ||
+          // Search by merchant (Intent and Cart mandates)
           (m.merchant && m.merchant.toLowerCase().includes(query)) ||
-          (m.total && m.total.toString().includes(query)),
+          (m.constraints?.merchant && m.constraints.merchant.toLowerCase().includes(query)) ||
+          // Search by total amount (Cart mandates)
+          (m.total && m.total.toString().includes(query)) ||
+          // Search by max_amount (Intent mandates - check both direct and constraints)
+          (m.max_amount && m.max_amount.toString().includes(query)) ||
+          (m.constraints?.max_amount && m.constraints.max_amount.toString().includes(query)) ||
+          // Search by monthly_limit (Intent mandates - check both direct and constraints)
+          (m.monthly_limit && m.monthly_limit.toString().includes(query)) ||
+          (m.constraints?.monthly_limit && m.constraints.monthly_limit.toString().includes(query)) ||
+          // Search by category (check both direct and constraints)
+          (m.category && m.category.toLowerCase().includes(query)) ||
+          (m.constraints?.category && m.constraints.category.toLowerCase().includes(query)) ||
+          // Search by payment_method (Payment mandates)
+          (m.payment_method && m.payment_method.toLowerCase().includes(query)),
       );
     }
 
@@ -110,7 +125,7 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search by ID, merchant, amount..."
+                placeholder="Search by ID, merchant, amount, category, payment method..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
@@ -143,7 +158,7 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
             <span className="text-sm font-medium text-gray-700 self-center">
               Status:
             </span>
-            {["all", "completed", "pending", "failed"].map((status) => (
+            {["all", "active", "pending", "completed", "failed"].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
@@ -228,8 +243,12 @@ const StatCard = ({ icon, label, value, color }) => {
 
 // Activity Timeline Item Component
 const ActivityTimelineItem = ({ mandate, isFirst }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
+    // Fix timezone: backend sends UTC time without 'Z', so append it
+    const dateStr = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    const date = new Date(dateStr);
     const now = new Date();
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);
@@ -330,7 +349,10 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
         style={{ display: isFirst ? "none" : "block" }}
       ></div>
 
-      <div className="flex items-start space-x-4">
+      <div
+        className="flex items-start space-x-4 cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         {/* Icon */}
         <div className="relative flex-shrink-0">
           <div
@@ -418,9 +440,119 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
 
         {/* View Details Arrow */}
         <div className="flex-shrink-0">
-          <ChevronRight className="w-5 h-5 text-gray-400" />
+          <ChevronRight
+            className={`w-5 h-5 text-gray-400 transition-transform ${
+              isExpanded ? "rotate-90" : ""
+            }`}
+          />
         </div>
       </div>
+
+      {/* Expanded Details */}
+      {isExpanded && (
+        <div className="mt-4 ml-14 pl-4 border-l-2 border-purple-200 bg-gray-50 rounded-lg p-4">
+          <h5 className="text-sm font-semibold text-gray-900 mb-3">
+            Mandate Details
+          </h5>
+
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <span className="text-gray-500">Full ID:</span>
+              <p className="font-mono text-xs text-gray-900 mt-1 break-all">
+                {mandate.id}
+              </p>
+            </div>
+
+            <div>
+              <span className="text-gray-500">Type:</span>
+              <p className="text-gray-900 mt-1 capitalize">{mandate.type}</p>
+            </div>
+
+            <div>
+              <span className="text-gray-500">Status:</span>
+              <p className="text-gray-900 mt-1 capitalize">{mandate.status}</p>
+            </div>
+
+            {mandate.max_amount && (
+              <div>
+                <span className="text-gray-500">Max Amount:</span>
+                <p className="text-gray-900 mt-1 font-medium">
+                  ${parseFloat(mandate.max_amount).toFixed(2)}
+                </p>
+              </div>
+            )}
+
+            {mandate.monthly_limit && (
+              <div>
+                <span className="text-gray-500">Monthly Limit:</span>
+                <p className="text-gray-900 mt-1 font-medium">
+                  ${parseFloat(mandate.monthly_limit).toFixed(2)}
+                </p>
+              </div>
+            )}
+
+            {mandate.category && (
+              <div>
+                <span className="text-gray-500">Category:</span>
+                <p className="text-gray-900 mt-1">{mandate.category}</p>
+              </div>
+            )}
+
+            {mandate.merchant && (
+              <div>
+                <span className="text-gray-500">Merchant:</span>
+                <p className="text-gray-900 mt-1">{mandate.merchant}</p>
+              </div>
+            )}
+
+            {mandate.total && (
+              <div>
+                <span className="text-gray-500">Total Amount:</span>
+                <p className="text-gray-900 mt-1 font-medium">
+                  ${parseFloat(mandate.total).toFixed(2)}
+                </p>
+              </div>
+            )}
+
+            {mandate.payment_method && (
+              <div>
+                <span className="text-gray-500">Payment Method:</span>
+                <p className="text-gray-900 mt-1 capitalize">
+                  {mandate.payment_method}
+                </p>
+              </div>
+            )}
+
+            {mandate.timestamp && (
+              <div>
+                <span className="text-gray-500">Timestamp:</span>
+                <p className="text-gray-900 mt-1 text-xs">
+                  {new Date(mandate.timestamp).toLocaleString()}
+                </p>
+              </div>
+            )}
+
+            {mandate.expiration && (
+              <div>
+                <span className="text-gray-500">Expiration:</span>
+                <p className="text-gray-900 mt-1 text-xs">
+                  {new Date(mandate.expiration).toLocaleString()}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Constraints for Intent Mandates */}
+          {mandate.type === "intent" && mandate.constraints && (
+            <div className="mt-4">
+              <span className="text-gray-500 text-sm">Full Constraints:</span>
+              <pre className="mt-2 text-xs bg-white p-3 rounded border border-gray-200 overflow-x-auto">
+                {JSON.stringify(mandate.constraints, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -158,11 +158,16 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
   };
 
   const categories = [
-    "Travel",
-    "Meals",
-    "Software",
-    "Office Supplies",
-    "Other",
+    { value: "OFFICE_SUPPLIES", label: "Office Supplies" },
+    { value: "SOFTWARE", label: "Software" },
+    { value: "TRAVEL", label: "Travel" },
+    { value: "MEALS", label: "Meals" },
+    { value: "ENTERTAINMENT", label: "Entertainment" },
+    { value: "UTILITIES", label: "Utilities" },
+    { value: "MARKETING", label: "Marketing" },
+    { value: "HARDWARE", label: "Hardware" },
+    { value: "PROFESSIONAL_SERVICES", label: "Professional Services" },
+    { value: "OTHER", label: "Other" },
   ];
   const frequencies = [
     { value: "weekly", label: "Weekly" },
@@ -252,8 +257,8 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
                 required
               >
                 {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
                   </option>
                 ))}
               </select>

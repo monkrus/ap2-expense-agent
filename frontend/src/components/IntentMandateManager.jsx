@@ -88,10 +88,9 @@ const IntentMandateManager = ({ mandates, onRefresh, onCreateMandate }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Intent Mandates</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Reusable Authorizations</h2>
           <p className="text-gray-600 mt-1">
-            Manage your AI agent's authorization to make purchases on your
-            behalf
+            Create standing authorizations for ongoing AI purchases. These can be used multiple times for automatic expense approvals.
           </p>
         </div>
         <button
@@ -101,6 +100,23 @@ const IntentMandateManager = ({ mandates, onRefresh, onCreateMandate }) => {
           <Plus className="w-5 h-5" />
           <span>New Mandate</span>
         </button>
+      </div>
+
+      {/* Info Box */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start">
+          <Shield className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+          <div className="text-sm text-blue-900">
+            <p className="font-medium mb-1">Standing Authorizations for Ongoing Automation</p>
+            <p>
+              Create reusable Intent Mandates that your AI agent can use multiple times.
+              Perfect for recurring purchases like monthly software subscriptions, office supplies, or regular travel expenses.
+            </p>
+            <p className="mt-2 text-xs">
+              <strong>Need a one-time purchase?</strong> Use the "Payment Flow" tab → "Complete Flow" for quick autonomous purchases without setting up ongoing authorization.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Filter Tabs */}
@@ -134,18 +150,17 @@ const IntentMandateManager = ({ mandates, onRefresh, onCreateMandate }) => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
           <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            No Intent Mandates Yet
+            No Reusable Authorizations Yet
           </h3>
           <p className="text-gray-600 mb-6 max-w-md mx-auto">
-            Create your first Intent Mandate to authorize your AI agent to
-            handle expenses automatically.
+            Create your first reusable authorization to enable ongoing automatic expense approvals by your AI agent.
           </p>
           <button
             onClick={onCreateMandate}
             className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors inline-flex items-center space-x-2"
           >
             <Plus className="w-5 h-5" />
-            <span>Create Intent Mandate</span>
+            <span>Create Reusable Authorization</span>
           </button>
         </div>
       ) : (
@@ -175,7 +190,9 @@ const MandateCard = ({
   getStatusBadge,
 }) => {
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    // Fix timezone: backend sends UTC time without 'Z', so append it
+    const dateStr = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    return new Date(dateStr).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",

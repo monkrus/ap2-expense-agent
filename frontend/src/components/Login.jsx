@@ -37,7 +37,7 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
         }
       }
     } catch (err) {
-      setError("An error occurred during login");
+      setError(err.message || "An error occurred during login");
     } finally {
       setLoading(false);
     }

@@ -23,7 +23,6 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
     maxAmount: "",
     categories: [],
     merchants: [],
-    approvalRequired: true,
     recurring: "",
     expirationHours: "720", // 30 days default
   });
@@ -31,18 +30,18 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
   const [categoryInput, setCategoryInput] = useState("");
   const [merchantInput, setMerchantInput] = useState("");
 
-  // Predefined categories for quick selection
+  // Predefined categories for quick selection (backend format)
   const predefinedCategories = [
-    "Travel",
-    "Meals",
-    "Software",
-    "Office Supplies",
-    "Transportation",
-    "Entertainment",
-    "Equipment",
-    "Marketing",
-    "Training",
-    "Consulting",
+    { value: "OFFICE_SUPPLIES", label: "Office Supplies" },
+    { value: "SOFTWARE", label: "Software" },
+    { value: "TRAVEL", label: "Travel" },
+    { value: "MEALS", label: "Meals" },
+    { value: "ENTERTAINMENT", label: "Entertainment" },
+    { value: "UTILITIES", label: "Utilities" },
+    { value: "MARKETING", label: "Marketing" },
+    { value: "HARDWARE", label: "Hardware" },
+    { value: "PROFESSIONAL_SERVICES", label: "Professional Services" },
+    { value: "OTHER", label: "Other" },
   ];
 
   const recurringOptions = [
@@ -62,7 +61,6 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
       max_amount: parseFloat(formData.maxAmount) || null,
       categories: formData.categories.length > 0 ? formData.categories : null,
       merchants: formData.merchants.length > 0 ? formData.merchants : null,
-      approval_required: formData.approvalRequired,
     };
 
     if (formData.recurring) {
@@ -264,32 +262,6 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                 </select>
               </div>
 
-              {/* Approval Required */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <label className="flex items-start space-x-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.approvalRequired}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        approvalRequired: e.target.checked,
-                      })
-                    }
-                    className="mt-1 w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                  />
-                  <div className="flex-1">
-                    <span className="text-sm font-medium text-gray-900 block">
-                      Require Manual Approval
-                    </span>
-                    <span className="text-xs text-gray-600 block mt-1">
-                      When checked, all expenses will require your approval.
-                      Uncheck for full automation (not recommended for first
-                      mandate).
-                    </span>
-                  </div>
-                </label>
-              </div>
             </div>
           )}
 
@@ -317,22 +289,22 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                 <div className="flex flex-wrap gap-2 mb-3">
                   {predefinedCategories.map((cat) => (
                     <button
-                      key={cat}
+                      key={cat.value}
                       type="button"
-                      onClick={() => addCategory(cat)}
-                      disabled={formData.categories.includes(cat)}
+                      onClick={() => addCategory(cat.value)}
+                      disabled={formData.categories.includes(cat.value)}
                       className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                        formData.categories.includes(cat)
+                        formData.categories.includes(cat.value)
                           ? "bg-purple-100 text-purple-700"
                           : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       }`}
                     >
-                      {formData.categories.includes(cat) ? (
+                      {formData.categories.includes(cat.value) ? (
                         <CheckCircle className="w-3 h-3 inline mr-1" />
                       ) : (
                         <Plus className="w-3 h-3 inline mr-1" />
                       )}
-                      {cat}
+                      {cat.label}
                     </button>
                   ))}
                 </div>
@@ -345,14 +317,14 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                     onChange={(e) => setCategoryInput(e.target.value)}
                     onKeyPress={(e) =>
                       e.key === "Enter" &&
-                      (e.preventDefault(), addCategory(categoryInput))
+                      (e.preventDefault(), addCategory(categoryInput.toUpperCase().replace(/\s+/g, "_")))
                     }
                     placeholder="Or type custom category..."
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                   />
                   <button
                     type="button"
-                    onClick={() => addCategory(categoryInput)}
+                    onClick={() => addCategory(categoryInput.toUpperCase().replace(/\s+/g, "_"))}
                     className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                   >
                     Add

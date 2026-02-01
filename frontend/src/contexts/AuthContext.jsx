@@ -86,13 +86,43 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        // Use the detail message from the backend directly
-        const errorMessage = error.detail || "Login failed";
+        let errorMessage = "Login failed";
+
+        // Try to get error message from response
+        try {
+          const error = await response.json();
+          if (error.detail) {
+            errorMessage = error.detail;
+          }
+        } catch (jsonError) {
+          // If we can't parse JSON, provide status-based message
+          console.error("Failed to parse error response:", jsonError);
+        }
+
+        // If we still don't have a specific message, use status-based fallbacks
+        if (errorMessage === "Login failed") {
+          if (response.status === 401) {
+            errorMessage = "Invalid username or password";
+          } else if (response.status === 423) {
+            errorMessage = "Account locked. Please try again later.";
+          } else if (response.status === 403) {
+            errorMessage = "Account suspended. Contact your administrator.";
+          } else if (!response.status) {
+            errorMessage = "Cannot connect to server. Please check your connection.";
+          } else {
+            errorMessage = "Login failed. Please try again.";
+          }
+        }
+
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        throw new Error("Server error. Please try again later.");
+      }
 
       setAccessToken(data.access_token);
       setRefreshToken(data.refresh_token);

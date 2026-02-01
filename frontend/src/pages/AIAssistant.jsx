@@ -21,12 +21,13 @@ import { useAuth } from "../contexts/AuthContext";
 import IntentMandateManager from "../components/IntentMandateManager";
 import AgentActivityMonitor from "../components/AgentActivityMonitor";
 import ConstraintBuilder from "../components/ConstraintBuilder";
+import AP2CompleteFlow from "../components/AP2CompleteFlow";
 
 const AIAssistant = () => {
   const { user } = useAuth();
   const { success, error: showError } = useToast();
 
-  const [activeView, setActiveView] = useState("overview"); // 'overview', 'mandates', 'activity', 'settings'
+  const [activeView, setActiveView] = useState("overview"); // 'overview', 'mandates', 'activity', 'flow'
   const [mandates, setMandates] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,7 @@ const AIAssistant = () => {
       }
     } catch (err) {
       console.error("Error fetching AP2 data:", err);
-      showError("Failed to load AI Assistant data");
+      showError("Failed to load AP2 Automation data");
     } finally {
       setLoading(false);
     }
@@ -88,9 +89,9 @@ const AIAssistant = () => {
               <Bot className="w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">AI Expense Assistant</h1>
+              <h1 className="text-3xl font-bold">AP2 Automation</h1>
               <p className="text-purple-100 mt-1">
-                Automate your expense management with AP2 protocol
+                Autonomous expense approvals using Agent Payments Protocol
               </p>
             </div>
           </div>
@@ -173,7 +174,7 @@ const AIAssistant = () => {
                   : "text-purple-200 hover:text-white"
               }`}
             >
-              Intent Mandates
+              Reusable Authorizations
             </button>
             <button
               onClick={() => setActiveView("activity")}
@@ -184,6 +185,16 @@ const AIAssistant = () => {
               }`}
             >
               Activity
+            </button>
+            <button
+              onClick={() => setActiveView("flow")}
+              className={`px-4 py-3 font-medium transition-colors ${
+                activeView === "flow"
+                  ? "text-white border-b-2 border-white"
+                  : "text-purple-200 hover:text-white"
+              }`}
+            >
+              Autonomous Purchase
             </button>
           </div>
         </div>
@@ -216,6 +227,8 @@ const AIAssistant = () => {
             {activeView === "activity" && (
               <AgentActivityMonitor mandates={mandates} stats={stats} />
             )}
+
+            {activeView === "flow" && <AP2CompleteFlow mandates={mandates} />}
           </>
         )}
       </div>
@@ -251,21 +264,23 @@ const OverviewView = ({ mandates, stats, onCreateMandate }) => {
             <div className="flex items-center space-x-3 mb-4">
               <Sparkles className="w-6 h-6" />
               <h2 className="text-2xl font-bold">
-                Welcome to Your AI Assistant
+                Welcome to AP2 Automation
               </h2>
             </div>
             <p className="text-purple-100 mb-6 max-w-2xl">
-              Set up Intent Mandates to let your AI agent automatically manage
-              expenses within your constraints. Save hours every week with
-              intelligent automation powered by the AP2 protocol.
+              Automate expense approvals two ways: Create <strong>Reusable Authorizations</strong> for ongoing purchases,
+              or use <strong>Complete Flow</strong> for quick one-time autonomous payments.
+              Save hours of manual work every week with AP2 protocol automation.
             </p>
-            <button
-              onClick={onCreateMandate}
-              className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-colors flex items-center space-x-2"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Create Your First Intent Mandate</span>
-            </button>
+            {activeIntentMandates.length === 0 && (
+              <button
+                onClick={onCreateMandate}
+                className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-colors flex items-center space-x-2"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Create Reusable Authorization</span>
+              </button>
+            )}
           </div>
           <div className="hidden lg:block">
             <Bot className="w-32 h-32 text-purple-300 opacity-50" />
@@ -300,7 +315,7 @@ const OverviewView = ({ mandates, stats, onCreateMandate }) => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">
-              Active Intent Mandates
+              Active Reusable Authorizations
             </h3>
             <span className="text-sm text-gray-500">
               {activeIntentMandates.length} active
@@ -329,7 +344,7 @@ const OverviewView = ({ mandates, stats, onCreateMandate }) => {
           ) : (
             <div className="px-6 py-12 text-center text-gray-500">
               <Activity className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p>No activity yet. Create an Intent Mandate to get started!</p>
+              <p>No activity yet. Create a Reusable Authorization or use Complete Flow to get started!</p>
             </div>
           )}
         </div>
@@ -362,7 +377,29 @@ const FeatureCard = ({ icon, title, description, color }) => {
 
 // Mandate List Item Component
 const MandateListItem = ({ mandate }) => {
+  const [expanded, setExpanded] = React.useState(false);
+
   const formatDate = (dateString) => {
+    // Fix timezone issue: parse as local time if no timezone specified
+    if (!dateString) return 'N/A';
+
+    // Split date and time parts
+    const parts = dateString.split('T');
+    if (parts.length === 2) {
+      const [datePart, timePart] = parts;
+      const [year, month, day] = datePart.split('-');
+
+      // Create date using local timezone
+      const date = new Date(year, month - 1, day);
+
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+
+    // Fallback to standard parsing
     return new Date(dateString).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -371,25 +408,73 @@ const MandateListItem = ({ mandate }) => {
   };
 
   return (
-    <div className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="flex items-center space-x-3 mb-1">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Active
-            </span>
-            <span className="text-sm font-medium text-gray-900">
-              Mandate #{mandate.id.slice(-8)}
-            </span>
+    <div className="border-b border-gray-200">
+      <div
+        className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center space-x-3 mb-1">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Active
+              </span>
+              <span className="text-sm font-medium text-gray-900">
+                Mandate #{mandate.id.slice(-8)}
+              </span>
+            </div>
+            <p className="text-sm text-gray-600">
+              Created {formatDate(mandate.created_at)} • Expires{" "}
+              {formatDate(mandate.expiration)}
+            </p>
           </div>
-          <p className="text-sm text-gray-600">
-            Created {formatDate(mandate.created_at)} • Expires{" "}
-            {formatDate(mandate.expiration)}
-          </p>
+          <ChevronRight
+            className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          />
         </div>
-        <ChevronRight className="w-5 h-5 text-gray-400" />
       </div>
+
+      {/* Expanded details */}
+      {expanded && (
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">Constraints</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {mandate.merchant && (
+              <div>
+                <span className="text-gray-600">Merchant:</span>
+                <p className="font-medium text-gray-900">{mandate.merchant}</p>
+              </div>
+            )}
+            {mandate.category && (
+              <div>
+                <span className="text-gray-600">Category:</span>
+                <p className="font-medium text-gray-900">{mandate.category}</p>
+              </div>
+            )}
+            {mandate.max_amount && (
+              <div>
+                <span className="text-gray-600">Max Amount:</span>
+                <p className="font-medium text-gray-900">${mandate.max_amount.toFixed(2)}</p>
+              </div>
+            )}
+            {mandate.monthly_limit && (
+              <div>
+                <span className="text-gray-600">Monthly Limit:</span>
+                <p className="font-medium text-gray-900">${mandate.monthly_limit.toFixed(2)}</p>
+              </div>
+            )}
+            <div>
+              <span className="text-gray-600">Mandate ID:</span>
+              <p className="font-mono text-xs text-gray-900">{mandate.id}</p>
+            </div>
+            <div>
+              <span className="text-gray-600">Status:</span>
+              <p className="font-medium text-green-600">Active</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -424,7 +509,9 @@ const ActivityItem = ({ mandate }) => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString("en-US", {
+    // Fix timezone: backend sends UTC time without 'Z', so append it
+    const dateStr = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    return new Date(dateStr).toLocaleString("en-US", {
       month: "short",
       day: "numeric",
       hour: "numeric",
