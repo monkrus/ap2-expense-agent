@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { OrganizationProvider } from "./contexts/OrganizationContext";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -139,7 +140,9 @@ const AppWrapper = () => {
     <ErrorBoundary>
       <ToastProvider>
         <AuthProvider>
-          <AppContent />
+          <OrganizationProvider>
+            <AppContent />
+          </OrganizationProvider>
         </AuthProvider>
       </ToastProvider>
     </ErrorBoundary>

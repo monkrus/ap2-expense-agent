@@ -18,6 +18,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
+import { useOrganization } from "../contexts/OrganizationContext";
 
 const IntentMandateManager = ({ mandates, onRefresh, onCreateMandate }) => {
   const { success, error: showError } = useToast();
@@ -189,17 +190,7 @@ const MandateCard = ({
   onDelete,
   getStatusBadge,
 }) => {
-  const formatDate = (dateString) => {
-    // Fix timezone: backend sends UTC time without 'Z', so append it
-    const dateStr = dateString.endsWith('Z') ? dateString : dateString + 'Z';
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
+  const { formatDate, timezone } = useOrganization();
 
   // Parse constraints (they might be stored as JSON string)
   let constraints = {};

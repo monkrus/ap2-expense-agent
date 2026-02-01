@@ -13,18 +13,29 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
+import { useOrganization } from "../contexts/OrganizationContext";
 
 const ConstraintBuilder = ({ onClose, onSuccess }) => {
   const { success, error: showError } = useToast();
+  const { timezone } = useOrganization();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1); // 1: Basic, 2: Advanced, 3: Review
+
+  // Default expiration: 30 days from now
+  const getDefaultExpiration = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 30);
+    // Format as YYYY-MM-DDTHH:MM for datetime-local input
+    return date.toISOString().slice(0, 16);
+  };
 
   const [formData, setFormData] = useState({
     maxAmount: "",
     categories: [],
     merchants: [],
     recurring: "",
-    expirationHours: "720", // 30 days default
+    expirationDateTime: getDefaultExpiration(),
+    approvalRequired: false, // false = auto-approve
   });
 
   const [categoryInput, setCategoryInput] = useState("");
@@ -61,18 +72,24 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
       max_amount: parseFloat(formData.maxAmount) || null,
       categories: formData.categories.length > 0 ? formData.categories : null,
       merchants: formData.merchants.length > 0 ? formData.merchants : null,
+      approval_required: formData.approvalRequired,
     };
 
     if (formData.recurring) {
       constraints.recurring = formData.recurring;
     }
 
-    // Remove null values
+    // Remove null values (but keep approval_required even if false)
     Object.keys(constraints).forEach((key) => {
       if (constraints[key] === null) delete constraints[key];
     });
 
     try {
+      // Calculate hours from the selected datetime
+      const expirationDate = new Date(formData.expirationDateTime);
+      const now = new Date();
+      const hoursUntilExpiration = Math.max(1, Math.ceil((expirationDate - now) / (1000 * 60 * 60)));
+
       const response = await fetch("/api/ap2/intent-mandate", {
         method: "POST",
         headers: {
@@ -81,7 +98,7 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
         },
         body: JSON.stringify({
           constraints,
-          expiration_hours: parseInt(formData.expirationHours),
+          expiration_hours: hoursUntilExpiration,
         }),
       });
 
@@ -241,25 +258,60 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Calendar className="w-4 h-4 inline mr-1" />
-                  Expires After
+                  Expiration Date & Time (Local Time)
                 </label>
-                <select
-                  value={formData.expirationHours}
+                <input
+                  type="datetime-local"
+                  value={formData.expirationDateTime}
+                  min={new Date().toISOString().slice(0, 16)}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      expirationHours: e.target.value,
+                      expirationDateTime: e.target.value,
                     })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                >
-                  <option value="24">24 hours (1 day)</option>
-                  <option value="168">1 week</option>
-                  <option value="720">30 days (recommended)</option>
-                  <option value="2160">90 days</option>
-                  <option value="4320">180 days</option>
-                  <option value="8760">1 year</option>
-                </select>
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  The mandate will automatically expire at this date and time in your local timezone.
+                </p>
+              </div>
+
+              {/* Approval Required */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <CheckCircle className="w-4 h-4 inline mr-1" />
+                  Approval Mode
+                </label>
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="approvalRequired"
+                      checked={!formData.approvalRequired}
+                      onChange={() =>
+                        setFormData({ ...formData, approvalRequired: false })
+                      }
+                      className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">Auto-approve (Recommended)</span>
+                  </label>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="approvalRequired"
+                      checked={formData.approvalRequired}
+                      onChange={() =>
+                        setFormData({ ...formData, approvalRequired: true })
+                      }
+                      className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">Require manual approval</span>
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Auto-approve allows the AI agent to process expenses automatically within constraints.
+                </p>
               </div>
 
             </div>
@@ -461,8 +513,17 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                 />
 
                 <ReviewItem
-                  label="Expires After"
-                  value={`${formData.expirationHours} hours (${Math.round(parseInt(formData.expirationHours) / 24)} days)`}
+                  label={`Expires On (${timezone})`}
+                  value={new Date(formData.expirationDateTime).toLocaleString("en-US", {
+                    weekday: "short",
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                    timeZone: timezone,
+                    timeZoneName: "short",
+                  })}
                   icon={<Calendar className="w-5 h-5 text-blue-600" />}
                 />
 

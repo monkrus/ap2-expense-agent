@@ -37,6 +37,7 @@ import billingAPI from "../services/billingAPI";
 import organizationAPI from "../services/organizationAPI";
 import { useToast } from "../hooks/useToast";
 import { useAuth } from "../contexts/AuthContext";
+import { useOrganization } from "../contexts/OrganizationContext";
 import ChangePassword from "./ChangePassword";
 import UserManagementDashboard from "./UserManagementDashboard";
 import RoleBadge from "./RoleBadge";
@@ -51,6 +52,7 @@ import { UpgradeBanner, UsageLimitWarning, SidebarUpgradeCard } from "./upsell";
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
+  const { formatDateOnly: formatDate } = useOrganization();
   const { success, error: showError } = useToast();
 
   // Format currency with commas
@@ -673,16 +675,6 @@ const AdminDashboard = () => {
     } catch (err) {
       showError("Failed to copy expense ID");
     }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
   };
 
   const normalizeStatusValue = (status) => {

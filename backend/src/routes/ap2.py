@@ -511,17 +511,26 @@ async def get_user_mandates(
         for mandate in intent_mandates:
             # Parse constraints JSON
             import json
+            from datetime import datetime
             constraints = {}
             try:
                 constraints = json.loads(mandate.constraints) if mandate.constraints else {}
             except:
                 constraints = {}
 
+            # Check if mandate has expired and update status if needed
+            current_status = mandate.status
+            if mandate.expiration and mandate.expiration < datetime.utcnow():
+                if mandate.status == "active":
+                    mandate.status = "expired"
+                    db.commit()
+                current_status = "expired"
+
             results.append(
                 {
                     "type": "intent",
                     "id": mandate.id,
-                    "status": mandate.status,
+                    "status": current_status,
                     "timestamp": mandate.timestamp,
                     "expiration": mandate.expiration,
                     "created_at": mandate.created_at,

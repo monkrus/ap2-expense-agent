@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
 import organizationAPI from "../services/organizationAPI";
 
 const OrganizationContext = createContext(null);
@@ -97,6 +97,56 @@ export const OrganizationProvider = ({ children }) => {
     await loadOrganizations();
   };
 
+  // Get current organization's timezone (default to UTC)
+  const timezone = currentOrganization?.timezone || "UTC";
+  const currency = currentOrganization?.currency || "USD";
+
+  // Format a date using the organization's timezone
+  const formatDate = useCallback((dateString, options = {}) => {
+    if (!dateString) return "";
+
+    // Backend sends UTC time without 'Z', so append it if missing
+    const dateStr = dateString.endsWith("Z") ? dateString : dateString + "Z";
+    const date = new Date(dateStr);
+
+    if (isNaN(date.getTime())) {
+      return dateString;
+    }
+
+    const defaultOptions = {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: timezone,
+      ...options,
+    };
+
+    try {
+      return date.toLocaleString("en-US", defaultOptions);
+    } catch (error) {
+      // Fallback to UTC if timezone is invalid
+      return date.toLocaleString("en-US", { ...defaultOptions, timeZone: "UTC" });
+    }
+  }, [timezone]);
+
+  // Format date without time
+  const formatDateOnly = useCallback((dateString) => {
+    return formatDate(dateString, {
+      hour: undefined,
+      minute: undefined,
+    });
+  }, [formatDate]);
+
+  // Format with timezone abbreviation
+  const formatDateFull = useCallback((dateString) => {
+    return formatDate(dateString, {
+      weekday: "short",
+      timeZoneName: "short",
+    });
+  }, [formatDate]);
+
   const value = {
     organizations,
     currentOrganization,
@@ -107,6 +157,12 @@ export const OrganizationProvider = ({ children }) => {
     updateOrganizationInList,
     removeOrganization,
     refetchOrganizations,
+    // Timezone helpers
+    timezone,
+    currency,
+    formatDate,
+    formatDateOnly,
+    formatDateFull,
   };
 
   return (

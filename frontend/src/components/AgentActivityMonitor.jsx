@@ -14,6 +14,7 @@ import {
   Download,
   Search,
 } from "lucide-react";
+import { useOrganization } from "../contexts/OrganizationContext";
 
 const AgentActivityMonitor = ({ mandates, stats }) => {
   const [filter, setFilter] = useState("all"); // 'all', 'intent', 'cart', 'payment'
@@ -244,6 +245,7 @@ const StatCard = ({ icon, label, value, color }) => {
 // Activity Timeline Item Component
 const ActivityTimelineItem = ({ mandate, isFirst }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { formatDate: orgFormatDate, timezone } = useOrganization();
 
   const formatDate = (dateString) => {
     // Fix timezone: backend sends UTC time without 'Z', so append it
@@ -260,13 +262,8 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
     if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
     if (days < 7) return `${days} day${days > 1 ? "s" : ""} ago`;
 
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    // Use org timezone for older dates
+    return orgFormatDate(dateString);
   };
 
   const getStatusConfig = (status) => {
@@ -426,14 +423,7 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
           {/* Expiration (for intent mandates) */}
           {mandate.type === "intent" && mandate.expiration && (
             <div className="mt-2 text-xs text-gray-500">
-              Expires:{" "}
-              {new Date(mandate.expiration).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
+              Expires: {orgFormatDate(mandate.expiration)}
             </div>
           )}
         </div>
@@ -527,7 +517,7 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
               <div>
                 <span className="text-gray-500">Timestamp:</span>
                 <p className="text-gray-900 mt-1 text-xs">
-                  {new Date(mandate.timestamp).toLocaleString()}
+                  {orgFormatDate(mandate.timestamp)}
                 </p>
               </div>
             )}
@@ -536,7 +526,7 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
               <div>
                 <span className="text-gray-500">Expiration:</span>
                 <p className="text-gray-900 mt-1 text-xs">
-                  {new Date(mandate.expiration).toLocaleString()}
+                  {orgFormatDate(mandate.expiration)}
                 </p>
               </div>
             )}

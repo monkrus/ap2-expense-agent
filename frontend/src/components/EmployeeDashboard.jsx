@@ -28,6 +28,7 @@ import {
 import { expenseAPI, APIError } from "../services/api";
 import { useToast } from "../hooks/useToast";
 import { useAuth } from "../contexts/AuthContext";
+import { useOrganization } from "../contexts/OrganizationContext";
 import ChangePassword from "./ChangePassword";
 import ReceiptUpload from "./ReceiptUpload";
 import ExpenseEdit from "./ExpenseEdit";
@@ -42,6 +43,7 @@ import AIAssistant from "../pages/AIAssistant";
 
 const EmployeeDashboard = () => {
   const { user, logout } = useAuth();
+  const { formatDateOnly: formatDate } = useOrganization();
   const { success, error: showError } = useToast();
 
   // Format currency with commas
@@ -263,16 +265,6 @@ const EmployeeDashboard = () => {
       // SAFEGUARD: Always reset submitting state
       setIsSubmittingExpense(false);
     }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
   };
 
   const getStatusBadge = (status) => {
