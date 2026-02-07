@@ -50,6 +50,7 @@ class Settings(BaseSettings):
 
     # Stripe Payment Configuration
     stripe_secret_key: Optional[str] = None
+    stripe_test_mode: bool = False  # Enable test mode to bypass Stripe for AP2 testing
     stripe_publishable_key: Optional[str] = None
     stripe_webhook_secret: Optional[str] = None
 
@@ -96,7 +97,7 @@ class Settings(BaseSettings):
     debug: bool = True
     # Security toggles
     allow_dev_kms_fallback: bool = (
-        False  # Only enable dev signing fallback explicitly (tests/dev)
+        True  # Auto-enabled for development; overridden to False in production/staging below
     )
     rate_limit_enabled: bool = True  # Disable only for controlled perf tests
 
@@ -122,6 +123,8 @@ try:
                 raise ValueError(
                     "GCP_WEBHOOK_AUDIENCE must be set when Marketplace integration is enabled"
                 )
+            # Never allow dev KMS fallback in production/staging
+            self.allow_dev_kms_fallback = False
 
     Settings.model_post_init = _post_init  # type: ignore[attr-defined]
 except Exception:

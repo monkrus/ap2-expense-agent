@@ -167,32 +167,16 @@ async def create_intent_mandate(
                 detail="Constraint validation error: monthly_limit must be greater than or equal to max_amount"
             )
 
-    # 3. Validate category is valid (if provided as single value)
-    valid_categories = [
-        "OFFICE_SUPPLIES", "SOFTWARE", "TRAVEL", "MEALS",
+    # 3. Category validation - OPTIONAL (suggestions only, not enforced)
+    # Predefined categories for reference/autocomplete, but custom categories are allowed
+    suggested_categories = [
+        "OFFICE_SUPPLIES", "SOFTWARE", "TRAVEL", "MEALS", "COFFEE",
         "ENTERTAINMENT", "UTILITIES", "MARKETING", "HARDWARE",
         "PROFESSIONAL_SERVICES", "OTHER"
     ]
 
-    # Check single category
-    if "category" in constraints:
-        category = constraints["category"].upper() if isinstance(constraints["category"], str) else constraints["category"]
-        if category not in valid_categories:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Constraint validation error: Invalid category '{constraints['category']}'. Must be one of: {', '.join(valid_categories)}"
-            )
-
-    # Check multiple categories
-    if "categories" in constraints:
-        categories = constraints["categories"]
-        if isinstance(categories, list):
-            invalid_cats = [c for c in categories if c.upper() not in valid_categories]
-            if invalid_cats:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Constraint validation error: Invalid categories: {', '.join(invalid_cats)}. Must be one of: {', '.join(valid_categories)}"
-                )
+    # No validation - users can use any category they want
+    # The suggested_categories list is just for frontend autocomplete/suggestions
 
     ap2_service = AP2PaymentService(db)
 
@@ -484,6 +468,7 @@ async def get_mandate_status(
 async def get_user_mandates(
     mandate_type: Optional[str] = None,
     status_filter: Optional[str] = None,
+    include_deleted: bool = False,
     limit: int = 50,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -494,14 +479,26 @@ async def get_user_mandates(
     Args:
         mandate_type: Filter by type (intent, cart, payment)
         status_filter: Filter by status (active, pending, completed, failed)
+        include_deleted: Include deleted/archived mandates (default: False)
         limit: Max number of results
     """
     from ..models import CartMandate, IntentMandate, PaymentMandate
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"get_user_mandates: include_deleted={include_deleted} (type: {type(include_deleted)})")
 
     results = []
 
     if mandate_type is None or mandate_type == "intent":
         query = db.query(IntentMandate).filter(IntentMandate.user_id == current_user.id)
+
+        # Exclude deleted mandates by default unless explicitly requested
+        if not include_deleted:
+            logger.info(f"Filtering out deleted mandates (include_deleted={include_deleted})")
+            query = query.filter(IntentMandate.status != "deleted")
+        else:
+            logger.info(f"Including deleted mandates (include_deleted={include_deleted})")
+
         if status_filter:
             query = query.filter(IntentMandate.status == status_filter)
         intent_mandates = (
@@ -607,10 +604,13 @@ async def get_ap2_stats(
 
     from ..models import CartMandate, IntentMandate, PaymentMandate
 
-    # Count mandates by type and status
+    # Count mandates by type and status (exclude deleted)
     intent_stats = (
         db.query(IntentMandate.status, func.count(IntentMandate.id).label("count"))
-        .filter(IntentMandate.user_id == current_user.id)
+        .filter(
+            IntentMandate.user_id == current_user.id,
+            IntentMandate.status != "deleted"  # Exclude deleted from stats
+        )
         .group_by(IntentMandate.status)
         .all()
     )
@@ -650,6 +650,48 @@ async def get_ap2_stats(
         "cart_mandates": {stat.status: stat.count for stat in cart_stats},
         "payment_mandates": {stat.status: stat.count for stat in payment_stats},
         "total_amount_processed": float(total_amount),
+    }
+
+
+@router.delete("/mandate/{mandate_id}")
+async def delete_mandate(
+    mandate_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Delete an Intent Mandate
+
+    This soft-deletes the mandate by setting status to 'deleted'.
+    """
+    from ..models import IntentMandate
+
+    # Get intent mandate
+    intent_mandate = (
+        db.query(IntentMandate)
+        .filter_by(id=mandate_id, user_id=current_user.id)
+        .first()
+    )
+
+    if not intent_mandate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Intent mandate not found or you don't have permission to delete it",
+        )
+
+    if intent_mandate.status == "deleted":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Intent mandate is already deleted",
+        )
+
+    # Soft delete by changing status
+    intent_mandate.status = "deleted"
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Intent mandate deleted successfully",
     }
 
 

@@ -20,7 +20,13 @@ import {
 import { useToast } from "../hooks/useToast";
 import { useOrganization } from "../contexts/OrganizationContext";
 
-const IntentMandateManager = ({ mandates, onRefresh, onCreateMandate }) => {
+const IntentMandateManager = ({
+  mandates,
+  onRefresh,
+  onCreateMandate,
+  showArchived,
+  setShowArchived
+}) => {
   const { success, error: showError } = useToast();
   const [expandedMandate, setExpandedMandate] = useState(null);
   const [filter, setFilter] = useState("all"); // 'all', 'active', 'expired', 'used'
@@ -69,6 +75,7 @@ const IntentMandateManager = ({ mandates, onRefresh, onCreateMandate }) => {
       expired: { bg: "bg-gray-100", text: "text-gray-800", icon: Clock },
       used: { bg: "bg-blue-100", text: "text-blue-800", icon: CheckCircle },
       failed: { bg: "bg-red-100", text: "text-red-800", icon: XCircle },
+      deleted: { bg: "bg-gray-100", text: "text-gray-600", icon: Trash2 },
     };
 
     const badge = badges[status] || badges.active;
@@ -165,18 +172,38 @@ const IntentMandateManager = ({ mandates, onRefresh, onCreateMandate }) => {
           </button>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredMandates.map((mandate) => (
-            <MandateCard
-              key={mandate.id}
-              mandate={mandate}
-              expanded={expandedMandate === mandate.id}
-              onToggle={() => toggleExpanded(mandate.id)}
-              onDelete={() => handleDeleteMandate(mandate.id)}
-              getStatusBadge={getStatusBadge}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-4">
+            {filteredMandates.map((mandate) => (
+              <MandateCard
+                key={mandate.id}
+                mandate={mandate}
+                expanded={expandedMandate === mandate.id}
+                onToggle={() => toggleExpanded(mandate.id)}
+                onDelete={() => handleDeleteMandate(mandate.id)}
+                getStatusBadge={getStatusBadge}
+              />
+            ))}
+          </div>
+
+          {/* Show Archived Toggle */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <label className="flex items-center space-x-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900 transition-colors">
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <span>Show archived items</span>
+              {showArchived && (
+                <span className="text-xs text-gray-500">
+                  (Including {intentMandates.filter(m => m.status === 'deleted').length} deleted)
+                </span>
+              )}
+            </label>
+          </div>
+        </>
       )}
     </div>
   );
@@ -215,17 +242,50 @@ const MandateCard = ({
                 #{mandate.id.slice(-12)}
               </span>
             </div>
-            <div className="flex items-center space-x-6 text-sm text-gray-600">
-              <div className="flex items-center space-x-1">
-                <Calendar className="w-4 h-4" />
-                <span>Created {formatDate(mandate.created_at)}</span>
+            <div className="space-y-2">
+              {/* Quick Summary */}
+              <div className="flex flex-wrap gap-3 text-sm">
+                {constraints.max_amount && (
+                  <span className="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded">
+                    <DollarSign className="w-3 h-3 mr-1" />
+                    ${parseFloat(constraints.max_amount).toFixed(0)} max
+                  </span>
+                )}
+                {constraints.monthly_limit && (
+                  <span className="inline-flex items-center px-2 py-1 bg-orange-50 text-orange-700 rounded">
+                    <DollarSign className="w-3 h-3 mr-1" />
+                    ${parseFloat(constraints.monthly_limit).toFixed(0)}/mo
+                  </span>
+                )}
+                {(constraints.merchant || (constraints.merchants && constraints.merchants.length > 0)) && (
+                  <span className="inline-flex items-center px-2 py-1 bg-purple-50 text-purple-700 rounded">
+                    <Store className="w-3 h-3 mr-1" />
+                    {constraints.merchant || constraints.merchants[0]}
+                    {constraints.merchants && constraints.merchants.length > 1 && ` +${constraints.merchants.length - 1}`}
+                  </span>
+                )}
+                {(constraints.category || (constraints.categories && constraints.categories.length > 0)) && (
+                  <span className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded">
+                    <Tag className="w-3 h-3 mr-1" />
+                    {constraints.category || constraints.categories[0]}
+                    {constraints.categories && constraints.categories.length > 1 && ` +${constraints.categories.length - 1}`}
+                  </span>
+                )}
               </div>
-              {mandate.expiration && (
+
+              {/* Dates */}
+              <div className="flex items-center space-x-6 text-sm text-gray-600">
                 <div className="flex items-center space-x-1">
-                  <Clock className="w-4 h-4" />
-                  <span>Expires {formatDate(mandate.expiration)}</span>
+                  <Calendar className="w-4 h-4" />
+                  <span>Created {formatDate(mandate.created_at)}</span>
                 </div>
-              )}
+                {mandate.expiration && (
+                  <div className="flex items-center space-x-1">
+                    <Clock className="w-4 h-4" />
+                    <span>Expires {formatDate(mandate.expiration)}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -261,26 +321,52 @@ const MandateCard = ({
             {constraints.max_amount && (
               <ConstraintItem
                 icon={<DollarSign className="w-5 h-5 text-green-600" />}
-                label="Maximum Amount"
+                label="Maximum per Transaction"
                 value={`$${parseFloat(constraints.max_amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               />
             )}
 
-            {/* Categories */}
-            {constraints.categories && constraints.categories.length > 0 && (
+            {/* Monthly Limit */}
+            {constraints.monthly_limit && (
               <ConstraintItem
-                icon={<Tag className="w-5 h-5 text-blue-600" />}
-                label="Allowed Categories"
-                value={constraints.categories.join(", ")}
+                icon={<DollarSign className="w-5 h-5 text-orange-600" />}
+                label="Monthly Spending Limit"
+                value={`$${parseFloat(constraints.monthly_limit).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               />
             )}
 
-            {/* Merchants */}
-            {constraints.merchants && constraints.merchants.length > 0 && (
+            {/* Categories (array or single) */}
+            {(constraints.categories && constraints.categories.length > 0) || constraints.category ? (
+              <ConstraintItem
+                icon={<Tag className="w-5 h-5 text-blue-600" />}
+                label="Allowed Categories"
+                value={
+                  constraints.categories
+                    ? constraints.categories.join(", ")
+                    : constraints.category
+                }
+              />
+            ) : null}
+
+            {/* Merchants (array or single) */}
+            {(constraints.merchants && constraints.merchants.length > 0) || constraints.merchant ? (
               <ConstraintItem
                 icon={<Store className="w-5 h-5 text-purple-600" />}
                 label="Allowed Merchants"
-                value={constraints.merchants.join(", ")}
+                value={
+                  constraints.merchants
+                    ? constraints.merchants.join(", ")
+                    : constraints.merchant
+                }
+              />
+            ) : null}
+
+            {/* Usage Limit */}
+            {constraints.usage_limit && (
+              <ConstraintItem
+                icon={<Target className="w-5 h-5 text-red-600" />}
+                label="Usage Limit"
+                value={`Can be used ${constraints.usage_limit} time${constraints.usage_limit > 1 ? 's' : ''}`}
               />
             )}
 
@@ -288,9 +374,9 @@ const MandateCard = ({
             {constraints.approval_required !== undefined && (
               <ConstraintItem
                 icon={<CheckCircle className="w-5 h-5 text-yellow-600" />}
-                label="Approval Required"
+                label="Approval Mode"
                 value={
-                  constraints.approval_required ? "Yes" : "No (Auto-approve)"
+                  constraints.approval_required ? "Manual Approval" : "Auto-approve"
                 }
               />
             )}
@@ -299,8 +385,8 @@ const MandateCard = ({
             {constraints.recurring && (
               <ConstraintItem
                 icon={<Clock className="w-5 h-5 text-indigo-600" />}
-                label="Recurring"
-                value={constraints.recurring}
+                label="Recurring Pattern"
+                value={constraints.recurring.charAt(0).toUpperCase() + constraints.recurring.slice(1)}
               />
             )}
 
@@ -310,10 +396,14 @@ const MandateCard = ({
                 (key) =>
                   ![
                     "max_amount",
+                    "monthly_limit",
                     "categories",
+                    "category",
                     "merchants",
+                    "merchant",
                     "approval_required",
                     "recurring",
+                    "usage_limit",
                   ].includes(key),
               )
               .map((key) => (

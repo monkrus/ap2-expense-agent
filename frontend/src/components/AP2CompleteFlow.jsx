@@ -15,7 +15,7 @@ const AP2CompleteFlow = ({ mandates }) => {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Autonomous Purchase
+          One-time Authorization
         </h2>
         <p className="text-gray-600">
           Execute one-time purchases with automatic authorization and payment
@@ -137,7 +137,7 @@ const CompleteFlowForm = ({ mandates }) => {
         <div className="flex items-start">
           <Zap className="w-5 h-5 text-purple-600 mt-0.5 mr-3 flex-shrink-0" />
           <div className="text-sm text-purple-900">
-            <p className="font-medium mb-1">Quick Autonomous Purchase</p>
+            <p className="font-medium mb-1">Quick One-time Authorization</p>
             <p>
               This flow creates a temporary authorization and executes the complete AP2 protocol in one transaction.
               Perfect for one-time purchases where you don't need ongoing approval automation.
@@ -328,7 +328,7 @@ const CompleteFlowForm = ({ mandates }) => {
         ) : (
           <>
             <Zap className="w-5 h-5 mr-2" />
-            Execute Autonomous Purchase
+            Execute One-time Authorization
           </>
         )}
       </button>
@@ -346,7 +346,7 @@ const CompleteFlowForm = ({ mandates }) => {
               <li>Executes payment (if Stripe configured)</li>
             </ol>
             <p className="mt-2 text-xs">
-              <strong>When to use:</strong> Perfect for quick autonomous purchases where you trust the AI agent to make purchases within your specified constraints without manual approval.
+              <strong>When to use:</strong> Perfect for quick one-time authorizations where you trust the AI agent to make purchases within your specified constraints without manual approval.
             </p>
           </div>
         </div>

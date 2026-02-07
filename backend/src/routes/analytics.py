@@ -318,3 +318,199 @@ async def get_analytics_summary(
         "pending_approvals": pending_count,
         "active_users": active_users,
     }
+
+
+# ============================================================================
+# Reconciliation & Reporting Endpoints
+# ============================================================================
+
+
+@router.get("/variance-report")
+async def get_variance_report(
+    request: Request,
+    period: str = Query("monthly", description="Budget period: monthly, quarterly, yearly"),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Budget vs actual variance report.
+    Shows each budget's variance with over/under status.
+    """
+    org_id = get_org_id_from_request(request)
+
+    if not verify_organization_access(current_user.id, org_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this organization",
+        )
+
+    from ..services.reconciliation_service import ReconciliationService
+
+    service = ReconciliationService(db)
+    report = service.generate_variance_report(org_id, period)
+
+    return {
+        "organization_id": report.organization_id,
+        "period": report.period,
+        "generated_at": report.generated_at,
+        "total_budgeted": report.total_budgeted,
+        "total_actual": report.total_actual,
+        "total_variance": report.total_variance,
+        "over_budget_count": report.over_budget_count,
+        "under_budget_count": report.under_budget_count,
+        "budgets": [
+            {
+                "budget_id": b.budget_id,
+                "budget_name": b.budget_name,
+                "category": b.category,
+                "period": b.period,
+                "budgeted_amount": b.budgeted_amount,
+                "actual_spending": b.actual_spending,
+                "variance_amount": b.variance_amount,
+                "variance_percentage": b.variance_percentage,
+                "status": b.status,
+            }
+            for b in report.budgets
+        ],
+    }
+
+
+@router.get("/category-reconciliation")
+async def get_category_reconciliation(
+    request: Request,
+    start_date: Optional[str] = Query(None, description="Start date (ISO format)"),
+    end_date: Optional[str] = Query(None, description="End date (ISO format)"),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Category-level reconciliation report.
+    Shows spending by category vs budgeted amounts, flags unbudgeted spending.
+    """
+    org_id = get_org_id_from_request(request)
+
+    if not verify_organization_access(current_user.id, org_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this organization",
+        )
+
+    parsed_start = datetime.fromisoformat(start_date) if start_date else None
+    parsed_end = datetime.fromisoformat(end_date) if end_date else None
+
+    from ..services.reconciliation_service import ReconciliationService
+
+    service = ReconciliationService(db)
+    report = service.generate_category_reconciliation(org_id, parsed_start, parsed_end)
+
+    return {
+        "organization_id": report.organization_id,
+        "start_date": report.start_date,
+        "end_date": report.end_date,
+        "generated_at": report.generated_at,
+        "total_budgeted": report.total_budgeted,
+        "total_actual": report.total_actual,
+        "unbudgeted_spending": report.unbudgeted_spending,
+        "categories": [
+            {
+                "category": c.category,
+                "budgeted_amount": c.budgeted_amount,
+                "actual_spending": c.actual_spending,
+                "variance_amount": c.variance_amount,
+                "variance_percentage": c.variance_percentage,
+                "expense_count": c.expense_count,
+                "is_budgeted": c.is_budgeted,
+            }
+            for c in report.categories
+        ],
+    }
+
+
+@router.get("/user-spending")
+async def get_user_spending_report(
+    request: Request,
+    period: str = Query("monthly", description="Budget period: monthly, quarterly, yearly"),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Per-user spending report.
+    Shows each user's spending, expense count, and budget comparison.
+    """
+    org_id = get_org_id_from_request(request)
+
+    if not verify_organization_access(current_user.id, org_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this organization",
+        )
+
+    from ..services.reconciliation_service import ReconciliationService
+
+    service = ReconciliationService(db)
+    report = service.generate_user_spending_report(org_id, period)
+
+    return {
+        "organization_id": report.organization_id,
+        "period": report.period,
+        "generated_at": report.generated_at,
+        "total_users": report.total_users,
+        "total_spending": report.total_spending,
+        "users": [
+            {
+                "user_id": u.user_id,
+                "user_name": u.user_name,
+                "email": u.email,
+                "expense_count": u.expense_count,
+                "total_spending": u.total_spending,
+                "budget_amount": u.budget_amount,
+                "percentage_used": u.percentage_used,
+                "avg_expense": u.avg_expense,
+            }
+            for u in report.users
+        ],
+    }
+
+
+@router.get("/budget-forecast/{budget_id}")
+async def get_budget_forecast(
+    budget_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Budget forecast based on current spending rate.
+    Projects end-of-period total and flags if projected to exceed budget.
+    """
+    org_id = get_org_id_from_request(request)
+
+    if not verify_organization_access(current_user.id, org_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this organization",
+        )
+
+    from ..services.reconciliation_service import ReconciliationService
+
+    service = ReconciliationService(db)
+    forecast = service.get_budget_forecast(budget_id)
+
+    if not forecast:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Budget not found",
+        )
+
+    return {
+        "budget_id": forecast.budget_id,
+        "budget_name": forecast.budget_name,
+        "budget_amount": forecast.budget_amount,
+        "current_spending": forecast.current_spending,
+        "daily_spending_rate": forecast.daily_spending_rate,
+        "days_elapsed": forecast.days_elapsed,
+        "days_remaining": forecast.days_remaining,
+        "projected_end_spending": forecast.projected_end_spending,
+        "projected_variance": forecast.projected_variance,
+        "projected_status": forecast.projected_status,
+    }

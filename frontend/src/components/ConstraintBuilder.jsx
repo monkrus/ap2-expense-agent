@@ -35,7 +35,6 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
     merchants: [],
     recurring: "",
     expirationDateTime: getDefaultExpiration(),
-    approvalRequired: false, // false = auto-approve
   });
 
   const [categoryInput, setCategoryInput] = useState("");
@@ -67,22 +66,24 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
     e.preventDefault();
     setLoading(true);
 
-    // Build constraints object
-    const constraints = {
-      max_amount: parseFloat(formData.maxAmount) || null,
-      categories: formData.categories.length > 0 ? formData.categories : null,
-      merchants: formData.merchants.length > 0 ? formData.merchants : null,
-      approval_required: formData.approvalRequired,
-    };
+    // Build constraints object (only include non-empty values)
+    const constraints = {};
+
+    if (formData.maxAmount) {
+      constraints.max_amount = parseFloat(formData.maxAmount);
+    }
+
+    if (formData.categories && formData.categories.length > 0) {
+      constraints.categories = formData.categories;
+    }
+
+    if (formData.merchants && formData.merchants.length > 0) {
+      constraints.merchants = formData.merchants;
+    }
 
     if (formData.recurring) {
       constraints.recurring = formData.recurring;
     }
-
-    // Remove null values (but keep approval_required even if false)
-    Object.keys(constraints).forEach((key) => {
-      if (constraints[key] === null) delete constraints[key];
-    });
 
     try {
       // Calculate hours from the selected datetime
@@ -274,43 +275,6 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   The mandate will automatically expire at this date and time in your local timezone.
-                </p>
-              </div>
-
-              {/* Approval Required */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <CheckCircle className="w-4 h-4 inline mr-1" />
-                  Approval Mode
-                </label>
-                <div className="flex items-center space-x-4">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="approvalRequired"
-                      checked={!formData.approvalRequired}
-                      onChange={() =>
-                        setFormData({ ...formData, approvalRequired: false })
-                      }
-                      className="w-4 h-4 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-sm text-gray-700">Auto-approve (Recommended)</span>
-                  </label>
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="approvalRequired"
-                      checked={formData.approvalRequired}
-                      onChange={() =>
-                        setFormData({ ...formData, approvalRequired: true })
-                      }
-                      className="w-4 h-4 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-sm text-gray-700">Require manual approval</span>
-                  </label>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Auto-approve allows the AI agent to process expenses automatically within constraints.
                 </p>
               </div>
 
@@ -525,14 +489,6 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                     timeZoneName: "short",
                   })}
                   icon={<Calendar className="w-5 h-5 text-blue-600" />}
-                />
-
-                <ReviewItem
-                  label="Approval Required"
-                  value={
-                    formData.approvalRequired ? "Yes" : "No (Auto-approve)"
-                  }
-                  icon={<CheckCircle className="w-5 h-5 text-yellow-600" />}
                 />
 
                 {formData.categories.length > 0 && (

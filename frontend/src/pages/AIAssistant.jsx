@@ -27,16 +27,20 @@ const AIAssistant = () => {
   const { user } = useAuth();
   const { success, error: showError } = useToast();
 
+  // Check if user is admin
+  const isAdmin = user?.role === "admin";
+
   const [activeView, setActiveView] = useState("overview"); // 'overview', 'mandates', 'activity', 'flow'
   const [mandates, setMandates] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreateMandate, setShowCreateMandate] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Fetch AP2 stats and mandates
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [showArchived]);
 
   const fetchData = async () => {
     try {
@@ -54,11 +58,14 @@ const AIAssistant = () => {
       }
 
       // Fetch user's mandates
-      const mandatesResponse = await fetch("/api/ap2/user/mandates?limit=50", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      });
+      const mandatesResponse = await fetch(
+        `/api/ap2/user/mandates?limit=50&include_deleted=${showArchived}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+        }
+      );
       if (mandatesResponse.ok) {
         const mandatesData = await mandatesResponse.json();
         setMandates(mandatesData.mandates || []);
@@ -91,7 +98,9 @@ const AIAssistant = () => {
             <div>
               <h1 className="text-3xl font-bold">AP2 Automation</h1>
               <p className="text-purple-100 mt-1">
-                Autonomous expense approvals using Agent Payments Protocol
+                {isAdmin
+                  ? "Manage automated expense approval policies using Agent Payments Protocol"
+                  : "Your expenses are automatically approved based on admin-defined policies"}
               </p>
             </div>
           </div>
@@ -166,16 +175,19 @@ const AIAssistant = () => {
             >
               Overview
             </button>
-            <button
-              onClick={() => setActiveView("mandates")}
-              className={`px-4 py-3 font-medium transition-colors ${
-                activeView === "mandates"
-                  ? "text-white border-b-2 border-white"
-                  : "text-purple-200 hover:text-white"
-              }`}
-            >
-              Reusable Authorizations
-            </button>
+            {/* Reusable Authorizations - Admin Only */}
+            {isAdmin && (
+              <button
+                onClick={() => setActiveView("mandates")}
+                className={`px-4 py-3 font-medium transition-colors ${
+                  activeView === "mandates"
+                    ? "text-white border-b-2 border-white"
+                    : "text-purple-200 hover:text-white"
+                }`}
+              >
+                Reusable Authorizations
+              </button>
+            )}
             <button
               onClick={() => setActiveView("activity")}
               className={`px-4 py-3 font-medium transition-colors ${
@@ -186,16 +198,19 @@ const AIAssistant = () => {
             >
               Activity
             </button>
-            <button
-              onClick={() => setActiveView("flow")}
-              className={`px-4 py-3 font-medium transition-colors ${
-                activeView === "flow"
-                  ? "text-white border-b-2 border-white"
-                  : "text-purple-200 hover:text-white"
-              }`}
-            >
-              Autonomous Purchase
-            </button>
+            {/* One-time Authorization - Admin Only */}
+            {isAdmin && (
+              <button
+                onClick={() => setActiveView("flow")}
+                className={`px-4 py-3 font-medium transition-colors ${
+                  activeView === "flow"
+                    ? "text-white border-b-2 border-white"
+                    : "text-purple-200 hover:text-white"
+                }`}
+              >
+                One-time Authorization
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -213,14 +228,18 @@ const AIAssistant = () => {
                 mandates={mandates}
                 stats={stats}
                 onCreateMandate={() => setShowCreateMandate(true)}
+                isAdmin={isAdmin}
               />
             )}
 
-            {activeView === "mandates" && (
+            {/* Reusable Authorizations - Admin Only */}
+            {activeView === "mandates" && isAdmin && (
               <IntentMandateManager
                 mandates={mandates}
                 onRefresh={fetchData}
                 onCreateMandate={() => setShowCreateMandate(true)}
+                showArchived={showArchived}
+                setShowArchived={setShowArchived}
               />
             )}
 
@@ -228,7 +247,8 @@ const AIAssistant = () => {
               <AgentActivityMonitor mandates={mandates} stats={stats} />
             )}
 
-            {activeView === "flow" && <AP2CompleteFlow mandates={mandates} />}
+            {/* One-time Authorization - Admin Only */}
+            {activeView === "flow" && isAdmin && <AP2CompleteFlow mandates={mandates} />}
           </>
         )}
       </div>
@@ -249,7 +269,7 @@ const AIAssistant = () => {
 };
 
 // Overview View Component
-const OverviewView = ({ mandates, stats, onCreateMandate }) => {
+const OverviewView = ({ mandates, stats, onCreateMandate, isAdmin }) => {
   const activeIntentMandates = mandates.filter(
     (m) => m.type === "intent" && m.status === "active",
   );
@@ -268,11 +288,21 @@ const OverviewView = ({ mandates, stats, onCreateMandate }) => {
               </h2>
             </div>
             <p className="text-purple-100 mb-6 max-w-2xl">
-              Automate expense approvals two ways: Create <strong>Reusable Authorizations</strong> for ongoing purchases,
-              or use <strong>Complete Flow</strong> for quick one-time autonomous payments.
-              Save hours of manual work every week with AP2 protocol automation.
+              {isAdmin ? (
+                <>
+                  Automate expense approvals: Create <strong>Reusable Authorizations</strong> (policies) for automatic approvals,
+                  or use <strong>One-time Authorizations</strong> for quick single purchases.
+                  Save hours of manual work every week with AP2 protocol automation.
+                </>
+              ) : (
+                <>
+                  Your expenses are automatically approved or denied based on policies set by your admin.
+                  Check the Activity tab to see your expense status and approval history.
+                </>
+              )}
             </p>
-            {activeIntentMandates.length === 0 && (
+            {/* Create button - Admin Only */}
+            {isAdmin && activeIntentMandates.length === 0 && (
               <button
                 onClick={onCreateMandate}
                 className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-colors flex items-center space-x-2"
@@ -310,12 +340,12 @@ const OverviewView = ({ mandates, stats, onCreateMandate }) => {
         />
       </div>
 
-      {/* Active Mandates */}
+      {/* Active Mandates/Policies */}
       {activeIntentMandates.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">
-              Active Reusable Authorizations
+              {isAdmin ? "Active Reusable Authorizations" : "Active Approval Policies"}
             </h3>
             <span className="text-sm text-gray-500">
               {activeIntentMandates.length} active
@@ -344,7 +374,11 @@ const OverviewView = ({ mandates, stats, onCreateMandate }) => {
           ) : (
             <div className="px-6 py-12 text-center text-gray-500">
               <Activity className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p>No activity yet. Create a Reusable Authorization or use Complete Flow to get started!</p>
+              <p>
+                {isAdmin
+                  ? "No activity yet. Create a Reusable Authorization to enable automatic expense approvals!"
+                  : "No activity yet. Submit an expense to see it automatically processed based on admin policies."}
+              </p>
             </div>
           )}
         </div>

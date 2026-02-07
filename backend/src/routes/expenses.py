@@ -244,6 +244,49 @@ async def create_expense(
             detail=f"Duplicate submission detected. An identical expense was just submitted {int((datetime.utcnow() - recent_duplicate.created_at).total_seconds())} seconds ago. Please wait before submitting again."
         )
 
+    # =====================================================================
+    # BUDGET GUARDIAN EVALUATION (proactive budget enforcement)
+    # =====================================================================
+    budget_warnings = []
+    try:
+        from ..services.budget_guardian_service import BudgetGuardianService
+
+        guardian = BudgetGuardianService(db)
+        category_value = data.category.value if hasattr(data.category, 'value') else str(data.category)
+        guardian_result = guardian.evaluate_expense(
+            expense_amount=data.amount,
+            organization_id=org_id,
+            category=category_value,
+            user_id=current_user.id,
+            hard_block=False,  # Soft enforcement: warn but don't block
+        )
+        budget_warnings = guardian_result.warnings
+
+        if not guardian_result.allowed:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "message": "Expense blocked by budget guardian",
+                    "blocks": guardian_result.blocks,
+                    "budget_impacts": [
+                        {
+                            "budget_name": i.budget_name,
+                            "budget_amount": i.budget_amount,
+                            "current_spending": i.current_spending,
+                            "proposed_total": i.proposed_total,
+                            "percentage_after": i.percentage_after,
+                        }
+                        for i in guardian_result.budget_impacts
+                    ],
+                }
+            )
+    except HTTPException:
+        raise
+    except ImportError:
+        logger.debug("Budget guardian service not available")
+    except Exception as e:
+        logger.error(f"Budget guardian evaluation failed (non-blocking): {e}")
+
     # Create expense with PENDING status initially
     expense = Expense(
         id=str(uuid.uuid4()),
@@ -504,7 +547,7 @@ async def create_expense(
         # Log error but don't fail the request
         logger.error(f"Failed to create admin notifications: {str(e)}", exc_info=True)
 
-    return {
+    response = {
         "id": expense.id,
         "amount": expense.amount,
         "vendor": expense.vendor,
@@ -516,6 +559,9 @@ async def create_expense(
         "auto_approved": False,
         "message": "Expense submitted for manual approval"
     }
+    if budget_warnings:
+        response["budget_warnings"] = budget_warnings
+    return response
 
 
 @router.get("")

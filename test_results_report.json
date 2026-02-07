@@ -1,0 +1,40 @@
+{
+  "report_date": "2026-02-05",
+  "execution_time_seconds": 187,
+  "overall_statistics": {
+    "total_tests": 451,
+    "passed": 409,
+    "failed": 12,
+    "skipped": 26,
+    "errors": 4,
+    "pass_rate_percent": 90.2
+  },
+  "critical_features": {
+    "authentication": {
+      "status": "PASSED",
+      "count": "32/32",
+      "tests": [
+        "Login",
+        "Logout",
+        "Token refresh",
+        "Password hashing",
+        "JWT validation"
+      ]
+    },
+    "ap2_automation": {
+      "status": "PASSED",
+      "count": "38/38",
+      "intent_mandate_custom_categories": "ACCEPTED_NO_VALIDATION",
+      "include_deleted_parameter": "VERIFIED",
+      "constraint_validation": "max_amount > 0, monthly_limit >= max_amount"
+    },
+    "permissions": {
+      "status": "PASSED",
+      "count": "66/66"
+    },
+    "billing": {
+      "status": "PASSED",
+      "count": "19/19"
+    }
+  }
+}

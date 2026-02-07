@@ -43,11 +43,23 @@ class StripePaymentProcessor:
         Returns:
             Payment result with transaction details
         """
+        # TEST MODE: Bypass Stripe for testing
+        if settings.stripe_test_mode:
+            return {
+                "success": True,
+                "transaction_id": f"test_txn_{payment_mandate.id[:8]}",
+                "status": "succeeded",
+                "amount": amount,
+                "currency": currency,
+                "created": datetime.utcnow().isoformat(),
+                "test_mode": True,
+            }
+
         if not settings.stripe_secret_key:
             return {
                 "success": False,
                 "error": "stripe_not_configured",
-                "message": "Stripe is not configured. Set STRIPE_SECRET_KEY environment variable.",
+                "message": "Stripe is not configured. Set STRIPE_SECRET_KEY or enable STRIPE_TEST_MODE.",
             }
 
         try:

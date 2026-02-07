@@ -356,6 +356,120 @@ def list_budgets(
     return budget_responses
 
 
+# ============================================================================
+# Budget Guardian Endpoints (must be before /{budget_id} routes)
+# ============================================================================
+
+
+class BudgetEvaluateRequest(BaseModel):
+    amount: float = Field(..., gt=0)
+    category: Optional[str] = None
+    user_id: Optional[str] = None
+
+
+@router.get("/health")
+def budget_health_check(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get health status for all active budgets in the organization.
+    Returns on_track/warning/critical/exceeded status for each budget.
+    """
+    org_id = get_user_organization(db, current_user.id)
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is not a member of any organization",
+        )
+
+    from src.services.budget_guardian_service import BudgetGuardianService
+
+    guardian = BudgetGuardianService(db)
+    reports = guardian.check_all_budgets(org_id)
+
+    return {
+        "organization_id": org_id,
+        "budget_count": len(reports),
+        "budgets": [
+            {
+                "budget_id": r.budget_id,
+                "budget_name": r.budget_name,
+                "period": r.period,
+                "category": r.category,
+                "budget_amount": r.budget_amount,
+                "current_spending": r.current_spending,
+                "remaining": r.remaining,
+                "percentage_used": r.percentage_used,
+                "status": r.status,
+                "days_remaining": r.days_remaining,
+                "projected_end_spending": r.projected_end_spending,
+            }
+            for r in reports
+        ],
+        "summary": {
+            "on_track": sum(1 for r in reports if r.status == "on_track"),
+            "warning": sum(1 for r in reports if r.status == "warning"),
+            "critical": sum(1 for r in reports if r.status == "critical"),
+            "exceeded": sum(1 for r in reports if r.status == "exceeded"),
+        },
+    }
+
+
+@router.post("/evaluate")
+def evaluate_budget_impact(
+    data: BudgetEvaluateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Preview budget impact of a hypothetical expense.
+    Returns warnings, blocks, and per-budget impact analysis.
+    """
+    org_id = get_user_organization(db, current_user.id)
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is not a member of any organization",
+        )
+
+    from src.services.budget_guardian_service import BudgetGuardianService
+
+    guardian = BudgetGuardianService(db)
+    result = guardian.evaluate_expense(
+        expense_amount=data.amount,
+        organization_id=org_id,
+        category=data.category,
+        user_id=data.user_id or current_user.id,
+        hard_block=False,
+    )
+
+    return {
+        "allowed": result.allowed,
+        "warnings": result.warnings,
+        "blocks": result.blocks,
+        "budget_impacts": [
+            {
+                "budget_id": i.budget_id,
+                "budget_name": i.budget_name,
+                "budget_amount": i.budget_amount,
+                "current_spending": i.current_spending,
+                "proposed_total": i.proposed_total,
+                "percentage_before": i.percentage_before,
+                "percentage_after": i.percentage_after,
+                "status_before": i.status_before,
+                "status_after": i.status_after,
+            }
+            for i in result.budget_impacts
+        ],
+    }
+
+
+# ============================================================================
+# Individual Budget Endpoints
+# ============================================================================
+
+
 @router.get("/{budget_id}", response_model=BudgetResponse)
 def get_budget(
     budget_id: str,
