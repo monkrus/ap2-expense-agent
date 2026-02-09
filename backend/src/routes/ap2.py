@@ -129,6 +129,60 @@ class RevokeMandateRequest(BaseModel):
     revoke_dependents: bool = True
 
 
+def _validate_complete_flow_request(data: CompleteAP2FlowRequest):
+    """Validate complete-flow request data before processing."""
+    # Validate merchant is not empty
+    if not data.merchant or not data.merchant.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Merchant name is required and cannot be empty",
+        )
+
+    # Validate merchant length
+    if len(data.merchant) > 255:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Merchant name cannot exceed 255 characters",
+        )
+
+    # Validate items is not empty
+    if not data.items or len(data.items) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least one item is required",
+        )
+
+    # Validate each item
+    for i, item in enumerate(data.items):
+        if "amount" not in item:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Item {i + 1} is missing the 'amount' field",
+            )
+        try:
+            amount = float(item["amount"])
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Item {i + 1} has an invalid amount",
+            )
+        if amount <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Item {i + 1} amount must be greater than zero",
+            )
+        if not item.get("description") or not str(item["description"]).strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Item {i + 1} is missing a description",
+            )
+        if len(str(item.get("description", ""))) > 500:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Item {i + 1} description cannot exceed 500 characters",
+            )
+
+
 # AP2 Protocol endpoints
 @router.post("/intent-mandate")
 async def create_intent_mandate(
@@ -150,16 +204,66 @@ async def create_intent_mandate(
     # VALIDATION: Validate constraints before creating mandate
     constraints = request.constraints or {}
 
-    # 1. Validate max_amount is positive
-    max_amount = constraints.get("max_amount")
-    if max_amount is not None and max_amount <= 0:
+    # Reject missing max_amount - every mandate must have a spending cap
+    if not constraints or not constraints.get("max_amount"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Constraint validation error: max_amount must be greater than zero"
+            detail="Constraints must include max_amount (maximum amount per transaction)"
         )
 
-    # 2. Validate monthly_limit >= max_amount
+    # Reject missing monthly_limit - every mandate must have a monthly spending cap
+    if not constraints.get("monthly_limit"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Constraints must include monthly_limit (total monthly spending cap)"
+        )
+
+    # Require at least one category restriction
+    has_category = bool(constraints.get("categories") or constraints.get("category"))
+    if not has_category:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Constraints must include at least one category"
+        )
+
+    # 0. Validate expiration_hours is positive
+    if request.expiration_hours is not None and request.expiration_hours <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Constraint validation error: expiration_hours must be greater than zero"
+        )
+
+    # 1. Validate max_amount is numeric and positive
+    max_amount = constraints.get("max_amount")
+    if max_amount is not None:
+        try:
+            max_amount = float(max_amount)
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Constraint validation error: max_amount must be a number"
+            )
+        if max_amount <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Constraint validation error: max_amount must be greater than zero"
+            )
+
+    # 2. Validate monthly_limit is numeric and >= max_amount
     monthly_limit = constraints.get("monthly_limit")
+    if monthly_limit is not None:
+        try:
+            monthly_limit = float(monthly_limit)
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Constraint validation error: monthly_limit must be a number"
+            )
+        if monthly_limit <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Constraint validation error: monthly_limit must be greater than zero"
+            )
     if monthly_limit is not None and max_amount is not None:
         if monthly_limit < max_amount:
             raise HTTPException(
@@ -381,6 +485,9 @@ async def complete_ap2_flow(
     Use this for simple payment flows. For complex flows with user approvals,
     use individual endpoints.
     """
+    # Validate request data before processing
+    _validate_complete_flow_request(data)
+
     # CRITICAL: Check AP2 transaction limit BEFORE processing (FREE TIER ENFORCEMENT)
     from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
     from ..models import OrganizationMember
@@ -531,10 +638,10 @@ async def get_user_mandates(
                     "timestamp": mandate.timestamp,
                     "expiration": mandate.expiration,
                     "created_at": mandate.created_at,
-                    "merchant": constraints.get("merchant") or constraints.get("merchants", [None])[0] if isinstance(constraints.get("merchants"), list) else None,
+                    "merchant": constraints.get("merchant") or (constraints.get("merchants", [None])[0] if isinstance(constraints.get("merchants"), list) else None),
                     "max_amount": constraints.get("max_amount"),
                     "monthly_limit": constraints.get("monthly_limit"),
-                    "category": constraints.get("category") or constraints.get("categories", [None])[0] if isinstance(constraints.get("categories"), list) else None,
+                    "category": constraints.get("category") or (constraints.get("categories", [None])[0] if isinstance(constraints.get("categories"), list) else None),
                     "constraints": constraints,
                 }
             )
@@ -576,12 +683,16 @@ async def get_user_mandates(
         )
 
         for mandate in payment_mandates:
+            # Include total from parent cart mandate
+            cart = db.query(CartMandate).filter_by(id=mandate.cart_mandate_id).first()
             results.append(
                 {
                     "type": "payment",
                     "id": mandate.id,
                     "status": mandate.status,
                     "payment_method": mandate.payment_method,
+                    "total": float(cart.total) if cart else None,
+                    "merchant": cart.merchant if cart else None,
                     "timestamp": mandate.timestamp,
                     "created_at": mandate.created_at,
                 }
@@ -740,6 +851,13 @@ async def revoke_intent_mandate(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Intent mandate is already revoked",
+        )
+
+    # Validate reason is not empty
+    if not request.reason or not request.reason.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A revocation reason is required for audit compliance",
         )
 
     # Revoke intent mandate

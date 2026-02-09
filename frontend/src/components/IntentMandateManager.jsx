@@ -29,7 +29,7 @@ const IntentMandateManager = ({
 }) => {
   const { success, error: showError } = useToast();
   const [expandedMandate, setExpandedMandate] = useState(null);
-  const [filter, setFilter] = useState("all"); // 'all', 'active', 'expired', 'used'
+  const [filter, setFilter] = useState("all"); // 'all', 'active', 'expired', 'revoked'
 
   // Filter mandates to show only intent type
   const intentMandates = mandates.filter((m) => m.type === "intent");
@@ -41,7 +41,7 @@ const IntentMandateManager = ({
   });
 
   const handleDeleteMandate = async (mandateId) => {
-    if (!confirm("Are you sure you want to delete this Intent Mandate?")) {
+    if (!confirm("Are you sure you want to delete this authorization?")) {
       return;
     }
 
@@ -54,13 +54,45 @@ const IntentMandateManager = ({
       });
 
       if (response.ok) {
-        success("Intent Mandate deleted successfully");
+        success("Authorization deleted successfully");
         onRefresh();
       } else {
-        throw new Error("Failed to delete mandate");
+        throw new Error("Failed to delete");
       }
     } catch (err) {
-      showError("Failed to delete Intent Mandate");
+      showError("Failed to delete authorization");
+      console.error(err);
+    }
+  };
+
+  const handleRevokeMandate = async (mandateId) => {
+    const reason = prompt("Please provide a reason for revoking this authorization (required for audit):");
+    if (!reason || !reason.trim()) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/ap2/intent-mandate/${mandateId}/revoke`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify({
+          reason: reason.trim(),
+          revoke_dependents: true,
+        }),
+      });
+
+      if (response.ok) {
+        success("Authorization revoked successfully");
+        onRefresh();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Failed to revoke");
+      }
+    } catch (err) {
+      showError(err.message || "Failed to revoke authorization");
       console.error(err);
     }
   };
@@ -73,12 +105,12 @@ const IntentMandateManager = ({
     const badges = {
       active: { bg: "bg-green-100", text: "text-green-800", icon: CheckCircle },
       expired: { bg: "bg-gray-100", text: "text-gray-800", icon: Clock },
-      used: { bg: "bg-blue-100", text: "text-blue-800", icon: CheckCircle },
+      revoked: { bg: "bg-orange-100", text: "text-orange-800", icon: XCircle },
       failed: { bg: "bg-red-100", text: "text-red-800", icon: XCircle },
       deleted: { bg: "bg-gray-100", text: "text-gray-600", icon: Trash2 },
     };
 
-    const badge = badges[status] || badges.active;
+    const badge = badges[status] || { bg: "bg-gray-100", text: "text-gray-800", icon: AlertCircle };
     const Icon = badge.icon;
 
     return (
@@ -106,7 +138,7 @@ const IntentMandateManager = ({
           className="bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center space-x-2"
         >
           <Plus className="w-5 h-5" />
-          <span>New Mandate</span>
+          <span>New Authorization</span>
         </button>
       </div>
 
@@ -117,11 +149,11 @@ const IntentMandateManager = ({
           <div className="text-sm text-blue-900">
             <p className="font-medium mb-1">Standing Authorizations for Ongoing Automation</p>
             <p>
-              Create reusable Intent Mandates that your AI agent can use multiple times.
+              Create reusable authorizations that your AI agent can use multiple times.
               Perfect for recurring purchases like monthly software subscriptions, office supplies, or regular travel expenses.
             </p>
             <p className="mt-2 text-xs">
-              <strong>Need a one-time purchase?</strong> Use the "Payment Flow" tab → "Complete Flow" for quick autonomous purchases without setting up ongoing authorization.
+              <strong>Need a one-time purchase?</strong> Use the "One-time Authorization" tab for quick autonomous purchases without setting up ongoing authorization.
             </p>
           </div>
         </div>
@@ -129,7 +161,7 @@ const IntentMandateManager = ({
 
       {/* Filter Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1 inline-flex space-x-1">
-        {["all", "active", "expired", "used"].map((filterOption) => (
+        {["all", "active", "expired", "revoked"].map((filterOption) => (
           <button
             key={filterOption}
             onClick={() => setFilter(filterOption)}
@@ -158,53 +190,49 @@ const IntentMandateManager = ({
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
           <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            No Reusable Authorizations Yet
+            No Reusable Authorizations Found
           </h3>
-          <p className="text-gray-600 mb-6 max-w-md mx-auto">
-            Create your first reusable authorization to enable ongoing automatic expense approvals by your AI agent.
+          <p className="text-gray-600 max-w-md mx-auto">
+            {filter === "all"
+              ? "Create your first reusable authorization using the button above."
+              : `No authorizations with "${filter}" status.`}
           </p>
-          <button
-            onClick={onCreateMandate}
-            className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors inline-flex items-center space-x-2"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Create Reusable Authorization</span>
-          </button>
         </div>
       ) : (
-        <>
-          <div className="space-y-4">
-            {filteredMandates.map((mandate) => (
-              <MandateCard
-                key={mandate.id}
-                mandate={mandate}
-                expanded={expandedMandate === mandate.id}
-                onToggle={() => toggleExpanded(mandate.id)}
-                onDelete={() => handleDeleteMandate(mandate.id)}
-                getStatusBadge={getStatusBadge}
-              />
-            ))}
-          </div>
-
-          {/* Show Archived Toggle */}
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <label className="flex items-center space-x-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900 transition-colors">
-              <input
-                type="checkbox"
-                checked={showArchived}
-                onChange={(e) => setShowArchived(e.target.checked)}
-                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-              />
-              <span>Show archived items</span>
-              {showArchived && (
-                <span className="text-xs text-gray-500">
-                  (Including {intentMandates.filter(m => m.status === 'deleted').length} deleted)
-                </span>
-              )}
-            </label>
-          </div>
-        </>
+        <div className="space-y-4">
+          {filteredMandates.map((mandate) => (
+            <MandateCard
+              key={mandate.id}
+              mandate={mandate}
+              expanded={expandedMandate === mandate.id}
+              onToggle={() => toggleExpanded(mandate.id)}
+              onDelete={() => handleDeleteMandate(mandate.id)}
+              onRevoke={() => handleRevokeMandate(mandate.id)}
+              getStatusBadge={getStatusBadge}
+            />
+          ))}
+        </div>
       )}
+
+      {/* Show Archived Toggle - always visible */}
+      <div className="mt-6 pt-4 border-t border-gray-200">
+        <label className="flex items-center space-x-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900 transition-colors">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+          />
+          <span>Show archived items</span>
+          {showArchived && (
+            <span className="text-xs text-gray-500">
+              (Including{" "}
+              {intentMandates.filter(m => m.status === 'deleted' || m.status === 'revoked').length}{" "}
+              deleted/revoked)
+            </span>
+          )}
+        </label>
+      </div>
     </div>
   );
 };
@@ -215,6 +243,7 @@ const MandateCard = ({
   expanded,
   onToggle,
   onDelete,
+  onRevoke,
   getStatusBadge,
 }) => {
   const { formatDate, timezone } = useOrganization();
@@ -289,13 +318,25 @@ const MandateCard = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            {mandate.status === "active" && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRevoke();
+                }}
+                className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                title="Revoke authorization"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete();
               }}
               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Delete mandate"
+              title="Delete"
             >
               <Trash2 className="w-5 h-5" />
             </button>

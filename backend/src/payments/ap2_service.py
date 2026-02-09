@@ -429,28 +429,15 @@ class AP2PaymentService:
         Returns:
             Complete flow result
         """
-        # BUGFIX: Track AP2 transaction usage (was only tracked in API endpoints)
-        # This ensures usage is tracked even when called directly from expense approval
-        from ..billing.usage_tracker import UsageTracker
-
-        try:
-            tracker = UsageTracker(self.db)
-            tracker.track_usage(
-                user_id=user_id,
-                usage_type="ap2_transaction",
-                quantity=1,
-                metadata={"merchant": merchant, "source": "complete_ap2_flow"}
-            )
-            logger.info(f"Tracked AP2 transaction usage for user {user_id}")
-        except Exception as e:
-            # Log error but don't fail the payment flow
-            logger.error(f"Failed to track AP2 transaction usage: {str(e)}")
+        # NOTE: Usage tracking is handled by the route handler in ap2.py
+        # Do NOT track here to avoid double-counting
 
         # Auto-generate constraints if not provided
         if not constraints:
             total = sum(item.get("amount", 0) for item in items)
+            import math
             constraints = {
-                "max_amount": total * 1.1,  # 10% buffer
+                "max_amount": math.ceil(total * 1.05 * 100) / 100,  # 5% buffer (matches frontend)
                 "merchant": merchant,
                 "approval_required": False,
             }

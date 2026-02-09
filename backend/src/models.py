@@ -776,6 +776,8 @@ class IntentMandate(Base):
     expiration = Column(DateTime, nullable=False)
     signature = Column(Text, nullable=True)
     status = Column(String(50), nullable=False, default="active", index=True)
+    revoked_at = Column(DateTime, nullable=True)
+    revocation_reason = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
@@ -801,6 +803,8 @@ class CartMandate(Base):
     timestamp = Column(DateTime, nullable=False)
     user_signature = Column(Text, nullable=False)
     status = Column(String(50), nullable=False, default="pending")
+    revoked_at = Column(DateTime, nullable=True)
+    revocation_reason = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
@@ -825,6 +829,8 @@ class PaymentMandate(Base):
     audit_trail = Column(Text, nullable=False)  # JSON stored as text
     timestamp = Column(DateTime, nullable=False)
     payment_processor_response = Column(Text, nullable=True)  # JSON stored as text
+    revoked_at = Column(DateTime, nullable=True)
+    revocation_reason = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 

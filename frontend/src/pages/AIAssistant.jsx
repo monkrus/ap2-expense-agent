@@ -4,7 +4,6 @@ import {
   Zap,
   Shield,
   TrendingUp,
-  Plus,
   Settings,
   CheckCircle,
   XCircle,
@@ -15,7 +14,6 @@ import {
   Activity,
   Target,
 } from "lucide-react";
-import { expenseAPI, APIError } from "../services/api";
 import { useToast } from "../hooks/useToast";
 import { useAuth } from "../contexts/AuthContext";
 import IntentMandateManager from "../components/IntentMandateManager";
@@ -55,6 +53,8 @@ const AIAssistant = () => {
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
         setStats(statsData);
+      } else if (statsResponse.status !== 404) {
+        console.warn("Failed to fetch AP2 stats:", statsResponse.status);
       }
 
       // Fetch user's mandates
@@ -69,6 +69,9 @@ const AIAssistant = () => {
       if (mandatesResponse.ok) {
         const mandatesData = await mandatesResponse.json();
         setMandates(mandatesData.mandates || []);
+      } else {
+        console.warn("Failed to fetch mandates:", mandatesResponse.status);
+        showError("Failed to load mandate data");
       }
     } catch (err) {
       console.error("Error fetching AP2 data:", err);
@@ -78,13 +81,15 @@ const AIAssistant = () => {
     }
   };
 
-  // Calculate active mandates count
-  const activeMandatesCount = mandates.filter(
-    (m) => m.type === "intent" && m.status === "active",
-  ).length;
+  // Use stats endpoint for accurate count (not limited by mandate list size)
+  const activeMandatesCount = stats?.intent_mandates?.active
+    ?? mandates.filter((m) => m.type === "intent" && m.status === "active").length;
 
   // Calculate total processed amount
   const totalProcessed = stats?.total_amount_processed || 0;
+
+  // Completed payments count
+  const completedPayments = stats?.payment_mandates?.completed || 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -110,7 +115,7 @@ const AIAssistant = () => {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm">Active Mandates</p>
+                  <p className="text-purple-100 text-sm">Active Authorizations</p>
                   <p className="text-2xl font-bold mt-1">
                     {activeMandatesCount}
                   </p>
@@ -140,7 +145,7 @@ const AIAssistant = () => {
                 <div>
                   <p className="text-purple-100 text-sm">Completed Payments</p>
                   <p className="text-2xl font-bold mt-1">
-                    {stats?.payment_mandates?.completed || 0}
+                    {completedPayments}
                   </p>
                 </div>
                 <CheckCircle className="w-8 h-8 text-green-300" />
@@ -150,12 +155,10 @@ const AIAssistant = () => {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm">Time Saved</p>
+                  <p className="text-purple-100 text-sm">Automated</p>
                   <p className="text-2xl font-bold mt-1">
-                    {Math.round(
-                      (stats?.payment_mandates?.completed || 0) * 2.5,
-                    )}{" "}
-                    min
+                    {completedPayments}{" "}
+                    <span className="text-sm font-normal text-purple-200">txns</span>
                   </p>
                 </div>
                 <Zap className="w-8 h-8 text-yellow-300" />
@@ -227,7 +230,6 @@ const AIAssistant = () => {
               <OverviewView
                 mandates={mandates}
                 stats={stats}
-                onCreateMandate={() => setShowCreateMandate(true)}
                 isAdmin={isAdmin}
               />
             )}
@@ -260,7 +262,7 @@ const AIAssistant = () => {
           onSuccess={() => {
             setShowCreateMandate(false);
             fetchData();
-            success("Intent Mandate created successfully!");
+            success("Reusable Authorization created successfully!");
           }}
         />
       )}
@@ -269,11 +271,14 @@ const AIAssistant = () => {
 };
 
 // Overview View Component
-const OverviewView = ({ mandates, stats, onCreateMandate, isAdmin }) => {
+const OverviewView = ({ mandates, stats, isAdmin }) => {
   const activeIntentMandates = mandates.filter(
     (m) => m.type === "intent" && m.status === "active",
   );
-  const recentActivity = mandates.slice(0, 5);
+  // Show cart and payment mandates as activity (not intent mandates which are already shown above)
+  const recentActivity = mandates
+    .filter((m) => m.type === "cart" || m.type === "payment")
+    .slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -301,16 +306,6 @@ const OverviewView = ({ mandates, stats, onCreateMandate, isAdmin }) => {
                 </>
               )}
             </p>
-            {/* Create button - Admin Only */}
-            {isAdmin && activeIntentMandates.length === 0 && (
-              <button
-                onClick={onCreateMandate}
-                className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-colors flex items-center space-x-2"
-              >
-                <Plus className="w-5 h-5" />
-                <span>Create Reusable Authorization</span>
-              </button>
-            )}
           </div>
           <div className="hidden lg:block">
             <Bot className="w-32 h-32 text-purple-300 opacity-50" />
@@ -328,14 +323,14 @@ const OverviewView = ({ mandates, stats, onCreateMandate, isAdmin }) => {
         />
         <FeatureCard
           icon={<Zap className="w-6 h-6" />}
-          title="Auto-Submit Recurring"
-          description="Never manually enter a recurring expense again. Set it once, forget it."
+          title="Instant Approvals"
+          description="One-time authorizations execute the full payment flow in a single step"
           color="yellow"
         />
         <FeatureCard
           icon={<TrendingUp className="w-6 h-6" />}
-          title="Smart Insights"
-          description="AI analyzes your spending patterns and suggests optimizations"
+          title="Budget Enforcement"
+          description="Proactive budget checks warn you before limits are exceeded"
           color="green"
         />
       </div>
@@ -414,35 +409,30 @@ const MandateListItem = ({ mandate }) => {
   const [expanded, setExpanded] = React.useState(false);
 
   const formatDate = (dateString) => {
-    // Fix timezone issue: parse as local time if no timezone specified
     if (!dateString) return 'N/A';
-
-    // Split date and time parts
-    const parts = dateString.split('T');
-    if (parts.length === 2) {
-      const [datePart, timePart] = parts;
-      const [year, month, day] = datePart.split('-');
-
-      // Create date using local timezone
-      const date = new Date(year, month - 1, day);
-
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    }
-
-    // Fallback to standard parsing
-    return new Date(dateString).toLocaleDateString("en-US", {
+    const dateStr = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    return new Date(dateStr).toLocaleString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
     });
   };
 
+  const statusStyles = {
+    active: { bg: "bg-green-100", text: "text-green-800", Icon: CheckCircle },
+    expired: { bg: "bg-gray-100", text: "text-gray-800", Icon: Clock },
+    revoked: { bg: "bg-orange-100", text: "text-orange-800", Icon: XCircle },
+    failed: { bg: "bg-red-100", text: "text-red-800", Icon: XCircle },
+    deleted: { bg: "bg-gray-100", text: "text-gray-600", Icon: AlertTriangle },
+  };
+
+  const style = statusStyles[mandate.status] || statusStyles.active;
+  const StatusIcon = style.Icon;
+
   return (
-    <div className="border-b border-gray-200">
+    <div>
       <div
         className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
         onClick={() => setExpanded(!expanded)}
@@ -450,12 +440,12 @@ const MandateListItem = ({ mandate }) => {
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-1">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Active
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>
+                <StatusIcon className="w-3 h-3 mr-1" />
+                {mandate.status}
               </span>
               <span className="text-sm font-medium text-gray-900">
-                Mandate #{mandate.id.slice(-8)}
+                Authorization #{mandate.id.slice(-8)}
               </span>
             </div>
             <p className="text-sm text-gray-600">
@@ -499,12 +489,12 @@ const MandateListItem = ({ mandate }) => {
               </div>
             )}
             <div>
-              <span className="text-gray-600">Mandate ID:</span>
+              <span className="text-gray-600">Authorization ID:</span>
               <p className="font-mono text-xs text-gray-900">{mandate.id}</p>
             </div>
             <div>
               <span className="text-gray-600">Status:</span>
-              <p className="font-medium text-green-600">Active</p>
+              <p className={`font-medium ${style.text}`}>{mandate.status}</p>
             </div>
           </div>
         </div>
@@ -524,6 +514,10 @@ const ActivityItem = ({ mandate }) => {
         return <Clock className="w-5 h-5 text-yellow-500" />;
       case "failed":
         return <XCircle className="w-5 h-5 text-red-500" />;
+      case "expired":
+        return <Clock className="w-5 h-5 text-gray-400" />;
+      case "revoked":
+        return <XCircle className="w-5 h-5 text-orange-500" />;
       default:
         return <AlertTriangle className="w-5 h-5 text-gray-500" />;
     }
@@ -532,18 +526,18 @@ const ActivityItem = ({ mandate }) => {
   const getMandateTypeLabel = (type) => {
     switch (type) {
       case "intent":
-        return "Intent Mandate";
+        return "Reusable Authorization";
       case "cart":
-        return "Cart Mandate";
+        return "Cart Authorization";
       case "payment":
-        return "Payment Mandate";
+        return "Payment";
       default:
         return type;
     }
   };
 
   const formatDate = (dateString) => {
-    // Fix timezone: backend sends UTC time without 'Z', so append it
+    if (!dateString) return 'N/A';
     const dateStr = dateString.endsWith('Z') ? dateString : dateString + 'Z';
     return new Date(dateStr).toLocaleString("en-US", {
       month: "short",
@@ -551,6 +545,16 @@ const ActivityItem = ({ mandate }) => {
       hour: "numeric",
       minute: "2-digit",
     });
+  };
+
+  const statusBadgeClass = {
+    completed: "bg-green-100 text-green-800",
+    active: "bg-yellow-100 text-yellow-800",
+    pending: "bg-blue-100 text-blue-800",
+    expired: "bg-gray-100 text-gray-800",
+    revoked: "bg-orange-100 text-orange-800",
+    failed: "bg-red-100 text-red-800",
+    deleted: "bg-gray-100 text-gray-600",
   };
 
   return (
@@ -567,6 +571,11 @@ const ActivityItem = ({ mandate }) => {
                 ${parseFloat(mandate.total).toFixed(2)}
               </span>
             )}
+            {mandate.merchant && (
+              <span className="ml-2 text-gray-500">
+                @ {mandate.merchant}
+              </span>
+            )}
           </p>
           <p className="text-sm text-gray-500">
             {formatDate(mandate.created_at)}
@@ -575,13 +584,7 @@ const ActivityItem = ({ mandate }) => {
         <div className="flex-shrink-0">
           <span
             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              mandate.status === "completed"
-                ? "bg-green-100 text-green-800"
-                : mandate.status === "active"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : mandate.status === "pending"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-red-100 text-red-800"
+              statusBadgeClass[mandate.status] || "bg-gray-100 text-gray-800"
             }`}
           >
             {mandate.status}

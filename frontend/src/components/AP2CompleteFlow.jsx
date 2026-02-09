@@ -36,11 +36,6 @@ const CompleteFlowForm = ({ mandates }) => {
     { description: "", amount: "", category: "OFFICE_SUPPLIES" },
   ]);
   const [merchant, setMerchant] = useState("");
-  const [constraints, setConstraints] = useState({
-    max_amount: "",
-    monthly_limit: "",
-    category: "OFFICE_SUPPLIES",
-  });
 
   const addItem = () => {
     setItems([
@@ -80,7 +75,11 @@ const CompleteFlowForm = ({ mandates }) => {
         return;
       }
 
-      // Prepare request
+      // Auto-derive constraints from items for one-time authorization
+      const total = validItems.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+      const primaryCategory = validItems[0].category;
+      const maxAmount = Math.ceil(total * 1.05 * 100) / 100; // total + 5% buffer
+
       const requestData = {
         items: validItems.map((item) => ({
           description: item.description,
@@ -89,9 +88,9 @@ const CompleteFlowForm = ({ mandates }) => {
         })),
         merchant: merchant,
         constraints: {
-          max_amount: parseFloat(constraints.max_amount) || 1000,
-          monthly_limit: parseFloat(constraints.monthly_limit) || 5000,
-          category: constraints.category,
+          max_amount: maxAmount,
+          monthly_limit: maxAmount,
+          category: primaryCategory,
           merchant: merchant,
         },
       };
@@ -106,7 +105,7 @@ const CompleteFlowForm = ({ mandates }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || "Failed to complete AP2 flow");
       }
 
@@ -118,11 +117,6 @@ const CompleteFlowForm = ({ mandates }) => {
       // Reset form
       setItems([{ description: "", amount: "", category: "OFFICE_SUPPLIES" }]);
       setMerchant("");
-      setConstraints({
-        max_amount: "",
-        monthly_limit: "",
-        category: "OFFICE_SUPPLIES",
-      });
     } catch (err) {
       showError(err.message);
     } finally {
@@ -195,6 +189,7 @@ const CompleteFlowForm = ({ mandates }) => {
                   <option value="SOFTWARE">Software</option>
                   <option value="TRAVEL">Travel</option>
                   <option value="MEALS">Meals</option>
+                  <option value="COFFEE">Coffee</option>
                   <option value="ENTERTAINMENT">Entertainment</option>
                   <option value="UTILITIES">Utilities</option>
                   <option value="MARKETING">Marketing</option>
@@ -235,86 +230,22 @@ const CompleteFlowForm = ({ mandates }) => {
         </div>
       </div>
 
-      {/* Merchant & Constraints */}
+      {/* Merchant */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Payment Details
+          Merchant
         </h3>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Merchant
-            </label>
-            <input
-              type="text"
-              value={merchant}
-              onChange={(e) => setMerchant(e.target.value)}
-              placeholder="e.g., Amazon"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Category
-            </label>
-            <select
-              value={constraints.category}
-              onChange={(e) =>
-                setConstraints({ ...constraints, category: e.target.value })
-              }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-            >
-              <option value="OFFICE_SUPPLIES">Office Supplies</option>
-              <option value="SOFTWARE">Software</option>
-              <option value="TRAVEL">Travel</option>
-              <option value="MEALS">Meals</option>
-              <option value="ENTERTAINMENT">Entertainment</option>
-              <option value="UTILITIES">Utilities</option>
-              <option value="MARKETING">Marketing</option>
-              <option value="HARDWARE">Hardware</option>
-              <option value="PROFESSIONAL_SERVICES">Professional Services</option>
-              <option value="OTHER">Other</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Max Amount per Transaction
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={constraints.max_amount}
-              onChange={(e) =>
-                setConstraints({ ...constraints, max_amount: e.target.value })
-              }
-              placeholder="1000.00"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Monthly Limit
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={constraints.monthly_limit}
-              onChange={(e) =>
-                setConstraints({
-                  ...constraints,
-                  monthly_limit: e.target.value,
-                })
-              }
-              placeholder="5000.00"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-            />
-          </div>
-        </div>
+        <input
+          type="text"
+          value={merchant}
+          onChange={(e) => setMerchant(e.target.value)}
+          placeholder="e.g., Amazon, Uber, Staples"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+          required
+        />
+        <p className="mt-2 text-sm text-gray-500">
+          Authorization limit is automatically set to your item total + 5% buffer.
+        </p>
       </div>
 
       {/* Submit */}

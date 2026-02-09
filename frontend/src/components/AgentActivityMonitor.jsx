@@ -159,7 +159,7 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
             <span className="text-sm font-medium text-gray-700 self-center">
               Status:
             </span>
-            {["all", "active", "pending", "completed", "failed"].map((status) => (
+            {["all", "active", "pending", "completed", "failed", "expired", "revoked"].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
@@ -302,6 +302,13 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
         icon: AlertTriangle,
         iconColor: "text-gray-600",
         dot: "bg-gray-500",
+      },
+      revoked: {
+        bg: "bg-orange-100",
+        text: "text-orange-800",
+        icon: XCircle,
+        iconColor: "text-orange-600",
+        dot: "bg-orange-500",
       },
     };
 
