@@ -254,7 +254,7 @@ const AIAssistant = () => {
             )}
 
             {/* One-time Authorization - Admin Only */}
-            {activeView === "flow" && isAdmin && <AP2CompleteFlow mandates={mandates} />}
+            {activeView === "flow" && isAdmin && <AP2CompleteFlow mandates={mandates} onRefresh={fetchData} />}
           </>
         )}
       </div>

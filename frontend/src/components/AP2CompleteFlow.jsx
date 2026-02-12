@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 
-const AP2CompleteFlow = ({ mandates }) => {
+const AP2CompleteFlow = ({ mandates, onRefresh }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -23,13 +23,13 @@ const AP2CompleteFlow = ({ mandates }) => {
       </div>
 
       {/* Complete Flow Form */}
-      <CompleteFlowForm mandates={mandates} />
+      <CompleteFlowForm mandates={mandates} onRefresh={onRefresh} />
     </div>
   );
 };
 
 // Complete Flow Form (All 3 steps at once)
-const CompleteFlowForm = ({ mandates }) => {
+const CompleteFlowForm = ({ mandates, onRefresh }) => {
   const { success, error: showError } = useToast();
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([
@@ -114,9 +114,10 @@ const CompleteFlowForm = ({ mandates }) => {
         `AP2 flow completed! Total: $${calculateTotal().toFixed(2)}`,
       );
 
-      // Reset form
+      // Reset form and refresh data
       setItems([{ description: "", amount: "", category: "OFFICE_SUPPLIES" }]);
       setMerchant("");
+      if (onRefresh) onRefresh();
     } catch (err) {
       showError(err.message);
     } finally {

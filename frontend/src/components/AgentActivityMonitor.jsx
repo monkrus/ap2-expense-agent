@@ -13,6 +13,7 @@ import {
   Filter,
   Download,
   Search,
+  ArrowUpDown,
 } from "lucide-react";
 import { useOrganization } from "../contexts/OrganizationContext";
 
@@ -20,6 +21,7 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
   const [filter, setFilter] = useState("all"); // 'all', 'cart', 'payment'
   const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'pending', 'active', 'completed', 'failed', 'revoked'
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("newest"); // 'newest', 'oldest', 'amount_high', 'amount_low', 'status'
   const [sortedMandates, setSortedMandates] = useState([]);
 
   // Exclude intent mandates — they have their own Reusable Authorizations tab
@@ -65,11 +67,25 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
       );
     }
 
-    // Sort by creation date (newest first)
-    filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "oldest":
+          return new Date(a.created_at) - new Date(b.created_at);
+        case "amount_high":
+          return (parseFloat(b.total) || 0) - (parseFloat(a.total) || 0);
+        case "amount_low":
+          return (parseFloat(a.total) || 0) - (parseFloat(b.total) || 0);
+        case "status":
+          return (a.status || "").localeCompare(b.status || "");
+        case "newest":
+        default:
+          return new Date(b.created_at) - new Date(a.created_at);
+      }
+    });
 
     setSortedMandates(filtered);
-  }, [transactions, filter, statusFilter, searchQuery]);
+  }, [transactions, filter, statusFilter, searchQuery, sortBy]);
 
   // Calculate statistics — dynamic based on active type filter
   const statsBase = filter === "all" ? transactions : transactions.filter((m) => m.type === filter);
@@ -189,6 +205,22 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
             ))}
+          </div>
+
+          {/* Sort */}
+          <div className="flex items-center space-x-2">
+            <ArrowUpDown className="w-4 h-4 text-gray-500" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="amount_high">Amount: high to low</option>
+              <option value="amount_low">Amount: low to high</option>
+              <option value="status">Status A-Z</option>
+            </select>
           </div>
         </div>
       </div>
