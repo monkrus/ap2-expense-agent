@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Activity,
   CheckCircle,
@@ -14,6 +14,7 @@ import {
   Download,
   Search,
   ArrowUpDown,
+  CreditCard,
 } from "lucide-react";
 import { useOrganization } from "../contexts/OrganizationContext";
 
@@ -27,48 +28,76 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
   // Exclude intent mandates — they have their own Reusable Authorizations tab
   const transactions = mandates.filter((m) => m.type === "cart" || m.type === "payment");
 
+  // Group cart + payment mandates by cart_mandate_id
+  const { groupedItems, standalonePayments } = useMemo(() => {
+    const carts = transactions.filter((m) => m.type === "cart");
+    const payments = transactions.filter((m) => m.type === "payment");
+
+    const cartMap = new Map();
+    carts.forEach((c) => cartMap.set(c.id, { cart: c, payment: null }));
+
+    const standalone = [];
+    payments.forEach((p) => {
+      if (p.cart_mandate_id && cartMap.has(p.cart_mandate_id)) {
+        cartMap.get(p.cart_mandate_id).payment = p;
+      } else {
+        standalone.push(p);
+      }
+    });
+
+    return {
+      groupedItems: Array.from(cartMap.values()),
+      standalonePayments: standalone,
+    };
+  }, [mandates]);
+
   // Sort and filter mandates
   useEffect(() => {
-    let filtered = [...transactions];
+    let displayItems = [];
 
-    // Type filter
-    if (filter !== "all") {
-      filtered = filtered.filter((m) => m.type === filter);
+    if (filter === "payment") {
+      // Flat payment list — no grouping
+      displayItems = transactions
+        .filter((m) => m.type === "payment")
+        .map((p) => ({ ...p, _payment: null }));
+    } else {
+      // Grouped view: cart as primary, payment nested
+      groupedItems.forEach((g) => {
+        displayItems.push({
+          ...g.cart,
+          _payment: g.payment,
+        });
+      });
+      // "all" also includes standalone payments (no matching cart)
+      if (filter === "all") {
+        standalonePayments.forEach((p) => {
+          displayItems.push({ ...p, _payment: null });
+        });
+      }
     }
 
     // Status filter
     if (statusFilter !== "all") {
-      filtered = filtered.filter((m) => m.status === statusFilter);
+      displayItems = displayItems.filter((m) => m.status === statusFilter);
     }
 
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
+      displayItems = displayItems.filter(
         (m) =>
-          // Search by ID
           m.id.toLowerCase().includes(query) ||
-          // Search by merchant (Intent and Cart mandates)
           (m.merchant && m.merchant.toLowerCase().includes(query)) ||
-          (m.constraints?.merchant && m.constraints.merchant.toLowerCase().includes(query)) ||
-          // Search by total amount (Cart mandates)
           (m.total && m.total.toString().includes(query)) ||
-          // Search by max_amount (Intent mandates - check both direct and constraints)
-          (m.max_amount && m.max_amount.toString().includes(query)) ||
-          (m.constraints?.max_amount && m.constraints.max_amount.toString().includes(query)) ||
-          // Search by monthly_limit (Intent mandates - check both direct and constraints)
-          (m.monthly_limit && m.monthly_limit.toString().includes(query)) ||
-          (m.constraints?.monthly_limit && m.constraints.monthly_limit.toString().includes(query)) ||
-          // Search by category (check both direct and constraints)
-          (m.category && m.category.toLowerCase().includes(query)) ||
-          (m.constraints?.category && m.constraints.category.toLowerCase().includes(query)) ||
-          // Search by payment_method (Payment mandates)
-          (m.payment_method && m.payment_method.toLowerCase().includes(query)),
+          (m.payment_method && m.payment_method.toLowerCase().includes(query)) ||
+          (m._payment?.payment_method &&
+            m._payment.payment_method.toLowerCase().includes(query)) ||
+          (m._payment?.id && m._payment.id.toLowerCase().includes(query)),
       );
     }
 
     // Sort
-    filtered.sort((a, b) => {
+    displayItems.sort((a, b) => {
       switch (sortBy) {
         case "oldest":
           return new Date(a.created_at) - new Date(b.created_at);
@@ -84,17 +113,27 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
       }
     });
 
-    setSortedMandates(filtered);
-  }, [transactions, filter, statusFilter, searchQuery, sortBy]);
+    setSortedMandates(displayItems);
+  }, [groupedItems, standalonePayments, filter, statusFilter, searchQuery, sortBy]);
 
-  // Calculate statistics — dynamic based on active type filter
-  const statsBase = filter === "all" ? transactions : transactions.filter((m) => m.type === filter);
-  const totalTransactions = statsBase.length;
-  const completedCount = statsBase.filter((m) => m.status === "completed").length;
-  const activeCount = statsBase.filter((m) => m.status === "active").length;
-  const pendingCount = statsBase.filter((m) => m.status === "pending").length;
-  const failedCount = statsBase.filter((m) => m.status === "failed").length;
-  const revokedCount = statsBase.filter((m) => m.status === "revoked").length;
+  // Calculate statistics — count groups, not individual mandates
+  const statsItems = useMemo(() => {
+    if (filter === "payment") {
+      return transactions.filter((m) => m.type === "payment");
+    }
+    const items = groupedItems.map((g) => g.cart);
+    if (filter === "all") {
+      return [...items, ...standalonePayments];
+    }
+    return items; // filter === "cart"
+  }, [groupedItems, standalonePayments, filter, mandates]);
+
+  const totalTransactions = statsItems.length;
+  const completedCount = statsItems.filter((m) => m.status === "completed").length;
+  const activeCount = statsItems.filter((m) => m.status === "active").length;
+  const pendingCount = statsItems.filter((m) => m.status === "pending").length;
+  const failedCount = statsItems.filter((m) => m.status === "failed").length;
+  const revokedCount = statsItems.filter((m) => m.status === "revoked").length;
 
   return (
     <div className="space-y-6">
@@ -298,6 +337,7 @@ const StatCard = ({ icon, label, value, color, subtitle }) => {
 const ActivityTimelineItem = ({ mandate, isFirst }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { formatDate: orgFormatDate, timezone } = useOrganization();
+  const payment = mandate._payment;
 
   const formatDate = (dateString) => {
     // Fix timezone: backend sends UTC time without 'Z', so append it
@@ -384,7 +424,7 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
       payment: {
         label: "Payment",
         description: "Payment processed",
-        icon: CheckCircle,
+        icon: CreditCard,
         color: "text-green-600",
       },
     };
@@ -479,6 +519,11 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
             )}
           </div>
 
+          {/* Nested Payment Sub-row (visible without expanding) */}
+          {payment && (
+            <PaymentSubRow payment={payment} getStatusConfig={getStatusConfig} formatDate={formatDate} />
+          )}
+
           {/* Expiration (for intent mandates) */}
           {mandate.type === "intent" && mandate.expiration && (
             <div className="mt-2 text-xs text-gray-500">
@@ -501,7 +546,7 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
       {isExpanded && (
         <div className="mt-4 ml-14 pl-4 border-l-2 border-purple-200 bg-gray-50 rounded-lg p-4">
           <h5 className="text-sm font-semibold text-gray-900 mb-3">
-            Transaction Details
+            {payment ? "Purchase Request Details" : "Transaction Details"}
           </h5>
 
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -600,14 +645,115 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
               </pre>
             </div>
           )}
+
+          {/* Expanded Payment Details (for grouped items) */}
+          {payment && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <h5 className="text-sm font-semibold text-gray-900 mb-3">
+                Payment Details
+              </h5>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-gray-500">Payment ID:</span>
+                  <p className="font-mono text-xs text-gray-900 mt-1 break-all">
+                    {payment.id}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-gray-500">Status:</span>
+                  <p className="text-gray-900 mt-1 capitalize">{payment.status}</p>
+                </div>
+                {payment.payment_method && (
+                  <div>
+                    <span className="text-gray-500">Payment Method:</span>
+                    <p className="text-gray-900 mt-1 capitalize">
+                      {payment.payment_method}
+                    </p>
+                  </div>
+                )}
+                {payment.timestamp && (
+                  <div>
+                    <span className="text-gray-500">Timestamp:</span>
+                    <p className="text-gray-900 mt-1 text-xs">
+                      {orgFormatDate(payment.timestamp)}
+                    </p>
+                  </div>
+                )}
+                {payment.created_at && (
+                  <div>
+                    <span className="text-gray-500">Created:</span>
+                    <p className="text-gray-900 mt-1 text-xs">
+                      {orgFormatDate(payment.created_at)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 };
 
+// Nested Payment Sub-row — shown inline without expanding
+const PaymentSubRow = ({ payment, getStatusConfig, formatDate }) => {
+  const payStatusConfig = getStatusConfig(payment.status);
+  const PayStatusIcon = payStatusConfig.icon;
+
+  return (
+    <div className="mt-3 ml-1 pl-3 border-l-2 border-green-200 py-2">
+      <div className="flex items-center flex-wrap gap-3">
+        <div className="flex items-center space-x-1.5">
+          <CreditCard className="w-3.5 h-3.5 text-green-600" />
+          <span className="text-xs font-semibold text-gray-700">Payment</span>
+        </div>
+        <span
+          className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${payStatusConfig.bg} ${payStatusConfig.text}`}
+        >
+          <PayStatusIcon className="w-3 h-3 mr-0.5" />
+          {payment.status}
+        </span>
+        {payment.payment_method && (
+          <span className="text-xs text-gray-500">
+            via {payment.payment_method}
+          </span>
+        )}
+        <span className="text-xs text-gray-400 font-mono">
+          {payment.id.slice(-12)}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 // Export activity function
 const exportActivity = (mandates) => {
+  // Flatten grouped items for export
+  const rows = [];
+  mandates.forEach((m) => {
+    rows.push([
+      m.id,
+      m.type,
+      m.status,
+      m.total || "",
+      m.merchant || "",
+      new Date(m.created_at).toISOString(),
+      m.timestamp || "",
+    ]);
+    if (m._payment) {
+      rows.push([
+        m._payment.id,
+        "payment",
+        m._payment.status,
+        m._payment.total || m.total || "",
+        m._payment.merchant || m.merchant || "",
+        new Date(m._payment.created_at).toISOString(),
+        m._payment.timestamp || "",
+      ]);
+    }
+  });
+
   const csv = [
     [
       "ID",
@@ -618,17 +764,7 @@ const exportActivity = (mandates) => {
       "Created At",
       "Timestamp",
     ].join(","),
-    ...mandates.map((m) =>
-      [
-        m.id,
-        m.type,
-        m.status,
-        m.total || "",
-        m.merchant || "",
-        new Date(m.created_at).toISOString(),
-        m.timestamp || "",
-      ].join(","),
-    ),
+    ...rows.map((r) => r.join(",")),
   ].join("\n");
 
   const blob = new Blob([csv], { type: "text/csv" });

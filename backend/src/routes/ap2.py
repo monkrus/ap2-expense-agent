@@ -689,6 +689,7 @@ async def get_user_mandates(
                 {
                     "type": "payment",
                     "id": mandate.id,
+                    "cart_mandate_id": mandate.cart_mandate_id,
                     "status": mandate.status,
                     "payment_method": mandate.payment_method,
                     "total": float(cart.total) if cart else None,
