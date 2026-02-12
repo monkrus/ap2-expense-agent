@@ -17,14 +17,17 @@ import {
 import { useOrganization } from "../contexts/OrganizationContext";
 
 const AgentActivityMonitor = ({ mandates, stats }) => {
-  const [filter, setFilter] = useState("all"); // 'all', 'intent', 'cart', 'payment'
-  const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'active', 'pending', 'completed', 'failed'
+  const [filter, setFilter] = useState("all"); // 'all', 'cart', 'payment'
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'pending', 'active', 'completed', 'failed', 'revoked'
   const [searchQuery, setSearchQuery] = useState("");
   const [sortedMandates, setSortedMandates] = useState([]);
 
+  // Exclude intent mandates — they have their own Reusable Authorizations tab
+  const transactions = mandates.filter((m) => m.type === "cart" || m.type === "payment");
+
   // Sort and filter mandates
   useEffect(() => {
-    let filtered = [...mandates];
+    let filtered = [...transactions];
 
     // Type filter
     if (filter !== "all") {
@@ -66,53 +69,63 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
     filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     setSortedMandates(filtered);
-  }, [mandates, filter, statusFilter, searchQuery]);
+  }, [transactions, filter, statusFilter, searchQuery]);
 
-  // Calculate statistics
-  const totalTransactions = mandates.length;
-  const completedTransactions = mandates.filter(
-    (m) => m.status === "completed",
-  ).length;
-  const activeTransactions = mandates.filter(
-    (m) => m.status === "active" || m.status === "pending",
-  ).length;
-  const failedTransactions = mandates.filter(
-    (m) => m.status === "failed",
-  ).length;
+  // Calculate statistics — dynamic based on active type filter
+  const statsBase = filter === "all" ? transactions : transactions.filter((m) => m.type === filter);
+  const totalTransactions = statsBase.length;
+  const completedCount = statsBase.filter((m) => m.status === "completed").length;
+  const activeCount = statsBase.filter((m) => m.status === "active").length;
+  const pendingCount = statsBase.filter((m) => m.status === "pending").length;
+  const failedCount = statsBase.filter((m) => m.status === "failed").length;
+  const revokedCount = statsBase.filter((m) => m.status === "revoked").length;
 
   return (
     <div className="space-y-6">
       {/* Header & Stats */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-1">
           Agent Activity
         </h2>
+        <p className="text-sm text-gray-500 mb-6">Purchase requests and payment history</p>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           <StatCard
             icon={<Activity className="w-5 h-5" />}
-            label="Total Transactions"
+            label="Total"
             value={totalTransactions}
             color="blue"
           />
           <StatCard
             icon={<CheckCircle className="w-5 h-5" />}
             label="Completed"
-            value={completedTransactions}
+            value={completedCount}
             color="green"
           />
           <StatCard
             icon={<Clock className="w-5 h-5" />}
-            label="Active/Pending"
-            value={activeTransactions}
+            label="Active"
+            value={activeCount}
             color="yellow"
+          />
+          <StatCard
+            icon={<Clock className="w-5 h-5" />}
+            label="Pending"
+            value={pendingCount}
+            color="purple"
           />
           <StatCard
             icon={<XCircle className="w-5 h-5" />}
             label="Failed"
-            value={failedTransactions}
+            value={failedCount}
             color="red"
+          />
+          <StatCard
+            icon={<XCircle className="w-5 h-5" />}
+            label="Revoked"
+            value={revokedCount}
+            color="orange"
           />
         </div>
       </div>
@@ -126,7 +139,7 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search by ID, merchant, amount, category, payment method..."
+                placeholder="Search by ID, merchant, amount..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
@@ -139,17 +152,21 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
             <span className="text-sm font-medium text-gray-700 self-center">
               Type:
             </span>
-            {["all", "intent", "cart", "payment"].map((type) => (
+            {[
+              { value: "all", label: "All" },
+              { value: "cart", label: "Purchase Requests" },
+              { value: "payment", label: "Payments" },
+            ].map(({ value, label }) => (
               <button
-                key={type}
-                onClick={() => setFilter(type)}
+                key={value}
+                onClick={() => setFilter(value)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  filter === type
+                  filter === value
                     ? "bg-purple-100 text-purple-700"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                {label}
               </button>
             ))}
           </div>
@@ -159,7 +176,7 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
             <span className="text-sm font-medium text-gray-700 self-center">
               Status:
             </span>
-            {["all", "active", "pending", "completed", "failed", "expired", "revoked"].map((status) => (
+            {["all", "active", "pending", "completed", "failed", "revoked"].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
@@ -220,13 +237,15 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
 };
 
 // Stat Card Component
-const StatCard = ({ icon, label, value, color }) => {
+const StatCard = ({ icon, label, value, color, subtitle }) => {
   const colors = {
     blue: "bg-blue-100 text-blue-600",
     green: "bg-green-100 text-green-600",
     yellow: "bg-yellow-100 text-yellow-600",
     red: "bg-red-100 text-red-600",
     purple: "bg-purple-100 text-purple-600",
+    gray: "bg-gray-100 text-gray-600",
+    orange: "bg-orange-100 text-orange-600",
   };
 
   return (
@@ -236,6 +255,7 @@ const StatCard = ({ icon, label, value, color }) => {
         <div className="flex-1">
           <p className="text-sm text-gray-600">{label}</p>
           <p className="text-2xl font-bold text-gray-900">{value}</p>
+          {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
         </div>
       </div>
     </div>
@@ -324,13 +344,13 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
         color: "text-purple-600",
       },
       cart: {
-        label: "Cart Mandate",
-        description: "Items prepared for approval",
+        label: "Purchase Request",
+        description: "Items submitted for approval",
         icon: DollarSign,
         color: "text-blue-600",
       },
       payment: {
-        label: "Payment Mandate",
+        label: "Payment",
         description: "Payment processed",
         icon: CheckCircle,
         color: "text-green-600",
@@ -449,7 +469,7 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
       {isExpanded && (
         <div className="mt-4 ml-14 pl-4 border-l-2 border-purple-200 bg-gray-50 rounded-lg p-4">
           <h5 className="text-sm font-semibold text-gray-900 mb-3">
-            Mandate Details
+            Transaction Details
           </h5>
 
           <div className="grid grid-cols-2 gap-3 text-sm">

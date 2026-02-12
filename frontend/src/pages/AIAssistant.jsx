@@ -13,6 +13,7 @@ import {
   Sparkles,
   Activity,
   Target,
+  Copy,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { useAuth } from "../contexts/AuthContext";
@@ -91,6 +92,10 @@ const AIAssistant = () => {
   // Completed payments count
   const completedPayments = stats?.payment_mandates?.completed || 0;
 
+  // Success rate
+  const totalPayments = completedPayments + (stats?.payment_mandates?.failed || 0);
+  const successRate = totalPayments > 0 ? Math.round((completedPayments / totalPayments) * 100) : 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -155,10 +160,9 @@ const AIAssistant = () => {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm">Automated</p>
+                  <p className="text-purple-100 text-sm">Success Rate</p>
                   <p className="text-2xl font-bold mt-1">
-                    {completedPayments}{" "}
-                    <span className="text-sm font-normal text-purple-200">txns</span>
+                    {totalPayments > 0 ? `${successRate}%` : "N/A"}
                   </p>
                 </div>
                 <Zap className="w-8 h-8 text-yellow-300" />
@@ -275,9 +279,10 @@ const OverviewView = ({ mandates, stats, isAdmin }) => {
   const activeIntentMandates = mandates.filter(
     (m) => m.type === "intent" && m.status === "active",
   );
-  // Show cart and payment mandates as activity (not intent mandates which are already shown above)
+  // Show cart and payment mandates as activity, sorted newest first
   const recentActivity = mandates
     .filter((m) => m.type === "cart" || m.type === "payment")
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 5);
 
   return (
@@ -490,7 +495,19 @@ const MandateListItem = ({ mandate }) => {
             )}
             <div>
               <span className="text-gray-600">Authorization ID:</span>
-              <p className="font-mono text-xs text-gray-900">{mandate.id}</p>
+              <p className="font-mono text-xs text-gray-900 inline-flex items-center">
+                {mandate.id}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(mandate.id);
+                  }}
+                  className="ml-1.5 p-0.5 text-gray-400 hover:text-purple-600 transition-colors"
+                  title="Copy full ID"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
+              </p>
             </div>
             <div>
               <span className="text-gray-600">Status:</span>

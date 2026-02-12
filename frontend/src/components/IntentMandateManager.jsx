@@ -16,6 +16,7 @@ import {
   Tag,
   Store,
   Shield,
+  Copy,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { useOrganization } from "../contexts/OrganizationContext";
@@ -37,6 +38,7 @@ const IntentMandateManager = ({
   // Apply status filter
   const filteredMandates = intentMandates.filter((mandate) => {
     if (filter === "all") return true;
+    if (filter === "archived") return mandate.status === "deleted" || mandate.status === "revoked";
     return mandate.status === filter;
   });
 
@@ -161,10 +163,13 @@ const IntentMandateManager = ({
 
       {/* Filter Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1 inline-flex space-x-1">
-        {["all", "active", "expired", "revoked"].map((filterOption) => (
+        {["all", "active", "expired", "revoked", "archived"].map((filterOption) => (
           <button
             key={filterOption}
-            onClick={() => setFilter(filterOption)}
+            onClick={() => {
+              setFilter(filterOption);
+              if (filterOption === "archived") setShowArchived(true);
+            }}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               filter === filterOption
                 ? "bg-purple-100 text-purple-700"
@@ -174,10 +179,11 @@ const IntentMandateManager = ({
             {filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
             <span className="ml-2 text-xs opacity-60">
               (
-              {
-                intentMandates.filter(
-                  (m) => filterOption === "all" || m.status === filterOption,
-                ).length
+              {filterOption === "archived"
+                ? intentMandates.filter((m) => m.status === "deleted" || m.status === "revoked").length
+                : intentMandates.filter(
+                    (m) => filterOption === "all" || m.status === filterOption,
+                  ).length
               }
               )
             </span>
@@ -259,16 +265,33 @@ const MandateCard = ({
     console.error("Error parsing constraints:", e);
   }
 
+  const isArchived = mandate.status === "deleted" || mandate.status === "revoked";
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+    <div className={`rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow ${isArchived ? "bg-gray-50 border-gray-300 opacity-75" : "bg-white border-gray-200"}`}>
       {/* Header */}
       <div className="px-6 py-4 cursor-pointer" onClick={onToggle}>
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-2">
               {getStatusBadge(mandate.status)}
-              <span className="text-sm font-mono text-gray-500">
+              {isArchived && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600">
+                  Archived
+                </span>
+              )}
+              <span className="text-sm font-mono text-gray-500 inline-flex items-center">
                 #{mandate.id.slice(-12)}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(mandate.id);
+                  }}
+                  className="ml-1.5 p-0.5 text-gray-400 hover:text-purple-600 transition-colors"
+                  title="Copy full ID"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
               </span>
             </div>
             <div className="space-y-2">
@@ -324,10 +347,11 @@ const MandateCard = ({
                   e.stopPropagation();
                   onRevoke();
                 }}
-                className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                className="px-3 py-1.5 text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg transition-colors text-sm font-medium flex items-center space-x-1"
                 title="Revoke authorization"
               >
-                <XCircle className="w-5 h-5" />
+                <XCircle className="w-4 h-4" />
+                <span>Revoke</span>
               </button>
             )}
             <button

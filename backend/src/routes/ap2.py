@@ -715,6 +715,21 @@ async def get_ap2_stats(
 
     from ..models import CartMandate, IntentMandate, PaymentMandate
 
+    # First, expire any active mandates that have passed their expiration date
+    expired_mandates = (
+        db.query(IntentMandate)
+        .filter(
+            IntentMandate.user_id == current_user.id,
+            IntentMandate.status == "active",
+            IntentMandate.expiration < datetime.utcnow(),
+        )
+        .all()
+    )
+    for mandate in expired_mandates:
+        mandate.status = "expired"
+    if expired_mandates:
+        db.commit()
+
     # Count mandates by type and status (exclude deleted)
     intent_stats = (
         db.query(IntentMandate.status, func.count(IntentMandate.id).label("count"))
