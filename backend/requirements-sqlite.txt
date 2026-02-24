@@ -1,8 +1,8 @@
 fastapi==0.121.1
 uvicorn[standard]==0.24.0
 google-generativeai==0.3.1
-google-cloud-aiplatform==1.38.0
-cryptography==44.0.1
+google-cloud-aiplatform==1.133.0
+cryptography==46.0.5
 pydantic==2.5.0
 pydantic-settings==2.1.0
 PyJWT[crypto]==2.10.1
@@ -18,5 +18,5 @@ python-dotenv==1.0.0
 passlib[bcrypt]==1.7.4
 pyotp==2.9.0
 qrcode[pil]==7.4.2
-pillow==10.3.0
+pillow==12.1.1
 email-validator==2.1.0
