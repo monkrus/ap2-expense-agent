@@ -1,7 +1,7 @@
 alembic==1.17.1
 annotated-doc==0.0.4
 annotated-types==0.7.0
-anyio==3.7.1
+anyio==4.9.0
 Authlib==1.6.6
 bcrypt==5.0.0
 cachetools==6.2.1

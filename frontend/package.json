@@ -27,6 +27,12 @@
     "react-dom": "^18.2.0",
     "recharts": "^3.6.0"
   },
+  "overrides": {
+    "minimatch": "^10.2.2",
+    "glob": "^11.0.0",
+    "rimraf": "^6.0.0",
+    "readdir-glob": "^3.0.0"
+  },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "@testing-library/jest-dom": "^6.9.1",
