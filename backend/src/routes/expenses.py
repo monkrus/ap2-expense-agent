@@ -101,9 +101,13 @@ def ensure_expense_access(expense_id: str, user: User, org_id: str, db: Session)
 
 def can_modify_expense(expense: Expense, user: User, org_id: str, db: Session) -> bool:
     """Check if user can modify expense"""
+    # Approved or rejected expenses are locked — no one can edit them
+    if expense.status in [ExpenseStatus.APPROVED, ExpenseStatus.REJECTED]:
+        return False
+
     user_org_role = get_user_organization_role(user.id, org_id, db)
 
-    # Owners and admins can modify any expense
+    # Owners and admins can modify any pending expense
     if user_org_role in ["owner", "admin"] or user.role == UserRole.ADMIN:
         return True
 
@@ -567,7 +571,9 @@ async def create_expense(
 @router.get("")
 async def list_expenses(
     request: Request,
+    status: Optional[str] = None,
     status_filter: Optional[str] = None,
+    category: Optional[str] = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
@@ -593,15 +599,23 @@ async def list_expenses(
     # Base query
     query = db.query(Expense).filter(Expense.organization_id == org_id)
 
-    # Apply status filter (convert to uppercase for enum matching)
-    if status_filter:
-        # Convert string to ExpenseStatus enum (case-insensitive)
+    # Apply status filter — accept both ?status= and ?status_filter= param names
+    effective_status = status or status_filter
+    if effective_status:
         try:
-            status_enum = ExpenseStatus[status_filter.upper()]
+            status_enum = ExpenseStatus[effective_status.upper()]
             query = query.filter(Expense.status == status_enum)
         except KeyError:
-            # Invalid status filter - ignore it
-            pass
+            pass  # Invalid status value — ignore
+
+    # Apply category filter
+    if category:
+        from ..models import ExpenseCategory
+        try:
+            category_enum = ExpenseCategory[category.upper()]
+            query = query.filter(Expense.category == category_enum)
+        except KeyError:
+            pass  # Invalid category — ignore
 
     # Role-based filtering
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
@@ -1072,9 +1086,9 @@ async def approve_expense(
             detail="You cannot approve your own expense"
         )
 
-    # Check approval permission
+    # Check approval permission — global admins bypass org-role check
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
-    if user_org_role not in ["owner", "admin", "manager"]:
+    if user_org_role not in ["owner", "admin", "manager"] and current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to approve expenses",
@@ -1307,7 +1321,6 @@ async def reject_expense(
 @router.put("/{expense_id}/request-receipt")
 async def request_receipt(
     expense_id: str,
-    data: dict,
     request: Request,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
@@ -1317,6 +1330,7 @@ async def request_receipt(
 
     Permissions: Accountants, managers, admins
     """
+    import json as _json
     org_id = request.headers.get("X-Organization-Id")
 
     if not org_id:
@@ -1340,6 +1354,13 @@ async def request_receipt(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to request receipts"
         )
+
+    # Parse optional JSON body — body may be absent or empty
+    try:
+        body_bytes = await request.body()
+        data = _json.loads(body_bytes) if body_bytes.strip() else {}
+    except Exception:
+        data = {}
 
     message = data.get("message", "Please upload receipt for this expense")
 

@@ -283,7 +283,7 @@ async def login_form(
 ):
     """OAuth2 compatible login endpoint"""
     login_data = LoginRequest(username=form_data.username, password=form_data.password)
-    return await login(login_data, request, db)
+    return await login(request=request, login_data=login_data, db=db)
 
 
 @router.post("/refresh", response_model=TokenResponse)

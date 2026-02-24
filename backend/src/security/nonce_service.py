@@ -84,6 +84,10 @@ class NonceService:
             raise ValueError("Invalid nonce format. Must be 32-character hex string.")
 
         # Validate timestamp (must be within ±5 minutes of server time)
+        # Strip timezone info from request_timestamp to allow comparison with
+        # offset-naive datetime.utcnow()
+        if request_timestamp.tzinfo is not None:
+            request_timestamp = request_timestamp.replace(tzinfo=None)
         now = datetime.utcnow()
         time_diff = abs((now - request_timestamp).total_seconds())
 

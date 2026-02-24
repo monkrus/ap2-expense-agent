@@ -901,6 +901,7 @@ const OrganizationManagement = () => {
                           </p>
                         </div>
                         <button
+                          data-testid={`edit-org-${currentOrg.id}`}
                           onClick={() => {
                             setEditOrgForm({
                               name: currentOrg.name,
@@ -979,6 +980,7 @@ const OrganizationManagement = () => {
                         </div>
                       </div>
                       <button
+                        data-testid={`delete-org-${currentOrg.id}`}
                         onClick={handleDeleteOrg}
                         disabled={processing}
                         className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1003,10 +1005,11 @@ const OrganizationManagement = () => {
         >
           <form onSubmit={handleCreateOrg} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label htmlFor="org-name" className="block text-sm font-medium mb-1">
                 Organization Name*
               </label>
               <input
+                id="org-name"
                 type="text"
                 value={createOrgForm.name}
                 onChange={(e) =>
@@ -1087,10 +1090,11 @@ const OrganizationManagement = () => {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label htmlFor="org-slug" className="block text-sm font-medium mb-1">
                 Organization ID*
               </label>
               <input
+                id="org-slug"
                 type="text"
                 value={createOrgForm.slug}
                 onChange={(e) =>
@@ -1348,10 +1352,11 @@ const OrganizationManagement = () => {
         >
           <form onSubmit={handleUpdateOrg} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label htmlFor="edit-org-name" className="block text-sm font-medium mb-1">
                 Organization Name*
               </label>
               <input
+                id="edit-org-name"
                 type="text"
                 value={editOrgForm.name}
                 onChange={(e) =>

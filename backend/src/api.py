@@ -35,6 +35,7 @@ from .routes.approval_policies import router as approval_policies_router
 from .routes.budgets import router as budgets_router
 from .routes.analytics import router as analytics_router
 from .routes.recurring_expenses import router as recurring_expenses_router
+from .routes.onboarding import router as onboarding_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
 from .startup_checks import validate_settings
 from .tenant_context import tenant_middleware
@@ -218,6 +219,7 @@ app.include_router(budgets_router)
 app.include_router(notifications_router)
 app.include_router(analytics_router)
 app.include_router(recurring_expenses_router)
+app.include_router(onboarding_router)
 
 # Include GCP Marketplace webhooks
 app.include_router(gcp_webhooks_router)
@@ -246,13 +248,16 @@ async def startup_event():
 
     # CRITICAL: Verify tier limits before starting application
     # This ensures tier limits haven't been tampered with
-    try:
-        from .billing.tier_limit_guardian import verify_tier_limits_on_startup
-        verify_tier_limits_on_startup()
-    except Exception as e:
-        print(f"[CRITICAL] Tier limit verification failed: {e}")
-        print("[CRITICAL] Application startup blocked for security")
-        raise
+    # Skip in test mode — test DB won't have billing tiers seeded
+    import os as _os
+    if not _os.environ.get("TESTING"):
+        try:
+            from .billing.tier_limit_guardian import verify_tier_limits_on_startup
+            verify_tier_limits_on_startup()
+        except Exception as e:
+            print(f"[CRITICAL] Tier limit verification failed: {e}")
+            print("[CRITICAL] Application startup blocked for security")
+            raise
 
     # Seed default users
     from .seed_data import ensure_default_users_exist

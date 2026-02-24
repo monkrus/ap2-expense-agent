@@ -59,6 +59,30 @@ class AP2PaymentService:
         if not user:
             raise ValueError(f"User {user_id} not found")
 
+        # Defense-in-depth: validate constraints at service layer
+        max_amount = constraints.get("max_amount")
+        if max_amount is not None:
+            try:
+                max_amount = float(max_amount)
+            except (TypeError, ValueError):
+                raise ValueError("max_amount must be a number")
+            if max_amount <= 0:
+                raise ValueError("max_amount must be greater than zero")
+
+        monthly_limit = constraints.get("monthly_limit")
+        if monthly_limit is not None:
+            try:
+                monthly_limit = float(monthly_limit)
+            except (TypeError, ValueError):
+                raise ValueError("monthly_limit must be a number")
+            if monthly_limit <= 0:
+                raise ValueError("monthly_limit must be greater than zero")
+            if max_amount is not None and monthly_limit < max_amount:
+                raise ValueError("monthly_limit must be greater than or equal to max_amount")
+
+        if expiration_hours <= 0:
+            raise ValueError("expiration_hours must be greater than zero")
+
         now = datetime.utcnow()
         expiration = now + timedelta(hours=expiration_hours)
 

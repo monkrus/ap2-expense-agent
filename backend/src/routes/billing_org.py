@@ -9,7 +9,7 @@ from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -29,10 +29,21 @@ class CreateSubscriptionRequest(BaseModel):
     trial_days: int = 14
 
 
+VALID_USAGE_TYPES = {"expense", "ai_categorization", "ocr_scan", "ap2_transaction"}
+
+
 class UsageTrackRequest(BaseModel):
     usage_type: str
-    quantity: int = 1
+    quantity: int = Field(1, ge=1, description="Must be a positive integer")
     metadata: Optional[dict] = None
+
+    @validator("usage_type")
+    def validate_usage_type(cls, v):
+        if v not in VALID_USAGE_TYPES:
+            raise ValueError(
+                f"Invalid usage_type '{v}'. Must be one of: {sorted(VALID_USAGE_TYPES)}"
+            )
+        return v
 
 
 def get_user_organization(db: Session, user_id: str) -> Optional[str]:

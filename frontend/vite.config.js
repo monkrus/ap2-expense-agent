@@ -7,8 +7,14 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      setupFiles: ['src/test/setup.js'],
+    },
     server: {
       port: 5173,
+      strictPort: true,
       proxy: {
         '/api': {
           target: proxyTarget,

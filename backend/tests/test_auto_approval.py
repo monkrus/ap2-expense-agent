@@ -342,9 +342,9 @@ class TestAutoApprovalEndToEnd:
             "/api/v1/expenses",
             headers=admin_org_headers,
             json={
-                "amount": 25.00,
-                "vendor": "Coffee",
-                "description": "Coffee",
+                "amount": 30.00,
+                "vendor": "Tea Shop",
+                "description": "Afternoon tea",
                 "category": "MEALS",
                 "date": datetime.utcnow().isoformat(),
             }

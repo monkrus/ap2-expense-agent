@@ -129,6 +129,52 @@ class RevokeMandateRequest(BaseModel):
     revoke_dependents: bool = True
 
 
+def _validate_constraints(constraints: Dict):
+    """Validate mandate constraints. Reusable across endpoints."""
+    # Reject missing max_amount - every mandate must have a spending cap
+    if not constraints or not constraints.get("max_amount"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Constraints must include max_amount (maximum amount per transaction)"
+        )
+
+    # Validate max_amount is numeric and positive
+    max_amount = constraints.get("max_amount")
+    try:
+        max_amount = float(max_amount)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Constraint validation error: max_amount must be a number"
+        )
+    if max_amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Constraint validation error: max_amount must be greater than zero"
+        )
+
+    # Validate monthly_limit if provided
+    monthly_limit = constraints.get("monthly_limit")
+    if monthly_limit is not None:
+        try:
+            monthly_limit = float(monthly_limit)
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Constraint validation error: monthly_limit must be a number"
+            )
+        if monthly_limit <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Constraint validation error: monthly_limit must be greater than zero"
+            )
+        if monthly_limit < max_amount:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Constraint validation error: monthly_limit must be greater than or equal to max_amount"
+            )
+
+
 def _validate_complete_flow_request(data: CompleteAP2FlowRequest):
     """Validate complete-flow request data before processing."""
     # Validate merchant is not empty
@@ -204,12 +250,8 @@ async def create_intent_mandate(
     # VALIDATION: Validate constraints before creating mandate
     constraints = request.constraints or {}
 
-    # Reject missing max_amount - every mandate must have a spending cap
-    if not constraints or not constraints.get("max_amount"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Constraints must include max_amount (maximum amount per transaction)"
-        )
+    # Use shared constraint validation
+    _validate_constraints(constraints)
 
     # Reject missing monthly_limit - every mandate must have a monthly spending cap
     if not constraints.get("monthly_limit"):
@@ -226,61 +268,12 @@ async def create_intent_mandate(
             detail="Constraints must include at least one category"
         )
 
-    # 0. Validate expiration_hours is positive
+    # Validate expiration_hours is positive
     if request.expiration_hours is not None and request.expiration_hours <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Constraint validation error: expiration_hours must be greater than zero"
         )
-
-    # 1. Validate max_amount is numeric and positive
-    max_amount = constraints.get("max_amount")
-    if max_amount is not None:
-        try:
-            max_amount = float(max_amount)
-        except (TypeError, ValueError):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Constraint validation error: max_amount must be a number"
-            )
-        if max_amount <= 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Constraint validation error: max_amount must be greater than zero"
-            )
-
-    # 2. Validate monthly_limit is numeric and >= max_amount
-    monthly_limit = constraints.get("monthly_limit")
-    if monthly_limit is not None:
-        try:
-            monthly_limit = float(monthly_limit)
-        except (TypeError, ValueError):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Constraint validation error: monthly_limit must be a number"
-            )
-        if monthly_limit <= 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Constraint validation error: monthly_limit must be greater than zero"
-            )
-    if monthly_limit is not None and max_amount is not None:
-        if monthly_limit < max_amount:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Constraint validation error: monthly_limit must be greater than or equal to max_amount"
-            )
-
-    # 3. Category validation - OPTIONAL (suggestions only, not enforced)
-    # Predefined categories for reference/autocomplete, but custom categories are allowed
-    suggested_categories = [
-        "OFFICE_SUPPLIES", "SOFTWARE", "TRAVEL", "MEALS", "COFFEE",
-        "ENTERTAINMENT", "UTILITIES", "MARKETING", "HARDWARE",
-        "PROFESSIONAL_SERVICES", "OTHER"
-    ]
-
-    # No validation - users can use any category they want
-    # The suggested_categories list is just for frontend autocomplete/suggestions
 
     ap2_service = AP2PaymentService(db)
 
@@ -319,16 +312,28 @@ async def create_cart_mandate(
         }
     ]
     """
+    if not request.items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cart must contain at least one item",
+        )
+
     ap2_service = AP2PaymentService(db)
 
     ensure_intent_mandate_owner(db, request.intent_mandate_id, current_user.id)
 
-    cart_mandate = await ap2_service.create_cart_mandate(
-        intent_mandate_id=request.intent_mandate_id,
-        items=request.items,
-        merchant=request.merchant,
-        user_signature=request.user_signature,
-    )
+    try:
+        cart_mandate = await ap2_service.create_cart_mandate(
+            intent_mandate_id=request.intent_mandate_id,
+            items=request.items,
+            merchant=request.merchant,
+            user_signature=request.user_signature,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
 
     return {
         "success": True,
@@ -487,6 +492,10 @@ async def complete_ap2_flow(
     """
     # Validate request data before processing
     _validate_complete_flow_request(data)
+
+    # Validate constraints if provided by the caller
+    if data.constraints:
+        _validate_constraints(data.constraints)
 
     # CRITICAL: Check AP2 transaction limit BEFORE processing (FREE TIER ENFORCEMENT)
     from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError

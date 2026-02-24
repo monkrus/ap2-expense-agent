@@ -395,8 +395,20 @@ async def get_category_reconciliation(
             detail="You do not have access to this organization",
         )
 
-    parsed_start = datetime.fromisoformat(start_date) if start_date else None
-    parsed_end = datetime.fromisoformat(end_date) if end_date else None
+    try:
+        parsed_start = datetime.fromisoformat(start_date) if start_date else None
+        parsed_end = datetime.fromisoformat(end_date) if end_date else None
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid date format. Use ISO format (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)",
+        )
+
+    if parsed_start and parsed_end and parsed_end < parsed_start:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="end_date must be on or after start_date",
+        )
 
     from ..services.reconciliation_service import ReconciliationService
 

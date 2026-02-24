@@ -10,93 +10,24 @@ Tests all organization functionality:
 - Error messages
 - No default organizations
 """
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-from src.api import app
-from src.database import get_db, SessionLocal
-from src.models import User, Organization, OrganizationMember, OrganizationRole, UserRole
-from src.auth import AuthService
 import uuid
 from datetime import datetime
 
+import pytest
 
-@pytest.fixture
-def client():
-    """Test client fixture"""
-    return TestClient(app)
-
-
-@pytest.fixture
-def db():
-    """Database session fixture"""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-@pytest.fixture
-def test_user(db: Session):
-    """Create a test user"""
-    user = User(
-        id=str(uuid.uuid4()),
-        username=f"testuser_{uuid.uuid4().hex[:8]}",
-        email=f"test_{uuid.uuid4().hex[:8]}@example.com",
-        full_name="Test User",
-        role=UserRole.ADMIN,
-        hashed_password=AuthService.hash_password("TestPassword123!"),
-        is_active=True,
-        is_verified=True,
-        created_at=datetime.utcnow()
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-
-    yield user
-
-    # Cleanup: delete user's organizations and memberships
-    memberships = db.query(OrganizationMember).filter(
-        OrganizationMember.user_id == user.id
-    ).all()
-    for m in memberships:
-        db.delete(m)
-
-    orgs = db.query(Organization).join(OrganizationMember).filter(
-        OrganizationMember.user_id == user.id
-    ).all()
-    for org in orgs:
-        db.delete(org)
-
-    db.delete(user)
-    db.commit()
-
-
-@pytest.fixture
-def auth_headers(client, test_user):
-    """Get authentication headers for test user"""
-    response = client.post(
-        "/api/v1/auth/login",
-        json={
-            "username": test_user.username,
-            "password": "TestPassword123!"
-        }
-    )
-    assert response.status_code == 200
-    token = response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+from src.auth import AuthService
+from src.models import User, Organization, OrganizationMember, OrganizationRole, UserRole
 
 
 class TestOrganizationCreation:
     """Test organization creation scenarios"""
 
-    def test_create_organization_success(self, client, auth_headers, db):
+    def test_create_organization_success(self, client, auth_headers, db_session):
         """Test successful organization creation"""
+        unique_id = uuid.uuid4().hex[:6]
         org_data = {
-            "name": "Test Organization",
-            "slug": "test-org",
+            "name": f"Org Creation Test {unique_id}",
+            "slug": f"org-creation-test-{unique_id}",
             "description": "A test organization",
             "currency": "USD",
             "timezone": "UTC"
@@ -156,7 +87,7 @@ class TestOrganizationCreation:
 
         assert response.status_code == 422
 
-    def test_create_organization_duplicate_slug(self, client, auth_headers, db):
+    def test_create_organization_duplicate_slug(self, client, auth_headers, db_session):
         """Test organization creation with duplicate slug"""
         # Create first organization
         org1_data = {
@@ -231,7 +162,7 @@ class TestOrganizationCreation:
 class TestOrganizationLimits:
     """Test free tier organization limits"""
 
-    def test_free_tier_one_organization_limit(self, client, auth_headers, db, monkeypatch):
+    def test_free_tier_one_organization_limit(self, client, auth_headers, db_session, monkeypatch):
         """Test that free tier users can only create 1 organization
 
         Note: Limits are bypassed when TESTING=true, so we temporarily disable it.
@@ -281,7 +212,7 @@ class TestOrganizationLimits:
 class TestOrganizationDeletion:
     """Test organization deletion (soft delete)"""
 
-    def test_delete_organization_as_owner(self, client, auth_headers, db):
+    def test_delete_organization_as_owner(self, client, auth_headers, db_session):
         """Test that owner can delete organization"""
         # Create organization
         org_data = {
@@ -307,11 +238,11 @@ class TestOrganizationDeletion:
         assert delete_response.status_code == 204
 
         # Verify organization is soft-deleted
-        org = db.query(Organization).filter(Organization.id == org_id).first()
+        org = db_session.query(Organization).filter(Organization.id == org_id).first()
         assert org is not None  # Still exists in DB
         assert org.is_active is False  # But marked inactive
 
-    def test_delete_organization_frees_slug(self, client, auth_headers, db):
+    def test_delete_organization_frees_slug(self, client, auth_headers, db_session):
         """Test that deleting org allows slug reuse"""
         # Create and delete first organization
         org1_data = {
@@ -392,7 +323,7 @@ class TestOrganizationEditing:
 class TestOrganizationLifecycle:
     """Test complete organization lifecycle flows"""
 
-    def test_create_delete_create_flow(self, client, auth_headers, db, monkeypatch):
+    def test_create_delete_create_flow(self, client, auth_headers, db_session, monkeypatch):
         """Test: Create org → Delete org → Create new org
 
         Note: Limits are bypassed when TESTING=true, so we temporarily disable it.
@@ -454,7 +385,7 @@ class TestOrganizationLifecycle:
 class TestNoDefaultOrganization:
     """Test that no default organizations are created"""
 
-    def test_no_default_org_on_user_creation(self, db):
+    def test_no_default_org_on_user_creation(self, db_session):
         """Test that creating a user doesn't create default organization"""
         # Create new user
         user = User(
@@ -468,11 +399,11 @@ class TestNoDefaultOrganization:
             is_verified=True,
             created_at=datetime.utcnow()
         )
-        db.add(user)
-        db.commit()
+        db_session.add(user)
+        db_session.commit()
 
         # Check that no organizations exist for this user
-        org_count = db.query(Organization).join(OrganizationMember).filter(
+        org_count = db_session.query(Organization).join(OrganizationMember).filter(
             OrganizationMember.user_id == user.id,
             Organization.is_active == True
         ).count()
@@ -480,12 +411,12 @@ class TestNoDefaultOrganization:
         assert org_count == 0, "New user should start with 0 organizations"
 
         # Cleanup
-        db.delete(user)
-        db.commit()
+        db_session.delete(user)
+        db_session.commit()
 
-    def test_no_default_org_exists_globally(self, db):
+    def test_no_default_org_exists_globally(self, db_session):
         """Test that 'default-org' doesn't exist in database"""
-        default_org = db.query(Organization).filter(
+        default_org = db_session.query(Organization).filter(
             Organization.slug == "default-org",
             Organization.is_active == True
         ).first()

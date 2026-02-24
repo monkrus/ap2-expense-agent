@@ -42,6 +42,7 @@ class TestStripePaymentProcessor:
         self, mock_settings, payment_processor, mock_payment_mandate
     ):
         """Test payment fails gracefully when Stripe is not configured"""
+        mock_settings.stripe_test_mode = False
         mock_settings.stripe_secret_key = None
 
         result = await payment_processor.process_payment_mandate(
@@ -59,6 +60,7 @@ class TestStripePaymentProcessor:
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
         """Test successful payment processing"""
+        mock_settings.stripe_test_mode = False
         mock_settings.stripe_secret_key = "sk_test_123"
 
         # Mock successful Stripe response
@@ -94,6 +96,7 @@ class TestStripePaymentProcessor:
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
         """Test handling of card errors"""
+        mock_settings.stripe_test_mode = False
         mock_settings.stripe_secret_key = "sk_test_123"
 
         # Mock card error from Stripe
@@ -117,6 +120,7 @@ class TestStripePaymentProcessor:
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
         """Test handling of invalid request errors"""
+        mock_settings.stripe_test_mode = False
         mock_settings.stripe_secret_key = "sk_test_123"
 
         mock_error = stripe_error.InvalidRequestError(
@@ -138,6 +142,7 @@ class TestStripePaymentProcessor:
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
         """Test handling of authentication errors"""
+        mock_settings.stripe_test_mode = False
         mock_settings.stripe_secret_key = "sk_test_invalid"
 
         mock_error = stripe_error.AuthenticationError("Invalid API key")
@@ -157,6 +162,7 @@ class TestStripePaymentProcessor:
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
         """Test handling of Stripe API errors"""
+        mock_settings.stripe_test_mode = False
         mock_settings.stripe_secret_key = "sk_test_123"
 
         mock_error = stripe_error.APIError("Internal server error")
@@ -176,6 +182,7 @@ class TestStripePaymentProcessor:
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
         """Test handling of rate limit errors"""
+        mock_settings.stripe_test_mode = False
         mock_settings.stripe_secret_key = "sk_test_123"
 
         mock_error = stripe_error.RateLimitError("Too many requests")
@@ -195,6 +202,7 @@ class TestStripePaymentProcessor:
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
         """Test handling of unexpected errors"""
+        mock_settings.stripe_test_mode = False
         mock_settings.stripe_secret_key = "sk_test_123"
 
         mock_stripe_create.side_effect = Exception("Unexpected error")
@@ -213,6 +221,7 @@ class TestStripePaymentProcessor:
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
         """Test that AP2 metadata is correctly attached to Stripe payment"""
+        mock_settings.stripe_test_mode = False
         mock_settings.stripe_secret_key = "sk_test_123"
 
         mock_payment_intent = Mock()
@@ -241,6 +250,7 @@ class TestStripePaymentProcessor:
         self, mock_settings, mock_stripe_create, payment_processor, mock_payment_mandate
     ):
         """Test that amounts are correctly converted to cents"""
+        mock_settings.stripe_test_mode = False
         mock_settings.stripe_secret_key = "sk_test_123"
 
         mock_payment_intent = Mock()

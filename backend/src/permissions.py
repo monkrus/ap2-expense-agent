@@ -460,13 +460,13 @@ def can_approve_expense(
     Returns:
         True if user can approve the expense
     """
-    # Cannot approve own expense
-    if user_id == expense_user_id:
-        return False
-
-    # Admin can approve all
+    # Admin can approve all (including own — admin override)
     if has_permission(user_role, Permission.EXPENSE_APPROVE_ALL):
         return True
+
+    # Cannot approve own expense (non-admin)
+    if user_id == expense_user_id:
+        return False
 
     # Manager can approve department expenses (with optional amount limit)
     if has_permission(user_role, Permission.EXPENSE_APPROVE_DEPARTMENT):

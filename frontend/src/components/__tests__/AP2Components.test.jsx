@@ -7,8 +7,14 @@ import AP2CompleteFlow from "../AP2CompleteFlow";
 import { ToastProvider } from "../../contexts/ToastContext";
 import { OrganizationProvider } from "../../contexts/OrganizationContext";
 
-// Mock fetch globally
-global.fetch = vi.fn();
+// Mock fetch globally with a default successful response for organization API
+global.fetch = vi.fn(() =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: async () => []
+  })
+);
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -55,7 +61,7 @@ describe("AP2 Components", () => {
         </Wrapper>
       );
 
-      expect(screen.getByText("Create Intent Mandate")).toBeInTheDocument();
+      expect(screen.getByText("Create Reusable Authorization")).toBeInTheDocument();
       expect(screen.getByText("Step 1 of 3")).toBeInTheDocument();
     });
 
@@ -66,8 +72,10 @@ describe("AP2 Components", () => {
         </Wrapper>
       );
 
-      expect(screen.getByText(/Basic Settings/i)).toBeInTheDocument();
-      expect(screen.getByText(/Basic Settings/i)).toBeInTheDocument();
+      // Step labels appear in both the progress stepper and the form heading
+      expect(screen.getAllByText(/Basic Settings/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Advanced Rules/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Review & Create/i).length).toBeGreaterThanOrEqual(1);
     });
 
     it("should allow navigation between steps", async () => {
@@ -78,12 +86,18 @@ describe("AP2 Components", () => {
         </Wrapper>
       );
 
+      // Fill required fields before navigating
+      const maxAmountInput = screen.getByPlaceholderText(/e.g., 1000.00/i);
+      await user.type(maxAmountInput, "500");
+      const monthlyLimitInput = screen.getByPlaceholderText(/e.g., 5000.00/i);
+      await user.type(monthlyLimitInput, "5000");
+
       // Click Next button to go to Step 2
       const nextButtons = screen.getAllByRole("button", { name: /Next/i });
       await user.click(nextButtons[0]);
 
       expect(screen.getByText("Step 2 of 3")).toBeInTheDocument();
-      expect(screen.getByText(/Advanced Rules/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Advanced Rules/i).length).toBeGreaterThanOrEqual(1);
     });
 
     it("should allow max amount input", async () => {
@@ -107,6 +121,10 @@ describe("AP2 Components", () => {
           <ConstraintBuilder onClose={() => {}} onSuccess={() => {}} />
         </Wrapper>
       );
+
+      // Fill required fields before navigating
+      await user.type(screen.getByPlaceholderText(/e.g., 1000.00/i), "500");
+      await user.type(screen.getByPlaceholderText(/e.g., 5000.00/i), "5000");
 
       // Navigate to Step 2 (Advanced Rules)
       const nextButtons = screen.getAllByRole("button", { name: /Next/i });
@@ -134,6 +152,10 @@ describe("AP2 Components", () => {
         </Wrapper>
       );
 
+      // Fill required fields before navigating
+      await user.type(screen.getByPlaceholderText(/e.g., 1000.00/i), "500");
+      await user.type(screen.getByPlaceholderText(/e.g., 5000.00/i), "5000");
+
       // Navigate to Step 2
       const nextButtons = screen.getAllByRole("button", { name: /Next/i });
       await user.click(nextButtons[0]);
@@ -158,19 +180,25 @@ describe("AP2 Components", () => {
         </Wrapper>
       );
 
-      // Step 1: Add max amount
+      // Step 1: Add max amount and monthly limit
       const maxAmountInput = screen.getByPlaceholderText(/e.g., 1000.00/i);
       await user.type(maxAmountInput, "1000");
+      const monthlyLimitInput = screen.getByPlaceholderText(/e.g., 5000.00/i);
+      await user.type(monthlyLimitInput, "5000");
 
       // Go to Step 2
       let nextButtons = screen.getAllByRole("button", { name: /Next/i });
       await user.click(nextButtons[0]);
 
+      // Add a category (required for Step 2 -> Step 3 navigation)
+      const officeSupplies = screen.getByRole("button", { name: /Office Supplies/i });
+      await user.click(officeSupplies);
+
       // Add a merchant
       const merchantInput = screen.getByPlaceholderText(/e.g., Amazon, Starbucks/i);
       await user.type(merchantInput, "Amazon");
 
-      const addButtons = screen.getAllByRole("button", { name: /Add/i });
+      const addButtons = screen.getAllByRole("button", { name: /^Add$/i });
       await user.click(addButtons[1]);
 
       // Go to Step 3
@@ -178,7 +206,7 @@ describe("AP2 Components", () => {
       await user.click(nextButtons[0]);
 
       // Verify review page
-      expect(screen.getByText(/Review & Create/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Review & Create/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText("$1000.00")).toBeInTheDocument();
       expect(screen.getByText("Amazon")).toBeInTheDocument();
     });
@@ -190,6 +218,10 @@ describe("AP2 Components", () => {
           <ConstraintBuilder onClose={() => {}} onSuccess={() => {}} />
         </Wrapper>
       );
+
+      // Fill required fields before navigating
+      await user.type(screen.getByPlaceholderText(/e.g., 1000.00/i), "500");
+      await user.type(screen.getByPlaceholderText(/e.g., 5000.00/i), "5000");
 
       // Navigate to Step 2
       const nextButtons = screen.getAllByRole("button", { name: /Next/i });
@@ -284,12 +316,12 @@ describe("AP2 Components", () => {
         </Wrapper>
       );
 
-      // Find item description input (should be first of each field type)
-      const descriptionInputs = screen.getAllByPlaceholderText(/Item description/i);
+      // Find item description input
+      const descriptionInputs = screen.getAllByPlaceholderText("Description");
       await user.type(descriptionInputs[0], "Test Item");
 
-      // Find amount input
-      const amountInputs = screen.getAllByPlaceholderText(/Amount/i);
+      // Find amount input (placeholder is "0.00")
+      const amountInputs = screen.getAllByPlaceholderText("0.00");
       await user.type(amountInputs[0], "100");
 
       expect(descriptionInputs[0]).toHaveValue("Test Item");
@@ -335,7 +367,7 @@ describe("AP2 Components", () => {
       );
 
       // Check for semantic HTML
-      expect(screen.getByText("Create Intent Mandate")).toBeInTheDocument();
+      expect(screen.getByText("Create Reusable Authorization")).toBeInTheDocument();
     });
 
     it("should support keyboard navigation", async () => {

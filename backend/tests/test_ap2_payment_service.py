@@ -131,12 +131,17 @@ class TestAP2PaymentService:
         self, ap2_service, test_user, sample_constraints, sample_cart_items, db_session
     ):
         """Test creating cart mandate with expired intent mandate"""
-        # Create intent mandate with immediate expiration
+        from datetime import timedelta
+
+        # Create a valid intent mandate, then manually expire it
         intent = await ap2_service.create_intent_mandate(
             user_id=test_user.id,
             constraints=sample_constraints,
-            expiration_hours=-1,  # Expired
+            expiration_hours=1,
         )
+        # Backdate the expiration to simulate an expired mandate
+        intent.expiration = intent.timestamp - timedelta(hours=1)
+        db_session.commit()
 
         with pytest.raises(ValueError, match="expired"):
             await ap2_service.create_cart_mandate(

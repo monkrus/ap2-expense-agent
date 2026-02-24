@@ -8,7 +8,7 @@
  * - Delete and edit flows
  */
 
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import OrganizationManagement from '../OrganizationManagement';
@@ -46,11 +46,24 @@ describe('OrganizationManagement', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     organizationAPI.listOrganizations.mockResolvedValue([]);
+    organizationAPI.listMembers.mockResolvedValue([]);
+    organizationAPI.listInvitations.mockResolvedValue([]);
+    organizationAPI.getCurrentOrganizationId.mockReturnValue(null);
+    organizationAPI.setCurrentOrganizationId.mockImplementation(() => {});
+    organizationAPI.checkNameAvailability.mockResolvedValue({ available: true, message: 'Name is available' });
+    organizationAPI.checkSlugAvailability.mockResolvedValue({ available: true, message: 'Slug is available' });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('Organization Creation', () => {
     test('shows validation error for short slug', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
       render(
         <AuthContext.Provider value={mockAuthContext}>
           <OrganizationManagement />
@@ -62,36 +75,44 @@ describe('OrganizationManagement', () => {
         expect(organizationAPI.listOrganizations).toHaveBeenCalled();
       });
 
-      // Click "Create Organization" button
-      const createButton = screen.getByText(/create organization/i);
-      fireEvent.click(createButton);
+      // Click "Create Your First Organization" button
+      const createButton = screen.getByRole('button', { name: /create.*organization/i });
+      await user.click(createButton);
 
-      // Fill in form with short slug
+      // Fill in form
       const nameInput = screen.getByLabelText(/organization name/i);
       const slugInput = screen.getByLabelText(/organization id/i);
 
-      await userEvent.type(nameInput, 'Test Org');
-      await userEvent.type(slugInput, 'ab'); // Too short
+      await user.type(nameInput, 'Test Org');
+      await user.clear(slugInput);
+      await user.type(slugInput, 'ab');
+
+      // Advance timers to complete debounced validation
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+
+      // Wait for validation to resolve (button becomes enabled)
+      await waitFor(() => {
+        const submitBtn = screen.getByRole('button', { name: /^create organization$/i });
+        expect(submitBtn).not.toBeDisabled();
+      });
 
       // Mock API error for validation
       const validationError = new Error('slug: must be at least 3 characters long');
       validationError.status = 422;
       validationError.data = {
-        error: {
-          message: 'Request validation failed',
-          details: {
-            errors: [{
-              field: 'body.slug',
-              message: 'String should have at least 3 characters'
-            }]
-          }
-        }
+        detail: [{
+          loc: ['body', 'slug'],
+          msg: 'String should have at least 3 characters',
+          type: 'string_too_short'
+        }]
       };
       organizationAPI.createOrganization.mockRejectedValue(validationError);
 
       // Submit form
-      const submitButton = screen.getByText(/create organization/i, { selector: 'button' });
-      fireEvent.click(submitButton);
+      const submitButton = screen.getByRole('button', { name: /^create organization$/i });
+      await user.click(submitButton);
 
       // Verify error is shown
       await waitFor(() => {
@@ -102,9 +123,11 @@ describe('OrganizationManagement', () => {
     });
 
     test('shows free tier limit error with upgrade prompt', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
       // Mock organization already exists
       organizationAPI.listOrganizations.mockResolvedValue([
-        { id: '1', name: 'Existing Org', slug: 'existing' }
+        { id: '1', name: 'Existing Org', slug: 'existing', currency: 'USD', timezone: 'UTC', max_members: 5 }
       ]);
 
       render(
@@ -117,16 +140,28 @@ describe('OrganizationManagement', () => {
         expect(organizationAPI.listOrganizations).toHaveBeenCalled();
       });
 
-      // Click "Create Organization"
-      const createButton = screen.getByText(/create organization/i);
-      fireEvent.click(createButton);
+      // When orgs exist, the header shows "Create Organization" button
+      const createButton = await screen.findByRole('button', { name: /create organization/i });
+      await user.click(createButton);
 
       // Fill form
       const nameInput = screen.getByLabelText(/organization name/i);
       const slugInput = screen.getByLabelText(/organization id/i);
 
-      await userEvent.type(nameInput, 'Second Org');
-      await userEvent.type(slugInput, 'second-org');
+      await user.type(nameInput, 'Second Org');
+      await user.clear(slugInput);
+      await user.type(slugInput, 'second-org');
+
+      // Advance timers for debounced validation
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+
+      await waitFor(() => {
+        const btns = screen.getAllByRole('button', { name: /^create organization$/i });
+        // The last one is the modal submit button
+        expect(btns[btns.length - 1]).not.toBeDisabled();
+      });
 
       // Mock 402 error (tier limit)
       const limitError = new Error("You've reached your Free plan's limit of 1 organization");
@@ -145,9 +180,9 @@ describe('OrganizationManagement', () => {
       };
       organizationAPI.createOrganization.mockRejectedValue(limitError);
 
-      // Submit
-      const submitButton = screen.getByText(/create organization/i, { selector: 'button' });
-      fireEvent.click(submitButton);
+      // Submit - use the modal's submit button (last matching button)
+      const submitButtons = screen.getAllByRole('button', { name: /^create organization$/i });
+      await user.click(submitButtons[submitButtons.length - 1]);
 
       // Verify upgrade prompt is shown
       await waitFor(() => {
@@ -156,11 +191,16 @@ describe('OrganizationManagement', () => {
     });
 
     test('creates organization successfully', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
       organizationAPI.createOrganization.mockResolvedValue({
         id: '123',
         name: 'New Org',
         slug: 'new-org',
-        is_active: true
+        is_active: true,
+        currency: 'USD',
+        timezone: 'UTC',
+        max_members: 5
       });
 
       render(
@@ -174,20 +214,30 @@ describe('OrganizationManagement', () => {
       });
 
       // Click create button
-      const createButton = screen.getByText(/create organization/i);
-      fireEvent.click(createButton);
+      const createButton = screen.getByRole('button', { name: /create.*organization/i });
+      await user.click(createButton);
 
       // Fill form
       const nameInput = screen.getByLabelText(/organization name/i);
       const slugInput = screen.getByLabelText(/organization id/i);
 
-      await userEvent.type(nameInput, 'New Org');
-      await userEvent.clear(slugInput);
-      await userEvent.type(slugInput, 'new-org');
+      await user.type(nameInput, 'New Org');
+      await user.clear(slugInput);
+      await user.type(slugInput, 'new-org');
+
+      // Advance timers for debounced validation
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+
+      await waitFor(() => {
+        const submitBtn = screen.getByRole('button', { name: /^create organization$/i });
+        expect(submitBtn).not.toBeDisabled();
+      });
 
       // Submit
-      const submitButton = screen.getByText(/create organization/i, { selector: 'button' });
-      fireEvent.click(submitButton);
+      const submitButton = screen.getByRole('button', { name: /^create organization$/i });
+      await user.click(submitButton);
 
       // Verify success
       await waitFor(() => {
@@ -207,15 +257,28 @@ describe('OrganizationManagement', () => {
 
   describe('Organization Deletion', () => {
     test('deletes organization successfully', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
       const mockOrg = {
         id: '123',
         name: 'Test Org',
         slug: 'test-org',
-        is_active: true
+        is_active: true,
+        currency: 'USD',
+        timezone: 'UTC',
+        max_members: 5
       };
 
-      organizationAPI.listOrganizations.mockResolvedValue([mockOrg]);
+      organizationAPI.listOrganizations
+        .mockResolvedValueOnce([mockOrg])  // Initial load
+        .mockResolvedValueOnce([]);        // After deletion
+
       organizationAPI.deleteOrganization.mockResolvedValue();
+
+      // Mock window.prompt to return the slug for confirmation
+      const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('test-org');
+      // Mock window.alert to prevent errors from the post-delete alert
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
       render(
         <AuthContext.Provider value={mockAuthContext}>
@@ -224,33 +287,47 @@ describe('OrganizationManagement', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Test Org')).toBeInTheDocument();
+        expect(screen.getAllByText('Test Org').length).toBeGreaterThanOrEqual(1);
       });
+
+      // Navigate to Settings tab where the delete button is
+      const settingsTab = screen.getByText('Settings');
+      await user.click(settingsTab);
 
       // Click delete button
       const deleteButton = screen.getByTestId('delete-org-123');
-      fireEvent.click(deleteButton);
+      await user.click(deleteButton);
 
-      // Confirm deletion
-      const confirmButton = await screen.findByText(/confirm/i);
-      fireEvent.click(confirmButton);
+      // Advance timers for the setTimeout in handleDeleteOrg
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
 
-      // Verify deletion
+      // Verify deletion (prompt is auto-answered by the mock)
       await waitFor(() => {
         expect(organizationAPI.deleteOrganization).toHaveBeenCalledWith('123');
         expect(mockSuccess).toHaveBeenCalled();
       });
+
+      // Cleanup
+      promptSpy.mockRestore();
+      alertSpy.mockRestore();
     });
   });
 
   describe('Organization Editing', () => {
     test('updates organization successfully', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
       const mockOrg = {
         id: '123',
         name: 'Original Name',
         slug: 'original',
         description: 'Original description',
-        is_active: true
+        is_active: true,
+        currency: 'USD',
+        timezone: 'UTC',
+        max_members: 5
       };
 
       organizationAPI.listOrganizations.mockResolvedValue([mockOrg]);
@@ -267,21 +344,25 @@ describe('OrganizationManagement', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Original Name')).toBeInTheDocument();
+        expect(screen.getAllByText('Original Name').length).toBeGreaterThanOrEqual(1);
       });
+
+      // Navigate to Settings tab where the Edit button lives
+      const settingsTab = screen.getByText('Settings');
+      await user.click(settingsTab);
 
       // Click edit button
       const editButton = screen.getByTestId('edit-org-123');
-      fireEvent.click(editButton);
+      await user.click(editButton);
 
-      // Update name
+      // Update name - the edit modal has its own labeled input
       const nameInput = screen.getByLabelText(/organization name/i);
-      await userEvent.clear(nameInput);
-      await userEvent.type(nameInput, 'Updated Name');
+      await user.clear(nameInput);
+      await user.type(nameInput, 'Updated Name');
 
       // Submit
       const saveButton = screen.getByText(/save/i);
-      fireEvent.click(saveButton);
+      await user.click(saveButton);
 
       // Verify update
       await waitFor(() => {
@@ -298,6 +379,8 @@ describe('OrganizationManagement', () => {
 
   describe('Real-time Validation', () => {
     test('checks slug availability in real-time', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
       organizationAPI.checkSlugAvailability.mockResolvedValue({
         available: true,
         message: 'Slug is available'
@@ -314,23 +397,31 @@ describe('OrganizationManagement', () => {
       });
 
       // Click create
-      const createButton = screen.getByText(/create organization/i);
-      fireEvent.click(createButton);
+      const createButton = screen.getByRole('button', { name: /create.*organization/i });
+      await user.click(createButton);
 
       // Type slug
       const slugInput = screen.getByLabelText(/organization id/i);
-      await userEvent.type(slugInput, 'test-slug');
+      await user.clear(slugInput);
+      await user.type(slugInput, 'test-slug');
 
-      // Wait for debounced validation
+      // Advance timers for debounced validation
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+
+      // Wait for validation to resolve
       await waitFor(() => {
         expect(organizationAPI.checkSlugAvailability).toHaveBeenCalledWith('test-slug');
-      }, { timeout: 1000 });
+      });
 
       // Verify availability indicator
       expect(screen.getByText(/slug is available/i)).toBeInTheDocument();
     });
 
     test('shows slug unavailable message', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
       organizationAPI.checkSlugAvailability.mockResolvedValue({
         available: false,
         message: 'Slug is already taken',
@@ -347,15 +438,21 @@ describe('OrganizationManagement', () => {
         expect(organizationAPI.listOrganizations).toHaveBeenCalled();
       });
 
-      const createButton = screen.getByText(/create organization/i);
-      fireEvent.click(createButton);
+      const createButton = screen.getByRole('button', { name: /create.*organization/i });
+      await user.click(createButton);
 
       const slugInput = screen.getByLabelText(/organization id/i);
-      await userEvent.type(slugInput, 'taken-slug');
+      await user.clear(slugInput);
+      await user.type(slugInput, 'taken-slug');
+
+      // Advance timers for debounced validation
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
 
       await waitFor(() => {
         expect(screen.getByText(/already taken/i)).toBeInTheDocument();
-      }, { timeout: 1000 });
+      });
 
       // Verify suggestions are shown
       expect(screen.getByText(/test-slug-1/)).toBeInTheDocument();
