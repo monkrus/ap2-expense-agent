@@ -88,8 +88,8 @@ export default defineConfig({
     : [
         {
           command:
-            '..\\.venv311\\Scripts\\python.exe -m uvicorn src.api:app --host 127.0.0.1 --port 8001',
-          url: 'http://localhost:8001/docs',
+            '..\\.venv\\Scripts\\python.exe -m uvicorn src.api:app --host 127.0.0.1 --port 8001',
+          url: 'http://127.0.0.1:8001/docs',
           reuseExistingServer: false,
           timeout: 120000,
           cwd: '..\\backend',
@@ -102,13 +102,11 @@ export default defineConfig({
         {
           command: 'npm run dev -- --port 5174',
           url: 'http://localhost:5174',
-          reuseExistingServer: false,
+          reuseExistingServer: true,
           timeout: 120000,
           env: {
             ...process.env,
-            VITE_PROXY_TARGET: 'http://localhost:8001',
-            VITE_API_URL: 'http://localhost:8001/api/v1',
-            VITE_API_BASE_URL: 'http://localhost:8001',
+            VITE_PROXY_TARGET: 'http://127.0.0.1:8001',
           },
         },
       ],

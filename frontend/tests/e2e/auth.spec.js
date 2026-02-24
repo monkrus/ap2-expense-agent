@@ -12,14 +12,14 @@ test.describe('Authentication Flow', () => {
 
     // Check for login form elements
     await expect(page.getByLabel('Username')).toBeVisible();
-    await expect(page.getByLabel('Password')).toBeVisible();
+    await expect(page.locator('#login-password')).toBeVisible();
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
   });
 
   test('should login with valid credentials', async ({ page }) => {
     // Fill login form
     await page.getByLabel('Username').fill('emptest');
-    await page.getByLabel('Password').fill('Testme1!');
+    await page.locator('#login-password').fill('Testme1!');
 
     // Submit form
     await page.getByRole('button', { name: /sign in/i }).click();
@@ -34,7 +34,7 @@ test.describe('Authentication Flow', () => {
   test('should show error with invalid credentials', async ({ page }) => {
     // Fill login form with invalid credentials
     await page.getByLabel('Username').fill('invaliduser');
-    await page.getByLabel('Password').fill('wrongpassword');
+    await page.locator('#login-password').fill('wrongpassword');
 
     // Submit form
     await page.getByRole('button', { name: /sign in/i }).click();
@@ -82,7 +82,7 @@ test.describe('Protected Routes', () => {
     // Login
     await page.goto(BASE_URL);
     await page.getByLabel('Username').fill('emptest');
-    await page.getByLabel('Password').fill('Testme1!');
+    await page.locator('#login-password').fill('Testme1!');
     await page.getByRole('button', { name: /sign in/i }).click();
     await expect(page.getByTitle('Logout')).toBeVisible();
 

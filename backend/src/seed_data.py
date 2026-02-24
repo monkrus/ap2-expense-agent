@@ -11,13 +11,27 @@ from sqlalchemy.orm import Session
 from .auth import AuthService
 from .models import Organization, OrganizationMember, OrganizationRole, User, UserRole
 
-# FIXED DEFAULT USER - DO NOT MODIFY
+# FIXED DEFAULT USERS - DO NOT MODIFY
 DEFAULT_USERS = [
     {
         "username": "adminfree",
         "email": "adminfree@example.com",
         "full_name": "Admin Free",
         "role": UserRole.ADMIN,
+        "password": "Testme1!",
+    },
+    {
+        "username": "admintest",
+        "email": "admintest@example.com",
+        "full_name": "Admin Test",
+        "role": UserRole.ADMIN,
+        "password": "Testme1!",
+    },
+    {
+        "username": "emptest",
+        "email": "emptest@example.com",
+        "full_name": "Employee Test",
+        "role": UserRole.EMPLOYEE,
         "password": "Testme1!",
     },
 ]
@@ -85,13 +99,58 @@ def seed_default_users(db: Session, force_password_reset: bool = False) -> dict:
                 seeded_users.append(new_user)
                 stats["created"] += 1
 
-        # No default organization created - users must create their own
+        # Seed a default test organization and add users to it
+        _seed_default_org(db, seeded_users)
+
         db.commit()
         return stats
 
     except Exception as e:
         db.rollback()
         raise Exception(f"Failed to seed default users: {str(e)}")
+
+
+DEFAULT_ORG_NAME = "Test Organization"
+
+
+def _seed_default_org(db: Session, users: list) -> None:
+    """Create a default test organization and add all seeded users to it."""
+    if not users:
+        return
+
+    # Check if org already exists
+    existing_org = db.query(Organization).filter(
+        Organization.name == DEFAULT_ORG_NAME
+    ).first()
+
+    if not existing_org:
+        org = Organization(
+            id=str(uuid.uuid4()),
+            name=DEFAULT_ORG_NAME,
+            slug="test-organization",
+            max_members=10,
+        )
+        db.add(org)
+        db.flush()
+    else:
+        org = existing_org
+
+    # Add each user to the org if not already a member
+    for user in users:
+        existing_member = db.query(OrganizationMember).filter(
+            OrganizationMember.organization_id == org.id,
+            OrganizationMember.user_id == user.id,
+        ).first()
+        if not existing_member:
+            role = OrganizationRole.OWNER if user.username in ("adminfree", "admintest") else OrganizationRole.MEMBER
+            member = OrganizationMember(
+                id=str(uuid.uuid4()),
+                organization_id=org.id,
+                user_id=user.id,
+                role=role,
+                is_active=True,
+            )
+            db.add(member)
 
 
 def ensure_default_users_exist(db: Session) -> None:

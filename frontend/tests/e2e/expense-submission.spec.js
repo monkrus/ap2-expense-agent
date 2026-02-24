@@ -145,9 +145,9 @@ test.describe('Expense List & Status', () => {
     // Should show expenses or empty state
     const hasExpenses = await page.locator('table, .expense-card, .expense-item').count();
     if (hasExpenses > 0) {
-      await expect(page.locator('text=/pending|approved|rejected/i')).toBeVisible();
+      await expect(page.locator('text=/pending|approved|rejected/i').first()).toBeVisible();
     } else {
-      await expect(page.locator('text=/all caught up|no expenses/i')).toBeVisible();
+      await expect(page.locator('text=/all caught up|no expenses/i').first()).toBeVisible();
     }
   });
 
@@ -164,7 +164,7 @@ test.describe('Expense List & Status', () => {
       await page.waitForLoadState('networkidle');
       const expenseTable = page.locator('table');
       if (await expenseTable.count() > 0) {
-        await expect(expenseTable.locator('text=APPROVED')).toBeVisible();
+        await expect(expenseTable.locator('text=APPROVED').first()).toBeVisible();
       } else {
       await expect(page.getByText(/no expenses match the current filter/i)).toBeVisible();
       }
@@ -175,9 +175,9 @@ test.describe('Expense List & Status', () => {
     await expect(page.getByRole('heading', { name: /active expenses/i })).toBeVisible();
     const expenseTable = page.locator('table');
     if (await expenseTable.count() > 0) {
-      await expect(expenseTable.locator('text=Amount')).toBeVisible();
-      await expect(expenseTable.locator('text=Vendor')).toBeVisible();
-      await expect(expenseTable.locator('text=Category')).toBeVisible();
+      await expect(expenseTable.locator('text=Amount').first()).toBeVisible();
+      await expect(expenseTable.locator('text=Vendor').first()).toBeVisible();
+      await expect(expenseTable.locator('text=Category').first()).toBeVisible();
     } else {
       await expect(page.getByText('All caught up!')).toBeVisible();
     }
@@ -198,7 +198,7 @@ test.describe('Expense Approval Flow (Admin/Manager)', () => {
     // Should show pending expenses or empty state
     const hasPending = await page.getByRole('button', { name: /approve via ap2/i }).count();
     if (hasPending > 0) {
-      await expect(page.getByRole('button', { name: /approve via ap2/i })).toBeVisible();
+      await expect(page.getByRole('button', { name: /approve via ap2/i }).first()).toBeVisible();
     } else {
       await expectPendingApprovalEmptyState(page);
     }

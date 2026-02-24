@@ -32,7 +32,7 @@ export const clickWithOverlayTolerance = async (page, locator) => {
 export const login = async (page, username = 'emptest', password = 'Testme1!') => {
   await page.goto(BASE_URL);
   await page.getByLabel('Username').fill(username);
-  await page.getByLabel('Password').fill(password);
+  await page.locator('#login-password').fill(password);
   await page.getByRole('button', { name: /sign in/i }).click();
   await expect(page.getByTitle('Logout')).toBeVisible({ timeout: 15000 });
   await page.waitForFunction(() => localStorage.getItem('current_organization_id'));
