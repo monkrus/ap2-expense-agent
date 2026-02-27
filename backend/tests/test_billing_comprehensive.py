@@ -253,7 +253,7 @@ class TestUsageTracking:
         response = client.post(
             "/api/billing/org/usage/track",
             json={
-                "usage_type": "expense_created",
+                "usage_type": "expense",
                 "quantity": 1,
                 "metadata": {"expense_id": "test-123"}
             },
@@ -404,7 +404,7 @@ class TestUsageMetrics:
         response = client.post(
             "/api/billing/org/usage/track",
             json={
-                "usage_type": "expense_created",
+                "usage_type": "expense",
                 "quantity": 5,
                 "metadata": {"test": "data"}
             },
@@ -420,7 +420,7 @@ class TestUsageMetrics:
         for i in range(3):
             response = client.post(
                 "/api/billing/org/usage/track",
-                json={"usage_type": "expense_created", "quantity": 1},
+                json={"usage_type": "expense", "quantity": 1},
                 headers=auth_headers
             )
             assert response.status_code == 200
@@ -442,11 +442,11 @@ class TestBillingEdgeCases:
         """Test tracking usage when user has no organization"""
         response = client.post(
             "/api/billing/org/usage/track",
-            json={"usage_type": "expense_created", "quantity": 1},
+            json={"usage_type": "expense", "quantity": 1},
             headers=auth_headers
         )
 
-        # Should fail gracefully
+        # Should fail gracefully - user has no org so 404
         assert response.status_code in [400, 404]
 
     def test_get_usage_without_org(self, client, auth_headers):
