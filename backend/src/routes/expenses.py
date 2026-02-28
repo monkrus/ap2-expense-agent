@@ -344,15 +344,27 @@ async def create_expense(
                 "category": data.category.value if hasattr(data.category, 'value') else str(data.category),
             }]
 
-            ap2_result = await ap2_service.complete_ap2_flow(
-                user_id=current_user.id,
+            # Generate agent signature for audit trail
+            now = datetime.utcnow()
+            agent_signature = ap2_service._generate_signature(
+                current_user.id,
+                {"items": cart_items, "merchant": data.vendor or "Unknown Vendor"},
+                now,
+            )
+
+            # Create Cart Mandate linked to the EXISTING matched Intent Mandate
+            cart_mandate = await ap2_service.create_cart_mandate(
+                intent_mandate_id=matching_mandate.id,
                 items=cart_items,
                 merchant=data.vendor or "Unknown Vendor",
-                constraints={
-                    "max_amount": float(data.amount) * 1.05,  # 5% buffer
-                    "merchant": data.vendor,
-                    "approval_required": False,  # Already authorized via Intent Mandate
-                }
+                user_signature=agent_signature,
+            )
+
+            # Create Payment Mandate for cryptographic audit trail
+            # (no Stripe execution — this is expense reimbursement, not direct payment)
+            payment_mandate = await ap2_service.create_payment_mandate(
+                cart_mandate_id=cart_mandate.id,
+                payment_method="expense_reimbursement",
             )
 
             # AUTO-APPROVE VIA AP2
@@ -361,9 +373,9 @@ async def create_expense(
             expense.approved_at = datetime.utcnow()
             expense.auto_approved = True
             expense.auto_approved_via = "intent_mandate"  # Track AP2 auto-approval
-            expense.intent_mandate_id = ap2_result.get("intent_mandate_id")
-            expense.cart_mandate_id = ap2_result.get("cart_mandate_id")
-            expense.payment_mandate_id = ap2_result.get("payment_mandate_id")
+            expense.intent_mandate_id = matching_mandate.id   # existing mandate
+            expense.cart_mandate_id = cart_mandate.id
+            expense.payment_mandate_id = payment_mandate.id
 
             db.commit()
             db.refresh(expense)
