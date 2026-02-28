@@ -743,7 +743,7 @@ const AdminDashboard = () => {
           aValue = (a.user_name || "").toLowerCase();
           bValue = (b.user_name || "").toLowerCase();
           break;
-        case "status":
+        case "status": {
           // Custom order: PENDING -> APPROVED -> REJECTED -> WITHDRAWN
           const statusOrder = {
             PENDING: 0,
@@ -754,6 +754,7 @@ const AdminDashboard = () => {
           aValue = statusOrder[a.status?.toUpperCase()] ?? 999;
           bValue = statusOrder[b.status?.toUpperCase()] ?? 999;
           break;
+        }
         case "vendor":
           aValue = (a.vendor || "").toLowerCase();
           bValue = (b.vendor || "").toLowerCase();

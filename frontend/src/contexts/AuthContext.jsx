@@ -121,7 +121,7 @@ export const AuthProvider = ({ children }) => {
       try {
         data = await response.json();
       } catch (jsonError) {
-        throw new Error("Server error. Please try again later.");
+        throw new Error("Server error. Please try again later.", { cause: jsonError });
       }
 
       setAccessToken(data.access_token);
@@ -307,7 +307,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         // Token refresh failed, logout user
         logout();
-        throw new Error("Session expired. Please login again.");
+        throw new Error("Session expired. Please login again.", { cause: error });
       }
     }
 

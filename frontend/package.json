@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "echo 'Linting passed - ESLint not configured for this JavaScript project'",
+    "lint": "eslint src --ext .js,.jsx",
     "type-check": "echo 'Type checking passed - This is a JavaScript project without TypeScript'",
     "test": "playwright test --workers=1",
     "test:ui": "playwright test --ui",
@@ -25,6 +25,7 @@
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-is": "^19.2.4",
     "recharts": "^3.6.0"
   },
   "overrides": {
@@ -34,6 +35,7 @@
     "readdir-glob": "^3.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.56.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
@@ -42,6 +44,11 @@
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
+    "eslint": "^9.39.3",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.3.0",
     "jsdom": "^27.3.0",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",

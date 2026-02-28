@@ -22,34 +22,9 @@ import AdminDashboard from "./components/AdminDashboard";
 
 const ExpenseManagementAgent = () => {
   const { user } = useAuth();
-  const { toasts, removeToast, success, error: showError, info } = useToast();
+  const { toasts, removeToast, success, error: showError } = useToast();
 
-  // Route to correct dashboard based on user role
-  if (user) {
-    if (
-      user.role === "admin" ||
-      user.role === "manager" ||
-      user.role === "accountant"
-    ) {
-      return (
-        <>
-          <ToastContainer toasts={toasts} onClose={removeToast} />
-          <AdminDashboard />
-        </>
-      );
-    } else {
-      return (
-        <>
-          <ToastContainer toasts={toasts} onClose={removeToast} />
-          <EmployeeDashboard />
-        </>
-      );
-    }
-  }
-
-  // Legacy dashboard code below (kept for fallback)
-  const legacyUser = { role: "legacy" };
-
+  // Legacy dashboard state (used when no authenticated user)
   const [messages, setMessages] = useState([
     {
       role: "assistant",
@@ -96,6 +71,29 @@ const ExpenseManagementAgent = () => {
       fetchExpenses();
     }
   }, [user]);
+
+  // Route to correct dashboard based on user role
+  if (user) {
+    if (
+      user.role === "admin" ||
+      user.role === "manager" ||
+      user.role === "accountant"
+    ) {
+      return (
+        <>
+          <ToastContainer toasts={toasts} onClose={removeToast} />
+          <AdminDashboard />
+        </>
+      );
+    } else {
+      return (
+        <>
+          <ToastContainer toasts={toasts} onClose={removeToast} />
+          <EmployeeDashboard />
+        </>
+      );
+    }
+  }
 
   const processAP2Payment = async (expense) => {
     setPaymentProcessing(true);

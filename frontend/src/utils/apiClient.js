@@ -80,23 +80,18 @@ export const apiFetch = async (url, options = {}) => {
 
   // If we get 401 Unauthorized, try to refresh token and retry
   if (response.status === 401) {
-    try {
-      const newAccessToken = await refreshAccessToken();
+    const newAccessToken = await refreshAccessToken();
 
-      // Retry the request with new token
-      const retryHeaders = {
-        ...headers,
-        Authorization: `Bearer ${newAccessToken}`,
-      };
+    // Retry the request with new token
+    const retryHeaders = {
+      ...headers,
+      Authorization: `Bearer ${newAccessToken}`,
+    };
 
-      response = await fetch(url, {
-        ...options,
-        headers: retryHeaders,
-      });
-    } catch (error) {
-      // Token refresh failed, user will be redirected to login
-      throw error;
-    }
+    response = await fetch(url, {
+      ...options,
+      headers: retryHeaders,
+    });
   }
 
   // If account is suspended/inactive, clear session and redirect

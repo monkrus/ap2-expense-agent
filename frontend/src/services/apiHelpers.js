@@ -175,7 +175,7 @@ export async function apiRequest(endpoint, options = {}) {
     if (error instanceof Error) {
       throw error;
     }
-    throw new Error('Network error. Please check your connection and try again.');
+    throw new Error("Network error. Please check your connection and try again.", { cause: error });
   }
 }
 

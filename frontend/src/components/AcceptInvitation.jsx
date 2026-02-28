@@ -38,7 +38,7 @@ const AcceptInvitation = ({ token }) => {
 
       // Redirect to organizations page after 2 seconds
       setTimeout(() => {
-        navigate("/organizations");
+        window.location.href = "/organizations";
       }, 2000);
     } catch (err) {
       setStatus("error");
@@ -50,7 +50,7 @@ const AcceptInvitation = ({ token }) => {
   };
 
   const handleDecline = () => {
-    navigate("/");
+    window.location.href = "/";
   };
 
   if (!user) {
@@ -182,7 +182,7 @@ const AcceptInvitation = ({ token }) => {
                 Try Again
               </button>
               <button
-                onClick={() => navigate("/")}
+                onClick={() => { window.location.href = "/"; }}
                 className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Go to Dashboard

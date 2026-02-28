@@ -129,6 +129,7 @@ const ExpenseExport = ({ expenses, onClose }) => {
       if (error.message?.includes("timeout")) {
         throw new Error(
           "Excel export timed out. Please try exporting fewer expenses or use CSV format.",
+          { cause: error },
         );
       }
       throw error;
@@ -327,7 +328,7 @@ const ExpenseExport = ({ expenses, onClose }) => {
       doc.save(filename);
     } catch (err) {
       console.error("PDF Export Error:", err);
-      throw new Error(`PDF export failed: ${err.message || "Unknown error"}`);
+      throw new Error(`PDF export failed: ${err.message || "Unknown error"}`, { cause: err });
     }
   };
 

@@ -135,7 +135,7 @@ export const uploadAndProcessReceipt = async (file, expenseId = null) => {
       ocrData: ocrResult,
     };
   } catch (error) {
-    throw new Error(`Failed to upload and process receipt: ${error.message}`);
+    throw new Error(`Failed to upload and process receipt: ${error.message}`, { cause: error });
   }
 };
 
