@@ -379,3 +379,76 @@ class TestMonthlyLimitEnforcement:
         )
         assert matching is not None
         assert matching.id == mandate.id
+
+
+class TestMandateExhaustion:
+    """Verify that a mandate is marked exhausted when monthly_limit is fully consumed."""
+
+    async def test_mandate_marked_exhausted_when_limit_consumed(self, db_session):
+        """
+        After an expense consumes the entire monthly_limit, the mandate
+        should be marked as 'exhausted' and no longer match new expenses.
+        """
+        org = _make_org(db_session)
+        user = _make_user(db_session, org.id)
+
+        # monthly_limit=150.00, max_amount=150.00 — a single $150 expense exhausts it
+        constraints = {
+            "max_amount": 150.00,
+            "monthly_limit": 150.00,
+            "categories": ["software"],
+            "merchants": ["Test Vendor"],
+        }
+        mandate = _create_intent_mandate(db_session, user.id, constraints)
+
+        service = AP2PaymentService(db_session)
+
+        # Build AP2 chain
+        cart_items = [{"description": "Software license", "amount": 150.00, "vendor": "Test Vendor", "category": "software"}]
+        cart_mandate = await service.create_cart_mandate(
+            intent_mandate_id=mandate.id,
+            items=cart_items,
+            merchant="Test Vendor",
+            user_signature="agent-signature",
+        )
+        payment_mandate = await service.create_payment_mandate(
+            cart_mandate_id=cart_mandate.id,
+            payment_method="expense_reimbursement",
+        )
+
+        # Create the auto-approved expense for $150
+        _create_expense_linked(
+            db_session,
+            user.id,
+            org.id,
+            amount=150.00,
+            mandate_id=mandate.id,
+            cart_id=cart_mandate.id,
+            payment_id=payment_mandate.id,
+        )
+
+        # Simulate the exhaustion check (same logic as in expenses.py)
+        current_usage = service._get_mandate_monthly_usage(mandate.id, org.id)
+        assert current_usage == pytest.approx(150.00)
+
+        monthly_limit = constraints["monthly_limit"]
+        if current_usage >= float(monthly_limit):
+            mandate.status = "exhausted"
+            db_session.add(mandate)
+            db_session.commit()
+
+        # Verify mandate is exhausted
+        db_session.refresh(mandate)
+        assert mandate.status == "exhausted"
+
+        # find_matching_intent_mandate should return None for exhausted mandate
+        matching = service.find_matching_intent_mandate(
+            user_id=user.id,
+            amount=50.00,
+            category="software",
+            merchant="Test Vendor",
+            organization_id=org.id,
+        )
+        assert matching is None, (
+            "Expected no matching mandate after it has been marked exhausted"
+        )

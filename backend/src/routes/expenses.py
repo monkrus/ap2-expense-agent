@@ -9,6 +9,7 @@ This module provides comprehensive expense management endpoints with:
 - Audit trails
 """
 
+import json
 import logging
 import uuid
 from datetime import datetime
@@ -27,6 +28,7 @@ from ..models import (
     NotificationType,
     Organization,
     OrganizationMember,
+    PaymentMandate,
     User,
     UserRole,
     OrganizationRole,
@@ -379,6 +381,20 @@ async def create_expense(
 
             db.commit()
             db.refresh(expense)
+
+            # Check if monthly_limit is now exhausted after this approval
+            try:
+                constraints = json.loads(matching_mandate.constraints)
+                monthly_limit = constraints.get("monthly_limit")
+                if monthly_limit:
+                    current_usage = ap2_service._get_mandate_monthly_usage(matching_mandate.id, org_id)
+                    if current_usage >= float(monthly_limit):
+                        matching_mandate.status = "exhausted"
+                        db.add(matching_mandate)
+                        db.commit()
+                        logger.info(f"[AP2] Intent Mandate {matching_mandate.id} exhausted: ${current_usage} >= ${monthly_limit} monthly limit")
+            except Exception as e:
+                logger.error(f"[AP2] Failed to check mandate exhaustion: {e}")
 
             # Track expense submission for billing
             try:
@@ -878,6 +894,16 @@ async def export_expenses(
         format_type=format.lower()
     )
 
+    # Transition payment mandates to completed for exported approved expenses
+    for exp in expenses:
+        if exp.payment_mandate_id and exp.status == ExpenseStatus.APPROVED:
+            pm = db.query(PaymentMandate).filter(PaymentMandate.id == exp.payment_mandate_id).first()
+            if pm and pm.status == "pending":
+                pm.status = "completed"
+                pm.completed_at = datetime.utcnow()
+                db.add(pm)
+    db.commit()
+
     # Determine content type and filename
     if format.lower() == "csv":
         content_type = "text/csv"
@@ -931,6 +957,11 @@ async def get_expense(
         "organization_id": expense.organization_id,
         "created_at": expense.created_at.isoformat() if expense.created_at else None,
         "updated_at": expense.updated_at.isoformat() if expense.updated_at else None,
+        "auto_approved": expense.auto_approved,
+        "auto_approved_via": expense.auto_approved_via,
+        "intent_mandate_id": expense.intent_mandate_id,
+        "cart_mandate_id": expense.cart_mandate_id,
+        "payment_mandate_id": expense.payment_mandate_id,
     }
 
 

@@ -831,6 +831,7 @@ class PaymentMandate(Base):
     payment_processor_response = Column(Text, nullable=True)  # JSON stored as text
     revoked_at = Column(DateTime, nullable=True)
     revocation_reason = Column(Text, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 

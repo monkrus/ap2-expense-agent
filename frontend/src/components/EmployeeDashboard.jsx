@@ -1093,6 +1093,27 @@ const EmployeeDashboard = () => {
                               </td>
                             </tr>
                           )}
+                        {/* AP2 Auto-Approval detail row */}
+                        {expense.auto_approved_via === "intent_mandate" && (
+                          <tr className="border-b border-gray-100">
+                            <td colSpan="9" className="py-2 px-4 bg-green-50">
+                              <div className="flex items-center gap-3">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  AI Auto-Approved
+                                </span>
+                                <span className="text-xs text-green-700">
+                                  Approved automatically via Intent Mandate
+                                </span>
+                                {expense.intent_mandate_id && (
+                                  <span className="text-xs text-green-600 font-mono">
+                                    Mandate: {expense.intent_mandate_id.substring(0, 12)}...
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
                       </React.Fragment>
                     ))}
                   </tbody>
