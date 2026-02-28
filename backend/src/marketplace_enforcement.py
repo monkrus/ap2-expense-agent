@@ -14,33 +14,52 @@ from .config import settings
 from .database import SessionLocal
 from .models_billing import MarketplaceEntitlement
 
-# Simple plan → limits/features map (placeholder; align with manifest/sku map)
+# Plan → limits/features map aligned with gcp-marketplace-manifest.yaml
 PLAN_FEATURES: Dict[str, Dict] = {
     "starter": {
-        "limits": {"users": 25, "expenses_per_month": 500, "ai_categorizations": 500},
-        "retention_days": 30,
+        # manifest: 3 orgs, 10 users, 100 expenses/mo, 100 OCR, 50 AI, 100 AP2, 1yr retention
+        "limits": {
+            "organizations": 3,
+            "users": 10,
+            "expenses_per_month": 100,
+            "ocr_scans": 100,
+            "ai_categorizations": 50,
+            "ap2_transactions": 100,
+        },
+        "retention_days": 365,
     },
     "professional": {
+        # manifest: 10 orgs, 50 users, 500 expenses/mo, unlimited OCR, 200 AI, unlimited AP2, 3yr retention
         "limits": {
-            "users": 100,
-            "expenses_per_month": None,
-            "ai_categorizations": 5000,
+            "organizations": 10,
+            "users": 50,
+            "expenses_per_month": 500,
+            "ocr_scans": None,
+            "ai_categorizations": 200,
+            "ap2_transactions": None,
         },
-        "retention_days": 90,
+        "retention_days": 1095,
     },
+    # Enterprise tiers are direct-sales only (not in marketplace manifest)
     "enterprise": {
         "limits": {
+            "organizations": None,
             "users": 500,
             "expenses_per_month": None,
+            "ocr_scans": None,
             "ai_categorizations": None,
+            "ap2_transactions": None,
         },
         "retention_days": 365,
     },
     "enterprise_plus": {
         "limits": {
+            "organizations": None,
             "users": None,
             "expenses_per_month": None,
+            "ocr_scans": None,
             "ai_categorizations": None,
+            "ap2_transactions": None,
         },
         "retention_days": 365,
     },

@@ -181,7 +181,6 @@ class TestEmailService:
         assert email_service._is_valid_email("@test.com") is False
         assert email_service._is_valid_email("user@") is False
 
-    @pytest.mark.skip(reason="HTML sanitization not yet implemented - feature pending")
     def test_html_sanitization(self, email_service):
         """Test HTML content sanitization"""
         dangerous_html = "<script>alert('xss')</script><p>Safe content</p>"

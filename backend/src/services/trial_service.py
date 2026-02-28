@@ -4,6 +4,8 @@ Trial Management Service
 Handles trial expiration, conversion, and notifications
 """
 
+import asyncio
+import html
 import logging
 import uuid
 from datetime import datetime, timedelta
@@ -12,6 +14,7 @@ from typing import Dict, List
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
+from ..email_service import EmailService
 from ..models import Organization, OrganizationMember, User
 from ..models_billing import BillingEvent, BillingTier, OrganizationSubscription
 
@@ -264,10 +267,48 @@ class TrialService:
 
             tier_name = tier.tier_display_name if tier else "Unknown"
 
+            safe_tier = html.escape(str(tier_name))
+            safe_org = html.escape(str(organization.name))
+
             for admin in admins:
-                # TODO: Integrate with email service
+                safe_name = html.escape(str(admin.full_name or admin.username))
+                plural = "s" if days_remaining != 1 else ""
+                subject = (
+                    f"Your {tier_name} trial expires in "
+                    f"{days_remaining} day{plural}"
+                )
+                html_body = (
+                    f"<p>Hi {safe_name},</p>"
+                    f"<p>Your <strong>{safe_tier}</strong> trial for "
+                    f"<strong>{safe_org}</strong> expires in "
+                    f"<strong>{days_remaining} day{plural}</strong>.</p>"
+                    f"<p>To continue without interruption, please upgrade your "
+                    f"subscription via the Google Cloud Marketplace.</p>"
+                    f"<p>Thank you,<br>The AP2 Expense Agent Team</p>"
+                )
+                text_body = (
+                    f"Hi {safe_name},\n\n"
+                    f"Your {safe_tier} trial for {safe_org} expires in "
+                    f"{days_remaining} day{plural}.\n\n"
+                    f"To continue without interruption, please upgrade your "
+                    f"subscription via the Google Cloud Marketplace.\n\n"
+                    f"Thank you,\nThe AP2 Expense Agent Team"
+                )
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(
+                        EmailService.send_email(
+                            admin.email, subject, html_body, text_body
+                        )
+                    )
+                except RuntimeError:
+                    asyncio.run(
+                        EmailService.send_email(
+                            admin.email, subject, html_body, text_body
+                        )
+                    )
                 logger.info(
-                    f"[TRIAL WARNING] Would send email to {admin.email}: "
+                    f"[TRIAL WARNING] Sent expiry email to {admin.email}: "
                     f"Trial for {tier_name} expires in {days_remaining} days"
                 )
 

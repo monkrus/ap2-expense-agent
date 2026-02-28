@@ -2,6 +2,7 @@
 Email Service for sending verification and password reset emails
 """
 
+import html
 import logging
 import os
 import re
@@ -112,6 +113,7 @@ class EmailService:
             base_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
         verification_link = f"{base_url}/auth/verify-email?token={verification_token}"
+        safe_username = html.escape(str(username))
 
         subject = "Verify Your Email - AP2 Expense Manager"
 
@@ -165,7 +167,7 @@ class EmailService:
                     <h1>Welcome to AP2 Expense Manager!</h1>
                 </div>
                 <div class="content">
-                    <h2>Hi {username},</h2>
+                    <h2>Hi {safe_username},</h2>
                     <p>Thank you for registering with AP2 Expense Manager. To complete your registration, please verify your email address by clicking the button below:</p>
 
                     <center>
@@ -223,6 +225,7 @@ class EmailService:
             username = to_email.split("@")[0]
 
         reset_link = f"{base_url}/auth/reset-password?token={reset_token}"
+        safe_username = html.escape(str(username))
 
         subject = "Reset Your Password - AP2 Expense Manager"
 
@@ -282,7 +285,7 @@ class EmailService:
                     <h1>Password Reset Request</h1>
                 </div>
                 <div class="content">
-                    <h2>Hi {username},</h2>
+                    <h2>Hi {safe_username},</h2>
                     <p>We received a request to reset your password for your AP2 Expense Manager account.</p>
 
                     <p>Click the button below to reset your password:</p>
@@ -334,6 +337,7 @@ class EmailService:
         to_email: str, username: str, full_name: Optional[str] = None
     ) -> bool:
         """Send welcome email after email verification"""
+        safe_display = html.escape(str(full_name or username))
         subject = "Welcome to AP2 Expense Manager!"
 
         html_body = f"""
@@ -383,7 +387,7 @@ class EmailService:
                     <h1>🎉 Welcome Aboard!</h1>
                 </div>
                 <div class="content">
-                    <h2>Hi {full_name or username},</h2>
+                    <h2>Hi {safe_display},</h2>
                     <p>Your email has been verified successfully! Welcome to AP2 Expense Manager.</p>
 
                     <h3>What you can do now:</h3>
@@ -454,6 +458,8 @@ class EmailService:
             base_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
         invitation_link = f"{base_url}/invitations/accept?token={invitation_token}"
+        safe_org_name = html.escape(str(organization_name))
+        safe_inviter = html.escape(str(inviter_name))
 
         subject = f"You've been invited to join {organization_name}"
 
@@ -508,7 +514,7 @@ class EmailService:
                 </div>
                 <div class="content">
                     <h2>You've been invited!</h2>
-                    <p><strong>{inviter_name}</strong> has invited you to join <strong>{organization_name}</strong> on AP2 Expense Manager.</p>
+                    <p><strong>{safe_inviter}</strong> has invited you to join <strong>{safe_org_name}</strong> on AP2 Expense Manager.</p>
 
                     <p>Accept this invitation to collaborate with your team on expense management.</p>
 
@@ -623,6 +629,10 @@ class EmailService:
         return await EmailService.send_expense_rejected_email(
             to_email, expense_data, "Approver", reason
         )
+
+    def _sanitize_html(self, text: str) -> str:
+        """Escape HTML special characters in user-controlled text."""
+        return html.escape(str(text))
 
     @staticmethod
     def _is_valid_email(email: str) -> bool:

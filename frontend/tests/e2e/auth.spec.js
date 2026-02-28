@@ -63,9 +63,25 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should handle token expiration', async ({ page }) => {
-    // This test would require manipulating token expiry
-    // For now, it's a placeholder for future implementation
-    test.skip();
+    // Login normally to establish a valid session
+    await login(page);
+
+    // Overwrite both tokens with invalid values to simulate expiration
+    // (access token expired, refresh token also invalid so refresh fails)
+    await page.evaluate(() => {
+      localStorage.setItem('access_token', 'expired.invalid.token');
+      localStorage.setItem('refresh_token', 'expired.invalid.refresh');
+    });
+
+    // Reload so React re-reads from localStorage and fires API calls with the bad token
+    await page.reload();
+
+    // App should detect 401, attempt refresh (also 401), then logout and redirect to login
+    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible({ timeout: 15000 });
+
+    // Confirm tokens were cleared from localStorage
+    const accessToken = await page.evaluate(() => localStorage.getItem('access_token'));
+    expect(accessToken).toBeNull();
   });
 });
 

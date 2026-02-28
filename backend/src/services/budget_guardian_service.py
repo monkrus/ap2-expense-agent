@@ -87,6 +87,15 @@ def _get_budget_period_dates(budget: Budget) -> tuple:
 
     now = datetime.utcnow()
 
+    # Guard against null period - default to using budget's own date range
+    if budget.period is None:
+        start = budget.start_date
+        end = budget.end_date or now
+        start = max(start, budget.start_date)
+        if budget.end_date:
+            end = min(end, budget.end_date)
+        return start, end
+
     if budget.period == BudgetPeriod.MONTHLY:
         start = datetime(now.year, now.month, 1)
         if now.month == 12:
@@ -293,6 +302,19 @@ class BudgetGuardianService:
         now = datetime.utcnow()
 
         for budget in budgets:
+            # Skip budgets with no period set
+            if budget.period is None:
+                continue
+
+            # Skip expired budgets
+            if budget.end_date:
+                end_check = budget.end_date
+                if isinstance(end_check, datetime):
+                    if end_check < now:
+                        continue
+                elif end_check < now.date():
+                    continue
+
             start_date, end_date = _get_budget_period_dates(budget)
             current_spending = _calculate_spending(
                 self.db, budget, start_date, end_date
@@ -428,8 +450,21 @@ class BudgetGuardianService:
         result = self.db.execute(query)
         all_budgets = result.scalars().all()
 
+        now = datetime.utcnow()
         applicable = []
         for budget in all_budgets:
+            # Skip expired budgets
+            if budget.end_date:
+                end = budget.end_date
+                if isinstance(end, datetime):
+                    if end < now:
+                        continue
+                elif end < now.date():
+                    continue
+
+            # Skip budgets with zero amount (no meaningful enforcement)
+            if not budget.amount or budget.amount == 0:
+                continue
             # Org-wide budget (no category or user filter) always applies
             if not budget.category and not budget.user_id:
                 applicable.append(budget)

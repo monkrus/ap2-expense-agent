@@ -178,7 +178,6 @@ class TestExpenseAPIRoutes:
 
         assert response.status_code in [200, 201]
 
-    @pytest.mark.skip(reason="Bulk approve endpoint not implemented yet")
     def test_bulk_approve_expenses(self, client, manager_org_headers):
         """Test bulk approving expenses"""
         response = client.post(
@@ -198,7 +197,6 @@ class TestExpenseAPIRoutes:
         # Should return CSV or redirect
         assert response.status_code in [200, 201, 202]
 
-    @pytest.mark.skip(reason="Expense statistics endpoint not implemented yet")
     def test_get_expense_statistics(self, client, org_headers):
         """Test getting expense statistics"""
         response = client.get("/api/v1/expenses/stats", headers=org_headers)
@@ -227,7 +225,6 @@ class TestExpenseAPIRoutes:
 class TestExpenseCommentsAPI:
     """Test expense comment endpoints"""
 
-    @pytest.mark.skip(reason="Comments API not implemented yet")
     def test_add_comment_to_expense(self, client, org_headers, test_expense):
         """Test adding comment to expense"""
         response = client.post(
@@ -238,7 +235,6 @@ class TestExpenseCommentsAPI:
 
         assert response.status_code in [200, 201]
 
-    @pytest.mark.skip(reason="Comments API not implemented yet")
     def test_get_expense_comments(self, client, org_headers, test_expense):
         """Test getting comments for an expense"""
         response = client.get(

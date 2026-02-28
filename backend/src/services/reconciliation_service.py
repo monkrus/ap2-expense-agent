@@ -194,6 +194,15 @@ def _get_budget_period_dates(budget: Budget) -> tuple:
     """Get the start and end dates for the current budget period."""
     now = datetime.utcnow()
 
+    # Guard against null period - default to using budget's own date range
+    if budget.period is None:
+        start = budget.start_date
+        end = budget.end_date or now
+        start = max(start, budget.start_date)
+        if budget.end_date:
+            end = min(end, budget.end_date)
+        return start, end
+
     if budget.period == BudgetPeriod.MONTHLY:
         start = datetime(now.year, now.month, 1)
         if now.month == 12:
@@ -274,6 +283,10 @@ class ReconciliationService:
         )
 
         for budget in budgets:
+            # Skip budgets with no period set
+            if budget.period is None:
+                continue
+
             b_start, b_end = _get_budget_period_dates(budget)
             actual = float(
                 _calculate_budget_spending(self.db, budget, b_start, b_end)

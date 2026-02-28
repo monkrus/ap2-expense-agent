@@ -3,8 +3,22 @@ Email Templates for AP2 Expense Management
 Centralized email template management
 """
 
+import html
+
+
+def _esc(value) -> str:
+    """Escape a value for safe HTML interpolation."""
+    return html.escape(str(value))
+
+
 def get_expense_approved_email(expense_data: dict, approver_name: str) -> tuple:
     """Email template for when an expense is approved"""
+    safe_approver = _esc(approver_name)
+    safe_vendor = _esc(expense_data['vendor'])
+    safe_category = _esc(expense_data['category'])
+    safe_description = _esc(expense_data['description'])
+    safe_date = _esc(expense_data['date'])
+    safe_amount = _esc(expense_data['amount'])
     subject = f"Expense Approved: ${expense_data['amount']} - {expense_data['vendor']}"
 
     html_body = f"""
@@ -77,28 +91,28 @@ def get_expense_approved_email(expense_data: dict, approver_name: str) -> tuple:
                 <h1>✅ Expense Approved</h1>
             </div>
             <div class="content">
-                <p>Good news! Your expense has been approved by {approver_name}.</p>
+                <p>Good news! Your expense has been approved by {safe_approver}.</p>
 
                 <div class="expense-details">
                     <div class="detail-row">
                         <span class="detail-label">Amount:</span>
-                        <span class="detail-value">${expense_data['amount']}</span>
+                        <span class="detail-value">${safe_amount}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Vendor:</span>
-                        <span class="detail-value">{expense_data['vendor']}</span>
+                        <span class="detail-value">{safe_vendor}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Category:</span>
-                        <span class="detail-value">{expense_data['category']}</span>
+                        <span class="detail-value">{safe_category}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Description:</span>
-                        <span class="detail-value">{expense_data['description']}</span>
+                        <span class="detail-value">{safe_description}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Date:</span>
-                        <span class="detail-value">{expense_data['date']}</span>
+                        <span class="detail-value">{safe_date}</span>
                     </div>
                 </div>
 
@@ -119,14 +133,14 @@ def get_expense_approved_email(expense_data: dict, approver_name: str) -> tuple:
     text_body = f"""
     Expense Approved
 
-    Good news! Your expense has been approved by {approver_name}.
+    Good news! Your expense has been approved by {safe_approver}.
 
     Expense Details:
-    - Amount: ${expense_data['amount']}
-    - Vendor: {expense_data['vendor']}
-    - Category: {expense_data['category']}
-    - Description: {expense_data['description']}
-    - Date: {expense_data['date']}
+    - Amount: ${safe_amount}
+    - Vendor: {safe_vendor}
+    - Category: {safe_category}
+    - Description: {safe_description}
+    - Date: {safe_date}
 
     Status: APPROVED
 
@@ -140,6 +154,12 @@ def get_expense_approved_email(expense_data: dict, approver_name: str) -> tuple:
 
 def get_expense_rejected_email(expense_data: dict, rejector_name: str, reason: str) -> tuple:
     """Email template for when an expense is rejected"""
+    safe_rejector = _esc(rejector_name)
+    safe_vendor = _esc(expense_data['vendor'])
+    safe_category = _esc(expense_data['category'])
+    safe_description = _esc(expense_data['description'])
+    safe_amount = _esc(expense_data['amount'])
+    safe_reason = _esc(reason)
     subject = f"Expense Rejected: ${expense_data['amount']} - {expense_data['vendor']}"
 
     html_body = f"""
@@ -228,24 +248,24 @@ def get_expense_rejected_email(expense_data: dict, rejector_name: str, reason: s
                 <h1>❌ Expense Rejected</h1>
             </div>
             <div class="content">
-                <p>Your expense has been rejected by {rejector_name}.</p>
+                <p>Your expense has been rejected by {safe_rejector}.</p>
 
                 <div class="expense-details">
                     <div class="detail-row">
                         <span class="detail-label">Amount:</span>
-                        <span class="detail-value">${expense_data['amount']}</span>
+                        <span class="detail-value">${safe_amount}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Vendor:</span>
-                        <span class="detail-value">{expense_data['vendor']}</span>
+                        <span class="detail-value">{safe_vendor}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Category:</span>
-                        <span class="detail-value">{expense_data['category']}</span>
+                        <span class="detail-value">{safe_category}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Description:</span>
-                        <span class="detail-value">{expense_data['description']}</span>
+                        <span class="detail-value">{safe_description}</span>
                     </div>
                 </div>
 
@@ -253,10 +273,10 @@ def get_expense_rejected_email(expense_data: dict, rejector_name: str, reason: s
 
                 <div class="reason-box">
                     <strong>Rejection Reason:</strong><br>
-                    {reason}
+                    {safe_reason}
                 </div>
 
-                <p>If you believe this rejection was made in error or have additional information to provide, please contact {rejector_name} or submit a corrected expense.</p>
+                <p>If you believe this rejection was made in error or have additional information to provide, please contact {safe_rejector} or submit a corrected expense.</p>
 
                 <a href="http://localhost:5173/expenses/new" class="action-button">Submit New Expense</a>
 
@@ -273,20 +293,20 @@ def get_expense_rejected_email(expense_data: dict, rejector_name: str, reason: s
     text_body = f"""
     Expense Rejected
 
-    Your expense has been rejected by {rejector_name}.
+    Your expense has been rejected by {safe_rejector}.
 
     Expense Details:
-    - Amount: ${expense_data['amount']}
-    - Vendor: {expense_data['vendor']}
-    - Category: {expense_data['category']}
-    - Description: {expense_data['description']}
+    - Amount: ${safe_amount}
+    - Vendor: {safe_vendor}
+    - Category: {safe_category}
+    - Description: {safe_description}
 
     Status: REJECTED
 
     Rejection Reason:
-    {reason}
+    {safe_reason}
 
-    If you believe this rejection was made in error or have additional information to provide, please contact {rejector_name} or submit a corrected expense.
+    If you believe this rejection was made in error or have additional information to provide, please contact {safe_rejector} or submit a corrected expense.
 
     AP2 Expense Manager
     """
@@ -296,6 +316,13 @@ def get_expense_rejected_email(expense_data: dict, rejector_name: str, reason: s
 
 def get_pending_approval_email(expense_data: dict, submitter_name: str, manager_name: str) -> tuple:
     """Email template for managers when an expense needs approval"""
+    safe_submitter = _esc(submitter_name)
+    safe_manager = _esc(manager_name)
+    safe_vendor = _esc(expense_data['vendor'])
+    safe_category = _esc(expense_data['category'])
+    safe_description = _esc(expense_data['description'])
+    safe_date = _esc(expense_data['date'])
+    safe_amount = _esc(expense_data['amount'])
     subject = f"Approval Needed: ${expense_data['amount']} expense from {submitter_name}"
 
     html_body = f"""
@@ -383,29 +410,29 @@ def get_pending_approval_email(expense_data: dict, submitter_name: str, manager_
                 <h1>⏳ Approval Needed</h1>
             </div>
             <div class="content">
-                <p>Hi {manager_name},</p>
-                <p>{submitter_name} has submitted an expense that requires your approval.</p>
+                <p>Hi {safe_manager},</p>
+                <p>{safe_submitter} has submitted an expense that requires your approval.</p>
 
                 <div class="expense-details">
                     <div class="detail-row">
                         <span class="detail-label">Amount:</span>
-                        <span class="detail-value">${expense_data['amount']}</span>
+                        <span class="detail-value">${safe_amount}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Vendor:</span>
-                        <span class="detail-value">{expense_data['vendor']}</span>
+                        <span class="detail-value">{safe_vendor}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Category:</span>
-                        <span class="detail-value">{expense_data['category']}</span>
+                        <span class="detail-value">{safe_category}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Description:</span>
-                        <span class="detail-value">{expense_data['description']}</span>
+                        <span class="detail-value">{safe_description}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Submitted:</span>
-                        <span class="detail-value">{expense_data['date']}</span>
+                        <span class="detail-value">{safe_date}</span>
                     </div>
                 </div>
 
@@ -428,16 +455,16 @@ def get_pending_approval_email(expense_data: dict, submitter_name: str, manager_
     text_body = f"""
     Approval Needed
 
-    Hi {manager_name},
+    Hi {safe_manager},
 
-    {submitter_name} has submitted an expense that requires your approval.
+    {safe_submitter} has submitted an expense that requires your approval.
 
     Expense Details:
-    - Amount: ${expense_data['amount']}
-    - Vendor: {expense_data['vendor']}
-    - Category: {expense_data['category']}
-    - Description: {expense_data['description']}
-    - Submitted: {expense_data['date']}
+    - Amount: ${safe_amount}
+    - Vendor: {safe_vendor}
+    - Category: {safe_category}
+    - Description: {safe_description}
+    - Submitted: {safe_date}
 
     Please review and approve or reject this expense in your dashboard.
 
@@ -449,6 +476,8 @@ def get_pending_approval_email(expense_data: dict, submitter_name: str, manager_
 
 def get_budget_alert_email(budget_data: dict, current_spending: float, threshold_percent: int) -> tuple:
     """Email template for budget alerts"""
+    safe_budget_name = _esc(budget_data['name'])
+    safe_period = _esc(budget_data.get('period', 'Monthly'))
     subject = f"Budget Alert: {budget_data['name']} at {threshold_percent}% ({current_spending}/{budget_data['amount']})"
 
     alert_level = "warning" if threshold_percent < 100 else "critical"
@@ -522,7 +551,7 @@ def get_budget_alert_email(budget_data: dict, current_spending: float, threshold
             </div>
             <div class="content">
                 <div class="alert-box">
-                    <h2>{budget_data['name']}</h2>
+                    <h2>{safe_budget_name}</h2>
                     <p><strong>Current Spending:</strong> ${current_spending:,.2f} / ${budget_data['amount']:,.2f}</p>
 
                     <div class="progress-bar">
@@ -530,7 +559,7 @@ def get_budget_alert_email(budget_data: dict, current_spending: float, threshold
                     </div>
 
                     <p><strong>Remaining:</strong> ${budget_data['amount'] - current_spending:,.2f}</p>
-                    <p><strong>Period:</strong> {budget_data.get('period', 'Monthly')}</p>
+                    <p><strong>Period:</strong> {safe_period}</p>
                 </div>
 
                 {"<p><strong>Warning:</strong> You are approaching your budget limit. Please review your spending.</p>" if alert_level == "warning" else "<p><strong>Critical:</strong> Your budget has been exceeded. Immediate attention required.</p>"}
@@ -548,12 +577,12 @@ def get_budget_alert_email(budget_data: dict, current_spending: float, threshold
     text_body = f"""
     Budget Alert: {threshold_percent}% Reached
 
-    {budget_data['name']}
+    {safe_budget_name}
 
     Current Spending: ${current_spending:,.2f} / ${budget_data['amount']:,.2f}
     Progress: {threshold_percent}%
     Remaining: ${budget_data['amount'] - current_spending:,.2f}
-    Period: {budget_data.get('period', 'Monthly')}
+    Period: {safe_period}
 
     {"Warning: You are approaching your budget limit. Please review your spending." if alert_level == "warning" else "Critical: Your budget has been exceeded. Immediate attention required."}
 

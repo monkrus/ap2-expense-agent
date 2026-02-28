@@ -23,6 +23,7 @@ from ..auth import get_current_active_user
 from ..database import get_db
 from ..models import (
     Expense,
+    ExpenseComment,
     ExpenseStatus,
     Notification,
     NotificationType,
@@ -920,6 +921,142 @@ async def export_expenses(
     )
 
 
+@router.get("/stats")
+async def get_expense_stats(
+    request: Request,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Aggregate expense statistics for the organization.
+
+    Permissions: All authenticated org members (employees see own stats, managers+ see all)
+    """
+    from sqlalchemy import func as sqlfunc
+
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization context required",
+        )
+
+    ensure_org_access(current_user.id, org_id, db)
+
+    query = db.query(Expense).filter(Expense.organization_id == org_id)
+
+    user_org_role = get_user_organization_role(current_user.id, org_id, db)
+    if user_org_role in ["member", None]:
+        query = query.filter(Expense.user_id == current_user.id)
+
+    if start_date:
+        parsed_start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        query = query.filter(Expense.date >= parsed_start)
+    if end_date:
+        parsed_end = datetime.strptime(end_date, "%Y-%m-%d").date()
+        query = query.filter(Expense.date <= parsed_end)
+
+    expenses = query.all()
+
+    stats: dict = {"total": len(expenses), "count": len(expenses), "by_status": {}, "total_amount": 0.0, "by_status_amount": {}, "by_category": {}, "by_category_amount": {}}
+    for exp in expenses:
+        s = exp.status.value.lower() if exp.status else "unknown"
+        stats["by_status"][s] = stats["by_status"].get(s, 0) + 1
+        amount = float(exp.amount or 0)
+        stats["total_amount"] += amount
+        stats["by_status_amount"][s] = stats["by_status_amount"].get(s, 0.0) + amount
+        cat = exp.category if exp.category else "uncategorized"
+        stats["by_category"][cat] = stats["by_category"].get(cat, 0) + 1
+        stats["by_category_amount"][cat] = stats["by_category_amount"].get(cat, 0.0) + amount
+
+    stats["total_amount"] = round(stats["total_amount"], 2)
+    stats["by_status_amount"] = {k: round(v, 2) for k, v in stats["by_status_amount"].items()}
+    stats["by_category_amount"] = {k: round(v, 2) for k, v in stats["by_category_amount"].items()}
+    return stats
+
+
+@router.post("/bulk-approve", status_code=status.HTTP_200_OK)
+async def bulk_approve_expenses(
+    data: dict,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Approve multiple expenses at once.
+
+    Permissions: Managers, admins, owners
+    Body: {"expense_ids": ["id1", "id2", ...]}
+    Returns 207 Multi-Status with per-expense results.
+    """
+    from fastapi.responses import JSONResponse as _JSONResponse
+
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization context required",
+        )
+
+    ensure_org_access(current_user.id, org_id, db)
+
+    user_org_role = get_user_organization_role(current_user.id, org_id, db)
+    if user_org_role not in ["owner", "admin", "manager"] and current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to bulk approve expenses",
+        )
+
+    expense_ids = data.get("expense_ids", [])
+    if not expense_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="expense_ids must be a non-empty list",
+        )
+
+    results = []
+    any_failure = False
+
+    for expense_id in expense_ids:
+        expense = (
+            db.query(Expense)
+            .filter(Expense.id == expense_id, Expense.organization_id == org_id)
+            .first()
+        )
+        if not expense:
+            results.append({"id": expense_id, "status": "error", "detail": "Not found"})
+            any_failure = True
+            continue
+
+        if expense.status != ExpenseStatus.PENDING:
+            results.append({"id": expense_id, "status": "skipped", "detail": f"Already {expense.status.value.lower()}"})
+            continue
+
+        if expense.user_id == current_user.id and current_user.role != UserRole.ADMIN:
+            results.append({"id": expense_id, "status": "error", "detail": "Cannot approve own expense"})
+            any_failure = True
+            continue
+
+        expense.status = ExpenseStatus.APPROVED
+        expense.approved_by = current_user.id
+        expense.approved_at = datetime.utcnow()
+        results.append({"id": expense_id, "status": "approved"})
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to commit bulk approval: {str(e)}")
+
+    response_status = 207 if any_failure else 200
+    return _JSONResponse(
+        status_code=response_status,
+        content={"results": results, "approved": sum(1 for r in results if r["status"] == "approved")},
+    )
+
+
 @router.get("/{expense_id}")
 async def get_expense(
     expense_id: str,
@@ -1466,3 +1603,104 @@ async def flag_expense(
         "flagged_by": current_user.username,
         "note": note
     }
+
+
+# ============================================================================
+# COMMENTS ENDPOINTS
+# ============================================================================
+
+@router.post("/{expense_id}/comments", status_code=status.HTTP_201_CREATED)
+async def add_expense_comment(
+    expense_id: str,
+    data: dict,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Add a comment to an expense.
+
+    Permissions: Any org member with access to the expense
+    Body: {"comment": "text"}
+    """
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization context required",
+        )
+
+    expense = ensure_expense_access(expense_id, current_user, org_id, db)
+
+    comment_text = (data.get("comment") or "").strip()
+    if not comment_text:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="comment must not be empty",
+        )
+
+    comment = ExpenseComment(
+        id=str(uuid.uuid4()),
+        expense_id=expense.id,
+        user_id=current_user.id,
+        comment=comment_text,
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+
+    return {
+        "id": comment.id,
+        "expense_id": comment.expense_id,
+        "user_id": comment.user_id,
+        "username": current_user.username,
+        "comment": comment.comment,
+        "created_at": comment.created_at.isoformat() if comment.created_at else None,
+    }
+
+
+@router.get("/{expense_id}/comments")
+async def get_expense_comments(
+    expense_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    List all comments on an expense.
+
+    Permissions: Any org member with access to the expense
+    """
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization context required",
+        )
+
+    ensure_expense_access(expense_id, current_user, org_id, db)
+
+    comments = (
+        db.query(ExpenseComment)
+        .filter(ExpenseComment.expense_id == expense_id)
+        .order_by(ExpenseComment.created_at.asc())
+        .all()
+    )
+
+    user_ids = [c.user_id for c in comments]
+    users = db.query(User).filter(User.id.in_(user_ids)).all()
+    user_map = {u.id: u for u in users}
+
+    result = []
+    for c in comments:
+        author = user_map.get(c.user_id)
+        result.append({
+            "id": c.id,
+            "expense_id": c.expense_id,
+            "user_id": c.user_id,
+            "username": author.username if author else None,
+            "comment": c.comment,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+        })
+
+    return {"comments": result}
