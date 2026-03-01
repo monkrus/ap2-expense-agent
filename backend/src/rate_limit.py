@@ -56,3 +56,6 @@ class RateLimits:
 
     # Heavy operations
     HEAVY = "10/minute"  # 10 heavy operations per minute (e.g., reports, exports)
+
+    # Invitation endpoint — prevents email spam via SendGrid
+    INVITE = "20/hour"  # 20 invitations per hour per IP

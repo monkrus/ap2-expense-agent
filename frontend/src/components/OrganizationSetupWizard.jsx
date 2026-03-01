@@ -52,6 +52,7 @@ const OrganizationSetupWizard = ({ onComplete }) => {
 
   const [csvFile, setCsvFile] = useState(null);
   const [parsedEmails, setParsedEmails] = useState([]);
+  const [totalInvited, setTotalInvited] = useState(0);
 
   const totalSteps = 5;
 
@@ -143,17 +144,14 @@ const OrganizationSetupWizard = ({ onComplete }) => {
     try {
       setLoading(true);
 
-      let emailList = [];
-
-      // Parse CSV or manual emails
-      if (parsedEmails.length > 0) {
-        emailList = parsedEmails;
-      } else if (inviteData.emails.trim()) {
-        emailList = inviteData.emails
-          .split(/[,\n]/)
-          .map((e) => e.trim())
-          .filter((e) => e.length > 0);
-      }
+      // Combine CSV emails and manually entered emails (deduped)
+      const manualEmails = inviteData.emails.trim()
+        ? inviteData.emails
+            .split(/[,\n]/)
+            .map((e) => e.trim())
+            .filter((e) => e.length > 0)
+        : [];
+      const emailList = [...new Set([...parsedEmails, ...manualEmails])].slice(0, 50);
 
       if (emailList.length === 0) {
         // Skip if no emails
@@ -168,6 +166,7 @@ const OrganizationSetupWizard = ({ onComplete }) => {
         inviteData.role,
       );
 
+      setTotalInvited(results.successful.length);
       success(`Invited ${results.successful.length} team members!`);
       if (results.failed.length > 0) {
         showError(`Failed to invite ${results.failed.length} members`);
@@ -613,8 +612,8 @@ const OrganizationSetupWizard = ({ onComplete }) => {
               <div>
                 <p className="font-medium">Team Invited</p>
                 <p className="text-sm text-gray-600">
-                  {parsedEmails.length > 0
-                    ? `${parsedEmails.length} members invited`
+                  {totalInvited > 0
+                    ? `${totalInvited} members invited`
                     : "You can invite team members anytime"}
                 </p>
               </div>
@@ -660,17 +659,10 @@ const OrganizationSetupWizard = ({ onComplete }) => {
             <FileText className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-indigo-900 mb-1">Need Help?</p>
-              <p className="text-sm text-indigo-700 mb-2">
-                Check out our documentation and video tutorials
+              <p className="text-sm text-indigo-700">
+                Contact your administrator or reach out to support for help
+                getting started.
               </p>
-              <a
-                href="https://docs.ap2expense.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-              >
-                View Documentation →
-              </a>
             </div>
           </div>
         </div>
@@ -703,7 +695,7 @@ const OrganizationSetupWizard = ({ onComplete }) => {
 
         <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg">
           <p className="text-3xl font-bold text-green-600 mb-2">
-            {parsedEmails.length || "0"}
+            {totalInvited || "0"}
           </p>
           <p className="text-sm text-gray-600">Team Members Invited</p>
         </div>
@@ -725,21 +717,22 @@ const OrganizationSetupWizard = ({ onComplete }) => {
     </div>
   );
 
-  // Render current step
+  // Render current step — called as functions (not JSX components) to avoid
+  // unmount/remount on every re-render, which would cause inputs to lose focus.
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <WelcomeStep />;
+        return WelcomeStep();
       case 2:
-        return <CompanyProfileStep />;
+        return CompanyProfileStep();
       case 3:
-        return <InviteTeamStep />;
+        return InviteTeamStep();
       case 4:
-        return <SettingsStep />;
+        return SettingsStep();
       case 5:
-        return <CompletionStep />;
+        return CompletionStep();
       default:
-        return <WelcomeStep />;
+        return WelcomeStep();
     }
   };
 

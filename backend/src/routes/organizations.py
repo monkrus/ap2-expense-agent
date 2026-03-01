@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -38,6 +38,7 @@ from ..schemas import (
     OrganizationResponse,
     OrganizationUpdate,
 )
+from ..rate_limit import RateLimits, limiter
 from ..tenant_context import (
     TenantAwareQuery,
     TenantContext,
@@ -652,7 +653,9 @@ async def remove_organization_member(
     response_model=OrganizationInvitationResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit(RateLimits.INVITE)
 async def create_invitation(
+    request: Request,
     organization_id: str,
     invitation_data: OrganizationInvitationCreate,
     current_user: User = Depends(get_current_active_user),
