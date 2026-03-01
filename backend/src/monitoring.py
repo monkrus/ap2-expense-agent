@@ -443,3 +443,42 @@ class AlertManager:
             message=f"{endpoint} responding in {latency:.2f}s",
             details={"endpoint": endpoint, "latency": latency},
         )
+
+    @staticmethod
+    def alert_suspicious_activity(
+        activity_type: str,
+        ip_address: str,
+        endpoint: str,
+        user_id: str = None,
+        details: dict = None,
+    ):
+        """
+        Alert on suspicious behaviour — rate limit violations, repeated
+        failed logins, bulk invite abuse, etc.
+
+        Fires to Slack (warning) and PagerDuty (critical only).
+        Always logs at ERROR level regardless of channel config.
+        """
+        # Classify severity: brute-force login attempts are critical
+        critical_patterns = {"login", "register", "password"}
+        severity = (
+            "critical"
+            if any(p in endpoint for p in critical_patterns)
+            else "warning"
+        )
+
+        AlertManager.send_alert(
+            severity=severity,
+            title=f"Suspicious Activity: {activity_type}",
+            message=(
+                f"IP {ip_address} triggered {activity_type} on {endpoint}"
+                + (f" (user: {user_id})" if user_id else "")
+            ),
+            details={
+                "activity_type": activity_type,
+                "ip_address": ip_address,
+                "endpoint": endpoint,
+                "user_id": user_id,
+                **(details or {}),
+            },
+        )

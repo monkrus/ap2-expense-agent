@@ -20,9 +20,29 @@ limiter = Limiter(
 )
 
 
+# Endpoints where rate limit hits indicate potential malicious behaviour
+_SENSITIVE_PATHS = {"/auth/login", "/auth/register", "/auth/password", "/invitations"}
+
+
 # Rate limit error handler
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
-    """Handle rate limit exceeded errors"""
+    """Handle rate limit exceeded errors and alert on sensitive endpoints."""
+    ip = request.client.host if request.client else "unknown"
+    path = request.url.path
+
+    # Fire alert for sensitive endpoints
+    if any(s in path for s in _SENSITIVE_PATHS):
+        try:
+            from .monitoring import AlertManager
+
+            AlertManager.alert_suspicious_activity(
+                activity_type="rate_limit_exceeded",
+                ip_address=ip,
+                endpoint=path,
+            )
+        except Exception:
+            pass  # Never let alerting break the response
+
     return JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         content={
