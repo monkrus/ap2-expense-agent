@@ -457,7 +457,7 @@ class EmailService:
         if not base_url:
             base_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
-        invitation_link = f"{base_url}/invitations/accept?token={invitation_token}"
+        invitation_link = f"{base_url}/invitations/accept/{invitation_token}"
         safe_org_name = html.escape(str(organization_name))
         safe_inviter = html.escape(str(inviter_name))
 
