@@ -133,7 +133,7 @@ const handleResponse = async (response) => {
           firstDetail.error ||
           errorMessage;
         errorCode = firstDetail.error || errorCode;
-      } else if (typeof data.detail === 'object' && data.detail !== null) {
+      } else if (typeof data.detail === "object" && data.detail !== null) {
         // Extract message from structured detail object
         errorMessage =
           data.detail.message ||

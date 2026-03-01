@@ -414,8 +414,8 @@ const MandateListItem = ({ mandate }) => {
   const [expanded, setExpanded] = React.useState(false);
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const dateStr = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    if (!dateString) return "N/A";
+    const dateStr = dateString.endsWith("Z") ? dateString : dateString + "Z";
     return new Date(dateStr).toLocaleString("en-US", {
       month: "short",
       day: "numeric",
@@ -459,7 +459,7 @@ const MandateListItem = ({ mandate }) => {
             </p>
           </div>
           <ChevronRight
-            className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+            className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`}
           />
         </div>
       </div>
@@ -554,8 +554,8 @@ const ActivityItem = ({ mandate }) => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const dateStr = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    if (!dateString) return "N/A";
+    const dateStr = dateString.endsWith("Z") ? dateString : dateString + "Z";
     return new Date(dateStr).toLocaleString("en-US", {
       month: "short",
       day: "numeric",

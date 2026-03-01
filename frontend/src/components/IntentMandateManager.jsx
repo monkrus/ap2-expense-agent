@@ -233,7 +233,7 @@ const IntentMandateManager = ({
           {showArchived && (
             <span className="text-xs text-gray-500">
               (Including{" "}
-              {intentMandates.filter(m => m.status === 'deleted' || m.status === 'revoked').length}{" "}
+              {intentMandates.filter(m => m.status === "deleted" || m.status === "revoked").length}{" "}
               deleted/revoked)
             </span>
           )}
@@ -431,7 +431,7 @@ const MandateCard = ({
               <ConstraintItem
                 icon={<Target className="w-5 h-5 text-red-600" />}
                 label="Usage Limit"
-                value={`Can be used ${constraints.usage_limit} time${constraints.usage_limit > 1 ? 's' : ''}`}
+                value={`Can be used ${constraints.usage_limit} time${constraints.usage_limit > 1 ? "s" : ""}`}
               />
             )}
 

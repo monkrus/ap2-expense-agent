@@ -391,7 +391,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-gray-900 mb-1">
-                        Ready to upload {files.length} file{files.length > 1 ? 's' : ''}
+                        Ready to upload {files.length} file{files.length > 1 ? "s" : ""}
                       </p>
                       <p className="text-sm text-gray-600">
                         Expenses will be created automatically with receipts attached

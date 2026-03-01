@@ -231,24 +231,24 @@ const OrganizationManagement = () => {
 
         // Show upgrade prompt modal
         setShowUpgradePrompt(true);
-        return
+        return;
       }
       // Handle Pydantic validation errors (422 Unprocessable Entity)
       else if (err.status === 422 && err.data?.detail) {
         const details = Array.isArray(err.data.detail) ? err.data.detail : [err.data.detail];
         const errorMessages = details.map(detail => {
-          const field = detail.loc ? detail.loc[detail.loc.length - 1] : 'field';
-          let msg = detail.msg || 'Validation error';
+          const field = detail.loc ? detail.loc[detail.loc.length - 1] : "field";
+          let msg = detail.msg || "Validation error";
 
           // Make validation messages more user-friendly
-          if (msg.includes('at least 3 characters')) {
-            msg = `must be at least 3 characters long`;
-          } else if (msg.includes('string does not match regex')) {
-            msg = `can only contain lowercase letters, numbers, and hyphens`;
+          if (msg.includes("at least 3 characters")) {
+            msg = "must be at least 3 characters long";
+          } else if (msg.includes("string does not match regex")) {
+            msg = "can only contain lowercase letters, numbers, and hyphens";
           }
 
           return `${field}: ${msg}`;
-        }).join('\n');
+        }).join("\n");
 
         showError(`Validation Error:\n${errorMessages}`);
       }
@@ -277,8 +277,8 @@ const OrganizationManagement = () => {
         // Fallback error handling - ensure we always show a string
         console.error("Organization creation error:", err);
         const errorMessage =
-          typeof err === 'string' ? err :
-          typeof err.message === 'string' ? err.message :
+          typeof err === "string" ? err :
+          typeof err.message === "string" ? err.message :
           err.data?.message || err.data?.detail ||
           "Failed to create organization. Please check your inputs and try again.";
         showError(errorMessage);
@@ -468,7 +468,7 @@ const OrganizationManagement = () => {
 
     const userInput = prompt(
       `⚠️ WARNING: This will permanently delete "${currentOrg.name}" and all associated data.\n\n` +
-        `This action CANNOT be undone.\n\n` +
+        "This action CANNOT be undone.\n\n" +
         `To confirm, type the organization ID: ${confirmText}`,
     );
 

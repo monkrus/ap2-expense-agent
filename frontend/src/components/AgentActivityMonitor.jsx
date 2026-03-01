@@ -341,7 +341,7 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
 
   const formatDate = (dateString) => {
     // Fix timezone: backend sends UTC time without 'Z', so append it
-    const dateStr = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    const dateStr = dateString.endsWith("Z") ? dateString : dateString + "Z";
     const date = new Date(dateStr);
     const now = new Date();
     const diff = now - date;

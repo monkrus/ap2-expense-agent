@@ -24,6 +24,24 @@ export default defineConfig(({ mode }) => {
           secure: false
         }
       }
+    },
+    build: {
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Heavy export libs loaded only when export dialog opens
+            'vendor-excel': ['exceljs'],
+            'vendor-pdf': ['jspdf', 'jspdf-autotable'],
+            // Charting library
+            'vendor-charts': ['recharts', 'react-is'],
+            // React core — cached long-term by browsers
+            'vendor-react': ['react', 'react-dom'],
+            // Icon library
+            'vendor-icons': ['lucide-react'],
+          }
+        }
+      }
     }
   }
 })

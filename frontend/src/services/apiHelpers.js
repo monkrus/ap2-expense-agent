@@ -4,7 +4,7 @@
  * Centralized error handling and response processing for API calls.
  */
 
-import { API_BASE_URL, REQUIRED_HEADERS, HTTP_STATUS } from '../config/constants';
+import { API_BASE_URL, REQUIRED_HEADERS, HTTP_STATUS } from "../config/constants";
 
 /**
  * Extract user data from API response (handles both nested and flat structures)
@@ -45,11 +45,11 @@ export function extractErrorMessage(error) {
 
   // Check for detail object
   if (error.detail) {
-    if (typeof error.detail === 'string') {
+    if (typeof error.detail === "string") {
       return error.detail;
     }
-    if (typeof error.detail === 'object') {
-      return error.detail.message || error.detail.detail || 'An error occurred';
+    if (typeof error.detail === "object") {
+      return error.detail.message || error.detail.detail || "An error occurred";
     }
   }
 
@@ -58,7 +58,7 @@ export function extractErrorMessage(error) {
     return error.message;
   }
 
-  return 'An unknown error occurred';
+  return "An unknown error occurred";
 }
 
 /**
@@ -69,7 +69,7 @@ export function extractErrorMessage(error) {
 export function isMissingHeaderError(error) {
   return (
     error &&
-    error.error === 'MISSING_REQUIRED_HEADER' &&
+    error.error === "MISSING_REQUIRED_HEADER" &&
     error.required_header
   );
 }
@@ -80,7 +80,7 @@ export function isMissingHeaderError(error) {
  * @returns {boolean}
  */
 export function isValidationError(error) {
-  return error && error.error === 'VALIDATION_ERROR';
+  return error && error.error === "VALIDATION_ERROR";
 }
 
 /**
@@ -90,11 +90,11 @@ export function isValidationError(error) {
  */
 export function getApiHeaders(organizationId = null) {
   const headers = {
-    [REQUIRED_HEADERS.CONTENT_TYPE]: 'application/json',
+    [REQUIRED_HEADERS.CONTENT_TYPE]: "application/json",
   };
 
   // Add auth token from localStorage
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem("access_token");
   if (token) {
     headers[REQUIRED_HEADERS.AUTHORIZATION] = `Bearer ${token}`;
   }
@@ -134,10 +134,10 @@ export async function apiRequest(endpoint, options = {}) {
       // Check for specific error types
       if (response.status === HTTP_STATUS.UNAUTHORIZED) {
         // Clear auth and redirect to login
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-        throw new Error('Session expired. Please log in again.');
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+        throw new Error("Session expired. Please log in again.");
       }
 
       if (response.status === HTTP_STATUS.PAYMENT_REQUIRED) {
@@ -146,12 +146,12 @@ export async function apiRequest(endpoint, options = {}) {
       }
 
       if (response.status === HTTP_STATUS.FORBIDDEN) {
-        throw new Error('You do not have permission to perform this action');
+        throw new Error("You do not have permission to perform this action");
       }
 
       if (isMissingHeaderError(data)) {
         throw new Error(
-          `Missing required header: ${data.required_header}. ${data.detail || ''}`
+          `Missing required header: ${data.required_header}. ${data.detail || ""}`
         );
       }
 
@@ -159,10 +159,10 @@ export async function apiRequest(endpoint, options = {}) {
         if (data.errors && Array.isArray(data.errors)) {
           const errorMessages = data.errors
             .map((e) => `${e.field}: ${e.message}`)
-            .join(', ');
+            .join(", ");
           throw new Error(`Validation failed: ${errorMessages}`);
         }
-        throw new Error(data.message || 'Validation failed');
+        throw new Error(data.message || "Validation failed");
       }
 
       // Generic error
@@ -189,6 +189,6 @@ export function validateRequiredFields(data, requiredFields) {
   const missing = requiredFields.filter((field) => !data[field]);
 
   if (missing.length > 0) {
-    throw new Error(`Missing required fields: ${missing.join(', ')}`);
+    throw new Error(`Missing required fields: ${missing.join(", ")}`);
   }
 }

@@ -81,7 +81,7 @@ export function withTimeout(
           reject(
             new Error(
               `Operation timed out after ${timeoutMs / 1000} seconds. ` +
-                `This may indicate a malformed or overly complex file.`,
+                "This may indicate a malformed or overly complex file.",
             ),
           ),
         timeoutMs,

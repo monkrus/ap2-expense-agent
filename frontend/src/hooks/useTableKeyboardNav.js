@@ -24,7 +24,7 @@
  * ```
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
 export const useTableKeyboardNav = ({
   rowCount = 0,
@@ -42,14 +42,14 @@ export const useTableKeyboardNav = ({
 
       // Arrow navigation
       if (enableArrowKeys) {
-        if (key === 'ArrowDown') {
+        if (key === "ArrowDown") {
           event.preventDefault();
           const nextIndex = Math.min(index + 1, rowCount - 1);
           setSelectedIndex(nextIndex);
           // Focus next row
           const nextRow = event.currentTarget.parentElement.children[nextIndex + 1]; // +1 for header
           if (nextRow) nextRow.focus();
-        } else if (key === 'ArrowUp') {
+        } else if (key === "ArrowUp") {
           event.preventDefault();
           const prevIndex = Math.max(index - 1, 0);
           setSelectedIndex(prevIndex);
@@ -61,12 +61,12 @@ export const useTableKeyboardNav = ({
 
       // Home/End navigation
       if (enableHomeEnd) {
-        if (key === 'Home') {
+        if (key === "Home") {
           event.preventDefault();
           setSelectedIndex(0);
           const firstRow = event.currentTarget.parentElement.children[1]; // After header
           if (firstRow) firstRow.focus();
-        } else if (key === 'End') {
+        } else if (key === "End") {
           event.preventDefault();
           setSelectedIndex(rowCount - 1);
           const lastRow = event.currentTarget.parentElement.children[rowCount]; // Header + rows
@@ -76,7 +76,7 @@ export const useTableKeyboardNav = ({
 
       // Enter/Space activation
       if (enableEnterSpace) {
-        if (key === 'Enter' || key === ' ') {
+        if (key === "Enter" || key === " ") {
           event.preventDefault();
           setSelectedIndex(index);
           onRowActivate(index);
@@ -87,17 +87,17 @@ export const useTableKeyboardNav = ({
   );
 
   const getRowProps = useCallback(
-    (index, ariaLabel = '') => ({
+    (index, ariaLabel = "") => ({
       tabIndex: index === 0 ? 0 : -1, // Only first row in tab order
-      role: 'row',
-      'aria-rowindex': index + 2, // +2 for 1-based and header row
-      'aria-label': ariaLabel,
-      'aria-selected': selectedIndex === index,
+      role: "row",
+      "aria-rowindex": index + 2, // +2 for 1-based and header row
+      "aria-label": ariaLabel,
+      "aria-selected": selectedIndex === index,
       onKeyDown: (e) => handleKeyDown(index, e),
       onFocus: () => setSelectedIndex(index),
-      className: selectedIndex === index ? 'bg-blue-50' : '',
+      className: selectedIndex === index ? "bg-blue-50" : "",
       style: {
-        cursor: 'pointer',
+        cursor: "pointer",
       },
     }),
     [selectedIndex, handleKeyDown]

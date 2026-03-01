@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import {
   Receipt,
   DollarSign,
@@ -32,7 +32,7 @@ import { useOrganization } from "../contexts/OrganizationContext";
 import ChangePassword from "./ChangePassword";
 import ReceiptUpload from "./ReceiptUpload";
 import ExpenseEdit from "./ExpenseEdit";
-import ExpenseExport from "./ExpenseExport";
+const ExpenseExport = lazy(() => import("./ExpenseExport"));
 import ReceiptList from "./ReceiptList";
 import RoleBadge from "./RoleBadge";
 import { getRoleTheme } from "../utils/roleThemes";
@@ -142,7 +142,7 @@ const EmployeeDashboard = () => {
       if (result.success) {
         // Remove from list
         setExpenses((prev) => prev.filter((e) => e.id !== expense.id));
-        success(`Expense withdrawn successfully`);
+        success("Expense withdrawn successfully");
       }
     } catch (err) {
       const errorMsg =
@@ -1248,12 +1248,14 @@ const EmployeeDashboard = () => {
           />
         )}
 
-        {/* Export Modal */}
+        {/* Export Modal — lazy loaded to defer exceljs/jspdf download */}
         {showExport && (
-          <ExpenseExport
-            expenses={expenses}
-            onClose={() => setShowExport(false)}
-          />
+          <Suspense fallback={null}>
+            <ExpenseExport
+              expenses={expenses}
+              onClose={() => setShowExport(false)}
+            />
+          </Suspense>
         )}
 
         {/* Receipt List Modal */}

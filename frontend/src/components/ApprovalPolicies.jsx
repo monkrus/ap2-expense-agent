@@ -958,7 +958,7 @@ const ApprovalPolicies = () => {
                           {policy.conditions?.categories?.length > 0
                             ? policy.conditions.categories.length === 1
                               ? policy.conditions.categories[0]
-                              : `${policy.conditions.categories.length} categories: ${policy.conditions.categories.join(', ')}`
+                              : `${policy.conditions.categories.length} categories: ${policy.conditions.categories.join(", ")}`
                             : "All Categories"
                           }
                         </span>

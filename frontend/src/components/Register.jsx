@@ -145,8 +145,8 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                 placeholder="Enter your email"
                 required
                 disabled={loading}
-                aria-invalid={error ? 'true' : 'false'}
-                aria-describedby={error ? 'register-error' : undefined}
+                aria-invalid={error ? "true" : "false"}
+                aria-describedby={error ? "register-error" : undefined}
               />
             </div>
           </div>
@@ -167,8 +167,8 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                 placeholder="Choose a username"
                 required
                 disabled={loading}
-                aria-invalid={error ? 'true' : 'false'}
-                aria-describedby={error ? 'register-error' : undefined}
+                aria-invalid={error ? "true" : "false"}
+                aria-describedby={error ? "register-error" : undefined}
               />
             </div>
           </div>
@@ -206,8 +206,8 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                 placeholder="Create a password"
                 required
                 disabled={loading}
-                aria-invalid={error ? 'true' : 'false'}
-                aria-describedby={error ? 'register-error' : undefined}
+                aria-invalid={error ? "true" : "false"}
+                aria-describedby={error ? "register-error" : undefined}
               />
               <button
                 type="button"
@@ -254,8 +254,8 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                 placeholder="Confirm your password"
                 required
                 disabled={loading}
-                aria-invalid={error ? 'true' : 'false'}
-                aria-describedby={error ? 'register-error' : undefined}
+                aria-invalid={error ? "true" : "false"}
+                aria-describedby={error ? "register-error" : undefined}
               />
               <button
                 type="button"

@@ -24,8 +24,8 @@
  * ```
  */
 
-import React, { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect, useRef } from "react";
+import { X } from "lucide-react";
 
 const AccessibleModal = ({
   isOpen,
@@ -33,11 +33,11 @@ const AccessibleModal = ({
   title,
   description,
   children,
-  size = 'medium', // 'small', 'medium', 'large', 'full'
+  size = "medium", // 'small', 'medium', 'large', 'full'
   showCloseButton = true,
   closeOnBackdropClick = true,
   closeOnEscape = true,
-  className = '',
+  className = "",
 }) => {
   const modalRef = useRef(null);
   const closeButtonRef = useRef(null);
@@ -73,7 +73,7 @@ const AccessibleModal = ({
 
     // Handle tab key for focus trap
     const handleTab = (e) => {
-      if (e.key !== 'Tab') return;
+      if (e.key !== "Tab") return;
 
       if (e.shiftKey) {
         // Shift + Tab
@@ -92,18 +92,18 @@ const AccessibleModal = ({
 
     // Handle escape key
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && closeOnEscape) {
+      if (e.key === "Escape" && closeOnEscape) {
         onClose();
       }
     };
 
-    modal.addEventListener('keydown', handleTab);
-    modal.addEventListener('keydown', handleEscape);
+    modal.addEventListener("keydown", handleTab);
+    modal.addEventListener("keydown", handleEscape);
 
     // Cleanup
     return () => {
-      modal.removeEventListener('keydown', handleTab);
-      modal.removeEventListener('keydown', handleEscape);
+      modal.removeEventListener("keydown", handleTab);
+      modal.removeEventListener("keydown", handleEscape);
 
       // Restore focus to previous element
       if (previousFocusRef.current) {
@@ -115,13 +115,13 @@ const AccessibleModal = ({
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
 
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [isOpen]);
 
@@ -136,10 +136,10 @@ const AccessibleModal = ({
 
   // Size classes
   const sizeClasses = {
-    small: 'max-w-md',
-    medium: 'max-w-2xl',
-    large: 'max-w-4xl',
-    full: 'max-w-full mx-4',
+    small: "max-w-md",
+    medium: "max-w-2xl",
+    large: "max-w-4xl",
+    full: "max-w-full mx-4",
   };
 
   return (
@@ -151,8 +151,8 @@ const AccessibleModal = ({
         ref={modalRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? 'modal-title' : undefined}
-        aria-describedby={description ? 'modal-description' : undefined}
+        aria-labelledby={title ? "modal-title" : undefined}
+        aria-describedby={description ? "modal-description" : undefined}
         onClick={(e) => e.stopPropagation()}
         className={`bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto ${className}`}
       >

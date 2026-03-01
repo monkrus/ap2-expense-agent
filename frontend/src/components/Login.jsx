@@ -89,8 +89,8 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
                 placeholder="Enter your username"
                 required
                 disabled={loading}
-                aria-invalid={error ? 'true' : 'false'}
-                aria-describedby={error ? 'login-error' : undefined}
+                aria-invalid={error ? "true" : "false"}
+                aria-describedby={error ? "login-error" : undefined}
               />
             </div>
           </div>
@@ -115,8 +115,8 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
                 placeholder="Enter your password"
                 required
                 disabled={loading}
-                aria-invalid={error ? 'true' : 'false'}
-                aria-describedby={error ? 'login-error' : undefined}
+                aria-invalid={error ? "true" : "false"}
+                aria-describedby={error ? "login-error" : undefined}
               />
               <button
                 type="button"

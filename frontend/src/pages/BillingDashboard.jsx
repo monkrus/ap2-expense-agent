@@ -571,11 +571,11 @@ const BillingDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Free Tier */}
             <div className={`relative rounded-xl border-2 p-6 flex flex-col ${
-              subscription?.tier === 'free'
-                ? 'border-purple-600 bg-purple-50'
-                : 'border-gray-200 hover:border-purple-300'
+              subscription?.tier === "free"
+                ? "border-purple-600 bg-purple-50"
+                : "border-gray-200 hover:border-purple-300"
             }`}>
-              {subscription?.tier === 'free' && (
+              {subscription?.tier === "free" && (
                 <div className="absolute top-4 right-4">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
                     Current Plan
@@ -624,7 +624,7 @@ const BillingDashboard = () => {
               </ul>
 
               <div className="mt-auto">
-              {subscription?.tier === 'free' ? (
+              {subscription?.tier === "free" ? (
                 <button
                   disabled
                   className="w-full py-3 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
@@ -633,7 +633,7 @@ const BillingDashboard = () => {
                 </button>
               ) : (
                 <button
-                  onClick={() => handleUpgrade('free')}
+                  onClick={() => handleUpgrade("free")}
                   className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200"
                 >
                   Downgrade
@@ -644,11 +644,11 @@ const BillingDashboard = () => {
 
             {/* Starter Tier */}
             <div className={`relative rounded-xl border-2 p-6 flex flex-col ${
-              subscription?.tier === 'starter'
-                ? 'border-purple-600 bg-purple-50'
-                : 'border-gray-200 hover:border-purple-300'
+              subscription?.tier === "starter"
+                ? "border-purple-600 bg-purple-50"
+                : "border-gray-200 hover:border-purple-300"
             }`}>
-              {subscription?.tier === 'starter' && (
+              {subscription?.tier === "starter" && (
                 <div className="absolute top-4 right-4">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
                     Current Plan
@@ -697,7 +697,7 @@ const BillingDashboard = () => {
               </ul>
 
               <div className="mt-auto">
-              {subscription?.tier === 'starter' ? (
+              {subscription?.tier === "starter" ? (
                 <button
                   disabled
                   className="w-full py-3 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
@@ -711,7 +711,7 @@ const BillingDashboard = () => {
                   rel="noopener noreferrer"
                   className="block w-full py-3 bg-purple-600 text-white text-center rounded-lg font-semibold hover:bg-purple-700 transition-colors"
                 >
-                  {subscription?.tier === 'free' ? 'Upgrade' : 'Change Plan'}
+                  {subscription?.tier === "free" ? "Upgrade" : "Change Plan"}
                 </a>
               )}
               </div>
@@ -719,11 +719,11 @@ const BillingDashboard = () => {
 
             {/* Professional Tier */}
             <div className={`relative rounded-xl border-2 p-6 flex flex-col ${
-              subscription?.tier === 'professional'
-                ? 'border-purple-600 bg-purple-50'
-                : 'border-purple-300 hover:border-purple-400 shadow-lg'
+              subscription?.tier === "professional"
+                ? "border-purple-600 bg-purple-50"
+                : "border-purple-300 hover:border-purple-400 shadow-lg"
             }`}>
-              {subscription?.tier === 'professional' && (
+              {subscription?.tier === "professional" && (
                 <div className="absolute top-4 right-4">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
                     Current Plan
@@ -731,7 +731,7 @@ const BillingDashboard = () => {
                 </div>
               )}
 
-              {subscription?.tier !== 'professional' && (
+              {subscription?.tier !== "professional" && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <span className="inline-flex items-center px-4 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
                     POPULAR
@@ -784,7 +784,7 @@ const BillingDashboard = () => {
               </ul>
 
               <div className="mt-auto">
-              {subscription?.tier === 'professional' ? (
+              {subscription?.tier === "professional" ? (
                 <button
                   disabled
                   className="w-full py-3 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
@@ -828,7 +828,7 @@ const BillingDashboard = () => {
                 if (field === null || field === undefined) return '""';
                 const str = String(field);
                 // Wrap in quotes if contains comma, newline, or quote
-                if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+                if (str.includes(",") || str.includes("\n") || str.includes('"')) {
                   return `"${str.replace(/"/g, '""')}"`;
                 }
                 return `"${str}"`;

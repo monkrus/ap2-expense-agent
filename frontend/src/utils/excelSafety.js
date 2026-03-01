@@ -30,7 +30,7 @@ const MAX_ROWS_PER_SHEET = 100000;
  */
 export function validateFileSize(file) {
   if (!file) {
-    throw new Error('No file provided');
+    throw new Error("No file provided");
   }
 
   if (file.size > MAX_FILE_SIZE) {
@@ -49,18 +49,18 @@ export function validateFileSize(file) {
  */
 export function validateFileType(file) {
   const validTypes = [
-    'application/vnd.ms-excel', // .xls
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-    'text/csv', // .csv
+    "application/vnd.ms-excel", // .xls
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+    "text/csv", // .csv
   ];
 
-  const validExtensions = ['.xls', '.xlsx', '.csv'];
+  const validExtensions = [".xls", ".xlsx", ".csv"];
   const fileName = file.name.toLowerCase();
   const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
 
   if (!validTypes.includes(file.type) && !hasValidExtension) {
     throw new Error(
-      'Invalid file type. Please upload an Excel file (.xls, .xlsx) or CSV file.'
+      "Invalid file type. Please upload an Excel file (.xls, .xlsx) or CSV file."
     );
   }
 }
@@ -78,7 +78,7 @@ export async function parseWithTimeout(parseFunction, timeout = PARSING_TIMEOUT_
     parseFunction(),
     new Promise((_, reject) =>
       setTimeout(
-        () => reject(new Error('Excel parsing timeout. File may be corrupted or too complex.')),
+        () => reject(new Error("Excel parsing timeout. File may be corrupted or too complex.")),
         timeout
       )
     ),
@@ -94,7 +94,7 @@ export async function parseWithTimeout(parseFunction, timeout = PARSING_TIMEOUT_
  */
 export function validateWorkbookStructure(workbook) {
   if (!workbook || !workbook.SheetNames) {
-    throw new Error('Invalid workbook structure');
+    throw new Error("Invalid workbook structure");
   }
 
   // Check number of sheets
@@ -110,7 +110,7 @@ export function validateWorkbookStructure(workbook) {
     if (!sheet) return;
 
     // Get sheet range
-    const range = sheet['!ref'];
+    const range = sheet["!ref"];
     if (!range) return;
 
     // Parse range (e.g., "A1:Z1000")
@@ -199,15 +199,15 @@ export async function safeParseExcel(file, parseFunction, options = {}) {
  * @returns {string} User-friendly error message
  */
 export function getSafeErrorMessage(error) {
-  const message = error.message || 'Unknown error';
+  const message = error.message || "Unknown error";
 
   // Known safe error messages
   const safeMessages = [
-    'File too large',
-    'Invalid file type',
-    'Excel parsing timeout',
-    'Too many sheets',
-    'Invalid workbook structure',
+    "File too large",
+    "Invalid file type",
+    "Excel parsing timeout",
+    "Too many sheets",
+    "Invalid workbook structure",
   ];
 
   // Check if error message contains safe keywords
@@ -218,7 +218,7 @@ export function getSafeErrorMessage(error) {
   }
 
   // Generic error for unexpected issues
-  return 'Unable to process Excel file. Please ensure the file is valid and not corrupted.';
+  return "Unable to process Excel file. Please ensure the file is valid and not corrupted.";
 }
 
 export default {

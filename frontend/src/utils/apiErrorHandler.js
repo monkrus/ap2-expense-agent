@@ -21,62 +21,62 @@
  */
 export function createAPIError(response, errorData) {
   // DEBUG: Log the raw error data
-  console.log('[apiErrorHandler] Raw error data:', JSON.stringify(errorData, null, 2));
-  console.log('[apiErrorHandler] Response status:', response.status);
+  console.log("[apiErrorHandler] Raw error data:", JSON.stringify(errorData, null, 2));
+  console.log("[apiErrorHandler] Response status:", response.status);
 
   // Extract the most user-friendly error message
   let message = "An error occurred";
 
   // PRIORITY 1: Check for new backend error format with "error" object
   if (errorData.error && typeof errorData.error === "object") {
-    console.log('[apiErrorHandler] Found error object format');
+    console.log("[apiErrorHandler] Found error object format");
 
     // Check for validation errors in details.errors array (422 errors)
     if (errorData.error.details && Array.isArray(errorData.error.details.errors)) {
-      console.log('[apiErrorHandler] Found validation errors array:', errorData.error.details.errors);
+      console.log("[apiErrorHandler] Found validation errors array:", errorData.error.details.errors);
       const errors = errorData.error.details.errors.map(err => {
-        const field = err.field ? err.field.split('.').pop() : 'field'; // Extract last part of "body.slug"
-        let msg = err.message || 'Validation error';
+        const field = err.field ? err.field.split(".").pop() : "field"; // Extract last part of "body.slug"
+        let msg = err.message || "Validation error";
 
         // Make validation messages more user-friendly
-        if (msg.includes('at least 3 characters')) {
-          msg = 'must be at least 3 characters long';
-        } else if (msg.includes('string does not match regex')) {
-          msg = 'can only contain lowercase letters, numbers, and hyphens';
+        if (msg.includes("at least 3 characters")) {
+          msg = "must be at least 3 characters long";
+        } else if (msg.includes("string does not match regex")) {
+          msg = "can only contain lowercase letters, numbers, and hyphens";
         }
 
         return `${field}: ${msg}`;
       });
-      message = errors.join(', ');
-      console.log('[apiErrorHandler] Formatted validation message:', message);
+      message = errors.join(", ");
+      console.log("[apiErrorHandler] Formatted validation message:", message);
     } else if (errorData.error.message) {
       // Use the error.message field
       message = errorData.error.message;
-      console.log('[apiErrorHandler] Using error.message:', message);
+      console.log("[apiErrorHandler] Using error.message:", message);
     }
   }
   // PRIORITY 2: Legacy format with "detail" (for compatibility)
   else if (errorData.detail) {
-    console.log('[apiErrorHandler] Found legacy detail format');
+    console.log("[apiErrorHandler] Found legacy detail format");
     if (typeof errorData.detail === "string") {
       // Simple string detail
       message = errorData.detail;
     } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
       // Pydantic validation errors array (old format)
       const errors = errorData.detail.map(err => {
-        const field = err.loc ? err.loc[err.loc.length - 1] : 'field';
-        let msg = err.msg || 'Validation error';
+        const field = err.loc ? err.loc[err.loc.length - 1] : "field";
+        let msg = err.msg || "Validation error";
 
         // Make validation messages more user-friendly
-        if (msg.includes('at least 3 characters')) {
-          msg = 'must be at least 3 characters long';
-        } else if (msg.includes('string does not match regex')) {
-          msg = 'can only contain lowercase letters, numbers, and hyphens';
+        if (msg.includes("at least 3 characters")) {
+          msg = "must be at least 3 characters long";
+        } else if (msg.includes("string does not match regex")) {
+          msg = "can only contain lowercase letters, numbers, and hyphens";
         }
 
         return `${field}: ${msg}`;
       });
-      message = errors.join(', ');
+      message = errors.join(", ");
     } else if (typeof errorData.detail === "object") {
       // Structured detail object (e.g., 402 Payment Required)
       message =
@@ -89,7 +89,7 @@ export function createAPIError(response, errorData) {
     message = typeof errorData.message === "string" ? errorData.message : message;
   }
 
-  console.log('[apiErrorHandler] Final message:', message);
+  console.log("[apiErrorHandler] Final message:", message);
 
   // Create error with message
   const error = new Error(message);
