@@ -166,7 +166,7 @@ jobs:
             --cpu 2 \
             --port 8080 \
             --timeout 300 \
-            --set-env-vars ENVIRONMENT=production,DEBUG=false,ALLOW_DEV_KMS_FALLBACK=false,RATE_LIMIT_ENABLED=true,COMMIT_SHA=${{ github.sha }},JWT_SECRET=${{ secrets.JWT_SECRET }},DATABASE_URL=${{ secrets.DATABASE_URL }},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}
+            --set-env-vars "ENVIRONMENT=production,DEBUG=false,ALLOW_DEV_KMS_FALLBACK=false,RATE_LIMIT_ENABLED=true,COMMIT_SHA=${{ github.sha }},JWT_SECRET=${{ secrets.JWT_SECRET }},DATABASE_URL=${{ secrets.DATABASE_URL }},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},SMTP_SERVER=smtp.sendgrid.net,SMTP_PORT=587,SMTP_USERNAME=apikey,SMTP_PASSWORD=${{ secrets.SENDGRID_API_KEY }},SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }},NOTIFICATIONS_ENABLED=true,FRONTEND_URL=${{ secrets.FRONTEND_URL }}"
 
       - name: Get backend URL
         id: backend-url
