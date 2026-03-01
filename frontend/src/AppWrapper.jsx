@@ -31,7 +31,13 @@ const AppContent = () => {
   useEffect(() => {
     fetch("/api/v1/auth/setup-status")
       .then((r) => r.json())
-      .then((data) => setNeedsSetup(data.needs_setup === true))
+      .then((data) => {
+        const isNew = data.needs_setup === true;
+        setNeedsSetup(isNew);
+        // Fresh deployment — clear any stale wizard-dismissed flag so the
+        // wizard always appears for the first admin on a new installation.
+        if (isNew) localStorage.removeItem(WIZARD_DISMISSED_KEY);
+      })
       .catch(() => setNeedsSetup(false)); // on error, assume normal flow
   }, []);
 
