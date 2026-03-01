@@ -13,7 +13,6 @@ import {
   CreditCard,
   Zap,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../hooks/useToast";
 import organizationAPI from "../services/organizationAPI";
@@ -32,7 +31,6 @@ import billingAPI from "../services/billingAPI";
  */
 const OrganizationSetupWizard = ({ onComplete }) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { success, error: showError } = useToast();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -116,8 +114,6 @@ const OrganizationSetupWizard = ({ onComplete }) => {
       // Call onComplete callback
       if (onComplete) {
         onComplete();
-      } else {
-        navigate("/dashboard");
       }
     } catch (err) {
       showError("Failed to complete setup");

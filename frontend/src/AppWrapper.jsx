@@ -10,24 +10,50 @@ import App from "./App";
 import GoogleCallback from "./pages/GoogleCallback";
 import BillingDashboard from "./pages/BillingDashboard";
 import PricingPlans from "./pages/PricingPlans";
+import InitialSetup from "./pages/InitialSetup";
 import OrganizationManagement from "./components/OrganizationManagement";
+import OrganizationSetupWizard from "./components/OrganizationSetupWizard";
 import AcceptInvitation from "./components/AcceptInvitation";
+
+// Key used to track whether this admin has dismissed the setup wizard
+const WIZARD_DISMISSED_KEY = "ap2_setup_wizard_dismissed";
 
 const AppContent = () => {
   const [showAuth, setShowAuth] = useState("login");
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
 
-  // Simple client-side routing
+  // null = loading, true = needs setup, false = has users
+  const [needsSetup, setNeedsSetup] = useState(null);
+  const [showWizard, setShowWizard] = useState(false);
+
+  // --- First-run detection ---
   useEffect(() => {
-    const handlePopState = () => {
-      setCurrentPath(window.location.pathname);
-    };
+    fetch("/api/v1/auth/setup-status")
+      .then((r) => r.json())
+      .then((data) => setNeedsSetup(data.needs_setup === true))
+      .catch(() => setNeedsSetup(false)); // on error, assume normal flow
+  }, []);
+
+  // --- Show setup wizard for admin after first login ---
+  useEffect(() => {
+    if (
+      isAuthenticated &&
+      user?.role === "admin" &&
+      !localStorage.getItem(WIZARD_DISMISSED_KEY)
+    ) {
+      setShowWizard(true);
+    }
+  }, [isAuthenticated, user]);
+
+  // --- Path-based routing ---
+  useEffect(() => {
+    const handlePopState = () => setCurrentPath(window.location.pathname);
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // Check if we're on Google OAuth callback page
+  // Google OAuth callback
   if (
     currentPath === "/auth/google/success" ||
     window.location.pathname === "/auth/google/success"
@@ -35,7 +61,7 @@ const AppContent = () => {
     return <GoogleCallback />;
   }
 
-  // Check if we're on invitation acceptance page
+  // Invitation acceptance
   if (
     currentPath.startsWith("/invitations/accept/") ||
     window.location.pathname.startsWith("/invitations/accept/")
@@ -49,13 +75,11 @@ const AppContent = () => {
           <AcceptInvitation token={token} />
         </ProtectedRoute>
       );
-    } else {
-      // Redirect to login will happen inside AcceptInvitation component
-      return <AcceptInvitation token={token} />;
     }
+    return <AcceptInvitation token={token} />;
   }
 
-  // Check if we're on organizations page
+  // Organizations page
   if (
     (currentPath === "/organizations" ||
       window.location.pathname === "/organizations") &&
@@ -68,7 +92,7 @@ const AppContent = () => {
     );
   }
 
-  // Check if we're on billing page
+  // Billing page
   if (
     (currentPath === "/billing" || window.location.pathname === "/billing") &&
     isAuthenticated
@@ -80,36 +104,49 @@ const AppContent = () => {
     );
   }
 
-  // Check if we're on pricing/plans page
+  // Pricing / Plans page
   if (
     currentPath === "/pricing" ||
     currentPath === "/plans" ||
     window.location.pathname === "/pricing" ||
     window.location.pathname === "/plans"
   ) {
-    // Pricing page can be accessed without authentication
     if (isAuthenticated) {
       return (
         <ProtectedRoute>
           <PricingPlans />
         </ProtectedRoute>
       );
-    } else {
-      return <PricingPlans />;
     }
+    return <PricingPlans />;
   }
 
-  if (loading) {
+  // --- Loading spinner (auth + setup-status check) ---
+  if (loading || needsSetup === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
         <div className="bg-white p-8 rounded-2xl shadow-2xl">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">Loading…</p>
         </div>
       </div>
     );
   }
 
+  // --- First-time setup (no users in DB) ---
+  // Shown to every brand-new deployment or fresh GCP Marketplace purchase.
+  if (needsSetup) {
+    return (
+      <InitialSetup
+        onComplete={() => {
+          setNeedsSetup(false);
+          setShowAuth("login");
+        }}
+      />
+    );
+  }
+
+  // --- Not authenticated → Login / Register ---
   if (!isAuthenticated) {
     if (showAuth === "login") {
       return (
@@ -118,16 +155,30 @@ const AppContent = () => {
           onSwitchToRegister={() => setShowAuth("register")}
         />
       );
-    } else {
-      return (
-        <Register
-          onSuccess={() => setShowAuth("login")}
-          onSwitchToLogin={() => setShowAuth("login")}
-        />
-      );
     }
+    return (
+      <Register
+        onSuccess={() => setShowAuth("login")}
+        onSwitchToLogin={() => setShowAuth("login")}
+      />
+    );
   }
 
+  // --- Authenticated: show setup wizard for first-time admin ---
+  if (showWizard) {
+    return (
+      <ProtectedRoute>
+        <OrganizationSetupWizard
+          onComplete={() => {
+            localStorage.setItem(WIZARD_DISMISSED_KEY, "1");
+            setShowWizard(false);
+          }}
+        />
+      </ProtectedRoute>
+    );
+  }
+
+  // --- Normal authenticated app ---
   return (
     <ProtectedRoute>
       <App />

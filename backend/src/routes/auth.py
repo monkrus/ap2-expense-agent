@@ -704,3 +704,16 @@ async def resend_verification(
     return {
         "message": "If the email exists and is unverified, a verification link has been sent"
     }
+
+
+@router.get("/setup-status")
+async def setup_status(db: Session = Depends(get_db)):
+    """Public endpoint — no auth required.
+
+    Returns needs_setup=True when the database has no users at all.
+    The frontend calls this on every cold load to decide whether to show
+    the First-Time Setup screen (new deployment / fresh GCP Marketplace purchase)
+    instead of the normal Login screen.
+    """
+    user_count = db.query(User).count()
+    return {"needs_setup": user_count == 0}
