@@ -89,11 +89,13 @@ class EmailService:
                 part2 = MIMEText(html_body, "html")
                 msg.attach(part2)
 
-            # Send email
+            # Send email — use STARTTLS (port 587) not SSL (port 465)
             async with aiosmtplib.SMTP(
-                hostname=smtp_server, port=smtp_port
+                hostname=smtp_server,
+                port=smtp_port,
+                start_tls=smtp_port == 587,
+                use_tls=smtp_port == 465,
             ) as server:
-                await server.starttls()
                 await server.login(smtp_username, smtp_password)
                 await server.send_message(msg)
 
