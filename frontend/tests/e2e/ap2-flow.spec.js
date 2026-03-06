@@ -14,7 +14,7 @@ const getExpenseForm = (page) =>
  * Helper: authenticate via API and return { token, orgId } for direct API calls.
  */
 const getApiCredentials = async (page) => {
-  const token = await page.evaluate(() => localStorage.getItem('token'));
+  const token = await page.evaluate(() => localStorage.getItem('access_token'));
   const orgId = await page.evaluate(() =>
     localStorage.getItem('current_organization_id'),
   );
@@ -42,14 +42,17 @@ const createIntentMandate = async (page, constraints, expirationHours = 24) => {
 };
 
 test.describe('AP2 Auto-Approval Flow', () => {
+  // Use emptest (employee) so we get the Employee Dashboard with "New Expense" button.
+  // Intent mandate creation only requires authentication, not admin role.
   test.beforeEach(async ({ page }) => {
-    await login(page, 'adminfree', 'Testme1!');
+    await login(page, 'emptest', 'Testme1!');
   });
 
   test('expense matching intent mandate is auto-approved', async ({ page }) => {
     // Create an intent mandate allowing meals up to $500 at AP2 Test Restaurant
     await createIntentMandate(page, {
       max_amount: 500.0,
+      monthly_limit: 5000.0,
       categories: ['meals'],
       merchants: ['AP2 Test Restaurant'],
     });
@@ -118,11 +121,13 @@ test.describe('AP2 Auto-Approval Flow', () => {
   });
 
   test('expense exceeding mandate amount is not auto-approved', async ({ page }) => {
-    // Create mandate with low max_amount
+    // Create mandate with low max_amount for a UNIQUE merchant
+    // (avoids conflict with test 1's $500 mandate for "AP2 Test Restaurant")
     await createIntentMandate(page, {
       max_amount: 50.0,
+      monthly_limit: 5000.0,
       categories: ['meals'],
-      merchants: ['AP2 Test Restaurant'],
+      merchants: ['AP2 Budget Cafe'],
     });
 
     // Navigate to expense submission
@@ -132,7 +137,7 @@ test.describe('AP2 Auto-Approval Flow', () => {
     const today = new Date().toISOString().split('T')[0];
     await page.getByLabel(/expense date/i).fill(today);
     await page.getByLabel(/amount/i).fill('150.00');
-    await page.getByLabel(/vendor/i).fill('AP2 Test Restaurant');
+    await page.getByLabel(/vendor/i).fill('AP2 Budget Cafe');
     await page.getByLabel(/category/i).selectOption({ label: 'Meals' });
     await page.getByLabel(/description/i).fill('Over-limit expense - should not auto-approve');
 

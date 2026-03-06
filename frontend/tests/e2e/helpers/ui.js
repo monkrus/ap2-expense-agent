@@ -31,6 +31,10 @@ export const clickWithOverlayTolerance = async (page, locator) => {
 
 export const login = async (page, username = 'emptest', password = 'Testme1!') => {
   await page.goto(BASE_URL);
+  // Dismiss the setup wizard so admin users land on the dashboard directly
+  await page.evaluate(() =>
+    localStorage.setItem('ap2_setup_wizard_dismissed', '1'),
+  );
   await page.getByLabel('Username').fill(username);
   await page.locator('#login-password').fill(password);
   await page.getByRole('button', { name: /sign in/i }).click();

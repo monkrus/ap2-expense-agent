@@ -378,3 +378,23 @@ class TestTOTPService:
 
         codes = TOTPService.generate_backup_codes(count=5)
         assert len(codes) == 5
+
+
+class TestFirstUserIsAdmin:
+    """First user registered in an empty DB is auto-promoted to ADMIN."""
+
+    def test_first_user_becomes_admin(self, client):
+        """Register the very first user → role should be admin regardless of request."""
+        response = client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": "founder@startup.com",
+                "username": "founder",
+                "password": "Founder123!",
+                "full_name": "Founder",
+                "role": "user",  # explicitly request non-admin
+            },
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert data["role"] == "admin"

@@ -8,6 +8,8 @@ Tests the complete end-to-end flow:
 4. Employee views result
 """
 
+import uuid
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -364,3 +366,83 @@ def test_user_deletion_cleanup(client, admin_auth, organization):
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 404
+
+
+def test_invitation_flow(client, admin_auth, organization):
+    """Full invitation integration: admin invites → user registers → accepts → becomes member."""
+    from unittest.mock import AsyncMock, patch
+
+    org_id = organization["id"]
+    admin_token = admin_auth["token"]
+    invitee_email = f"invitee_{uuid.uuid4().hex[:6]}@test.com"
+
+    # Step 1: Admin creates invitation (mock email sending + bypass free tier limit)
+    with patch(
+        "src.routes.organizations.EmailService.send_organization_invitation_email",
+        new_callable=AsyncMock,
+    ), patch(
+        "src.routes.organizations.LimitEnforcer.check_user_limit",
+        return_value=None,
+    ):
+        resp = client.post(
+            f"/api/v1/organizations/{org_id}/invitations",
+            headers={
+                "Authorization": f"Bearer {admin_token}",
+                "X-Organization-Id": org_id,
+            },
+            json={"email": invitee_email},
+        )
+    assert resp.status_code == 201
+    invitation_id = resp.json()["id"]
+
+    # Retrieve the token directly from DB (not exposed in the response schema)
+    from src.models import OrganizationInvitation as OrgInv
+    db = TestingSessionLocal()
+    try:
+        invitation_token = db.query(OrgInv).filter(OrgInv.id == invitation_id).first().token
+    finally:
+        db.close()
+
+    # Step 2: Invitee registers
+    invitee_username = f"invitee_{uuid.uuid4().hex[:6]}"
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": invitee_email,
+            "username": invitee_username,
+            "password": "Invitee123!",
+            "full_name": "Invitee User",
+        },
+    )
+    assert resp.status_code == 201
+
+    # Step 3: Invitee logs in
+    resp = client.post(
+        "/api/v1/auth/login",
+        json={"username": invitee_username, "password": "Invitee123!"},
+    )
+    assert resp.status_code == 200
+    invitee_token = resp.json()["access_token"]
+
+    # Step 4: Invitee accepts invitation
+    resp = client.post(
+        f"/api/v1/organizations/invitations/{invitation_token}/accept",
+        headers={"Authorization": f"Bearer {invitee_token}"},
+    )
+    assert resp.status_code == 200
+    assert "accepted" in resp.json()["message"].lower()
+
+    # Step 5: Verify invitee is now a member of the org
+    resp = client.get(
+        f"/api/v1/organizations/{org_id}/members",
+        headers={
+            "Authorization": f"Bearer {admin_token}",
+            "X-Organization-Id": org_id,
+        },
+    )
+    assert resp.status_code == 200
+    members = resp.json()
+    member_emails = [m.get("email") or m.get("user", {}).get("email", "") for m in members]
+    assert invitee_email in member_emails or any(
+        invitee_email in str(m) for m in members
+    )

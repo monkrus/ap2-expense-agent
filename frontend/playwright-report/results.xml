@@ -1,339 +1,72 @@
-<testsuites id="" name="" tests="95" failures="0" skipped="5" errors="0" time="360.15318199999996">
-<testsuite name="auth.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="chromium" tests="7" failures="0" skipped="1" time="10.503" errors="0">
-<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0.901">
+<testsuites id="" name="" tests="22" failures="0" skipped="0" errors="0" time="71.670192">
+<testsuite name="ap2-flow.spec.js" timestamp="2026-03-06T01:08:35.216Z" hostname="chromium" tests="3" failures="0" skipped="0" time="19.332" errors="0">
+<testcase name="AP2 Auto-Approval Flow › expense matching intent mandate is auto-approved" classname="ap2-flow.spec.js" time="6.64">
 </testcase>
-<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0.778">
+<testcase name="AP2 Auto-Approval Flow › expense not matching intent mandate stays pending" classname="ap2-flow.spec.js" time="6.327">
 </testcase>
-<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0.475">
-</testcase>
-<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="3.871">
-</testcase>
-<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0.396">
-<properties>
-<property name="skip" value="">
-</property>
-</properties>
-<skipped>
-</skipped>
-</testcase>
-<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0.395">
-</testcase>
-<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="3.687">
+<testcase name="AP2 Auto-Approval Flow › expense exceeding mandate amount is not auto-approved" classname="ap2-flow.spec.js" time="6.365">
 </testcase>
 </testsuite>
-<testsuite name="expense-submission.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="chromium" tests="11" failures="0" skipped="0" time="27.19" errors="0">
-<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0.841">
+<testsuite name="auth.spec.js" timestamp="2026-03-06T01:08:35.216Z" hostname="chromium" tests="7" failures="0" skipped="0" time="6.169" errors="0">
+<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0.467">
 </testcase>
-<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="6.257">
+<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0.802">
 </testcase>
-<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="6.245">
+<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0.58">
 </testcase>
-<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="6.122">
+<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="1.601">
 </testcase>
-<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0.801">
+<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="1.437">
 </testcase>
-<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0.755">
+<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0.447">
 </testcase>
-<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="3.236">
-</testcase>
-<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0.754">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0.749">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="0.715">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0.715">
+<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="0.835">
 </testcase>
 </testsuite>
-<testsuite name="multi-user.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="chromium" tests="1" failures="0" skipped="0" time="12.236" errors="0">
-<testcase name="Multi-User Workflow › employee submits expense that admin approves" classname="multi-user.spec.js" time="12.236">
+<testsuite name="expense-submission.spec.js" timestamp="2026-03-06T01:08:35.216Z" hostname="chromium" tests="11" failures="0" skipped="0" time="27.8" errors="0">
+<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0.813">
+</testcase>
+<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="6.33">
+</testcase>
+<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="6.334">
+</testcase>
+<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="6.294">
+</testcase>
+<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0.866">
+</testcase>
+<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0.793">
+</testcase>
+<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="1.208">
+</testcase>
+<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0.787">
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0.782">
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="2.705">
+</testcase>
+<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0.888">
+</testcase>
+</testsuite>
+<testsuite name="multi-user.spec.js" timestamp="2026-03-06T01:08:35.216Z" hostname="chromium" tests="1" failures="0" skipped="0" time="9.033" errors="0">
+<testcase name="Multi-User Workflow › employee submits expense that admin approves" classname="multi-user.spec.js" time="9.033">
 <system-out>
-<![CDATA[org context 5ec3f760-cb58-4155-9ccc-7ec65fbb55c1 5ec3f760-cb58-4155-9ccc-7ec65fbb55c1
+<![CDATA[org context 94f3a128-4377-463b-9edd-18877b46b45f 94f3a128-4377-463b-9edd-18877b46b45f
 raw button names [
-  [32m'Organizations'[39m,
-  [32m'Billing'[39m,
-  [32m'Change Password'[39m,
-  [32m'9+'[39m,
-  [32m'Logout'[39m,
-  [32m'Pending Approvals'[39m,
-  [32m'All Expenses'[39m,
-  [32m'Archived'[39m,
-  [32m'User Management'[39m,
-  [32m'Approval Rules'[39m,
-  [32m'Analytics'[39m,
-  [32m'AP2 Automation'[39m
-]
-]]>
-</system-out>
-</testcase>
-</testsuite>
-<testsuite name="auth.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="firefox" tests="7" failures="0" skipped="1" time="34.069" errors="0">
-<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="3.085">
-</testcase>
-<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="3.332">
-</testcase>
-<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="3.736">
-</testcase>
-<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="10.845">
-</testcase>
-<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="2.512">
-<properties>
-<property name="skip" value="">
-</property>
-</properties>
-<skipped>
-</skipped>
-</testcase>
-<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="2.488">
-</testcase>
-<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="8.071">
-</testcase>
-</testsuite>
-<testsuite name="expense-submission.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="firefox" tests="11" failures="0" skipped="0" time="56.701" errors="0">
-<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="3.012">
-</testcase>
-<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="9.471">
-</testcase>
-<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="8.304">
-</testcase>
-<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="8.437">
-</testcase>
-<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="3.037">
-</testcase>
-<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="3.029">
-</testcase>
-<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="9.311">
-</testcase>
-<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="3.004">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="3.146">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="2.924">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="3.026">
-</testcase>
-</testsuite>
-<testsuite name="multi-user.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="firefox" tests="1" failures="0" skipped="0" time="25.298" errors="0">
-<testcase name="Multi-User Workflow › employee submits expense that admin approves" classname="multi-user.spec.js" time="25.298">
-<system-out>
-<![CDATA[org context 5ec3f760-cb58-4155-9ccc-7ec65fbb55c1 5ec3f760-cb58-4155-9ccc-7ec65fbb55c1
-raw button names [
-  [32m'Organizations'[39m,
-  [32m'Billing'[39m,
-  [32m'Change Password'[39m,
-  [32m'9+'[39m,
-  [32m'Logout'[39m,
-  [32m'Pending Approvals'[39m,
-  [32m'All Expenses'[39m,
-  [32m'Archived'[39m,
-  [32m'User Management'[39m,
-  [32m'Approval Rules'[39m,
-  [32m'Analytics'[39m,
-  [32m'AP2 Automation'[39m
-]
-]]>
-</system-out>
-</testcase>
-</testsuite>
-<testsuite name="auth.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="webkit" tests="7" failures="0" skipped="1" time="13.384" errors="0">
-<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0.908">
-</testcase>
-<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="1.136">
-</testcase>
-<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0.877">
-</testcase>
-<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="5.208">
-</testcase>
-<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0.435">
-<properties>
-<property name="skip" value="">
-</property>
-</properties>
-<skipped>
-</skipped>
-</testcase>
-<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0.618">
-</testcase>
-<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="4.202">
-</testcase>
-</testsuite>
-<testsuite name="expense-submission.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="webkit" tests="11" failures="0" skipped="0" time="33.98" errors="0">
-<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="1.468">
-</testcase>
-<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="7.399">
-</testcase>
-<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="7.27">
-</testcase>
-<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="7.278">
-</testcase>
-<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="1.402">
-</testcase>
-<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="1.157">
-</testcase>
-<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="3.325">
-</testcase>
-<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="1.209">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="1.145">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="1.152">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="1.175">
-</testcase>
-</testsuite>
-<testsuite name="multi-user.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="webkit" tests="1" failures="0" skipped="0" time="14.589" errors="0">
-<testcase name="Multi-User Workflow › employee submits expense that admin approves" classname="multi-user.spec.js" time="14.589">
-<system-out>
-<![CDATA[org context 5ec3f760-cb58-4155-9ccc-7ec65fbb55c1 5ec3f760-cb58-4155-9ccc-7ec65fbb55c1
-raw button names [
-  [32m'Organizations'[39m,
-  [32m'Billing'[39m,
-  [32m'Change Password'[39m,
-  [32m'9+'[39m,
-  [32m'Logout'[39m,
-  [32m'Pending Approvals'[39m,
-  [32m'All Expenses'[39m,
-  [32m'Archived'[39m,
-  [32m'User Management'[39m,
-  [32m'Approval Rules'[39m,
-  [32m'Analytics'[39m,
-  [32m'AP2 Automation'[39m
-]
-]]>
-</system-out>
-</testcase>
-</testsuite>
-<testsuite name="auth.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="Mobile Chrome" tests="7" failures="0" skipped="1" time="10.085" errors="0">
-<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0.443">
-</testcase>
-<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="0.809">
-</testcase>
-<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0.512">
-</testcase>
-<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="3.863">
-</testcase>
-<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0.37">
-<properties>
-<property name="skip" value="">
-</property>
-</properties>
-<skipped>
-</skipped>
-</testcase>
-<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0.372">
-</testcase>
-<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="3.716">
-</testcase>
-</testsuite>
-<testsuite name="expense-submission.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="Mobile Chrome" tests="11" failures="0" skipped="0" time="27.451" errors="0">
-<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="0.802">
-</testcase>
-<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="6.269">
-</testcase>
-<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="6.13">
-</testcase>
-<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="6.152">
-</testcase>
-<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="0.835">
-</testcase>
-<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="0.781">
-</testcase>
-<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="3.201">
-</testcase>
-<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="0.807">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="0.824">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="0.818">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="0.832">
-</testcase>
-</testsuite>
-<testsuite name="multi-user.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="Mobile Chrome" tests="1" failures="0" skipped="0" time="12.268" errors="0">
-<testcase name="Multi-User Workflow › employee submits expense that admin approves" classname="multi-user.spec.js" time="12.268">
-<system-out>
-<![CDATA[org context 5ec3f760-cb58-4155-9ccc-7ec65fbb55c1 5ec3f760-cb58-4155-9ccc-7ec65fbb55c1
-raw button names [
-  [32m'Organizations'[39m,
-  [32m'Billing'[39m,
-  [32m'Change Password'[39m,
-  [32m'9+'[39m,
-  [32m'Logout'[39m,
-  [32m'Pending Approvals'[39m,
-  [32m'All Expenses'[39m,
-  [32m'Archived'[39m,
-  [32m'User Management'[39m,
-  [32m'Approval Rules'[39m,
-  [32m'Analytics'[39m,
-  [32m'AP2 Automation'[39m
-]
-]]>
-</system-out>
-</testcase>
-</testsuite>
-<testsuite name="auth.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="Mobile Safari" tests="7" failures="0" skipped="1" time="12.31" errors="0">
-<testcase name="Authentication Flow › should display login page" classname="auth.spec.js" time="0.53">
-</testcase>
-<testcase name="Authentication Flow › should login with valid credentials" classname="auth.spec.js" time="1.165">
-</testcase>
-<testcase name="Authentication Flow › should show error with invalid credentials" classname="auth.spec.js" time="0.849">
-</testcase>
-<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.js" time="4.55">
-</testcase>
-<testcase name="Authentication Flow › should handle token expiration" classname="auth.spec.js" time="0.369">
-<properties>
-<property name="skip" value="">
-</property>
-</properties>
-<skipped>
-</skipped>
-</testcase>
-<testcase name="Protected Routes › should redirect to login when accessing protected route without auth" classname="auth.spec.js" time="0.622">
-</testcase>
-<testcase name="Protected Routes › should allow access to protected routes when authenticated" classname="auth.spec.js" time="4.225">
-</testcase>
-</testsuite>
-<testsuite name="expense-submission.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="Mobile Safari" tests="11" failures="0" skipped="0" time="33.812" errors="0">
-<testcase name="Expense Submission Flow › should display expense submission form" classname="expense-submission.spec.js" time="1.438">
-</testcase>
-<testcase name="Expense Submission Flow › should submit expense successfully" classname="expense-submission.spec.js" time="7.159">
-</testcase>
-<testcase name="Expense Submission Flow › should validate required fields" classname="expense-submission.spec.js" time="7.218">
-</testcase>
-<testcase name="Expense Submission Flow › should validate amount field" classname="expense-submission.spec.js" time="7.231">
-</testcase>
-<testcase name="Expense Submission Flow › should upload receipt" classname="expense-submission.spec.js" time="1.478">
-</testcase>
-<testcase name="Expense List &amp; Status › should display expense list" classname="expense-submission.spec.js" time="1.236">
-</testcase>
-<testcase name="Expense List &amp; Status › should filter expenses by status" classname="expense-submission.spec.js" time="3.299">
-</testcase>
-<testcase name="Expense List &amp; Status › should view expense details" classname="expense-submission.spec.js" time="1.208">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should display pending expenses for approval" classname="expense-submission.spec.js" time="1.199">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should approve expense" classname="expense-submission.spec.js" time="1.186">
-</testcase>
-<testcase name="Expense Approval Flow (Admin/Manager) › should reject expense with reason" classname="expense-submission.spec.js" time="1.16">
-</testcase>
-</testsuite>
-<testsuite name="multi-user.spec.js" timestamp="2026-02-27T22:30:53.415Z" hostname="Mobile Safari" tests="1" failures="0" skipped="0" time="13.887" errors="0">
-<testcase name="Multi-User Workflow › employee submits expense that admin approves" classname="multi-user.spec.js" time="13.887">
-<system-out>
-<![CDATA[org context 5ec3f760-cb58-4155-9ccc-7ec65fbb55c1 5ec3f760-cb58-4155-9ccc-7ec65fbb55c1
-raw button names [
-  [32m'Organizations'[39m,
-  [32m'Billing'[39m,
-  [32m'Change Password'[39m,
-  [32m'9+'[39m,
-  [32m'Logout'[39m,
-  [32m'Pending Approvals'[39m,
-  [32m'All Expenses'[39m,
-  [32m'Archived'[39m,
-  [32m'User Management'[39m,
-  [32m'Approval Rules'[39m,
-  [32m'Analytics'[39m,
-  [32m'AP2 Automation'[39m
+  [32m'Organizations'[39m,    [32m'Billing'[39m,
+  [32m'Change Password'[39m,  [32m'9+'[39m,
+  [32m'Logout'[39m,           [32m'Pending Approvals\n6'[39m,
+  [32m'All Expenses\n15'[39m, [32m'Archived'[39m,
+  [32m'User Management'[39m,  [32m'Approval Rules'[39m,
+  [32m'Analytics'[39m,        [32m'AP2 Automation'[39m,
+  [32m'Date'[39m,             [32m'Amount'[39m,
+  [32m'Category'[39m,         [32m'User'[39m,
+  [32m'Status'[39m,           [32m'Vendor'[39m,
+  [32m'Approve via AP2'[39m,  [32m'Reject'[39m,
+  [32m'Approve via AP2'[39m,  [32m'Reject'[39m,
+  [32m'Approve via AP2'[39m,  [32m'Reject'[39m,
+  [32m'Approve via AP2'[39m,  [32m'Reject'[39m,
+  [32m'Approve via AP2'[39m,  [32m'Reject'[39m,
+  [32m'Approve via AP2'[39m,  [32m'Reject'[39m
 ]
 ]]>
 </system-out>
