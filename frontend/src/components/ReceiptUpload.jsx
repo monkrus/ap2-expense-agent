@@ -68,11 +68,11 @@ const ReceiptUpload = ({ expenseId, onSuccess, onCancel }) => {
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         throw new Error(data.detail || "Failed to upload receipt");
       }
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       onSuccess(data);
     } catch (err) {
       setError(err.message);

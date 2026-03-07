@@ -58,8 +58,14 @@ export const listOrganizations = async () => {
   const response = await apiFetch(`${API_BASE_URL}/api/v1/organizations`);
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to fetch organizations");
+    let errorMessage = "Failed to fetch organizations";
+    try {
+      const error = await response.json();
+      errorMessage = error.detail || errorMessage;
+    } catch {
+      // Server returned non-JSON response
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -74,7 +80,7 @@ export const getOrganization = async (orgId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch organization");
   }
 
@@ -129,7 +135,7 @@ export const createOrganization = async (data) => {
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
+    const errorData = await response.json().catch(() => ({}));
     // Use standardized error handler - ensures status and data properties
     throw createAPIError(response, errorData);
   }
@@ -150,7 +156,7 @@ export const updateOrganization = async (orgId, data) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to update organization");
   }
 
@@ -169,7 +175,7 @@ export const deleteOrganization = async (orgId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to delete organization");
   }
 
@@ -189,7 +195,7 @@ export const listMembers = async (orgId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch members");
   }
 
@@ -209,7 +215,7 @@ export const updateMemberRole = async (orgId, memberId, role) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to update member role");
   }
 
@@ -228,7 +234,7 @@ export const removeMember = async (orgId, memberId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to remove member");
   }
 
@@ -248,7 +254,7 @@ export const listInvitations = async (orgId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch invitations");
   }
 
@@ -268,7 +274,7 @@ export const createInvitation = async (orgId, email, role = "member") => {
   );
 
   if (!response.ok) {
-    const errorData = await response.json();
+    const errorData = await response.json().catch(() => ({}));
     // Use standardized error handler - ensures status and data properties
     throw createAPIError(response, errorData);
   }
@@ -288,7 +294,7 @@ export const revokeInvitation = async (orgId, invitationId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to revoke invitation");
   }
 
@@ -307,7 +313,7 @@ export const acceptInvitation = async (token) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to accept invitation");
   }
 

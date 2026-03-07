@@ -107,11 +107,11 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || "Upload failed");
       }
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       // Auto-create expenses immediately
       let successCount = 0;
@@ -212,11 +212,11 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || "Failed to create expense");
       }
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       // Mark as created
       const updated = [...extractedData];

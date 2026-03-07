@@ -28,7 +28,7 @@ export const trackUsage = async (usageType, quantity = 1, metadata = null) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to track usage");
   }
 
@@ -46,7 +46,7 @@ export const getMonthlyUsage = async (usageType = null) => {
   const response = await apiFetch(url);
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch usage statistics");
   }
 
@@ -63,7 +63,7 @@ export const checkUsageLimit = async (usageType) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to check usage limit");
   }
 
@@ -82,7 +82,7 @@ export const getSubscription = async () => {
   const response = await apiFetch(`${API_BASE_URL}/api/billing/org/subscription`);
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch subscription");
   }
 
@@ -101,7 +101,7 @@ export const getAllTiers = async () => {
   const response = await apiFetch(`${API_BASE_URL}/api/billing/org/tiers`);
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch tiers");
   }
 
@@ -116,7 +116,7 @@ export const getTierInfo = async (tier) => {
   const response = await apiFetch(`${API_BASE_URL}/api/billing/org/tiers/${tier}`);
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch tier info");
   }
 

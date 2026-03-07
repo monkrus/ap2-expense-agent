@@ -99,7 +99,7 @@ const UserManagementDashboard = () => {
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/organizations`);
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         setOrganizations(data.organizations || []);
       }
     } catch (err) {
@@ -338,7 +338,7 @@ const UserManagementDashboard = () => {
       );
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         throw new Error(error.detail || "Failed to delete user");
       }
 
@@ -458,7 +458,7 @@ const UserManagementDashboard = () => {
         throw new Error("Failed to fetch permissions");
       }
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       setUserPermissions(data.permissions || []);
     } catch (err) {
       showError("Failed to load user permissions");
@@ -580,6 +580,7 @@ const UserManagementDashboard = () => {
               >
                 <option value="all">All Roles</option>
                 <option value="ADMIN">Admin</option>
+                <option value="MANAGER">Manager</option>
                 <option value="EMPLOYEE">Employee</option>
               </select>
             </div>
@@ -853,6 +854,7 @@ const UserManagementDashboard = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
                     <option value="EMPLOYEE">Employee</option>
+                    <option value="MANAGER">Manager</option>
                     <option value="ADMIN">Admin</option>
                   </select>
                 </div>
@@ -985,6 +987,7 @@ const UserManagementDashboard = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
                     <option value="EMPLOYEE">Employee</option>
+                    <option value="MANAGER">Manager</option>
                     <option value="ADMIN">Admin</option>
                   </select>
                 </div>

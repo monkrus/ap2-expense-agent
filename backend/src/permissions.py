@@ -105,8 +105,8 @@ class Permission(str, Enum):
 # ROLE-TO-PERMISSION MAPPINGS
 # ============================================================================
 
-# Define user permissions
-_USER_PERMISSIONS = {
+# Define employee permissions
+_EMPLOYEE_PERMISSIONS = {
     # Expenses - Own only
     Permission.EXPENSE_SUBMIT,
     Permission.EXPENSE_VIEW_OWN,
@@ -130,9 +130,6 @@ _USER_PERMISSIONS = {
     Permission.AUDIT_VIEW_OWN,
 }
 
-# Define employee permissions (same as user)
-_EMPLOYEE_PERMISSIONS = _USER_PERMISSIONS.copy()
-
 # Define manager permissions (employee + department-level access + approval)
 _MANAGER_PERMISSIONS = {
     *_EMPLOYEE_PERMISSIONS,
@@ -149,29 +146,25 @@ _MANAGER_PERMISSIONS = {
     Permission.AUDIT_VIEW_DEPARTMENT,
 }
 
-# Define accountant permissions (employee + view all, no approval)
-_ACCOUNTANT_PERMISSIONS = {
-    *_EMPLOYEE_PERMISSIONS,
-    # Expenses - View all
-    Permission.EXPENSE_VIEW_ALL,
-    # Reports - View and export all
-    Permission.REPORT_VIEW_ALL,
-    Permission.REPORT_EXPORT,
-    # Audit - View all
-    Permission.AUDIT_VIEW_ALL,
-    # Users - View all
-    Permission.USER_VIEW_ALL,
-}
+# TEMPORARILY DISABLED — ACCOUNTANT role disconnected but code preserved
+# _ACCOUNTANT_PERMISSIONS = {
+#     *_EMPLOYEE_PERMISSIONS,
+#     # Expenses - View all
+#     Permission.EXPENSE_VIEW_ALL,
+#     # Reports - View and export all
+#     Permission.REPORT_VIEW_ALL,
+#     Permission.REPORT_EXPORT,
+#     # Audit - View all
+#     Permission.AUDIT_VIEW_ALL,
+#     # Users - View all
+#     Permission.USER_VIEW_ALL,
+# }
 
 ROLE_PERMISSIONS: dict[UserRole, Set[Permission]] = {
-    # ===== USER ROLE =====
-    UserRole.USER: _USER_PERMISSIONS,
     # ===== EMPLOYEE ROLE =====
     UserRole.EMPLOYEE: _EMPLOYEE_PERMISSIONS,
     # ===== MANAGER ROLE =====
     UserRole.MANAGER: _MANAGER_PERMISSIONS,
-    # ===== ACCOUNTANT ROLE =====
-    UserRole.ACCOUNTANT: _ACCOUNTANT_PERMISSIONS,
     # ===== ADMIN ROLE =====
     UserRole.ADMIN: {
         # All permissions (superuser)

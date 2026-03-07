@@ -124,7 +124,8 @@ export async function handleResponse(response) {
     throw createAPIError(response, errorData);
   }
 
-  return response.json();
+  // Safe JSON parse — returns {} if body is empty or not valid JSON
+  return response.json().catch(() => ({}));
 }
 
 /**

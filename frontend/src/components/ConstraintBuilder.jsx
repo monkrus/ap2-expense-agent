@@ -130,7 +130,7 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
         throw new Error(detail);
       }
 
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       onSuccess(result);
     } catch (err) {
       console.error(err);

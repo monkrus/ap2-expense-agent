@@ -401,7 +401,7 @@ async def google_callback(
             hashed_password=AuthService.hash_password(
                 secrets.token_urlsafe(24)
             ),  # Random password (24 chars for bcrypt)
-            role=UserRole.USER.value,
+            role=UserRole.EMPLOYEE.value,
             is_active=True,
             is_verified=True,  # Google accounts are pre-verified
         )
@@ -487,7 +487,7 @@ async def google_token_exchange(code: str, db: Session = Depends(get_db)):
             hashed_password=AuthService.hash_password(
                 secrets.token_urlsafe(24)
             ),  # Random password (24 chars for bcrypt)
-            role=UserRole.USER.value,
+            role=UserRole.EMPLOYEE.value,
             is_active=True,
             is_verified=True,
         )

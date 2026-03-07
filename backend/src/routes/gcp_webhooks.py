@@ -264,7 +264,7 @@ async def handle_procurement_simple(request: Request, db: Session = Depends(get_
                     email=user_email,
                     hashed_password=pwd_context.hash(temp_password),
                     full_name=user_email.split("@")[0].title(),
-                    role=UserRole.USER,
+                    role=UserRole.EMPLOYEE,
                     is_active=True,
                     created_at=datetime.utcnow(),
                 )

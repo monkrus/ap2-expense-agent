@@ -76,20 +76,21 @@ class TestBasicPermissionChecks:
         assert has_permission(UserRole.MANAGER, Permission.EXPENSE_SUBMIT) is True
         assert has_permission(UserRole.MANAGER, Permission.EXPENSE_EDIT_OWN) is True
 
-    def test_accountant_can_view_all(self):
-        """Accountant should be able to view all expenses"""
-        assert has_permission(UserRole.ACCOUNTANT, Permission.EXPENSE_VIEW_ALL) is True
-        assert has_permission(UserRole.ACCOUNTANT, Permission.REPORT_VIEW_ALL) is True
+    # TEMPORARILY DISABLED — ACCOUNTANT role disconnected
+    # def test_accountant_can_view_all(self):
+    #     """Accountant should be able to view all expenses"""
+    #     assert has_permission(UserRole.ACCOUNTANT, Permission.EXPENSE_VIEW_ALL) is True
+    #     assert has_permission(UserRole.ACCOUNTANT, Permission.REPORT_VIEW_ALL) is True
 
-    def test_accountant_cannot_approve(self):
-        """Accountant should NOT be able to approve expenses (read-only)"""
-        assert (
-            has_permission(UserRole.ACCOUNTANT, Permission.EXPENSE_APPROVE_DEPARTMENT)
-            is False
-        )
-        assert (
-            has_permission(UserRole.ACCOUNTANT, Permission.EXPENSE_APPROVE_ALL) is False
-        )
+    # def test_accountant_cannot_approve(self):
+    #     """Accountant should NOT be able to approve expenses (read-only)"""
+    #     assert (
+    #         has_permission(UserRole.ACCOUNTANT, Permission.EXPENSE_APPROVE_DEPARTMENT)
+    #         is False
+    #     )
+    #     assert (
+    #         has_permission(UserRole.ACCOUNTANT, Permission.EXPENSE_APPROVE_ALL) is False
+    #     )
 
     def test_admin_has_all_permissions(self):
         """Admin should have ALL permissions"""
@@ -256,14 +257,15 @@ class TestExpenseAccessControl:
         )
         assert result is True
 
-    def test_accountant_can_access_any_expense(self):
-        """Accountant should be able to access ANY expense (read-only)"""
-        result = check_expense_access(
-            user_role=UserRole.ACCOUNTANT,
-            user_id="accountant123",
-            expense_user_id="employee456",
-        )
-        assert result is True
+    # TEMPORARILY DISABLED — ACCOUNTANT role disconnected
+    # def test_accountant_can_access_any_expense(self):
+    #     """Accountant should be able to access ANY expense (read-only)"""
+    #     result = check_expense_access(
+    #         user_role=UserRole.ACCOUNTANT,
+    #         user_id="accountant123",
+    #         expense_user_id="employee456",
+    #     )
+    #     assert result is True
 
 
 class TestExpenseApprovalLogic:
@@ -400,8 +402,8 @@ class TestDepartmentFiltering:
 class TestRolePermissionMappings:
     """Test that role-permission mappings are correctly defined"""
 
-    def test_all_roles_have_mappings(self):
-        """All user roles should have permission mappings"""
+    def test_all_active_roles_have_mappings(self):
+        """All active user roles should have permission mappings"""
         for role in UserRole:
             assert role in ROLE_PERMISSIONS
 
@@ -422,14 +424,15 @@ class TestRolePermissionMappings:
         for perm in employee_perms:
             assert perm in manager_perms
 
-    def test_accountant_includes_employee_perms(self):
-        """Accountant permissions should include all employee permissions"""
-        employee_perms = ROLE_PERMISSIONS[UserRole.EMPLOYEE]
-        accountant_perms = ROLE_PERMISSIONS[UserRole.ACCOUNTANT]
-
-        # All employee permissions should be in accountant permissions
-        for perm in employee_perms:
-            assert perm in accountant_perms
+    # TEMPORARILY DISABLED — ACCOUNTANT role disconnected
+    # def test_accountant_includes_employee_perms(self):
+    #     """Accountant permissions should include all employee permissions"""
+    #     employee_perms = ROLE_PERMISSIONS[UserRole.EMPLOYEE]
+    #     accountant_perms = ROLE_PERMISSIONS[UserRole.ACCOUNTANT]
+    #
+    #     # All employee permissions should be in accountant permissions
+    #     for perm in employee_perms:
+    #         assert perm in accountant_perms
 
     def test_admin_has_all_permissions(self):
         """Admin should have every single permission"""

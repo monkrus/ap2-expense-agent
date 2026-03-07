@@ -57,7 +57,7 @@ def _make_user(db, org_id):
         username=f"ap2int_{uuid.uuid4().hex[:6]}",
         full_name="AP2 Integration User",
         hashed_password="hashed",
-        role=UserRole.USER,
+        role=UserRole.EMPLOYEE,
         is_active=True,
         is_verified=True,
     )

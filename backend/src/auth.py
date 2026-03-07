@@ -40,7 +40,7 @@ http_bearer = HTTPBearer()
 # USER: 2 sessions (e.g., desktop + mobile)
 # ADMIN: unlimited sessions
 ROLE_SESSION_LIMITS = {
-    UserRole.USER: 2,
+    UserRole.EMPLOYEE: 2,
     UserRole.ADMIN: None,  # None = unlimited
 }
 

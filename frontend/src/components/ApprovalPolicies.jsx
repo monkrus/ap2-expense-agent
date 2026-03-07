@@ -102,7 +102,7 @@ const ApprovalPolicies = () => {
 
       if (!response.ok) throw new Error("Failed to load rules");
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       setPolicies(data);
     } catch (err) {
       showError(err.message);
@@ -276,7 +276,7 @@ const ApprovalPolicies = () => {
         throw new Error(errorMsg);
       }
 
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       setTestResult(result);
     } catch (err) {
       showError(err.message);

@@ -50,7 +50,7 @@ const ChangePassword = ({ onClose, onSuccess }) => {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         throw new Error(data.detail || "Failed to change password");

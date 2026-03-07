@@ -15,7 +15,7 @@ response = requests.post(
         "username": "firstadmin",
         "full_name": "First Admin",
         "password": "AdminPass123!",
-        "role": "user"  # Request USER role
+        "role": "employee"  # Request USER role
     }
 )
 

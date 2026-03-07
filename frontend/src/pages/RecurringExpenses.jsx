@@ -46,7 +46,7 @@ const RecurringExpenses = () => {
 
       if (!response.ok) throw new Error("Failed to fetch recurring expenses");
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       setTemplates(data);
     } catch (err) {
       showError("Failed to load recurring expenses");

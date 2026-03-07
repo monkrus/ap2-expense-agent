@@ -109,7 +109,7 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
         throw new Error(errorData.detail || "Failed to complete AP2 flow");
       }
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       success(
         `AP2 flow completed! Total: $${calculateTotal().toFixed(2)}`,
       );

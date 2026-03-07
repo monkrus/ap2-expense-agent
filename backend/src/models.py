@@ -71,10 +71,9 @@ class StringEnum(TypeDecorator):
 
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
-    USER = "user"
     EMPLOYEE = "employee"
     MANAGER = "manager"
-    ACCOUNTANT = "accountant"
+    # ACCOUNTANT = "accountant"  # TEMPORARILY DISABLED — kept in DB ENUM
 
 
 class OrganizationRole(str, enum.Enum):
@@ -229,7 +228,7 @@ class User(Base):
     full_name = Column(String)
     role = Column(
         StringEnum(UserRole),
-        default=UserRole.USER.value,
+        default=UserRole.EMPLOYEE.value,
         nullable=False,
     )  # Works with both PostgreSQL and SQLite
     department_id = Column(

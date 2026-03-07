@@ -38,7 +38,7 @@ def test_db():
         username="ap2testuser",
         hashed_password="hashed",
         full_name="AP2 Test User",
-        role=UserRole.USER.name.lower(),
+        role=UserRole.EMPLOYEE.name.lower(),
         is_active=True,
         is_verified=True,
     )

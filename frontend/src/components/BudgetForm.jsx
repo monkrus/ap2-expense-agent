@@ -32,7 +32,7 @@ const BudgetForm = ({ budget, onSuccess, onCancel }) => {
         });
 
         if (response.ok) {
-          const data = await response.json();
+          const data = await response.json().catch(() => ({}));
           setUsers(data);
         }
       } catch (err) {
@@ -117,11 +117,11 @@ const BudgetForm = ({ budget, onSuccess, onCancel }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || "Failed to save budget");
       }
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       showSuccess(
         isEditing

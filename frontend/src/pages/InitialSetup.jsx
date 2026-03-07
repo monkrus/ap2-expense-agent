@@ -60,10 +60,15 @@ const InitialSetup = ({ onComplete }) => {
         }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        setError(data.detail || "Registration failed. Please try again.");
+        let errorMessage = "Registration failed. Please try again.";
+        try {
+          const data = await res.json();
+          errorMessage = data.detail || errorMessage;
+        } catch {
+          if (res.status >= 500) errorMessage = "Server error. Please try again later.";
+        }
+        setError(errorMessage);
         return;
       }
 

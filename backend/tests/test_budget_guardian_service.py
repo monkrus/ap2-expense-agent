@@ -54,7 +54,7 @@ def user(db_session, org):
         username="guardian_tester",
         full_name="Guardian Tester",
         hashed_password=AuthService.hash_password("TestPass123!"),
-        role=UserRole.USER,
+        role=UserRole.EMPLOYEE,
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,

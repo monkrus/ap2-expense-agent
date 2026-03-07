@@ -50,7 +50,7 @@ export const uploadReceipt = async (file, expenseId = null) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to upload receipt");
   }
 
@@ -68,7 +68,7 @@ export const getReceipt = async (receiptId) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch receipt");
   }
 
@@ -87,7 +87,7 @@ export const deleteReceipt = async (receiptId) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to delete receipt");
   }
 
@@ -109,7 +109,7 @@ export const triggerOCR = async (receiptId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to process receipt with OCR");
   }
 

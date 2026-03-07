@@ -30,7 +30,10 @@ const AppContent = () => {
   // --- First-run detection ---
   useEffect(() => {
     fetch("/api/v1/auth/setup-status")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Setup status check failed: ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         const isNew = data.needs_setup === true;
         setNeedsSetup(isNew);

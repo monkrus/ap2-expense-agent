@@ -29,7 +29,7 @@ export const getDashboardStats = async () => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch dashboard stats");
   }
 
@@ -45,7 +45,7 @@ export const getDatabaseStats = async () => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch database stats");
   }
 
@@ -65,7 +65,7 @@ export const getUsageAnalytics = async (days = 30) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch usage analytics");
   }
 
@@ -81,7 +81,7 @@ export const getSystemHealth = async () => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch system health");
   }
 
@@ -120,7 +120,7 @@ export const listUsers = async (
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch users");
   }
 
@@ -137,7 +137,7 @@ export const getUserDetails = async (userId) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch user details");
   }
 
@@ -162,7 +162,7 @@ export const createUser = async (userData) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to create user");
   }
 
@@ -185,7 +185,7 @@ export const updateUserRole = async (userId, role) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to update user role");
   }
 
@@ -208,7 +208,7 @@ export const suspendUser = async (userId, reason) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to suspend user");
   }
 
@@ -229,7 +229,7 @@ export const activateUser = async (userId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to activate user");
   }
 
@@ -250,7 +250,7 @@ export const unlockUser = async (userId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to unlock user");
   }
 
@@ -268,7 +268,7 @@ export const deleteUser = async (userId) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to delete user");
   }
 
@@ -291,7 +291,7 @@ export const updateUserProfile = async (userId, profileData) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to update user profile");
   }
 
@@ -314,7 +314,7 @@ export const updateUserDepartment = async (userId, departmentId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to update user department");
   }
 
@@ -337,7 +337,7 @@ export const updateUserEmail = async (userId, email) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to update user email");
   }
 
@@ -357,7 +357,7 @@ export const getUserPermissions = async (userId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch user permissions");
   }
 
@@ -373,7 +373,7 @@ export const getAllPermissions = async () => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch permissions");
   }
 
@@ -398,7 +398,7 @@ export const getAllExpenses = async (status = null) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch expenses");
   }
 
@@ -417,7 +417,7 @@ export const getArchivedExpenses = async () => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to fetch archived expenses");
   }
 
@@ -438,7 +438,7 @@ export const archiveExpense = async (expenseId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to archive expense");
   }
 
@@ -459,7 +459,7 @@ export const unarchiveExpense = async (expenseId) => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to unarchive expense");
   }
 
@@ -479,7 +479,7 @@ export const archiveAllExpenses = async () => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to archive all expenses");
   }
 
@@ -499,7 +499,7 @@ export const unarchiveAllExpenses = async () => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to unarchive all expenses");
   }
 
@@ -519,7 +519,7 @@ export const clearPendingExpenses = async () => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to clear pending expenses");
   }
 
@@ -540,7 +540,7 @@ export const runMaintenance = async () => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to run maintenance");
   }
 
@@ -560,7 +560,7 @@ export const cleanupAuditLogs = async () => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to cleanup audit logs");
   }
 
@@ -580,7 +580,7 @@ export const cleanupSessions = async () => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to cleanup sessions");
   }
 
@@ -600,7 +600,7 @@ export const cleanupTokens = async () => {
   );
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || "Failed to cleanup tokens");
   }
 

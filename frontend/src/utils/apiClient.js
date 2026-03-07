@@ -5,8 +5,9 @@
  * expired tokens when receiving 401 errors.
  *
  * Usage:
- * import { apiFetch } from '../utils/apiClient';
+ * import { apiFetch, safeJson } from '../utils/apiClient';
  * const response = await apiFetch('/api/endpoint', { method: 'POST', body: ... });
+ * const data = await safeJson(response);  // never throws on empty/invalid JSON
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
@@ -52,7 +53,7 @@ const refreshAccessToken = async () => {
     throw new Error("Session expired. Please login again.");
   }
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
   localStorage.setItem("access_token", data.access_token);
 
   return data.access_token;
@@ -117,6 +118,24 @@ export const apiFetch = async (url, options = {}) => {
   }
 
   return response;
+};
+
+/**
+ * Safely parse JSON from a Response. Returns fallback (default {}) if the
+ * body is empty, not valid JSON, or already consumed.
+ *
+ * @param {Response} response - Fetch Response object
+ * @param {any} fallback - Value to return on parse failure (default: {})
+ * @returns {Promise<any>} Parsed JSON or fallback
+ */
+export const safeJson = async (response, fallback = {}) => {
+  try {
+    const text = await response.text();
+    if (!text) return fallback;
+    return JSON.parse(text);
+  } catch {
+    return fallback;
+  }
 };
 
 export default apiFetch;

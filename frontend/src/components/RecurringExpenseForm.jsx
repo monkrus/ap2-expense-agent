@@ -48,7 +48,7 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         setMandates(data.mandates || []);
       }
     } catch (err) {
@@ -145,7 +145,7 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || "Failed to save recurring expense");
       }
 

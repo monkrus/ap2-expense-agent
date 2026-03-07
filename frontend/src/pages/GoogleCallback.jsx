@@ -40,7 +40,7 @@ const GoogleCallback = () => {
           });
 
           if (response.ok) {
-            const userData = await response.json();
+            const userData = await response.json().catch(() => ({}));
             console.log("User authenticated:", userData);
             setStatus("success");
 

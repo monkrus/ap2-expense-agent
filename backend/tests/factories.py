@@ -31,7 +31,7 @@ def create_user(
     db_session,
     email: Optional[str] = None,
     username: Optional[str] = None,
-    role: UserRole = UserRole.USER,
+    role: UserRole = UserRole.EMPLOYEE,
     password: str = "TestPass123!",
     is_active: bool = True,
     is_verified: bool = True,
@@ -79,7 +79,7 @@ def create_user(
 
 def create_employee(db_session, **kwargs) -> User:
     """Create an EMPLOYEE role user"""
-    return create_user(db_session, role=UserRole.USER, **kwargs)
+    return create_user(db_session, role=UserRole.EMPLOYEE, **kwargs)
 
 
 def create_manager(db_session, department_id: str = "sales", **kwargs) -> User:
@@ -87,9 +87,10 @@ def create_manager(db_session, department_id: str = "sales", **kwargs) -> User:
     return create_user(db_session, role=UserRole.MANAGER, department_id=department_id, **kwargs)
 
 
-def create_accountant(db_session, **kwargs) -> User:
-    """Create an ACCOUNTANT role user (read-only)"""
-    return create_user(db_session, role=UserRole.ACCOUNTANT, **kwargs)
+# TEMPORARILY DISABLED — ACCOUNTANT role disconnected
+# def create_accountant(db_session, **kwargs) -> User:
+#     """Create an ACCOUNTANT role user (read-only)"""
+#     return create_user(db_session, role=UserRole.ACCOUNTANT, **kwargs)
 
 
 def create_admin(db_session, **kwargs) -> User:
@@ -195,7 +196,7 @@ def create_organization_with_owner(
         Tuple of (Organization, Owner User)
     """
     if owner is None:
-        owner = create_user(db_session, role=UserRole.USER)
+        owner = create_user(db_session, role=UserRole.EMPLOYEE)
 
     org = create_organization(db_session, name=org_name, **kwargs)
     add_user_to_organization(db_session, owner, org, OrganizationRole.OWNER)

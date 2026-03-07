@@ -192,7 +192,7 @@ export interface CreateUserRequest {
   username: string;
   full_name?: string;
   password: string;
-  role: 'employee' | 'admin' | 'manager' | 'accountant';
+  role: 'employee' | 'admin' | 'manager';
   department_id?: string;
 }
 

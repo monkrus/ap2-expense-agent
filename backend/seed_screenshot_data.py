@@ -98,7 +98,7 @@ def create_demo_data(db: Session):
             "username": "john.user",
             "email": "john.user@acme.com",
             "full_name": "John User",
-            "role": UserRole.USER,
+            "role": UserRole.EMPLOYEE,
             "org_role": "member",
         },
     ]

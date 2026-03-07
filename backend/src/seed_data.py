@@ -34,6 +34,13 @@ DEFAULT_USERS = [
         "role": UserRole.EMPLOYEE,
         "password": "Testme1!",
     },
+    {
+        "username": "managertest",
+        "email": "managertest@example.com",
+        "full_name": "Manager Test",
+        "role": UserRole.MANAGER,
+        "password": "Testme1!",
+    },
 ]
 
 
@@ -142,7 +149,12 @@ def _seed_default_org(db: Session, users: list) -> None:
             OrganizationMember.user_id == user.id,
         ).first()
         if not existing_member:
-            role = OrganizationRole.OWNER if user.username in ("adminfree", "admintest") else OrganizationRole.MEMBER
+            if user.username in ("adminfree", "admintest"):
+                role = OrganizationRole.OWNER
+            elif user.username == "managertest":
+                role = OrganizationRole.ADMIN
+            else:
+                role = OrganizationRole.MEMBER
             member = OrganizationMember(
                 id=str(uuid.uuid4()),
                 organization_id=org.id,
@@ -151,6 +163,10 @@ def _seed_default_org(db: Session, users: list) -> None:
                 is_active=True,
             )
             db.add(member)
+
+        # Set department for manager seed user
+        if user.username == "managertest" and not user.department_id:
+            user.department_id = "engineering"
 
 
 def ensure_default_users_exist(db: Session) -> None:

@@ -45,7 +45,7 @@ const BudgetManagement = () => {
         throw new Error("Failed to load budgets");
       }
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       setBudgets(data);
     } catch (err) {
       showError(err.message || "Failed to load budgets");
@@ -82,7 +82,7 @@ const BudgetManagement = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || "Failed to delete budget");
       }
 

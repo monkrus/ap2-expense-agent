@@ -173,13 +173,23 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        // Handle both error formats: standard HTTPException (error.detail) and custom API errors (error.error.message)
-        const errorMessage = error.detail || error.error?.message || "Registration failed";
+        let errorMessage = "Registration failed";
+        try {
+          const error = await response.json();
+          errorMessage = error.detail || error.error?.message || errorMessage;
+        } catch {
+          // Server returned non-JSON error (empty body, HTML, etc.)
+          if (response.status >= 500) errorMessage = "Server error. Please try again later.";
+        }
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error("Server returned an invalid response. Please try again.");
+      }
       return { success: true, user: data };
     } catch (error) {
       return { success: false, error: error.message };
@@ -225,7 +235,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error("Token refresh failed");
       }
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       setAccessToken(data.access_token);
       localStorage.setItem("access_token", data.access_token);
 

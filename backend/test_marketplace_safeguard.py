@@ -17,7 +17,7 @@ response1 = requests.post(
         "username": "buyer1",
         "full_name": "Marketplace Buyer",
         "password": "BuyerPass123!",
-        "role": "user"  # Request USER role (should be overridden to ADMIN)
+        "role": "employee"  # Request EMPLOYEE role (should be overridden to ADMIN)
     }
 )
 
@@ -36,7 +36,7 @@ else:
     print(f"FAIL - Registration failed: {response1.text}")
 
 # Test 2: Register second user (should get requested role)
-print("\n[TEST 2] Registering second user with role='user'...")
+print("\n[TEST 2] Registering second user with role='employee'...")
 response2 = requests.post(
     "http://localhost:8000/api/v1/auth/register",
     json={
@@ -44,7 +44,7 @@ response2 = requests.post(
         "username": "employee1",
         "full_name": "First Employee",
         "password": "EmpPass123!",
-        "role": "user"
+        "role": "employee"
     }
 )
 
@@ -55,10 +55,10 @@ if response2.status_code == 201:
     print(f"Email: {user2['email']}")
     print(f"Role: {user2['role']}")
 
-    if user2['role'] == 'user':
-        print("PASS - Second user got requested USER role")
+    if user2['role'] == 'employee':
+        print("PASS - Second user got requested EMPLOYEE role")
     else:
-        print(f"FAIL - Expected 'user', got '{user2['role']}'")
+        print(f"FAIL - Expected 'employee', got '{user2['role']}'")
 else:
     print(f"FAIL - Registration failed: {response2.text}")
 

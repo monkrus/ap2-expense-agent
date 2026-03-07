@@ -88,11 +88,18 @@ def ensure_expense_access(expense_id: str, user: User, org_id: str, db: Session)
     if user_org_role in ["owner", "admin"]:
         return expense
 
-    # Managers can see all team expenses in their organization
+    # Managers can see department expenses
     if user_org_role == "manager":
-        return expense
+        if current_user.department_id:
+            expense_owner = db.query(User).filter(User.id == expense.user_id).first()
+            if expense_owner and expense_owner.department_id == current_user.department_id:
+                return expense
+            # Fall through to own-expense check below
+        else:
+            # No department set — fall through to own-expense check
+            pass
 
-    # Employees can only see their own expenses
+    # Employees (and managers outside their dept) can only see their own expenses
     if expense.user_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -653,8 +660,17 @@ async def list_expenses(
     # Members see only their own expenses
     if user_org_role in ["member", None]:
         query = query.filter(Expense.user_id == current_user.id)
-
-    # All other org roles (manager, admin, owner) see all expenses
+    elif user_org_role == "manager":
+        # Managers see their own + department expenses
+        if current_user.department_id:
+            dept_user_ids = [u.id for u in db.query(User.id).filter(
+                User.department_id == current_user.department_id
+            ).all()]
+            query = query.filter(Expense.user_id.in_(dept_user_ids))
+        else:
+            # No department set — see only own expenses
+            query = query.filter(Expense.user_id == current_user.id)
+    # owner/admin see all (no filter)
 
     expenses = query.all()
 
@@ -865,8 +881,7 @@ async def export_expenses(
 
     can_export = (
         user_org_role in ["owner", "admin"] or
-        current_user.role == UserRole.ADMIN or
-        current_user.role == UserRole.ACCOUNTANT
+        current_user.role == UserRole.ADMIN
     )
 
     if not can_export:
@@ -1039,6 +1054,20 @@ async def bulk_approve_expenses(
             any_failure = True
             continue
 
+        # Enforce manager approval limit
+        if current_user.role == UserRole.MANAGER and expense.amount > 5000.00:
+            results.append({"id": expense_id, "status": "error", "detail": "Expenses over $5000 require admin approval"})
+            any_failure = True
+            continue
+
+        # Department check for managers
+        if user_org_role == "manager" and current_user.department_id:
+            expense_owner = db.query(User).filter(User.id == expense.user_id).first()
+            if expense_owner and expense_owner.department_id != current_user.department_id:
+                results.append({"id": expense_id, "status": "error", "detail": "Cannot approve expenses outside your department"})
+                any_failure = True
+                continue
+
         expense.status = ExpenseStatus.APPROVED
         expense.approved_by = current_user.id
         expense.approved_at = datetime.utcnow()
@@ -1198,16 +1227,6 @@ async def delete_expense(
     logger.info(f"WITHDRAW EXPENSE - User: {current_user.username}, Role: {current_user.role}, RoleType: {type(current_user.role)}")
     logger.info(f"WITHDRAW EXPENSE - Checking if role == UserRole.ADMIN: {current_user.role == UserRole.ADMIN}")
 
-    # CRITICAL: Accountants cannot withdraw expenses (audit trail protection)
-    # Check both enum and string value to handle all cases
-    user_role_value = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role)
-    if current_user.role == UserRole.ADMIN:
-        logger.info("WITHDRAW EXPENSE - BLOCKING ACCOUNTANT WITHDRAW")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Accountants cannot withdraw expenses to maintain audit trail integrity"
-        )
-
     # Check withdraw permission
     if not can_modify_expense(expense, current_user, org_id, db):
         raise HTTPException(
@@ -1288,7 +1307,7 @@ async def approve_expense(
     elif user_org_role == "manager":
         effective_role = UserRole.MANAGER
     else:
-        effective_role = current_user.role if current_user.role else UserRole.USER
+        effective_role = current_user.role if current_user.role else UserRole.EMPLOYEE
 
     can_approve = can_approve_expense(
         user_role=effective_role,

@@ -92,7 +92,7 @@ else:
         email="sergeisqa@gmail.com",
         hashed_password=AuthService.hash_password(password),
         full_name="User One",
-        role=UserRole.USER,
+        role=UserRole.EMPLOYEE,
         is_active=True,
         is_verified=True
     )

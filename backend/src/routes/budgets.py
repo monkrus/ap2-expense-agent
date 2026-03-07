@@ -219,7 +219,7 @@ def create_budget(
         )
 
     # Only admins and managers can create budgets
-    if current_user.role != UserRole.ADMIN:
+    if current_user.role not in (UserRole.ADMIN, UserRole.MANAGER):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admins and managers can create budgets",
@@ -547,7 +547,7 @@ def update_budget(
     """Update a budget"""
 
     # Only admins and managers can update budgets
-    if current_user.role != UserRole.ADMIN:
+    if current_user.role not in (UserRole.ADMIN, UserRole.MANAGER):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admins and managers can update budgets",

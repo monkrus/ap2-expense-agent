@@ -19,7 +19,7 @@ class TestRegistration:
                 "username": "newuser",
                 "password": "SecurePass123!",
                 "full_name": "New User",
-                "role": "user",
+                "role": "employee",
             },
         )
         assert response.status_code == 201
@@ -37,7 +37,7 @@ class TestRegistration:
                 "username": "different",
                 "password": "SecurePass123!",
                 "full_name": "Different User",
-                "role": "user",
+                "role": "employee",
             },
         )
         assert response.status_code == 400
@@ -52,7 +52,7 @@ class TestRegistration:
                 "username": "weakuser",
                 "password": "weak",
                 "full_name": "Weak User",
-                "role": "user",
+                "role": "employee",
             },
         )
         assert response.status_code == 422  # Pydantic validation error
@@ -392,7 +392,7 @@ class TestFirstUserIsAdmin:
                 "username": "founder",
                 "password": "Founder123!",
                 "full_name": "Founder",
-                "role": "user",  # explicitly request non-admin
+                "role": "employee",  # explicitly request non-admin
             },
         )
         assert response.status_code == 201

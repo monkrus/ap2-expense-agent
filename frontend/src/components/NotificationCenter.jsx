@@ -55,7 +55,7 @@ const NotificationCenter = () => {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         setNotifications(data.notifications || []);
       }
     } catch (err) {
@@ -76,7 +76,7 @@ const NotificationCenter = () => {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         setUnreadCount(data.unread_count || 0);
       }
     } catch (err) {

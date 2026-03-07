@@ -47,7 +47,7 @@ def member_user(db_session, admin_org_setup):
         username="memberuser",
         full_name="Member User",
         hashed_password=AuthService.hash_password("MemberPass123!"),
-        role=UserRole.USER,
+        role=UserRole.EMPLOYEE,
         is_active=True,
         is_verified=True,
         failed_login_attempts=0,
