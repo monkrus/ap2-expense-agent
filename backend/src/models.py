@@ -79,7 +79,8 @@ class UserRole(str, enum.Enum):
 class OrganizationRole(str, enum.Enum):
     OWNER = "owner"  # Organization owner (highest level)
     ADMIN = "admin"  # Organization admin
-    MEMBER = "member"  # Regular member
+    MANAGER = "manager"  # Organization manager
+    EMPLOYEE = "employee"  # Regular employee
 
 
 # ============================================================================
@@ -157,7 +158,7 @@ class OrganizationMember(Base):
     role = Column(
         StringEnum(OrganizationRole),
         nullable=False,
-        default=OrganizationRole.MEMBER.value,
+        default=OrganizationRole.EMPLOYEE.value,
     )
 
     # Status
@@ -194,7 +195,7 @@ class OrganizationInvitation(Base):
     role = Column(
         StringEnum(OrganizationRole),
         nullable=False,
-        default=OrganizationRole.MEMBER.value,
+        default=OrganizationRole.EMPLOYEE.value,
     )
 
     # Invitation details

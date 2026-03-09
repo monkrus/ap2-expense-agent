@@ -305,7 +305,10 @@ class LimitEnforcer:
 
         current_members = (
             self.db.query(func.count(OrganizationMember.id))
-            .filter(OrganizationMember.organization_id == org_id)
+            .filter(
+                OrganizationMember.organization_id == org_id,
+                OrganizationMember.is_active == True,
+            )
             .scalar()
             or 0
         )
@@ -317,12 +320,17 @@ class LimitEnforcer:
         if current_members >= max_users:
             message = f"User limit reached ({current_members}/{max_users})"
 
-            if limits.tier_name.lower() == "free" and raise_error:
+            if raise_error:
+                upgrade_msg = (
+                    "Upgrade to Starter to add more team members."
+                    if limits.tier_name.lower() == "free"
+                    else f"Your {limits.tier_name} plan allows up to {max_users} members. Upgrade for more."
+                )
                 raise LimitExceededError(
                     feature="Users",
                     limit=max_users,
                     current=current_members,
-                    upgrade_message="Upgrade to Starter to add more team members.",
+                    upgrade_message=upgrade_msg,
                 )
 
             return False, message

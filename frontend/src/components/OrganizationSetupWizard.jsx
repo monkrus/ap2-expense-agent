@@ -47,7 +47,7 @@ const OrganizationSetupWizard = ({ onComplete }) => {
 
   const [inviteData, setInviteData] = useState({
     emails: "",
-    role: "member",
+    role: "employee",
   });
 
   const [csvFile, setCsvFile] = useState(null);
@@ -144,32 +144,46 @@ const OrganizationSetupWizard = ({ onComplete }) => {
     try {
       setLoading(true);
 
-      // Combine CSV emails and manually entered emails (deduped)
-      const manualEmails = inviteData.emails.trim()
+      // Build invite list: CSV entries have per-email roles, manual entries use dropdown role
+      const csvEntries = parsedEmails.map((entry) => ({
+        email: entry.email,
+        role: entry.role || inviteData.role,
+      }));
+
+      const manualEntries = inviteData.emails.trim()
         ? inviteData.emails
             .split(/[,\n]/)
             .map((e) => e.trim())
             .filter((e) => e.length > 0)
+            .map((email) => ({ email, role: inviteData.role }))
         : [];
-      const emailList = [...new Set([...parsedEmails, ...manualEmails])].slice(0, 50);
 
-      if (emailList.length === 0) {
+      // Dedupe by email — CSV entries take priority (they have explicit roles)
+      const seen = new Set();
+      const inviteList = [...csvEntries, ...manualEntries]
+        .filter((entry) => {
+          if (seen.has(entry.email)) return false;
+          seen.add(entry.email);
+          return true;
+        })
+        .slice(0, 50);
+
+      if (inviteList.length === 0) {
         // Skip if no emails
         handleNextStep();
         return;
       }
 
-      // Bulk invite
-      const results = await organizationAPI.bulkInviteMembers(
+      // Bulk invite with per-email roles
+      const results = await organizationAPI.bulkInviteMembersWithRoles(
         organization.id,
-        emailList,
-        inviteData.role,
+        inviteList,
       );
 
       setTotalInvited(results.successful.length);
-      success(`Invited ${results.successful.length} team members!`);
+      success(`Invited ${results.successful.length} team employees!`);
       if (results.failed.length > 0) {
-        showError(`Failed to invite ${results.failed.length} members`);
+        showError(`Failed to invite ${results.failed.length} employees`);
       }
 
       handleNextStep();
@@ -186,6 +200,8 @@ const OrganizationSetupWizard = ({ onComplete }) => {
 
     setCsvFile(file);
 
+    const validRoles = ["employee", "employee", "manager", "admin"];
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target.result;
@@ -194,16 +210,21 @@ const OrganizationSetupWizard = ({ onComplete }) => {
       // Skip header if present
       const startIndex = lines[0].toLowerCase().includes("email") ? 1 : 0;
 
-      const emails = lines
+      const entries = lines
         .slice(startIndex)
         .map((line) => {
-          const parts = line.split(",");
-          return parts[0].trim();
+          const parts = line.split(",").map((p) => p.trim());
+          const email = parts[0];
+          let role = (parts[1] || "").toLowerCase();
+          // Normalize "employee" to org role "employee"
+          if (role === "employee") role = "employee";
+          if (!validRoles.includes(role)) role = "";
+          return { email, role };
         })
-        .filter((email) => email.includes("@"));
+        .filter((entry) => entry.email.includes("@"));
 
-      setParsedEmails(emails);
-      success(`Parsed ${emails.length} emails from CSV`);
+      setParsedEmails(entries);
+      success(`Parsed ${entries.length} emails from CSV`);
     };
 
     reader.readAsText(file);
@@ -251,7 +272,7 @@ const OrganizationSetupWizard = ({ onComplete }) => {
           </div>
           <h3 className="font-semibold mb-2">Invite Your Team</h3>
           <p className="text-sm text-gray-600">
-            Add team members via CSV or email
+            Add team employees via CSV or email
           </p>
         </div>
 
@@ -459,7 +480,7 @@ const OrganizationSetupWizard = ({ onComplete }) => {
         </div>
         <h2 className="text-2xl font-bold mb-2">Invite Your Team</h2>
         <p className="text-gray-600">
-          Add team members via CSV upload or manual entry
+          Add team employees via CSV upload or manual entry
         </p>
       </div>
 
@@ -496,7 +517,7 @@ const OrganizationSetupWizard = ({ onComplete }) => {
           {csvFile && (
             <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-sm text-green-700">
-                ✓ Loaded {csvFile.name} - {parsedEmails.length} emails found
+                ✓ Loaded {csvFile.name} — {parsedEmails.length} emails found (roles parsed per row)
               </p>
             </div>
           )}
@@ -529,7 +550,7 @@ const OrganizationSetupWizard = ({ onComplete }) => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Default Role
+            Default Role (for manual entries)
           </label>
           <select
             value={inviteData.role}
@@ -538,12 +559,12 @@ const OrganizationSetupWizard = ({ onComplete }) => {
             }
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           >
-            <option value="member">Member</option>
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
+            <option value="employee">Employee — Can submit expenses</option>
+            <option value="manager">Manager — Can approve department expenses</option>
+            <option value="admin">Admin — Full access</option>
           </select>
           <p className="text-xs text-gray-500 mt-1">
-            All invited users will be assigned this role
+            CSV entries use their own role column; this applies to manually entered emails
           </p>
         </div>
 
@@ -555,7 +576,7 @@ const OrganizationSetupWizard = ({ onComplete }) => {
                 Invitation Emails Will Be Sent
               </p>
               <p className="text-xs text-blue-700">
-                Each team member will receive an email invitation to join{" "}
+                Each team employee will receive an email invitation to join{" "}
                 {organization?.name || "your organization"}
               </p>
             </div>
@@ -564,7 +585,7 @@ const OrganizationSetupWizard = ({ onComplete }) => {
 
         <div className="text-center text-sm text-gray-500">
           <p>
-            You can skip this step and invite team members later from the
+            You can skip this step and invite team employees later from the
             settings page
           </p>
         </div>
@@ -613,8 +634,8 @@ const OrganizationSetupWizard = ({ onComplete }) => {
                 <p className="font-medium">Team Invited</p>
                 <p className="text-sm text-gray-600">
                   {totalInvited > 0
-                    ? `${totalInvited} members invited`
-                    : "You can invite team members anytime"}
+                    ? `${totalInvited} employees invited`
+                    : "You can invite team employees anytime"}
                 </p>
               </div>
             </div>
@@ -697,7 +718,7 @@ const OrganizationSetupWizard = ({ onComplete }) => {
           <p className="text-3xl font-bold text-green-600 mb-2">
             {totalInvited || "0"}
           </p>
-          <p className="text-sm text-gray-600">Team Members Invited</p>
+          <p className="text-sm text-gray-600">Team Employees Invited</p>
         </div>
 
         <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg">

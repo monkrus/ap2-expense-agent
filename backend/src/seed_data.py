@@ -154,7 +154,7 @@ def _seed_default_org(db: Session, users: list) -> None:
             elif user.username == "managertest":
                 role = OrganizationRole.ADMIN
             else:
-                role = OrganizationRole.MEMBER
+                role = OrganizationRole.EMPLOYEE
             member = OrganizationMember(
                 id=str(uuid.uuid4()),
                 organization_id=org.id,

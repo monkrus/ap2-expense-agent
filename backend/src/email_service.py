@@ -23,6 +23,11 @@ logger = logging.getLogger(__name__)
 try:
     import aiosmtplib
 except Exception:  # pragma: no cover - fallback for environments without aiosmtplib
+    logger.error(
+        "aiosmtplib is not installed! Email sending will fail. "
+        "Install it with: pip install aiosmtplib>=3.0.0"
+    )
+
     class _AioSMTPStub:
         __ap2_stub__ = True
 

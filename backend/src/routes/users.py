@@ -156,7 +156,7 @@ async def create_user(
             id=str(uuid.uuid4()),
             user_id=user.id,
             organization_id=admin_org_member.organization_id,
-            role=OrganizationRole.MEMBER.value,  # New users are members by default
+            role=OrganizationRole.EMPLOYEE.value,  # New users are members by default
             is_active=True,
             joined_at=datetime.utcnow()
         )

@@ -4,12 +4,14 @@ Handles multi-tenancy, organization creation, member management, and invitations
 """
 
 import logging
+import os
 import secrets
 import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -525,7 +527,7 @@ async def list_organization_members(
                     "user_id": member.user.id,
                     "email": member.user.email,
                     "full_name": member.user.full_name,
-                    "role": member.role.value,
+                    "role": member.role.value if hasattr(member.role, 'value') else member.role,
                     "joined_at": member.joined_at,
                 }
             )
@@ -533,15 +535,20 @@ async def list_organization_members(
     return result
 
 
+class UpdateRoleRequest(BaseModel):
+    role: OrganizationRole
+
+
 @router.patch("/{organization_id}/members/{member_id}/role")
 async def update_member_role(
     organization_id: str,
     member_id: str,
-    role: OrganizationRole,
+    body: UpdateRoleRequest,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
     """Update member role (requires admin role)"""
+    role = body.role
 
     # Verify access and role
     user_role = get_user_organization_role(current_user.id, organization_id, db)
@@ -673,22 +680,9 @@ async def create_invitation(
 
     organization = get_organization_or_404(organization_id, db)
 
-    # Check user limit (hard block for Free tier)
-    try:
-        limit_enforcer = LimitEnforcer(db)
-        limit_enforcer.check_user_limit(organization_id, raise_error=True)
-    except LimitExceededError as e:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail={
-                "error": "limit_exceeded",
-                "feature": e.feature,
-                "limit": e.limit,
-                "current": e.current,
-                "message": str(e),
-                "upgrade_message": e.upgrade_message,
-            },
-        )
+    # Note: We allow invitations even if member limit is reached.
+    # The limit is enforced when the invitation is accepted, so
+    # admins can invite multiple people and the first to accept gets the slot.
 
     # Check if user already a member
     existing_user = db.query(User).filter(User.email == invitation_data.email).first()
@@ -731,7 +725,7 @@ async def create_invitation(
         id=str(uuid.uuid4()),
         organization_id=organization_id,
         email=invitation_data.email,
-        role=invitation_data.role or OrganizationRole.MEMBER,
+        role=invitation_data.role or OrganizationRole.EMPLOYEE,
         invited_by=current_user.id,
         token=secrets.token_urlsafe(32),
         status="pending",
@@ -741,15 +735,37 @@ async def create_invitation(
     db.commit()
     db.refresh(invitation)
 
-    # Send invitation email
-    await EmailService.send_organization_invitation_email(
-        to_email=invitation.email,
-        organization_name=organization.name,
-        inviter_name=current_user.full_name or current_user.username,
-        invitation_token=invitation.token,
-    )
+    # Send invitation email (best-effort — don't fail if email can't be sent)
+    base_url = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+    invitation_link = f"{base_url}/invitations/accept/{invitation.token}"
 
-    return invitation
+    email_sent = False
+    try:
+        email_sent = await EmailService.send_organization_invitation_email(
+            to_email=invitation.email,
+            organization_name=organization.name,
+            inviter_name=current_user.full_name or current_user.username,
+            invitation_token=invitation.token,
+            base_url=base_url,
+        )
+    except Exception as e:
+        logger.warning("Failed to send invitation email to %s: %s", invitation.email, str(e))
+
+    if not email_sent:
+        logger.info("Invitation link for %s: %s", invitation.email, invitation_link)
+
+    return {
+        "id": invitation.id,
+        "organization_id": invitation.organization_id,
+        "email": invitation.email,
+        "role": invitation.role.value if hasattr(invitation.role, 'value') else invitation.role,
+        "status": invitation.status,
+        "invited_by": invitation.invited_by,
+        "expires_at": invitation.expires_at,
+        "created_at": invitation.created_at,
+        "invitation_link": invitation_link,
+        "email_sent": email_sent,
+    }
 
 
 @router.get(
@@ -832,6 +848,36 @@ async def accept_invitation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You are already a member of this organization",
         )
+
+    # Check member limit before accepting (guards against over-inviting)
+    current_members = (
+        db.query(func.count(OrganizationMember.id))
+        .filter(
+            OrganizationMember.organization_id == invitation.organization_id,
+            OrganizationMember.is_active == True,
+        )
+        .scalar()
+        or 0
+    )
+    try:
+        limit_enforcer = LimitEnforcer(db)
+        org_limits = limit_enforcer.get_org_tier(invitation.organization_id)
+        if org_limits.max_users is not None and current_members >= org_limits.max_users:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "error": "limit_exceeded",
+                    "feature": "Users",
+                    "limit": org_limits.max_users,
+                    "current": current_members,
+                    "message": f"This organization has reached its member limit ({current_members}/{org_limits.max_users}). Ask the admin to upgrade.",
+                    "upgrade_message": "Organization has reached its member limit.",
+                },
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        pass  # Don't block acceptance on enforcer errors
 
     # Create membership
     membership = OrganizationMember(

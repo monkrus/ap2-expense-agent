@@ -57,7 +57,7 @@ const OrganizationManagement = () => {
     timezone: "UTC",
   });
   const [editOrgForm, setEditOrgForm] = useState({});
-  const [inviteForm, setInviteForm] = useState({ email: "", role: "member" });
+  const [inviteForm, setInviteForm] = useState({ email: "", role: "employee" });
   const [bulkEmails, setBulkEmails] = useState("");
   const [showBulk, setShowBulk] = useState(false);
 
@@ -138,6 +138,18 @@ const OrganizationManagement = () => {
     }
   }, [currentOrg]);
 
+  // Auto-refresh members and invitations every 30s
+  useEffect(() => {
+    if (!currentOrg) return;
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchOrgMembers();
+        fetchOrgInvitations();
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [currentOrg]);
+
   const fetchOrganizations = async () => {
     try {
       setLoading(true);
@@ -167,7 +179,7 @@ const OrganizationManagement = () => {
       const data = await organizationAPI.listMembers(currentOrg.id);
       setMembers(data);
     } catch (err) {
-      showError("Failed to load members");
+      showError("Failed to load employees");
     }
   };
 
@@ -322,7 +334,7 @@ const OrganizationManagement = () => {
       );
       success(`Invitation sent to ${inviteForm.email}!`);
       setShowInviteModal(false);
-      setInviteForm({ email: "", role: "member" });
+      setInviteForm({ email: "", role: "employee" });
       fetchOrgInvitations();
     } catch (err) {
       console.error("Invitation error:", err);
@@ -335,7 +347,7 @@ const OrganizationManagement = () => {
           typeof errorData.message === "string"
             ? errorData.message
             : errorData.upgrade_message ||
-              "You have reached your plan's team member limit. Upgrade to invite more members.";
+              "You have reached your plan's team employee limit. Upgrade to invite more employees.";
 
         // Store tier info for upgrade prompt
         setUpgradeTierInfo({
@@ -374,7 +386,7 @@ const OrganizationManagement = () => {
       const results = await organizationAPI.bulkInviteMembers(
         currentOrg.id,
         emails,
-        "member",
+        "employee",
       );
 
       // Show success/failure summary
@@ -389,7 +401,7 @@ const OrganizationManagement = () => {
           );
         }
       } else {
-        success(`Successfully invited ${results.successful.length} member(s)!`);
+        success(`Successfully invited ${results.successful.length} employee(s)!`);
       }
 
       setBulkEmails("");
@@ -406,7 +418,7 @@ const OrganizationManagement = () => {
           typeof errorData.message === "string"
             ? errorData.message
             : errorData.upgrade_message ||
-              "You have reached your plan's team member limit. Upgrade to invite more members.";
+              "You have reached your plan's team employee limit. Upgrade to invite more employees.";
 
         // Store tier info for upgrade prompt
         setUpgradeTierInfo({
@@ -447,11 +459,11 @@ const OrganizationManagement = () => {
   };
 
   const handleRemoveMember = async (memberId) => {
-    if (!currentOrg || !confirm("Remove this member?")) return;
+    if (!currentOrg || !confirm("Remove this employee?")) return;
     setProcessing(true);
     try {
       await organizationAPI.removeMember(currentOrg.id, memberId);
-      success("Member removed");
+      success("Employee removed");
       fetchOrgMembers();
     } catch (err) {
       showError(err.message);
@@ -537,9 +549,9 @@ const OrganizationManagement = () => {
       owner: "bg-purple-100 text-purple-800",
       admin: "bg-blue-100 text-blue-800",
       manager: "bg-green-100 text-green-800",
-      member: "bg-gray-100 text-gray-800",
+      employee: "bg-gray-100 text-gray-800",
     };
-    return colors[role] || colors.member;
+    return colors[role] || colors.employee;
   };
 
   const getRoleIcon = (role) => {
@@ -592,7 +604,7 @@ const OrganizationManagement = () => {
                 Organization Management
               </h1>
               <p className="text-gray-600 mt-1">
-                Manage organizations, members, and team settings
+                Manage organizations, employees, and team settings
                 {organizations.length > 0 && (
                   <span className="ml-2 text-indigo-600 font-medium">
                     • {organizations.length}{" "}
@@ -678,7 +690,7 @@ const OrganizationManagement = () => {
                 <nav className="-mb-px flex space-x-8 px-6">
                   {[
                     { id: "overview", label: "Overview", icon: Building2 },
-                    { id: "members", label: "Members", icon: Users },
+                    { id: "members", label: "Employees", icon: Users },
                     { id: "invitations", label: "Invitations", icon: Mail },
                     { id: "settings", label: "Settings", icon: Settings },
                   ].map((tab) => (
@@ -708,7 +720,7 @@ const OrganizationManagement = () => {
                         <p className="text-2xl font-bold text-blue-900">
                           {members?.length || 0}
                         </p>
-                        <p className="text-blue-700 text-sm">Team Members</p>
+                        <p className="text-blue-700 text-sm">Team Employees</p>
                       </div>
                       <div className="bg-yellow-50 rounded-lg p-6">
                         <Mail className="w-8 h-8 text-yellow-600 mb-2" />
@@ -753,7 +765,7 @@ const OrganizationManagement = () => {
                           </dd>
                         </div>
                         <div>
-                          <dt className="text-sm text-gray-500">Max Members</dt>
+                          <dt className="text-sm text-gray-500">Max Employees</dt>
                           <dd className="text-base font-medium">
                             {currentOrg.max_members}
                           </dd>
@@ -767,7 +779,7 @@ const OrganizationManagement = () => {
                   <div>
                     <div className="mb-6">
                       <h3 className="text-lg font-semibold">
-                        Team Members ({members.length})
+                        Team Employees ({members.length})
                       </h3>
                     </div>
                     <div className="space-y-3">
@@ -792,27 +804,13 @@ const OrganizationManagement = () => {
                               {member.role}
                             </span>
                             {member.role !== "owner" && (
-                              <>
-                                <select
-                                  value={member.role}
-                                  onChange={(e) =>
-                                    handleUpdateRole(member.id, e.target.value)
-                                  }
-                                  className="text-sm border rounded px-2 py-1"
-                                  disabled={processing}
-                                >
-                                  <option value="member">Member</option>
-                                  <option value="manager">Manager</option>
-                                  <option value="admin">Admin</option>
-                                </select>
-                                <button
-                                  onClick={() => handleRemoveMember(member.id)}
-                                  className="text-red-600 hover:text-red-700"
-                                  disabled={processing}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </>
+                              <button
+                                onClick={() => handleRemoveMember(member.id)}
+                                className="text-red-600 hover:text-red-700"
+                                disabled={processing}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             )}
                           </div>
                         </div>
@@ -840,7 +838,7 @@ const OrganizationManagement = () => {
                           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg"
                         >
                           <UserPlus className="w-4 h-4" />
-                          Invite Member
+                          Invite Employee
                         </button>
                       </div>
                     </div>
@@ -974,7 +972,7 @@ const OrganizationManagement = () => {
                           <p className="text-sm text-red-700">
                             Once you delete an organization, there is no going
                             back. This action will permanently delete the
-                            organization, all members, expenses, and associated
+                            organization, all employees, expenses, and associated
                             data.
                           </p>
                         </div>
@@ -1527,7 +1525,7 @@ const OrganizationManagement = () => {
 
       {showInviteModal && (
         <Modal
-          title="Invite Team Member"
+          title="Invite Team Employee"
           onClose={() => setShowInviteModal(false)}
         >
           <form onSubmit={handleInvite} className="space-y-4">
@@ -1555,7 +1553,7 @@ const OrganizationManagement = () => {
                 }
                 className="w-full px-3 py-2 border rounded-lg"
               >
-                <option value="member">Member - Can submit expenses</option>
+                <option value="employee">Employee - Can submit expenses</option>
                 <option value="manager">Manager - Can approve expenses</option>
                 <option value="admin">Admin - Full access</option>
               </select>
@@ -1581,7 +1579,7 @@ const OrganizationManagement = () => {
       )}
 
       {showBulk && (
-        <Modal title="Bulk Invite Members" onClose={() => setShowBulk(false)}>
+        <Modal title="Bulk Invite Employees" onClose={() => setShowBulk(false)}>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">
@@ -1622,17 +1620,17 @@ const OrganizationManagement = () => {
         isOpen={showUpgradePrompt}
         onClose={() => setShowUpgradePrompt(false)}
         feature={
-          upgradeTierInfo?.message?.includes("team member") ||
+          upgradeTierInfo?.message?.includes("team employee") ||
           upgradeTierInfo?.message?.includes("Users")
-            ? "Additional Team Members"
+            ? "Additional Team Employees"
             : "Multiple Organizations"
         }
         currentUsage={upgradeTierInfo?.currentCount}
         limit={upgradeTierInfo?.currentLimit}
         title={
-          upgradeTierInfo?.message?.includes("team member") ||
+          upgradeTierInfo?.message?.includes("team employee") ||
           upgradeTierInfo?.message?.includes("Users")
-            ? "Team Member Limit Reached"
+            ? "Team Employee Limit Reached"
             : "Organization Limit Reached"
         }
         description={

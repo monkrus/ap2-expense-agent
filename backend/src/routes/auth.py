@@ -11,6 +11,7 @@ from ..database import get_db
 from ..email_service import EmailService
 from ..models import (
     Organization,
+    OrganizationInvitation,
     OrganizationMember,
     OrganizationRole,
     PasswordResetToken,
@@ -98,37 +99,50 @@ async def register(
     db.commit()
     db.refresh(user)
 
-    # Auto-create personal organization for the user
-    # This ensures users can immediately use the app after registration
+    # Auto-create personal organization ONLY if user has no pending invitation.
+    # Invited users will join the inviter's org — no need for a personal one.
+    has_pending_invitation = (
+        db.query(OrganizationInvitation)
+        .filter(
+            OrganizationInvitation.email == user.email,
+            OrganizationInvitation.status == "pending",
+        )
+        .first()
+        is not None
+    )
+
     import logging
     logger = logging.getLogger(__name__)
-    logger.info(f"[AUTO-ORG] Creating organization for user: {user.username}")
 
-    org_name = f"{user.full_name or user.username}'s Organization"
-    org_slug = f"org-{user.username.lower()}"
+    if not has_pending_invitation:
+        logger.info(f"[AUTO-ORG] Creating organization for user: {user.username}")
 
-    organization = Organization(
-        id=str(uuid.uuid4()),
-        name=org_name,
-        slug=org_slug,
-        description=f"Personal workspace for {user.username}",
-        is_active=True,
-    )
-    db.add(organization)
-    db.flush()  # Get the organization ID without committing yet
-    logger.info(f"[AUTO-ORG] Organization created: {organization.id}")
+        org_name = f"{user.full_name or user.username}'s Organization"
+        org_slug = f"org-{user.username.lower()}"
 
-    # Add user as OWNER of the organization
-    membership = OrganizationMember(
-        id=str(uuid.uuid4()),
-        organization_id=organization.id,
-        user_id=user.id,
-        role=OrganizationRole.OWNER,
-        is_active=True,
-    )
-    db.add(membership)
-    db.commit()
-    logger.info(f"[AUTO-ORG] Membership created for {user.username} - SUCCESS")
+        organization = Organization(
+            id=str(uuid.uuid4()),
+            name=org_name,
+            slug=org_slug,
+            description=f"Personal workspace for {user.username}",
+            is_active=True,
+        )
+        db.add(organization)
+        db.flush()
+        logger.info(f"[AUTO-ORG] Organization created: {organization.id}")
+
+        membership = OrganizationMember(
+            id=str(uuid.uuid4()),
+            organization_id=organization.id,
+            user_id=user.id,
+            role=OrganizationRole.OWNER,
+            is_active=True,
+        )
+        db.add(membership)
+        db.commit()
+        logger.info(f"[AUTO-ORG] Membership created for {user.username} - SUCCESS")
+    else:
+        logger.info(f"[AUTO-ORG] Skipping org creation for {user.username} — has pending invitation")
 
     # Create email verification token
     verification_token = secrets.token_urlsafe(32)

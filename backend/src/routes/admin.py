@@ -1399,7 +1399,7 @@ async def create_user(
         if admin_membership:
             # Add new user to the same organization
             # Map UserRole to OrganizationRole
-            org_role = OrganizationRole.MEMBER  # Default
+            org_role = OrganizationRole.EMPLOYEE  # Default
             if user_data.role == UserRole.ADMIN:
                 org_role = OrganizationRole.ADMIN
 
@@ -1578,7 +1578,7 @@ async def update_user_organization(
             id=str(uuid_module.uuid4()),
             user_id=user_id,
             organization_id=org_data.organization_id,
-            role=OrganizationRole.MEMBER.value,
+            role=OrganizationRole.EMPLOYEE.value,
             is_active=True,
             joined_at=datetime.utcnow()
         )

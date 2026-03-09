@@ -187,6 +187,14 @@ const AppContent = () => {
     );
   }
 
+  // --- Check for pending invitation redirect after login ---
+  const pendingInvitation = localStorage.getItem("pending_invitation");
+  if (pendingInvitation) {
+    localStorage.removeItem("pending_invitation");
+    window.location.href = pendingInvitation;
+    return null;
+  }
+
   // --- Normal authenticated app ---
   return (
     <ProtectedRoute>

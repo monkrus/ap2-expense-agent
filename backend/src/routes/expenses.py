@@ -658,7 +658,7 @@ async def list_expenses(
 
     # SECURITY FIX (HIGH-4): Only use organization roles for filtering
     # Members see only their own expenses
-    if user_org_role in ["member", None]:
+    if user_org_role in ["employee", None]:
         query = query.filter(Expense.user_id == current_user.id)
     elif user_org_role == "manager":
         # Managers see their own + department expenses
@@ -963,7 +963,7 @@ async def get_expense_stats(
     query = db.query(Expense).filter(Expense.organization_id == org_id)
 
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
-    if user_org_role in ["member", None]:
+    if user_org_role in ["employee", None]:
         query = query.filter(Expense.user_id == current_user.id)
 
     if start_date:

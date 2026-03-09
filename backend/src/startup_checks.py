@@ -44,6 +44,24 @@ def validate_settings() -> None:
             "CORS origins include development or wildcard entries; set CORS_ORIGINS to your production domains."
         )
 
+    # Email dependency must be available in production
+    try:
+        import aiosmtplib  # noqa: F401
+    except ImportError:
+        errors.append(
+            "aiosmtplib is not installed. Email sending (invitations, notifications) "
+            "will silently fail. Install with: pip install aiosmtplib>=3.0.0"
+        )
+
+    # SMTP must be configured in production
+    smtp_server = getattr(settings, "smtp_server", None) or getattr(settings, "smtp_host", None)
+    smtp_username = getattr(settings, "smtp_username", None)
+    if not smtp_server or not smtp_username:
+        errors.append(
+            "SMTP is not configured (SMTP_SERVER / SMTP_USERNAME). "
+            "Email sending will not work."
+        )
+
     if errors:
         joined = "; ".join(errors)
         raise RuntimeError(f"Insecure production configuration: {joined}")

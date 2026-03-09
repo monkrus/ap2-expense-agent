@@ -211,6 +211,8 @@ class OrganizationInvitationResponse(BaseModel):
     status: str
     expires_at: datetime
     created_at: datetime
+    invitation_link: Optional[str] = None
+    email_sent: Optional[bool] = None
 
     class Config:
         from_attributes = True

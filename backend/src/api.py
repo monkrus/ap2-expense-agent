@@ -259,14 +259,8 @@ async def startup_event():
             print("[CRITICAL] Application startup blocked for security")
             raise
 
-    # Seed default users
-    from .seed_data import ensure_default_users_exist
-
-    db = next(get_db())
-    try:
-        ensure_default_users_exist(db)
-    finally:
-        db.close()
+    # Note: Default test users seeding removed.
+    # Run `python -m src.seed_data` manually if needed for testing.
 
     print("[STARTUP] Registered routes:")
     for route in app.routes:

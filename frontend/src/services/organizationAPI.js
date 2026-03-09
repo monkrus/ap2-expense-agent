@@ -264,7 +264,7 @@ export const listInvitations = async (orgId) => {
 /**
  * Create invitation
  */
-export const createInvitation = async (orgId, email, role = "member") => {
+export const createInvitation = async (orgId, email, role = "employee") => {
   const response = await apiFetch(
     `${API_BASE_URL}/api/v1/organizations/${orgId}/invitations`,
     {
@@ -314,7 +314,12 @@ export const acceptInvitation = async (token) => {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || "Failed to accept invitation");
+    const detail = error.detail;
+    const message =
+      typeof detail === "string"
+        ? detail
+        : detail?.message || "Failed to accept invitation";
+    throw new Error(message);
   }
 
   return response.json();
@@ -327,7 +332,7 @@ export const acceptInvitation = async (token) => {
 /**
  * Bulk invite members
  */
-export const bulkInviteMembers = async (orgId, emails, role = "member") => {
+export const bulkInviteMembers = async (orgId, emails, role = "employee") => {
   const results = {
     successful: [],
     failed: [],
@@ -344,6 +349,32 @@ export const bulkInviteMembers = async (orgId, emails, role = "member") => {
         throw error;
       }
       // For other errors, collect them in results
+      results.failed.push({ email, error: error.message });
+    }
+  }
+
+  return results;
+};
+
+/**
+ * Bulk invite members with per-email roles
+ * @param {string} orgId
+ * @param {{email: string, role: string}[]} inviteList
+ */
+export const bulkInviteMembersWithRoles = async (orgId, inviteList) => {
+  const results = {
+    successful: [],
+    failed: [],
+  };
+
+  for (const { email, role } of inviteList) {
+    try {
+      const result = await createInvitation(orgId, email.trim(), role || "employee");
+      results.successful.push({ email, role, result });
+    } catch (error) {
+      if (error.status === 402) {
+        throw error;
+      }
       results.failed.push({ email, error: error.message });
     }
   }
@@ -374,6 +405,7 @@ export default {
   revokeInvitation,
   acceptInvitation,
   bulkInviteMembers,
+  bulkInviteMembersWithRoles,
 
   // Helpers
   getCurrentOrganizationId,
