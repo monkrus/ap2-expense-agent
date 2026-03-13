@@ -90,9 +90,9 @@ def ensure_expense_access(expense_id: str, user: User, org_id: str, db: Session)
 
     # Managers can see department expenses
     if user_org_role == "manager":
-        if current_user.department_id:
+        if user.department_id:
             expense_owner = db.query(User).filter(User.id == expense.user_id).first()
-            if expense_owner and expense_owner.department_id == current_user.department_id:
+            if expense_owner and expense_owner.department_id == user.department_id:
                 return expense
             # Fall through to own-expense check below
         else:
@@ -109,16 +109,29 @@ def ensure_expense_access(expense_id: str, user: User, org_id: str, db: Session)
     return expense
 
 
-def can_modify_expense(expense: Expense, user: User, org_id: str, db: Session) -> bool:
-    """Check if user can modify expense"""
-    # Approved or rejected expenses are locked — no one can edit them
+def can_modify_expense(expense: Expense, user: User, org_id: str, db: Session, action: str = "edit") -> bool:
+    """Check if user can modify expense.
+
+    action='edit' enforces strict locking on approved/rejected expenses.
+    action='withdraw' allows admins/owners to withdraw any non-withdrawn expense.
+    """
+    user_org_role = get_user_organization_role(user.id, org_id, db)
+    is_admin = user_org_role in ["owner", "admin"] or user.role == UserRole.ADMIN
+
+    # For withdraw: admins can withdraw any expense that isn't already withdrawn
+    if action == "withdraw":
+        if expense.status == ExpenseStatus.WITHDRAWN:
+            return False
+        if is_admin:
+            return True
+        # Regular users can only withdraw their own pending expenses
+        return expense.user_id == user.id and expense.status == ExpenseStatus.PENDING
+
+    # For edit: approved or rejected expenses are locked — no one can edit them
     if expense.status in [ExpenseStatus.APPROVED, ExpenseStatus.REJECTED]:
         return False
 
-    user_org_role = get_user_organization_role(user.id, org_id, db)
-
-    # Owners and admins can modify any pending expense
-    if user_org_role in ["owner", "admin"] or user.role == UserRole.ADMIN:
+    if is_admin:
         return True
 
     # Users can only modify their own pending expenses
@@ -323,269 +336,56 @@ async def create_expense(
 
     # =====================================================================
     # AUTO-APPROVAL EVALUATION (TWO-TIER HIERARCHY)
+    # Uses shared service: Tier 1 AP2 Intent Mandates, Tier 2 Approval Policies
     # =====================================================================
-    # TIER 1: Check Intent Mandates FIRST (AP2 - Premium AI Agent Feature)
-    # TIER 2: Check Approval Policies (Free organizational efficiency)
-    # =====================================================================
+    from ..services.auto_approval_service import evaluate_auto_approval, notify_admins_new_expense
 
-    # TIER 1: AP2 INTENT MANDATE AUTO-APPROVAL (Premium Feature)
-    try:
-        from ..payments.ap2_service import AP2PaymentService
-
-        ap2_service = AP2PaymentService(db)
-
-        # Find matching Intent Mandate for this expense
-        matching_mandate = ap2_service.find_matching_intent_mandate(
-            user_id=current_user.id,
-            amount=float(data.amount),
-            category=data.category.value if hasattr(data.category, 'value') else str(data.category),
-            merchant=data.vendor,
-            organization_id=org_id
-        )
-
-        if matching_mandate:
-            logger.info(f"[AP2] Auto-approving expense {expense.id} via Intent Mandate {matching_mandate.id}")
-
-            # Create complete AP2 flow for cryptographic audit trail
-            cart_items = [{
-                "description": data.description or f"Expense: {data.vendor}",
-                "amount": float(data.amount),
-                "vendor": data.vendor or "Unknown Vendor",
-                "category": data.category.value if hasattr(data.category, 'value') else str(data.category),
-            }]
-
-            # Generate agent signature for audit trail
-            now = datetime.utcnow()
-            agent_signature = ap2_service._generate_signature(
-                current_user.id,
-                {"items": cart_items, "merchant": data.vendor or "Unknown Vendor"},
-                now,
-            )
-
-            # Create Cart Mandate linked to the EXISTING matched Intent Mandate
-            cart_mandate = await ap2_service.create_cart_mandate(
-                intent_mandate_id=matching_mandate.id,
-                items=cart_items,
-                merchant=data.vendor or "Unknown Vendor",
-                user_signature=agent_signature,
-            )
-
-            # Create Payment Mandate for cryptographic audit trail
-            # (no Stripe execution — this is expense reimbursement, not direct payment)
-            payment_mandate = await ap2_service.create_payment_mandate(
-                cart_mandate_id=cart_mandate.id,
-                payment_method="expense_reimbursement",
-            )
-
-            # AUTO-APPROVE VIA AP2
-            expense.status = ExpenseStatus.APPROVED
-            expense.approved_by = "ai_agent"  # AI agent approved
-            expense.approved_at = datetime.utcnow()
-            expense.auto_approved = True
-            expense.auto_approved_via = "intent_mandate"  # Track AP2 auto-approval
-            expense.intent_mandate_id = matching_mandate.id   # existing mandate
-            expense.cart_mandate_id = cart_mandate.id
-            expense.payment_mandate_id = payment_mandate.id
-
-            db.commit()
-            db.refresh(expense)
-
-            # Check if monthly_limit is now exhausted after this approval
-            try:
-                constraints = json.loads(matching_mandate.constraints)
-                monthly_limit = constraints.get("monthly_limit")
-                if monthly_limit:
-                    current_usage = ap2_service._get_mandate_monthly_usage(matching_mandate.id, org_id)
-                    if current_usage >= float(monthly_limit):
-                        matching_mandate.status = "exhausted"
-                        db.add(matching_mandate)
-                        db.commit()
-                        logger.info(f"[AP2] Intent Mandate {matching_mandate.id} exhausted: ${current_usage} >= ${monthly_limit} monthly limit")
-            except Exception as e:
-                logger.error(f"[AP2] Failed to check mandate exhaustion: {e}")
-
-            # Track expense submission for billing
-            try:
-                from ..billing.usage_tracker import UsageTracker
-                tracker = UsageTracker(db)
-                tracker.track_usage(
-                    user_id=current_user.id,
-                    usage_type="expense",
-                    quantity=1,
-                    organization_id=org_id,
-                    metadata={
-                        "expense_id": expense.id,
-                        "amount": float(expense.amount),
-                        "auto_approved": True,
-                        "auto_approved_via": "intent_mandate",
-                        "intent_mandate_id": matching_mandate.id
-                    }
-                )
-                logger.info(f"[AP2] Tracked auto-approved expense via Intent Mandate: {expense.id}")
-            except Exception as e:
-                logger.error(f"Failed to track expense usage: {str(e)}")
-
-            return {
-                "id": expense.id,
-                "amount": expense.amount,
-                "vendor": expense.vendor,
-                "category": expense.category,
-                "description": expense.description,
-                "status": expense.status.value.lower(),
-                "date": expense.date.isoformat() if expense.date else None,
-                "created_at": expense.created_at.isoformat() if expense.created_at else None,
-                "auto_approved": True,
-                "auto_approved_via": "intent_mandate",
-                "intent_mandate_id": matching_mandate.id,
-                "message": "✨ Auto-approved by AI agent via Intent Mandate (AP2)"
-            }
-
-    except ImportError:
-        logger.debug("AP2 service not available, skipping Intent Mandate check")
-    except Exception as e:
-        # Log error but don't fail - fall through to Approval Policy check
-        logger.error(f"[AP2] Intent Mandate evaluation failed (non-blocking): {e}")
-
-    # TIER 2: APPROVAL POLICY AUTO-APPROVAL (Free Feature)
-    try:
-        from ..services.approval_policy_service import ApprovalPolicyService
-
-        policy_service = ApprovalPolicyService(db)
-        should_auto_approve, matching_policy, reason = policy_service.evaluate_expense(
-            expense, current_user
-        )
-
-        if should_auto_approve and matching_policy:
-            logger.info(f"Auto-approving expense {expense.id} via Approval Policy {matching_policy.id}")
-
-            # AUTO-APPROVE VIA APPROVAL POLICY
-            expense.status = ExpenseStatus.APPROVED
-            expense.approved_by = current_user.id  # Self-approval via policy
-            expense.approved_at = datetime.utcnow()
-            expense.auto_approved = True
-            expense.auto_approved_via = "approval_policy"  # Track policy auto-approval
-            expense.approval_policy_id = matching_policy.id
-
-            db.commit()
-            db.refresh(expense)
-
-            # Track expense submission for billing (auto-approved case)
-            try:
-                from ..billing.usage_tracker import UsageTracker
-                tracker = UsageTracker(db)
-                tracker.track_usage(
-                    user_id=current_user.id,
-                    usage_type="expense",
-                    quantity=1,
-                    organization_id=org_id,
-                    metadata={
-                        "expense_id": expense.id,
-                        "amount": float(expense.amount),
-                        "auto_approved": True,
-                        "auto_approved_via": "approval_policy",
-                        "approval_policy_id": matching_policy.id
-                    }
-                )
-                logger.info(f"Tracked auto-approved expense via policy: {expense.id}")
-            except Exception as e:
-                logger.error(f"Failed to track expense usage: {str(e)}")
-
-            # Send notification if policy has notify_on_auto_approve enabled
-            if matching_policy.notify_on_auto_approve:
-                try:
-                    notification = Notification(
-                        id=str(uuid.uuid4()),
-                        user_id=current_user.id,
-                        organization_id=org_id,
-                        notification_type=NotificationType.EXPENSE_APPROVED,
-                        title="Expense Auto-Approved",
-                        message=f"Your ${float(expense.amount):.2f} expense for {expense.vendor or 'Unknown vendor'} was automatically approved by rule: {matching_policy.name}",
-                        expense_id=expense.id,
-                        is_read=False,
-                        created_at=datetime.utcnow()
-                    )
-                    db.add(notification)
-                    db.commit()
-                    logger.info(f"Notification sent for auto-approved expense {expense.id}")
-                except Exception as e:
-                    logger.error(f"Failed to create auto-approval notification: {str(e)}")
-
-            return {
-                "id": expense.id,
-                "amount": expense.amount,
-                "vendor": expense.vendor,
-                "category": expense.category,
-                "description": expense.description,
-                "status": expense.status.value.lower(),
-                "date": expense.date.isoformat() if expense.date else None,
-                "created_at": expense.created_at.isoformat() if expense.created_at else None,
-                "auto_approved": True,
-                "auto_approved_via": "approval_policy",
-                "approval_policy_id": matching_policy.id,
-                "message": f"Auto-approved by policy: {matching_policy.name}"
-            }
-    except ImportError:
-        logger.debug("Approval policy service not available, continuing with manual approval")
-    except Exception as e:
-        logger.error(f"Auto-approval evaluation failed: {e}")
-
-    # MANUAL APPROVAL REQUIRED (or auto-approval failed)
-    db.commit()
-    db.refresh(expense)
+    approval_result = await evaluate_auto_approval(db, expense, current_user, org_id)
 
     # Track expense submission for billing
     try:
         from ..billing.usage_tracker import UsageTracker
         tracker = UsageTracker(db)
+        metadata = {"expense_id": expense.id, "amount": float(expense.amount)}
+        if approval_result.approved:
+            metadata["auto_approved"] = True
+            metadata["auto_approved_via"] = approval_result.via
         tracker.track_usage(
             user_id=current_user.id,
             usage_type="expense",
             quantity=1,
             organization_id=org_id,
-            metadata={"expense_id": expense.id, "amount": float(expense.amount)}
+            metadata=metadata,
         )
         logger.info(f"Tracked expense submission for billing: {expense.id}")
     except Exception as e:
-        # Log error but don't fail the request
         logger.error(f"Failed to track expense usage: {str(e)}")
 
-    # Create notifications for admins/managers
-    try:
-        # Get all admins and managers in the organization
-        admin_members = (
-            db.query(OrganizationMember)
-            .filter(OrganizationMember.organization_id == org_id)
-            .filter(OrganizationMember.role.in_([
-                OrganizationRole.ADMIN.value,
-                OrganizationRole.OWNER.value
-            ]))
-            .filter(OrganizationMember.is_active == True)
-            .all()
-        )
-
-        # Create notification for each admin/manager
-        for member in admin_members:
-            # Don't notify the person who submitted (if they're also an admin)
-            if member.user_id == current_user.id:
-                continue
-
-            notification = Notification(
-                id=str(uuid.uuid4()),
-                user_id=member.user_id,
-                organization_id=org_id,
-                notification_type=NotificationType.EXPENSE_SUBMITTED,
-                title="New Expense Submitted",
-                message=f"{current_user.full_name or current_user.username} submitted a ${float(expense.amount):.2f} expense for {expense.vendor or 'Unknown vendor'} - awaiting approval",
-                expense_id=expense.id,
-                is_read=False,
-                created_at=datetime.utcnow()
-            )
-            db.add(notification)
-
+    if approval_result.approved:
         db.commit()
-    except Exception as e:
-        # Log error but don't fail the request
-        logger.error(f"Failed to create admin notifications: {str(e)}", exc_info=True)
+        db.refresh(expense)
+
+        return {
+            "id": expense.id,
+            "amount": expense.amount,
+            "vendor": expense.vendor,
+            "category": expense.category,
+            "description": expense.description,
+            "status": expense.status.value.lower(),
+            "date": expense.date.isoformat() if expense.date else None,
+            "created_at": expense.created_at.isoformat() if expense.created_at else None,
+            "auto_approved": True,
+            "auto_approved_via": approval_result.via,
+            "message": approval_result.message,
+        }
+
+    # MANUAL APPROVAL REQUIRED
+    db.commit()
+    db.refresh(expense)
+
+    # Notify admins about new pending expense
+    notify_admins_new_expense(db, expense, current_user, org_id)
+    db.commit()
 
     response = {
         "id": expense.id,
@@ -632,8 +432,8 @@ async def list_expenses(
     # Verify organization access (CRITICAL SECURITY CHECK)
     ensure_org_access(current_user.id, org_id, db)
 
-    # Base query
-    query = db.query(Expense).filter(Expense.organization_id == org_id)
+    # Base query — exclude archived expenses (they have their own admin endpoint)
+    query = db.query(Expense).filter(Expense.organization_id == org_id, Expense.is_archived == False)
 
     # Apply status filter — accept both ?status= and ?status_filter= param names
     effective_status = status or status_filter
@@ -685,6 +485,12 @@ async def list_expenses(
         if e.approved_by:
             approver = db.query(User).filter(User.id == e.approved_by).first()
 
+        # Resolve display name: prefer full_name, fall back to username, then email
+        if expense_owner:
+            display_name = expense_owner.full_name or expense_owner.username or expense_owner.email
+        else:
+            display_name = "Unknown User"
+
         expense_list.append({
             "id": e.id,
             "amount": e.amount,
@@ -694,7 +500,7 @@ async def list_expenses(
             "status": (e.status.value.lower() if hasattr(e.status, 'value') else str(e.status).lower()),
             "date": e.date.isoformat() if e.date else None,
             "user_id": e.user_id,
-            "user_name": expense_owner.full_name if expense_owner else "Unknown User",
+            "user_name": display_name,
             "user_email": expense_owner.email if expense_owner else "unknown@example.com",
             "created_at": e.created_at.isoformat() if e.created_at else None,
             "updated_at": e.updated_at.isoformat() if e.updated_at else None,
@@ -1228,7 +1034,7 @@ async def delete_expense(
     logger.info(f"WITHDRAW EXPENSE - Checking if role == UserRole.ADMIN: {current_user.role == UserRole.ADMIN}")
 
     # Check withdraw permission
-    if not can_modify_expense(expense, current_user, org_id, db):
+    if not can_modify_expense(expense, current_user, org_id, db, action="withdraw"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You cannot withdraw this expense"

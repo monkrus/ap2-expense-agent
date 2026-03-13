@@ -262,6 +262,14 @@ async def startup_event():
     # Note: Default test users seeding removed.
     # Run `python -m src.seed_data` manually if needed for testing.
 
+    # Start recurring expense scheduler
+    try:
+        from .scheduler import RecurringExpenseScheduler
+        scheduler = RecurringExpenseScheduler(check_interval=60)
+        await scheduler.start()
+    except Exception as e:
+        print(f"[WARNING] Failed to start recurring expense scheduler: {e}")
+
     print("[STARTUP] Registered routes:")
     for route in app.routes:
         if hasattr(route, "path"):

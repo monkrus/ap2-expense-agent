@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 
 from ..auth import get_current_active_user
 from ..database import get_db
-from ..models import User, Notification, NotificationType
+from ..models import User, Notification, NotificationType, OrganizationMember, OrganizationRole
+from fastapi import Request
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
@@ -110,18 +111,12 @@ async def mark_all_notifications_read(
     """
     Mark all notifications as read for the current user
     """
-    unread_notifications = (
+    count = (
         db.query(Notification)
         .filter(Notification.user_id == current_user.id)
         .filter(Notification.is_read == False)
-        .all()
+        .update({"is_read": True, "read_at": datetime.utcnow()})
     )
-
-    count = 0
-    for notification in unread_notifications:
-        notification.is_read = True
-        notification.read_at = datetime.utcnow()
-        count += 1
 
     db.commit()
 
@@ -154,3 +149,63 @@ async def delete_notification(
     db.commit()
 
     return {"success": True, "message": "Notification deleted"}
+
+
+@router.post("/batch-expense")
+async def send_batch_expense_notification(
+    request: Request,
+    data: dict,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Send a single summary notification for a batch expense upload.
+    """
+    count = data.get("count", 0)
+    total_amount = data.get("total_amount", 0)
+    if count <= 0:
+        return {"success": True, "message": "No notification needed"}
+
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        # Try to find user's org
+        member = (
+            db.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == current_user.id, OrganizationMember.is_active == True)
+            .first()
+        )
+        org_id = member.organization_id if member else None
+
+    if not org_id:
+        return {"success": False, "message": "No organization context"}
+
+    admin_members = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == org_id,
+            OrganizationMember.role.in_([OrganizationRole.OWNER.value, OrganizationRole.ADMIN.value]),
+            OrganizationMember.is_active == True,
+        )
+        .all()
+    )
+
+    display_name = current_user.full_name or current_user.username or current_user.email
+
+    for member in admin_members:
+        if member.user_id == current_user.id:
+            continue
+        notification = Notification(
+            id=str(uuid.uuid4()),
+            user_id=member.user_id,
+            organization_id=org_id,
+            notification_type=NotificationType.EXPENSE_SUBMITTED,
+            title="Batch Expense Upload",
+            message=f"{display_name} submitted {count} expenses (${total_amount:,.2f} total) via batch upload - awaiting approval",
+            is_read=False,
+            created_at=datetime.utcnow(),
+        )
+        db.add(notification)
+
+    db.commit()
+
+    return {"success": True, "message": f"Batch notification sent for {count} expenses"}

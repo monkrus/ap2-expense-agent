@@ -574,42 +574,16 @@ async def create_expense_from_extraction(
         db.refresh(receipt)
 
         # Send notifications to admins/managers about new expense
-        try:
-            from ..models import OrganizationMember, OrganizationRole, Notification, NotificationType
-
-            # Get all admin/manager members of the organization
-            admin_members = (
-                db.query(OrganizationMember)
-                .filter(
-                    OrganizationMember.organization_id == member.organization_id,
-                    OrganizationMember.is_active == True,
-                    OrganizationMember.role.in_([OrganizationRole.OWNER, OrganizationRole.ADMIN])
-                )
-                .all()
-            )
-
-            # Create notification for each admin/manager
-            for admin_member in admin_members:
-                # Don't notify the person who submitted (if they're also an admin)
-                if admin_member.user_id == current_user.id:
-                    continue
-
-                notification = Notification(
-                    id=str(uuid.uuid4()),
-                    user_id=admin_member.user_id,
-                    organization_id=member.organization_id,
-                    notification_type=NotificationType.EXPENSE_SUBMITTED,
-                    title="New Expense Submitted",
-                    message=f"{current_user.full_name or current_user.username} submitted a ${float(expense.amount):.2f} expense for {expense.vendor or 'Unknown vendor'} - awaiting approval",
-                    expense_id=expense.id,
-                )
-                db.add(notification)
-
-            db.commit()
-            logger.info(f"Sent EXPENSE_SUBMITTED notifications to {len([m for m in admin_members if m.user_id != current_user.id])} admins for expense {expense.id}")
-        except Exception as e:
-            # Log error but don't fail the expense creation
-            logger.error(f"Failed to send notifications for expense {expense.id}: {str(e)}")
+        # Skip individual notifications for batch uploads — the batch endpoint
+        # handles sending a single summary notification instead
+        is_batch = data.get("is_batch", False)
+        if not is_batch:
+            try:
+                from ..services.auto_approval_service import notify_admins_new_expense
+                notify_admins_new_expense(db, expense, current_user, member.organization_id)
+                db.commit()
+            except Exception as e:
+                logger.error(f"Failed to send notifications for expense {expense.id}: {str(e)}")
 
         return {
             "success": True,

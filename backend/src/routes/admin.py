@@ -734,7 +734,7 @@ async def get_all_expenses(
                 "rejection_reason": e.rejection_reason,
                 "user_id": e.user_id,
                 "user_email": user.email if user else "Unknown",
-                "user_name": user.full_name if user else "Unknown",
+                "user_name": (user.full_name or user.username or user.email) if user else "Unknown",
                 "approved_by_name": approver.full_name if approver else None,
                 "approved_by_email": approver.email if approver else None,
             }
@@ -1051,7 +1051,7 @@ async def get_archived_expenses(
                 "archived_at": e.archived_at.isoformat() if e.archived_at else None,
                 "user_id": e.user_id,
                 "user_email": user.email if user else "Unknown",
-                "user_name": user.full_name if user else "Unknown",
+                "user_name": (user.full_name or user.username or user.email) if user else "Unknown",
                 "archived_by_name": archiver.full_name if archiver else None,
                 "archived_by_email": archiver.email if archiver else None,
                 "approved_by": e.approved_by,

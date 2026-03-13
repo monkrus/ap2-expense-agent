@@ -115,6 +115,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
 
       // Auto-create expenses immediately
       let successCount = 0;
+      let totalAmount = 0;
       const token2 = localStorage.getItem("access_token");
 
       for (let i = 0; i < data.results.length; i++) {
@@ -140,14 +141,34 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
               temp_filename: result.temp_filename,
               original_filename: files[i].name,
               content_type: result.content_type,
+              is_batch: true,
             }),
           });
 
           if (expenseResponse.ok) {
             successCount++;
+            totalAmount += amount;
           }
         } catch (err) {
           console.error(`Failed to create expense ${i}:`, err);
+        }
+      }
+
+      // Send a single batch notification to admins
+      if (successCount > 0) {
+        try {
+          const orgId = localStorage.getItem("current_organization_id");
+          await fetch("/api/notifications/batch-expense", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              ...(orgId ? { "X-Organization-Id": orgId } : {}),
+            },
+            body: JSON.stringify({ count: successCount, total_amount: totalAmount }),
+          });
+        } catch (err) {
+          console.error("Failed to send batch notification:", err);
         }
       }
 

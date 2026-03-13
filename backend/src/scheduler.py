@@ -20,6 +20,7 @@ from src.models import (
     RecurringExpenseTemplate,
     RecurringFrequency,
     ScheduledExpense,
+    User,
 )
 
 logger = logging.getLogger(__name__)
@@ -141,6 +142,19 @@ class RecurringExpenseScheduler:
                 scheduled.expense_id = expense.id
                 scheduled.status = "submitted"
                 scheduled.processed_at = datetime.utcnow()
+
+                # Run auto-approval (same logic as manual expenses)
+                try:
+                    from src.services.auto_approval_service import evaluate_auto_approval, notify_admins_new_expense
+                    user = db.query(User).filter(User.id == template.user_id).first()
+                    if user:
+                        approval_result = await evaluate_auto_approval(
+                            db, expense, user, template.organization_id
+                        )
+                        if not approval_result.approved:
+                            notify_admins_new_expense(db, expense, user, template.organization_id)
+                except Exception as e:
+                    logger.error(f"Auto-approval check failed for scheduled expense: {e}")
 
                 # Update template statistics
                 template.total_submitted += 1

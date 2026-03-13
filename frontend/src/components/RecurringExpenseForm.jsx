@@ -17,7 +17,7 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
     vendor: template?.vendor || "",
     amount: template?.amount || "",
-    category: template?.category || "Travel",
+    category: template?.category || "TRAVEL",
     description: template?.description || "",
     frequency: template?.frequency || "monthly",
     start_date: template?.start_date

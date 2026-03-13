@@ -14,10 +14,15 @@ from sqlalchemy.orm import Session
 from src.auth import get_current_user
 from src.database import get_db
 from src.models import (
+    Expense,
     ExpenseCategory,
     ExpenseNotification,
+    ExpenseStatus,
+    Notification,
+    NotificationType,
     Organization,
     OrganizationMember,
+    OrganizationRole,
     RecurringExpenseTemplate,
     RecurringFrequency,
     ScheduledExpense,
@@ -191,6 +196,85 @@ def create_recurring_expense(
     db.add(template)
     db.commit()
     db.refresh(template)
+
+    # Notify admins/owners about the new recurring expense
+    try:
+        admin_members = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.organization_id == org_id,
+                OrganizationMember.role.in_([
+                    OrganizationRole.ADMIN.value,
+                    OrganizationRole.OWNER.value,
+                ]),
+                OrganizationMember.is_active == True,
+            )
+            .all()
+        )
+
+        display_name = current_user.full_name or current_user.username or current_user.email
+        freq_label = data.frequency.value if hasattr(data.frequency, 'value') else str(data.frequency)
+        category_label = data.category.value if hasattr(data.category, 'value') else str(data.category)
+
+        for member in admin_members:
+            if member.user_id == current_user.id:
+                continue
+            notification = Notification(
+                id=str(uuid.uuid4()),
+                user_id=member.user_id,
+                organization_id=org_id,
+                notification_type=NotificationType.RECURRING_SUBMITTED,
+                title="New Recurring Expense Created",
+                message=f"{display_name} created a {freq_label} recurring expense: ${float(data.amount):.2f} for {data.vendor} ({category_label})",
+                recurring_template_id=template.id,
+                is_read=False,
+                created_at=datetime.utcnow(),
+            )
+            db.add(notification)
+
+        db.commit()
+    except Exception:
+        pass  # Don't fail the request if notifications fail
+
+    # If auto_submit and start_date is today or past, create the first expense immediately
+    if data.auto_submit and data.start_date <= datetime.utcnow():
+        try:
+            from src.services.auto_approval_service import evaluate_auto_approval, notify_admins_new_expense
+            import asyncio
+
+            category_val = data.category.value if hasattr(data.category, 'value') else str(data.category)
+            expense = Expense(
+                id=str(uuid.uuid4()),
+                organization_id=org_id,
+                user_id=current_user.id,
+                amount=data.amount,
+                vendor=data.vendor,
+                category=category_val,
+                description=f"{data.description} (Auto-submitted from recurring template)",
+                status=ExpenseStatus.PENDING,
+                date=datetime.utcnow(),
+                intent_mandate_id=data.intent_mandate_id,
+            )
+            db.add(expense)
+            db.flush()
+
+            # Run auto-approval (same logic as manual expenses)
+            loop = asyncio.get_event_loop()
+            approval_result = loop.run_until_complete(
+                evaluate_auto_approval(db, expense, current_user, org_id)
+            )
+
+            template.total_submitted = (template.total_submitted or 0) + 1
+            template.last_submitted_at = datetime.utcnow()
+
+            db.commit()
+
+            # Notify admins if not auto-approved
+            if not approval_result.approved:
+                notify_admins_new_expense(db, expense, current_user, org_id)
+                db.commit()
+        except Exception:
+            pass  # Don't fail template creation if first expense fails
 
     return template
 

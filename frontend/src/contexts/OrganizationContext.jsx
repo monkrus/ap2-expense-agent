@@ -19,9 +19,14 @@ export const OrganizationProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load organizations on mount
+  // Load organizations on mount — only if authenticated
   useEffect(() => {
-    loadOrganizations();
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      loadOrganizations();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const loadOrganizations = async () => {
