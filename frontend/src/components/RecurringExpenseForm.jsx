@@ -363,7 +363,10 @@ const RecurringExpenseForm = ({ template, onSuccess, onCancel }) => {
                     Auto-submit expenses
                   </p>
                   <p className="text-sm text-gray-600">
-                    Automatically submit expenses on schedule (recommended)
+                    {formData.auto_submit
+                      ? "Expenses will be created and sent for approval automatically on each cycle. Best for fixed costs like subscriptions and rent."
+                      : "You'll get a reminder notification on each cycle, but need to submit the expense manually. Best for variable amounts like team lunches or travel."
+                    }
                   </p>
                 </div>
               </div>

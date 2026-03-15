@@ -2,9 +2,12 @@
 API endpoints for managing recurring expenses and notifications.
 """
 
+import logging
 import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -158,7 +161,7 @@ def calculate_next_run_date(
 @router.post(
     "", response_model=RecurringExpenseResponse, status_code=status.HTTP_201_CREATED
 )
-def create_recurring_expense(
+async def create_recurring_expense(
     data: RecurringExpenseCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -237,10 +240,10 @@ def create_recurring_expense(
         pass  # Don't fail the request if notifications fail
 
     # If auto_submit and start_date is today or past, create the first expense immediately
-    if data.auto_submit and data.start_date <= datetime.utcnow():
+    start_naive = data.start_date.replace(tzinfo=None) if data.start_date.tzinfo else data.start_date
+    if data.auto_submit and start_naive <= datetime.utcnow():
         try:
             from src.services.auto_approval_service import evaluate_auto_approval, notify_admins_new_expense
-            import asyncio
 
             category_val = data.category.value if hasattr(data.category, 'value') else str(data.category)
             expense = Expense(
@@ -259,10 +262,7 @@ def create_recurring_expense(
             db.flush()
 
             # Run auto-approval (same logic as manual expenses)
-            loop = asyncio.get_event_loop()
-            approval_result = loop.run_until_complete(
-                evaluate_auto_approval(db, expense, current_user, org_id)
-            )
+            approval_result = await evaluate_auto_approval(db, expense, current_user, org_id)
 
             template.total_submitted = (template.total_submitted or 0) + 1
             template.last_submitted_at = datetime.utcnow()
@@ -273,7 +273,8 @@ def create_recurring_expense(
             if not approval_result.approved:
                 notify_admins_new_expense(db, expense, current_user, org_id)
                 db.commit()
-        except Exception:
+        except Exception as e:
+            logger.error(f"Failed to create first expense from recurring template: {e}")
             pass  # Don't fail template creation if first expense fails
 
     return template

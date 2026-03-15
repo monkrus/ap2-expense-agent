@@ -16,7 +16,7 @@ from ..auth import get_current_active_user
 from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
 from ..billing.usage_tracker import UsageTracker
 from ..database import get_db
-from ..models import Expense, OrganizationMember, Receipt, User
+from ..models import Expense, ExpenseStatus, OrganizationMember, Receipt, User
 from ..services.receipt_ai_service import get_receipt_ai_service
 from ..tenant_context import verify_organization_access
 
@@ -548,7 +548,7 @@ async def create_expense_from_extraction(
             amount=float(amount),
             category=category,
             description=description,
-            status="pending",
+            status=ExpenseStatus.PENDING,
         )
 
         db.add(expense)
@@ -573,17 +573,22 @@ async def create_expense_from_extraction(
         db.refresh(expense)
         db.refresh(receipt)
 
-        # Send notifications to admins/managers about new expense
-        # Skip individual notifications for batch uploads — the batch endpoint
-        # handles sending a single summary notification instead
-        is_batch = data.get("is_batch", False)
-        if not is_batch:
-            try:
-                from ..services.auto_approval_service import notify_admins_new_expense
-                notify_admins_new_expense(db, expense, current_user, member.organization_id)
+        # Run auto-approval (same logic as manual expenses)
+        try:
+            from ..services.auto_approval_service import evaluate_auto_approval, notify_admins_new_expense
+            approval_result = await evaluate_auto_approval(
+                db, expense, current_user, member.organization_id
+            )
+            if approval_result.approved:
                 db.commit()
-            except Exception as e:
-                logger.error(f"Failed to send notifications for expense {expense.id}: {str(e)}")
+            else:
+                # Notify admins only for non-batch uploads; batch uses summary notification
+                is_batch = data.get("is_batch", False)
+                if not is_batch:
+                    notify_admins_new_expense(db, expense, current_user, member.organization_id)
+                db.commit()
+        except Exception as e:
+            logger.error(f"Auto-approval/notification failed for expense {expense.id}: {str(e)}")
 
         return {
             "success": True,

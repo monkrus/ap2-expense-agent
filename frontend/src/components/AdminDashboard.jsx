@@ -64,6 +64,7 @@ const AdminDashboard = () => {
   };
 
   const [activeTab, setActiveTab] = useState("pending"); // 'pending', 'all', 'archived', 'users', 'approval-policies' (Approval Rules), 'analytics', 'ai-assistant' (AP2 Automation)
+  const [policyPrefill, setPolicyPrefill] = useState(null); // Pre-fill data for approval policy creation from rule requests
   const [pendingExpenses, setPendingExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [archivedExpenses, setArchivedExpenses] = useState([]);
@@ -1035,7 +1036,14 @@ const AdminDashboard = () => {
 
               {/* Right side - System actions */}
               <div className="flex items-center gap-2">
-                <NotificationCenter />
+                <NotificationCenter
+                  onNavigate={(tab, data) => {
+                    if (data?.prefill) {
+                      setPolicyPrefill(data.prefill);
+                    }
+                    setActiveTab(tab);
+                  }}
+                />
                 <button
                   onClick={async () => {
                     await logout();
@@ -1369,7 +1377,12 @@ const AdminDashboard = () => {
           {activeTab === "users" && <UserManagementDashboard />}
 
           {/* Approval Rules Tab */}
-          {activeTab === "approval-policies" && <ApprovalPolicies />}
+          {activeTab === "approval-policies" && (
+            <ApprovalPolicies
+              prefillData={policyPrefill}
+              onPrefillConsumed={() => setPolicyPrefill(null)}
+            />
+          )}
 
           {/* Analytics Tab */}
           {activeTab === "analytics" && <AnalyticsDashboard />}

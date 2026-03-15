@@ -9,22 +9,29 @@ import {
   AlertCircle,
   Info,
   X,
+  Shield,
+  ArrowRight,
+  XCircle,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
-const NotificationCenter = () => {
+const NotificationCenter = ({ onNavigate, onRuleRequestAction }) => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [denyModal, setDenyModal] = useState(null); // { notificationId, message }
+  const [denyNote, setDenyNote] = useState("");
+  const [denyLoading, setDenyLoading] = useState(false);
   const dropdownRef = useRef(null);
+
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     fetchNotifications();
     fetchUnreadCount();
 
-    // Poll for new notifications every 30 seconds
     const interval = setInterval(() => {
       fetchUnreadCount();
     }, 30000);
@@ -32,17 +39,16 @@ const NotificationCenter = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
+        if (!denyModal) setIsOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [denyModal]);
 
   const fetchNotifications = async () => {
     try {
@@ -60,7 +66,7 @@ const NotificationCenter = () => {
       }
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
-      setNotifications([]); // Fallback to empty array on error
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -144,6 +150,121 @@ const NotificationCenter = () => {
     }
   };
 
+  // Parse rule request details from notification message
+  const parseRuleRequestDetails = (message) => {
+    const details = {};
+    const categoryMatch = message.match(/Category:\s*([^,\n]+)/);
+    const vendorMatch = message.match(/Vendor:\s*([^,\n]+)/);
+    const amountMatch = message.match(/Max amount:\s*\$?([\d.]+)/);
+    const reasonMatch = message.match(/Reason:\s*(.+)/s);
+
+    if (categoryMatch) details.category = categoryMatch[1].trim();
+    if (vendorMatch) details.vendor = vendorMatch[1].trim();
+    if (amountMatch) details.max_amount = amountMatch[1].trim();
+    if (reasonMatch) details.reason = reasonMatch[1].trim();
+
+    return details;
+  };
+
+  // Find rule request ID from backend by matching notification
+  const handleApproveRequest = async (notification) => {
+    const details = parseRuleRequestDetails(notification.message);
+    markAsRead(notification.id);
+    setIsOpen(false);
+
+    // First, approve the rule request in backend
+    try {
+      const token = localStorage.getItem("access_token");
+      const orgId = localStorage.getItem("current_organization_id");
+
+      // Fetch rule requests to find matching one
+      const response = await fetch("/api/v1/expenses/rule-requests", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "X-Organization-Id": orgId,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Find pending request matching this notification's details
+        const matchingRequest = (data.requests || []).find(
+          (r) => r.status === "pending" &&
+            ((details.category && r.category === details.category) || !details.category) &&
+            ((details.vendor && r.vendor === details.vendor) || !details.vendor)
+        );
+
+        if (matchingRequest) {
+          // Approve it
+          await fetch(`/api/v1/expenses/rule-requests/${matchingRequest.id}/approve`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "X-Organization-Id": orgId,
+            },
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to approve rule request:", err);
+    }
+
+    // Navigate to approval policies with pre-fill data
+    if (onRuleRequestAction) {
+      onRuleRequestAction("approve", details);
+    } else if (onNavigate) {
+      onNavigate("approval-policies", { prefill: details });
+    }
+  };
+
+  const handleDenyRequest = async () => {
+    if (!denyModal) return;
+    setDenyLoading(true);
+
+    try {
+      const token = localStorage.getItem("access_token");
+      const orgId = localStorage.getItem("current_organization_id");
+      const details = parseRuleRequestDetails(denyModal.message);
+
+      // Find matching pending request
+      const response = await fetch("/api/v1/expenses/rule-requests", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "X-Organization-Id": orgId,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const matchingRequest = (data.requests || []).find(
+          (r) => r.status === "pending" &&
+            ((details.category && r.category === details.category) || !details.category) &&
+            ((details.vendor && r.vendor === details.vendor) || !details.vendor)
+        );
+
+        if (matchingRequest) {
+          await fetch(`/api/v1/expenses/rule-requests/${matchingRequest.id}/deny`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              "X-Organization-Id": orgId,
+            },
+            body: JSON.stringify({ note: denyNote }),
+          });
+        }
+      }
+
+      markAsRead(denyModal.notificationId);
+      setDenyModal(null);
+      setDenyNote("");
+    } catch (err) {
+      console.error("Failed to deny rule request:", err);
+    } finally {
+      setDenyLoading(false);
+    }
+  };
+
   const getNotificationIcon = (type) => {
     switch (type) {
       case "recurring_submitted":
@@ -154,6 +275,12 @@ const NotificationCenter = () => {
         return <Check className="w-5 h-5 text-green-600" />;
       case "expense_rejected":
         return <X className="w-5 h-5 text-red-600" />;
+      case "rule_request":
+        return <Shield className="w-5 h-5 text-purple-600" />;
+      case "rule_request_approved":
+        return <Check className="w-5 h-5 text-green-600" />;
+      case "rule_request_denied":
+        return <XCircle className="w-5 h-5 text-red-600" />;
       default:
         return <Info className="w-5 h-5 text-blue-600" />;
     }
@@ -178,10 +305,6 @@ const NotificationCenter = () => {
     if (!notification.is_read) {
       markAsRead(notification.id);
     }
-    // Could navigate to related expense or template here
-    // if (notification.expense_id) {
-    //   navigate(`/expenses/${notification.expense_id}`);
-    // }
   };
 
   return (
@@ -250,7 +373,7 @@ const NotificationCenter = () => {
                         >
                           {notification.title}
                         </p>
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2 whitespace-pre-line">
                           {notification.message}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
@@ -261,6 +384,35 @@ const NotificationCenter = () => {
                             <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                           )}
                         </div>
+
+                        {/* Rule Request Actions - Admin only */}
+                        {notification.notification_type === "rule_request" && isAdmin && (
+                          <div className="flex items-center gap-2 mt-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApproveRequest(notification);
+                              }}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              Approve & Create Rule
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDenyModal({
+                                  notificationId: notification.id,
+                                  message: notification.message,
+                                });
+                              }}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-700 text-xs font-medium rounded-lg hover:bg-red-200 transition-colors"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              Deny
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -275,7 +427,6 @@ const NotificationCenter = () => {
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  // Navigate to all notifications page if it exists
                 }}
                 className="text-xs text-indigo-600 hover:text-indigo-700 font-medium w-full text-center"
               >
@@ -283,6 +434,52 @@ const NotificationCenter = () => {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Deny Modal */}
+      {denyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => { setDenyModal(null); setDenyNote(""); }}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Deny Rule Request</h3>
+                <p className="text-sm text-gray-500">The employee will be notified</p>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reason for denial (optional)
+              </label>
+              <textarea
+                value={denyNote}
+                onChange={(e) => setDenyNote(e.target.value)}
+                rows="3"
+                placeholder="e.g., This category is already covered by existing policies, or the amount is too high for auto-approval..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none text-sm"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setDenyModal(null); setDenyNote(""); }}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDenyRequest}
+                disabled={denyLoading}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm disabled:opacity-50"
+              >
+                {denyLoading ? "Sending..." : "Deny Request"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -211,7 +211,8 @@ const RecurringExpenses = () => {
                 Recurring Expenses
               </h1>
               <p className="text-gray-600 mt-2">
-                Automate your regular expense submissions
+                Schedule automatic expense submissions for fixed, repeating costs like subscriptions and rent.
+                Expenses are created on your behalf and sent for approval automatically.
               </p>
             </div>
             <button

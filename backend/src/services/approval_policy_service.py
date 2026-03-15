@@ -83,22 +83,8 @@ class ApprovalPolicyService:
         """
         conditions = policy.conditions or {}
 
-        # Amount checks
-        if policy.max_amount_per_expense:
-            if expense.amount > policy.max_amount_per_expense:
-                return (
-                    False,
-                    f"You exceeded the maximum allowed amount (${policy.max_amount_per_expense})",
-                )
-
-        if "min_amount" in conditions:
-            if expense.amount < Decimal(str(conditions["min_amount"])):
-                return (
-                    False,
-                    f"Amount ${expense.amount} below minimum ${conditions['min_amount']}",
-                )
-
-        # Category check
+        # Category check (before amount — a policy for a different category should not
+        # report amount violations, which would be misleading in the test UI)
         if "categories" in conditions and conditions["categories"]:
             # Handle both enum and string category values
             category_value = expense.category.value if hasattr(expense.category, 'value') else expense.category
@@ -113,6 +99,22 @@ class ApprovalPolicyService:
         if "exclude_vendors" in conditions and conditions["exclude_vendors"]:
             if expense.vendor in conditions["exclude_vendors"]:
                 return False, f"Vendor '{expense.vendor}' is excluded"
+
+        # Amount checks (after category/vendor so irrelevant policies don't report
+        # misleading amount violations)
+        if policy.max_amount_per_expense:
+            if expense.amount > policy.max_amount_per_expense:
+                return (
+                    False,
+                    f"You exceeded the maximum allowed amount (${policy.max_amount_per_expense})",
+                )
+
+        if "min_amount" in conditions:
+            if expense.amount < Decimal(str(conditions["min_amount"])):
+                return (
+                    False,
+                    f"Amount ${expense.amount} below minimum ${conditions['min_amount']}",
+                )
 
         # User checks
         if "user_ids" in conditions and conditions["user_ids"]:

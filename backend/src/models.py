@@ -971,6 +971,9 @@ class NotificationType(str, enum.Enum):
     RECURRING_REMINDER = "recurring_reminder"
     COMMENT_ADDED = "comment_added"
     BUDGET_THRESHOLD = "budget_threshold"
+    RULE_REQUEST = "rule_request"
+    RULE_REQUEST_APPROVED = "rule_request_approved"
+    RULE_REQUEST_DENIED = "rule_request_denied"
 
 
 class Notification(Base):
@@ -1019,5 +1022,60 @@ class Notification(Base):
             "recurring_template_id": self.recurring_template_id,
             "is_read": self.is_read,
             "read_at": self.read_at.isoformat() if self.read_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class RuleRequestStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    DENIED = "denied"
+
+
+class RuleRequest(Base):
+    """
+    Track employee requests for auto-approval rules
+    """
+    __tablename__ = "rule_requests"
+
+    id = Column(String(36), primary_key=True)
+    organization_id = Column(String(36), ForeignKey("organizations.id"), nullable=False, index=True)
+    requester_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+
+    # Request details
+    category = Column(String(50), nullable=True)
+    vendor = Column(String(255), nullable=True)
+    max_amount = Column(String(50), nullable=True)
+    reason = Column(Text, nullable=False)
+
+    # Status tracking
+    status = Column(StringEnum(RuleRequestStatus), default=RuleRequestStatus.PENDING, nullable=False, index=True)
+    reviewed_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    admin_note = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    # Relationships
+    requester = relationship("User", foreign_keys=[requester_id])
+    reviewer = relationship("User", foreign_keys=[reviewed_by])
+    organization = relationship("Organization")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "organization_id": self.organization_id,
+            "requester_id": self.requester_id,
+            "requester_name": self.requester.full_name if self.requester else None,
+            "requester_email": self.requester.email if self.requester else None,
+            "category": self.category,
+            "vendor": self.vendor,
+            "max_amount": self.max_amount,
+            "reason": self.reason,
+            "status": self.status,
+            "reviewed_by": self.reviewed_by,
+            "reviewer_name": self.reviewer.full_name if self.reviewer else None,
+            "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
+            "admin_note": self.admin_note,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

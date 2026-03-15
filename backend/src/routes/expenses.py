@@ -30,6 +30,8 @@ from ..models import (
     Organization,
     OrganizationMember,
     PaymentMandate,
+    RuleRequest,
+    RuleRequestStatus,
     User,
     UserRole,
     OrganizationRole,
@@ -649,6 +651,448 @@ async def get_expense_report(
             }
             for expense in expenses
         ],
+    }
+
+
+@router.post("/{expense_id}/archive")
+async def archive_expense(
+    expense_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Archive an expense (employee can archive own completed expenses)"""
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(status_code=400, detail="Organization context required")
+
+    ensure_org_access(current_user.id, org_id, db)
+
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.organization_id == org_id,
+        Expense.user_id == current_user.id,
+    ).first()
+
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    if expense.status == ExpenseStatus.PENDING:
+        raise HTTPException(status_code=400, detail="Cannot archive pending expenses")
+
+    if expense.is_archived:
+        raise HTTPException(status_code=400, detail="Expense is already archived")
+
+    expense.is_archived = True
+    expense.archived_at = datetime.utcnow()
+    expense.archived_by = current_user.id
+    db.commit()
+
+    return {"success": True, "message": "Expense archived successfully"}
+
+
+@router.post("/{expense_id}/unarchive")
+async def unarchive_expense(
+    expense_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Unarchive an expense (employee can unarchive own expenses)"""
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(status_code=400, detail="Organization context required")
+
+    ensure_org_access(current_user.id, org_id, db)
+
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.organization_id == org_id,
+        Expense.user_id == current_user.id,
+    ).first()
+
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    if not expense.is_archived:
+        raise HTTPException(status_code=400, detail="Expense is not archived")
+
+    expense.is_archived = False
+    expense.archived_at = None
+    expense.archived_by = None
+    db.commit()
+
+    return {"success": True, "message": "Expense unarchived successfully"}
+
+
+@router.get("/archived")
+async def get_archived_expenses(
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get archived expenses for the current user"""
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(status_code=400, detail="Organization context required")
+
+    ensure_org_access(current_user.id, org_id, db)
+
+    from sqlalchemy.orm import selectinload
+
+    expenses = (
+        db.query(Expense)
+        .options(selectinload(Expense.receipts))
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.user_id == current_user.id,
+            Expense.is_archived == True,
+        )
+        .order_by(Expense.archived_at.desc())
+        .all()
+    )
+
+    return {
+        "expenses": [
+            {
+                "id": e.id,
+                "user_id": e.user_id,
+                "amount": float(e.amount),
+                "vendor": e.vendor,
+                "category": e.category.value if hasattr(e.category, "value") else e.category,
+                "description": e.description,
+                "status": e.status.value.lower() if hasattr(e.status, "value") else str(e.status).lower(),
+                "date": e.date.isoformat() if e.date else None,
+                "transaction_id": e.transaction_id,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+                "archived_at": e.archived_at.isoformat() if e.archived_at else None,
+                "receipt_count": len(e.receipts or []),
+            }
+            for e in expenses
+        ]
+    }
+
+
+@router.get("/my-approval-stats")
+async def get_my_approval_stats(
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get approval breakdown stats for the current employee"""
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(status_code=400, detail="Organization context required")
+
+    ensure_org_access(current_user.id, org_id, db)
+
+    from sqlalchemy import func
+
+    # Total expenses
+    total = (
+        db.query(func.count(Expense.id))
+        .filter(Expense.organization_id == org_id, Expense.user_id == current_user.id)
+        .scalar() or 0
+    )
+
+    # Auto-approved
+    auto_approved = (
+        db.query(func.count(Expense.id))
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.user_id == current_user.id,
+            Expense.auto_approved == True,
+        )
+        .scalar() or 0
+    )
+
+    # Auto-approved by method
+    by_mandate = (
+        db.query(func.count(Expense.id))
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.user_id == current_user.id,
+            Expense.auto_approved == True,
+            Expense.auto_approved_via == "intent_mandate",
+        )
+        .scalar() or 0
+    )
+
+    by_policy = (
+        db.query(func.count(Expense.id))
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.user_id == current_user.id,
+            Expense.auto_approved == True,
+            Expense.auto_approved_via == "approval_policy",
+        )
+        .scalar() or 0
+    )
+
+    # Manually reviewed (approved but not auto)
+    manually_approved = (
+        db.query(func.count(Expense.id))
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.user_id == current_user.id,
+            Expense.status == "approved",
+            or_(Expense.auto_approved == False, Expense.auto_approved == None),
+        )
+        .scalar() or 0
+    )
+
+    # Pending
+    pending = (
+        db.query(func.count(Expense.id))
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.user_id == current_user.id,
+            Expense.status == "pending",
+        )
+        .scalar() or 0
+    )
+
+    # Total amount auto-approved
+    auto_amount = (
+        db.query(func.sum(Expense.amount))
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.user_id == current_user.id,
+            Expense.auto_approved == True,
+        )
+        .scalar() or 0
+    )
+
+    # Time saved estimate (3 min per auto-approved expense)
+    time_saved_minutes = auto_approved * 3
+
+    return {
+        "total_expenses": total,
+        "auto_approved": auto_approved,
+        "auto_approved_via_mandate": by_mandate,
+        "auto_approved_via_policy": by_policy,
+        "manually_approved": manually_approved,
+        "pending": pending,
+        "auto_approved_amount": float(auto_amount),
+        "time_saved_minutes": time_saved_minutes,
+        "auto_rate_percent": round((auto_approved / total * 100), 1) if total > 0 else 0,
+    }
+
+
+@router.post("/request-approval-rule")
+async def request_approval_rule(
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Employee requests admin to create an auto-approval rule"""
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(status_code=400, detail="Organization context required")
+
+    ensure_org_access(current_user.id, org_id, db)
+
+    body = await request.json()
+    category = body.get("category", "")
+    vendor = body.get("vendor", "")
+    max_amount = body.get("max_amount", "")
+    reason = body.get("reason", "")
+
+    if not reason:
+        raise HTTPException(status_code=400, detail="Please provide a reason for your request")
+
+    # Create RuleRequest record
+    rule_request = RuleRequest(
+        id=str(uuid.uuid4()),
+        organization_id=org_id,
+        requester_id=current_user.id,
+        category=category or None,
+        vendor=vendor or None,
+        max_amount=str(max_amount) if max_amount else None,
+        reason=reason,
+        status=RuleRequestStatus.PENDING,
+    )
+    db.add(rule_request)
+
+    # Find org admins to notify
+    admins = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == org_id,
+            OrganizationMember.is_active == True,
+            OrganizationMember.role.in_([OrganizationRole.OWNER, OrganizationRole.ADMIN]),
+        )
+        .all()
+    )
+
+    # Build notification message
+    details = []
+    if category:
+        details.append(f"Category: {category}")
+    if vendor:
+        details.append(f"Vendor: {vendor}")
+    if max_amount:
+        details.append(f"Max amount: ${max_amount}")
+    details_str = ", ".join(details) if details else "General"
+
+    display_name = current_user.full_name or current_user.username or current_user.email
+    message = f"{display_name} requests an auto-approval rule.\n{details_str}\nReason: {reason}"
+
+    for admin in admins:
+        notification = Notification(
+            id=str(uuid.uuid4()),
+            user_id=admin.user_id,
+            organization_id=org_id,
+            notification_type=NotificationType.RULE_REQUEST,
+            title="Auto-Approval Rule Request",
+            message=message,
+        )
+        db.add(notification)
+
+    db.commit()
+
+    return {"status": "ok", "message": "Request sent to your admin(s)", "request_id": rule_request.id}
+
+
+@router.get("/rule-requests")
+async def list_rule_requests(
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """List rule requests. Admins see all org requests, employees see their own."""
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(status_code=400, detail="Organization context required")
+
+    ensure_org_access(current_user.id, org_id, db)
+
+    user_org_role = get_user_organization_role(current_user.id, org_id, db)
+    is_admin = current_user.role == UserRole.ADMIN or user_org_role in ["owner", "admin"]
+
+    query = db.query(RuleRequest).filter(RuleRequest.organization_id == org_id)
+
+    if not is_admin:
+        query = query.filter(RuleRequest.requester_id == current_user.id)
+
+    requests_list = query.order_by(RuleRequest.created_at.desc()).limit(50).all()
+
+    return {"requests": [r.to_dict() for r in requests_list]}
+
+
+@router.post("/rule-requests/{request_id}/approve")
+async def approve_rule_request(
+    request_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Admin approves a rule request and notifies the employee"""
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(status_code=400, detail="Organization context required")
+
+    ensure_org_access(current_user.id, org_id, db)
+
+    # Check admin permission
+    user_org_role = get_user_organization_role(current_user.id, org_id, db)
+    is_admin = current_user.role == UserRole.ADMIN or user_org_role in ["owner", "admin"]
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Only admins can approve rule requests")
+
+    rule_req = db.query(RuleRequest).filter(
+        RuleRequest.id == request_id,
+        RuleRequest.organization_id == org_id,
+    ).first()
+
+    if not rule_req:
+        raise HTTPException(status_code=404, detail="Rule request not found")
+
+    if rule_req.status != RuleRequestStatus.PENDING:
+        raise HTTPException(status_code=400, detail=f"Request already {rule_req.status}")
+
+    rule_req.status = RuleRequestStatus.APPROVED
+    rule_req.reviewed_by = current_user.id
+    rule_req.reviewed_at = datetime.utcnow()
+
+    # Notify employee
+    notification = Notification(
+        id=str(uuid.uuid4()),
+        user_id=rule_req.requester_id,
+        organization_id=org_id,
+        notification_type=NotificationType.RULE_REQUEST_APPROVED,
+        title="Rule Request Approved",
+        message=f"Your request for an auto-approval rule has been approved by {current_user.full_name or current_user.email}.",
+    )
+    db.add(notification)
+    db.commit()
+
+    return {
+        "status": "ok",
+        "message": "Request approved",
+        "rule_request": rule_req.to_dict(),
+    }
+
+
+@router.post("/rule-requests/{request_id}/deny")
+async def deny_rule_request(
+    request_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Admin denies a rule request with a note"""
+    org_id = request.headers.get("X-Organization-Id")
+    if not org_id:
+        raise HTTPException(status_code=400, detail="Organization context required")
+
+    ensure_org_access(current_user.id, org_id, db)
+
+    # Check admin permission
+    user_org_role = get_user_organization_role(current_user.id, org_id, db)
+    is_admin = current_user.role == UserRole.ADMIN or user_org_role in ["owner", "admin"]
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Only admins can deny rule requests")
+
+    rule_req = db.query(RuleRequest).filter(
+        RuleRequest.id == request_id,
+        RuleRequest.organization_id == org_id,
+    ).first()
+
+    if not rule_req:
+        raise HTTPException(status_code=404, detail="Rule request not found")
+
+    if rule_req.status != RuleRequestStatus.PENDING:
+        raise HTTPException(status_code=400, detail=f"Request already {rule_req.status}")
+
+    body = await request.json()
+    admin_note = body.get("note", "")
+
+    rule_req.status = RuleRequestStatus.DENIED
+    rule_req.reviewed_by = current_user.id
+    rule_req.reviewed_at = datetime.utcnow()
+    rule_req.admin_note = admin_note or None
+
+    # Notify employee
+    deny_msg = f"Your request for an auto-approval rule was denied by {current_user.full_name or current_user.email}."
+    if admin_note:
+        deny_msg += f"\nReason: {admin_note}"
+
+    notification = Notification(
+        id=str(uuid.uuid4()),
+        user_id=rule_req.requester_id,
+        organization_id=org_id,
+        notification_type=NotificationType.RULE_REQUEST_DENIED,
+        title="Rule Request Denied",
+        message=deny_msg,
+    )
+    db.add(notification)
+    db.commit()
+
+    return {
+        "status": "ok",
+        "message": "Request denied",
+        "rule_request": rule_req.to_dict(),
     }
 
 

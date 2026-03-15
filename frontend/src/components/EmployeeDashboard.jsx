@@ -24,6 +24,8 @@ import {
   Repeat,
   TrendingUp,
   Bot,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import { expenseAPI, APIError } from "../services/api";
 import { useToast } from "../hooks/useToast";
@@ -54,7 +56,7 @@ const EmployeeDashboard = () => {
     }).format(amount);
   };
 
-  const [activeTab, setActiveTab] = useState("active"); // 'active', 'history', 'recurring-expenses', or 'ai-assistant' (AP2 Automation)
+  const [activeTab, setActiveTab] = useState("active"); // 'active', 'history', 'archived', 'recurring-expenses', or 'ai-assistant' (AP2 Automation)
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmittingExpense, setIsSubmittingExpense] = useState(false); // Prevent duplicate submissions
@@ -178,6 +180,87 @@ const EmployeeDashboard = () => {
       }, 2000);
     } catch (err) {
       showError("Failed to copy expense ID");
+    }
+  };
+
+  const [archivedExpenses, setArchivedExpenses] = useState([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+
+  const fetchArchivedExpenses = async () => {
+    try {
+      setArchivedLoading(true);
+      const result = await expenseAPI.getMyArchivedExpenses();
+      setArchivedExpenses(result.expenses || []);
+    } catch (err) {
+      console.error("Error fetching archived expenses:", err);
+      showError("Failed to load archived expenses");
+    } finally {
+      setArchivedLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "archived") {
+      fetchArchivedExpenses();
+    }
+  }, [activeTab]);
+
+  const handleArchiveExpense = async (expense) => {
+    try {
+      await expenseAPI.archiveMyExpense(expense.id);
+      setExpenses((prev) => prev.filter((e) => e.id !== expense.id));
+      success("Expense archived");
+    } catch (err) {
+      const errorMsg = err instanceof APIError ? err.message : "Failed to archive expense";
+      showError(errorMsg);
+    }
+  };
+
+  const handleUnarchiveExpense = async (expense) => {
+    try {
+      await expenseAPI.unarchiveMyExpense(expense.id);
+      setArchivedExpenses((prev) => prev.filter((e) => e.id !== expense.id));
+      success("Expense unarchived");
+    } catch (err) {
+      const errorMsg = err instanceof APIError ? err.message : "Failed to unarchive expense";
+      showError(errorMsg);
+    }
+  };
+
+  const handleArchiveAllHistory = async () => {
+    const archivable = historyExpenses.filter(
+      (e) => e.status?.toLowerCase() !== "pending"
+    );
+    if (archivable.length === 0) {
+      showError("No expenses to archive");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Archive ${archivable.length} completed expense(s)? You can restore them from the Archived tab.`
+      )
+    ) {
+      return;
+    }
+    try {
+      let archived = 0;
+      for (const expense of archivable) {
+        try {
+          await expenseAPI.archiveMyExpense(expense.id);
+          archived++;
+        } catch {
+          // skip already-archived or failed ones
+        }
+      }
+      // Refresh expenses list
+      const report = await expenseAPI.getExpenseReport(user?.id);
+      if (report.expenses && Array.isArray(report.expenses)) {
+        setExpenses(report.expenses);
+      }
+      fetchArchivedExpenses();
+      success(`Archived ${archived} expense(s)`);
+    } catch (err) {
+      showError("Failed to archive expenses");
     }
   };
 
@@ -444,7 +527,7 @@ const EmployeeDashboard = () => {
                 </p>
                 <p className="text-xs text-gray-600">{user?.email}</p>
               </div>
-              <NotificationCenter />
+              <NotificationCenter onNavigate={(tab) => setActiveTab(tab)} />
               <button
                 onClick={async () => {
                   await logout();
@@ -581,6 +664,22 @@ const EmployeeDashboard = () => {
             >
               <History className="w-5 h-5" />
               History
+            </button>
+            <button
+              onClick={() => setActiveTab("archived")}
+              className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
+                activeTab === "archived"
+                  ? `border-b-2 border-${theme.colors.primary} text-${theme.colors.primary}`
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <Archive className="w-5 h-5" />
+              Archived
+              {archivedExpenses.length > 0 && (
+                <span className="ml-2 px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded-full">
+                  {archivedExpenses.length}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab("recurring-expenses")}
@@ -809,6 +908,85 @@ const EmployeeDashboard = () => {
         {/* AP2 Automation Tab - AP2 Intent Mandates & Agent Protocol */}
         {activeTab === "ai-assistant" && <AIAssistant />}
 
+        {/* Archived Expenses Tab */}
+        {activeTab === "archived" && (
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <Archive className="w-5 h-5 text-gray-500" />
+                Archived Expenses
+              </h2>
+            </div>
+
+            {archivedLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className={`animate-spin rounded-full h-8 w-8 border-b-2 border-${theme.colors.primary} mx-auto mb-2`}></div>
+                  <p className="text-gray-600 text-sm">Loading archived expenses...</p>
+                </div>
+              </div>
+            ) : archivedExpenses.length === 0 ? (
+              <div className="text-center py-12">
+                <Archive className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg font-medium">No archived expenses</p>
+                <p className="text-gray-400 text-sm mt-2">
+                  Archive completed expenses from the History tab to keep your list clean.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700 w-12">#</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">ID</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Category</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Vendor</th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {archivedExpenses.map((expense, index) => (
+                      <tr key={expense.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td className="py-3 px-2 text-center text-sm font-medium text-gray-500">{index + 1}</td>
+                        <td className="py-3 px-4">
+                          <span className="text-sm font-medium text-gray-800 truncate max-w-[120px]" title={expense.id}>
+                            {expense.id.substring(0, 8)}...
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
+                          {formatDate(expense.date)}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-700">{expense.category}</td>
+                        <td className="py-3 px-4 text-sm text-gray-700">{expense.vendor}</td>
+                        <td className="py-3 px-4 text-right text-sm font-semibold text-gray-800 whitespace-nowrap">
+                          ${formatCurrency(expense.amount)}
+                        </td>
+                        <td className="py-3 px-4 text-center">{getStatusBadge(expense.status)}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex gap-1 justify-center">
+                            <button
+                              onClick={() => handleUnarchiveExpense(expense)}
+                              className="flex items-center gap-1 px-2 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-xs font-medium"
+                              title="Restore this expense"
+                            >
+                              <ArchiveRestore className="w-3.5 h-3.5" />
+                              Restore
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Expense List */}
         {(activeTab === "active" || activeTab === "history") && (
           <div className="bg-white rounded-lg shadow-lg p-6">
@@ -816,12 +994,24 @@ const EmployeeDashboard = () => {
               <h2 className="text-xl font-semibold text-gray-800">
                 {activeTab === "active" ? "Active Expenses" : "Expense History"}
               </h2>
-              {currentExpenses.length > 0 && (
-                <span className="text-sm text-gray-600">
-                  {currentExpenses.length} expense
-                  {currentExpenses.length !== 1 ? "s" : ""}
-                </span>
-              )}
+              <div className="flex items-center gap-3">
+                {activeTab === "history" && historyExpenses.length > 0 && (
+                  <button
+                    onClick={handleArchiveAllHistory}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                    title="Archive all completed expenses"
+                  >
+                    <Archive className="w-4 h-4" />
+                    Archive All
+                  </button>
+                )}
+                {currentExpenses.length > 0 && (
+                  <span className="text-sm text-gray-600">
+                    {currentExpenses.length} expense
+                    {currentExpenses.length !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Sort Controls */}
@@ -1013,40 +1203,52 @@ const EmployeeDashboard = () => {
                             {getAutoApprovalBadge(expense)}
                           </td>
                           <td className="py-3 px-4">
-                            {expense.status?.toLowerCase() === "pending" &&
-                              !expense._optimistic && (
-                                <div className="flex gap-1 justify-center">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedExpense(expense);
-                                      setShowExpenseEdit(true);
-                                    }}
-                                    className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                                    title="Edit this expense"
-                                  >
-                                    <Edit2 className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedExpense(expense);
-                                      setShowReceiptUpload(true);
-                                    }}
-                                    className={`p-1.5 ${theme.colors.badge} rounded hover:bg-${theme.colors.primaryLight} transition-colors`}
-                                    title="Upload receipt"
-                                  >
-                                    <Upload className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleWithdrawExpense(expense)
-                                    }
-                                    className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                                    title="Withdraw this expense"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
+                            <div className="flex gap-1 justify-center">
+                              {expense.status?.toLowerCase() === "pending" &&
+                                !expense._optimistic && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setSelectedExpense(expense);
+                                        setShowExpenseEdit(true);
+                                      }}
+                                      className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                                      title="Edit this expense"
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setSelectedExpense(expense);
+                                        setShowReceiptUpload(true);
+                                      }}
+                                      className={`p-1.5 ${theme.colors.badge} rounded hover:bg-${theme.colors.primaryLight} transition-colors`}
+                                      title="Upload receipt"
+                                    >
+                                      <Upload className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleWithdrawExpense(expense)
+                                      }
+                                      className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                                      title="Withdraw this expense"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                )}
+                              {expense.status?.toLowerCase() !== "pending" && (
+                                <button
+                                  onClick={() => handleArchiveExpense(expense)}
+                                  className="flex items-center gap-1 px-2 py-1.5 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors text-xs font-medium"
+                                  title="Archive this expense"
+                                >
+                                  <Archive className="w-3.5 h-3.5" />
+                                  Archive
+                                </button>
                               )}
+                            </div>
                           </td>
                         </tr>
                         {/* Transaction ID row */}

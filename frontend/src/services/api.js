@@ -374,6 +374,27 @@ export const expenseAPI = {
     });
   },
 
+  // Archive an expense (employee, own completed expenses)
+  archiveMyExpense: async (expenseId) => {
+    return request(`/expenses/${expenseId}/archive`, {
+      method: "POST",
+    });
+  },
+
+  // Unarchive an expense (employee, own expenses)
+  unarchiveMyExpense: async (expenseId) => {
+    return request(`/expenses/${expenseId}/unarchive`, {
+      method: "POST",
+    });
+  },
+
+  // Get archived expenses (employee)
+  getMyArchivedExpenses: async () => {
+    return request("/expenses/archived", {
+      method: "GET",
+    });
+  },
+
   // Get expense report
   getExpenseReport: async (userId = null) => {
     const queryParam = userId ? `?user_id=${userId}` : "";

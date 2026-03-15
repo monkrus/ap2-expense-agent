@@ -22,20 +22,36 @@ import {
 import { useToast } from "../hooks/useToast";
 
 const EXPENSE_CATEGORIES = [
-  "MEALS",
   "TRAVEL",
-  "OFFICE_SUPPLIES",
-  "EQUIPMENT",
+  "MEALS",
   "SOFTWARE",
-  "MARKETING",
+  "OFFICE_SUPPLIES",
   "ENTERTAINMENT",
-  "PARKING",
-  "FUEL",
-  "SHIPPING",
+  "UTILITIES",
+  "MARKETING",
+  "HARDWARE",
+  "PROFESSIONAL_SERVICES",
   "OTHER",
 ];
 
-const ApprovalPolicies = () => {
+// Human-readable labels for category enum values
+const formatCategory = (cat) => {
+  const labels = {
+    TRAVEL: "Travel",
+    MEALS: "Meals",
+    SOFTWARE: "Software",
+    OFFICE_SUPPLIES: "Office Supplies",
+    ENTERTAINMENT: "Entertainment",
+    UTILITIES: "Utilities",
+    MARKETING: "Marketing",
+    HARDWARE: "Hardware",
+    PROFESSIONAL_SERVICES: "Professional Services",
+    OTHER: "Other",
+  };
+  return labels[cat] || cat.replace(/_/g, " ");
+};
+
+const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
   const { success, error: showError } = useToast();
   const [policies, setPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -89,6 +105,43 @@ const ApprovalPolicies = () => {
   useEffect(() => {
     loadPolicies();
   }, []);
+
+  // Handle pre-fill from rule request approval
+  useEffect(() => {
+    if (prefillData) {
+      const prefilled = {
+        name: "",
+        description: prefillData.reason ? `Requested by employee: ${prefillData.reason}` : "",
+        priority: "medium",
+        auto_approve: true,
+        require_receipt: false,
+        notify_on_auto_approve: true,
+        max_amount_per_expense: prefillData.max_amount || "",
+        daily_limit_per_user: "",
+        monthly_limit_per_user: "",
+        yearly_limit_per_user: "",
+        conditions: {
+          categories: prefillData.category ? [prefillData.category] : [],
+          vendors: prefillData.vendor ? [prefillData.vendor] : [],
+          exclude_vendors: [],
+          min_amount: "",
+        },
+      };
+
+      // Auto-generate name
+      const parts = [];
+      if (prefillData.category) parts.push(prefillData.category.replace(/_/g, " "));
+      if (prefillData.vendor) parts.push(prefillData.vendor);
+      if (prefillData.max_amount) parts.push(`up to $${prefillData.max_amount}`);
+      prefilled.name = parts.length > 0 ? `Auto-approve ${parts.join(" - ")}` : "New Auto-Approval Rule";
+
+      setFormData(prefilled);
+      setEditingPolicy(null);
+      setShowCreateForm(true);
+
+      if (onPrefillConsumed) onPrefillConsumed();
+    }
+  }, [prefillData]);
 
   const loadPolicies = async () => {
     try {
@@ -634,7 +687,7 @@ const ApprovalPolicies = () => {
                       onChange={() => toggleCategory(category)}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">{category}</span>
+                    <span className="text-sm text-gray-700">{formatCategory(category)}</span>
                   </label>
                 ))}
               </div>
@@ -769,7 +822,7 @@ const ApprovalPolicies = () => {
                 <option value="">All Categories</option>
                 {EXPENSE_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
-                    {cat}
+                    {formatCategory(cat)}
                   </option>
                 ))}
               </select>
@@ -957,8 +1010,8 @@ const ApprovalPolicies = () => {
                           <Tag className="h-3 w-3 mr-1" />
                           {policy.conditions?.categories?.length > 0
                             ? policy.conditions.categories.length === 1
-                              ? policy.conditions.categories[0]
-                              : `${policy.conditions.categories.length} categories: ${policy.conditions.categories.join(", ")}`
+                              ? formatCategory(policy.conditions.categories[0])
+                              : `${policy.conditions.categories.length} categories: ${policy.conditions.categories.map(formatCategory).join(", ")}`
                             : "All Categories"
                           }
                         </span>
