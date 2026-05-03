@@ -107,7 +107,7 @@ def test_user(db_session):
         id=str(uuid.uuid4()),
         organization_id=org.id,
         user_id=user.id,
-        role=OrganizationRole.MEMBER,
+        role=OrganizationRole.EMPLOYEE,
         is_active=True,
         joined_at=datetime.utcnow(),
     )
@@ -300,7 +300,7 @@ def user_with_organization(db_session, test_user, test_organization):
         id=f"member_{uuid.uuid4().hex[:8]}",
         organization_id=test_organization.id,
         user_id=test_user.id,
-        role=OrganizationRole.MEMBER,
+        role=OrganizationRole.EMPLOYEE,
         joined_at=datetime.utcnow(),
     )
     db_session.add(member)
@@ -347,7 +347,7 @@ def second_org_user(db_session, second_organization):
         id=f"member_{uuid.uuid4().hex[:8]}",
         organization_id=second_organization.id,
         user_id=user.id,
-        role=OrganizationRole.MEMBER,
+        role=OrganizationRole.EMPLOYEE,
         joined_at=datetime.utcnow(),
     )
     db_session.add(member)
@@ -466,7 +466,7 @@ def manager_org_employee(db_session, test_manager):
         id=str(uuid.uuid4()),
         organization_id=manager_membership.organization_id,
         user_id=employee.id,
-        role=OrganizationRole.MEMBER,
+        role=OrganizationRole.EMPLOYEE,
         is_active=True,
         joined_at=datetime.utcnow(),
     )
