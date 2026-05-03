@@ -181,7 +181,7 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
           <button
             onClick={() => {
               const apiUrl =
-                import.meta.env.VITE_API_URL || "http://localhost:8000";
+                import.meta.env.VITE_API_BASE_URL || "";
               window.location.href = `${apiUrl}/api/v1/oauth2/google/login`;
             }}
             disabled={loading}

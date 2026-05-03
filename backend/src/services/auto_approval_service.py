@@ -118,6 +118,29 @@ async def evaluate_auto_approval(
             except Exception as e:
                 logger.error(f"[AP2] Failed to check mandate exhaustion: {e}")
 
+            # Send auto-approval notification to user
+            try:
+                notification = Notification(
+                    id=str(uuid.uuid4()),
+                    user_id=user.id,
+                    organization_id=org_id,
+                    notification_type=NotificationType.EXPENSE_APPROVED,
+                    title="Expense Auto-Approved by AI",
+                    message=f"Your ${float(expense.amount):.2f} expense for {expense.vendor or 'Unknown vendor'} was auto-approved by AI agent via Intent Mandate",
+                    expense_id=expense.id,
+                    is_read=False,
+                    created_at=datetime.utcnow(),
+                )
+                db.add(notification)
+            except Exception as e:
+                logger.error(f"Failed to create AP2 auto-approval notification: {e}")
+
+            # Send email notification (async, non-blocking)
+            try:
+                _send_auto_approval_email(user, expense, "intent_mandate", matching_mandate)
+            except Exception as e:
+                logger.error(f"Failed to queue auto-approval email: {e}")
+
             result.approved = True
             result.via = "intent_mandate"
             result.mandate_id = matching_mandate.id
@@ -167,6 +190,12 @@ async def evaluate_auto_approval(
                 except Exception as e:
                     logger.error(f"Failed to create auto-approval notification: {e}")
 
+            # Send email notification (async, non-blocking)
+            try:
+                _send_auto_approval_email(user, expense, "approval_policy")
+            except Exception as e:
+                logger.error(f"Failed to queue policy auto-approval email: {e}")
+
             result.approved = True
             result.via = "approval_policy"
             result.policy_id = matching_policy.id
@@ -179,6 +208,52 @@ async def evaluate_auto_approval(
         logger.error(f"Auto-approval evaluation failed: {e}")
 
     return result
+
+
+def _send_auto_approval_email(user: User, expense, approval_via: str, mandate=None):
+    """Queue an auto-approval email to the user (fire-and-forget)."""
+    import asyncio
+    try:
+        from ..email_service import EmailService
+        from ..email_templates import get_auto_approved_email
+
+        if not user.email:
+            return
+
+        expense_data = {
+            "amount": float(expense.amount),
+            "vendor": expense.vendor or "Unknown",
+            "category": expense.category.value if hasattr(expense.category, "value") else str(expense.category),
+            "description": expense.description or "",
+            "date": str(expense.date) if expense.date else "",
+        }
+
+        mandate_details = None
+        if mandate:
+            try:
+                import json as _json
+                constraints = _json.loads(mandate.constraints) if isinstance(mandate.constraints, str) else {}
+            except Exception:
+                constraints = {}
+            mandate_details = {
+                "name": getattr(mandate, "description", "") or "Intent Mandate",
+                "constraints": {k: v for k, v in constraints.items() if not k.startswith("@")},
+            }
+
+        subject, html_body, text_body = get_auto_approved_email(
+            expense_data, approval_via, mandate_details
+        )
+
+        # Schedule the async email send without blocking
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(EmailService.send_email(user.email, subject, html_body=html_body, text_body=text_body))
+        except RuntimeError:
+            # No running loop -- skip email silently
+            logger.debug("No event loop available for auto-approval email")
+
+    except Exception as e:
+        logger.error(f"Auto-approval email preparation failed: {e}")
 
 
 def notify_admins_new_expense(

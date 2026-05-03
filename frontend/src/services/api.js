@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 let orgContextPromise = null;
 
 class APIError extends Error {
@@ -498,7 +498,7 @@ export const authAPI = {
     formData.append("username", email);
     formData.append("password", password);
 
-    return fetch("/api/auth/login", {
+    return fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       body: formData,
     }).then(handleResponse);

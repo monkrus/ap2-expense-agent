@@ -770,13 +770,13 @@ class BudgetAlert(Base):
 
 
 class IntentMandate(Base):
-    """AP2 Intent Mandate - User's authorization constraints"""
+    """AP2 Intent Mandate - User's authorization constraints (AP2 2026 spec)"""
 
     __tablename__ = "intent_mandates"
 
     id = Column(String(255), primary_key=True)
     user_id = Column(String(255), ForeignKey("users.id"), nullable=False, index=True)
-    constraints = Column(Text, nullable=False)  # JSON stored as text
+    constraints = Column(Text, nullable=False)  # JSON-LD stored as text
     timestamp = Column(DateTime, nullable=False)
     expiration = Column(DateTime, nullable=False)
     signature = Column(Text, nullable=True)
@@ -786,6 +786,13 @@ class IntentMandate(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
+    # AP2 2026: Agent identity and A2A protocol fields
+    agent_id = Column(String(255), nullable=True, default="ap2-expense-agent")
+    authorization_type = Column(
+        String(50), nullable=True, default="human_delegated"
+    )  # human_delegated | autonomous | hybrid
+    a2a_protocol_version = Column(String(20), nullable=True, default="1.0")
+
     # Relationships
     user = relationship("User", backref="intent_mandates")
     cart_mandates = relationship(
@@ -794,7 +801,7 @@ class IntentMandate(Base):
 
 
 class CartMandate(Base):
-    """AP2 Cart Mandate - Specific items for approval"""
+    """AP2 Cart Mandate - Specific items for approval (AP2 2026 spec)"""
 
     __tablename__ = "cart_mandates"
 
@@ -802,7 +809,7 @@ class CartMandate(Base):
     intent_mandate_id = Column(
         String(255), ForeignKey("intent_mandates.id"), nullable=False, index=True
     )
-    items = Column(Text, nullable=False)  # JSON stored as text
+    items = Column(Text, nullable=False)  # JSON-LD stored as text
     total = Column(Numeric(10, 2), nullable=False)
     merchant = Column(String(255), nullable=False)
     timestamp = Column(DateTime, nullable=False)
@@ -813,6 +820,10 @@ class CartMandate(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
+    # AP2 2026: UCP (Universal Commerce Protocol) reference
+    ucp_order_id = Column(String(255), nullable=True)
+    merchant_agent_signature = Column(Text, nullable=True)  # Merchant agent's signing of the cart
+
     # Relationships
     intent_mandate = relationship("IntentMandate", back_populates="cart_mandates")
     payment_mandates = relationship(
@@ -821,7 +832,7 @@ class CartMandate(Base):
 
 
 class PaymentMandate(Base):
-    """AP2 Payment Mandate - Payment execution record"""
+    """AP2 Payment Mandate - Payment execution record (AP2 2026 spec)"""
 
     __tablename__ = "payment_mandates"
 
@@ -831,7 +842,7 @@ class PaymentMandate(Base):
     )
     payment_method = Column(String(100), nullable=False)
     status = Column(String(50), nullable=False, default="pending", index=True)
-    audit_trail = Column(Text, nullable=False)  # JSON stored as text
+    audit_trail = Column(Text, nullable=False)  # JSON-LD stored as text
     timestamp = Column(DateTime, nullable=False)
     payment_processor_response = Column(Text, nullable=True)  # JSON stored as text
     revoked_at = Column(DateTime, nullable=True)
@@ -839,6 +850,9 @@ class PaymentMandate(Base):
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
+
+    # AP2 2026: Agent Signal for HNP (Human-Not-Present) risk scoring
+    agent_signal = Column(Text, nullable=True)  # JSON: agent_id, confidence, authorization chain
 
     # Relationships
     cart_mandate = relationship("CartMandate", back_populates="payment_mandates")

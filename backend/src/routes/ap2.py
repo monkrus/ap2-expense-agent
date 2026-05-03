@@ -121,12 +121,19 @@ class CompleteAP2FlowRequest(BaseModel):
     items: List[Dict]
     merchant: str
     constraints: Optional[Dict] = None
+    payment_method: str = "stripe"  # stripe, x402_stablecoin, expense_reimbursement
     stripe_customer_id: Optional[str] = None
 
 
 class RevokeMandateRequest(BaseModel):
     reason: str
     revoke_dependents: bool = True
+
+
+class CheckAutoApprovalRequest(BaseModel):
+    amount: float
+    category: str
+    vendor: str
 
 
 def _validate_constraints(constraints: Dict):
@@ -290,6 +297,10 @@ async def create_intent_mandate(
         "timestamp": intent_mandate.timestamp,
         "expiration": intent_mandate.expiration,
         "signature": intent_mandate.signature,
+        # AP2 2026: Agent identity
+        "agent_id": intent_mandate.agent_id,
+        "authorization_type": intent_mandate.authorization_type,
+        "a2a_protocol_version": intent_mandate.a2a_protocol_version,
     }
 
 
@@ -335,7 +346,11 @@ async def create_cart_mandate(
             detail=str(e),
         )
 
+    from ..payments.ap2_service import AP2_JSONLD_CONTEXT, AP2_PROTOCOL_VERSION
+
     return {
+        "@context": AP2_JSONLD_CONTEXT,
+        "@type": "CartMandate",
         "success": True,
         "cart_mandate_id": cart_mandate.id,
         "status": cart_mandate.status,
@@ -343,6 +358,9 @@ async def create_cart_mandate(
         "merchant": cart_mandate.merchant,
         "items_count": len(request.items),
         "timestamp": cart_mandate.timestamp,
+        # AP2 2026: UCP fields
+        "ucp_order_id": cart_mandate.ucp_order_id,
+        "merchant_agent_signature": cart_mandate.merchant_agent_signature is not None,
     }
 
 
@@ -365,12 +383,31 @@ async def create_payment_mandate(
         cart_mandate_id=data.cart_mandate_id, payment_method=data.payment_method
     )
 
+    from ..payments.ap2_service import AP2_JSONLD_CONTEXT, AP2_PROTOCOL_VERSION
+
+    # Parse agent signal summary for response
+    agent_signal_summary = None
+    if payment_mandate.agent_signal:
+        try:
+            import json as _json
+            sig = _json.loads(payment_mandate.agent_signal)
+            agent_signal_summary = {
+                "agent_id": sig.get("agent_id"),
+                "authorization_type": sig.get("authorization_type"),
+                "confidence_score": sig.get("confidence_score"),
+            }
+        except Exception:
+            pass
+
     return {
+        "@context": AP2_JSONLD_CONTEXT,
+        "@type": "PaymentMandate",
         "success": True,
         "payment_mandate_id": payment_mandate.id,
         "status": payment_mandate.status,
         "payment_method": payment_mandate.payment_method,
         "timestamp": payment_mandate.timestamp,
+        "agent_signal": agent_signal_summary,
     }
 
 
@@ -532,10 +569,11 @@ async def complete_ap2_flow(
     try:
         result = await ap2_service.complete_ap2_flow(
             user_id=current_user.id,
-            items=data.items,  # Changed from request.items
-            merchant=data.merchant,  # Changed from request.merchant
-            constraints=data.constraints,  # Changed from request.constraints
-            stripe_customer_id=data.stripe_customer_id,  # Changed from request.stripe_customer_id
+            items=data.items,
+            merchant=data.merchant,
+            constraints=data.constraints,
+            payment_method=data.payment_method,
+            stripe_customer_id=data.stripe_customer_id,
         )
     except ValueError as exc:
         # Convert validation errors to proper HTTP 400 responses
@@ -627,8 +665,10 @@ async def get_user_mandates(
             from datetime import datetime
             constraints = {}
             try:
-                constraints = json.loads(mandate.constraints) if mandate.constraints else {}
-            except:
+                raw = json.loads(mandate.constraints) if mandate.constraints else {}
+                # Strip JSON-LD envelope fields for display
+                constraints = {k: v for k, v in raw.items() if not k.startswith("@")}
+            except Exception:
                 constraints = {}
 
             # Check if mandate has expired and update status if needed
@@ -1115,4 +1155,562 @@ async def revoke_payment_mandate(
         "status": "revoked",
         "revoked_at": payment_mandate.revoked_at.isoformat(),
         "message": "Payment cancelled successfully",
+    }
+
+
+# ============================================================================
+# AP2 2026 Phase 2: Agent Discovery & Protocol Info
+# ============================================================================
+
+
+@router.get("/.well-known/agent.json")
+async def agent_card():
+    """
+    A2A 1.0 Agent Card — standardized agent discovery endpoint.
+
+    Used by other agents, GEAP (Gemini Enterprise Agent Platform), and
+    orchestration platforms to discover this agent's capabilities.
+    """
+    from ..payments.ap2_service import (
+        A2A_PROTOCOL_VERSION,
+        AGENT_ID,
+        AGENT_VERSION,
+        AP2_JSONLD_CONTEXT,
+        AP2_PROTOCOL_VERSION,
+        PAYMENT_METHODS,
+    )
+
+    return {
+        "@context": AP2_JSONLD_CONTEXT,
+        "@type": "AgentCard",
+        "agent_id": AGENT_ID,
+        "agent_version": AGENT_VERSION,
+        "name": "AP2 Expense Management Agent",
+        "description": "AI-powered expense management with AP2 protocol payment verification",
+        "protocol": {
+            "ap2_version": AP2_PROTOCOL_VERSION,
+            "a2a_version": A2A_PROTOCOL_VERSION,
+        },
+        "capabilities": [
+            "intent_mandates",
+            "cart_mandates",
+            "payment_mandates",
+            "complete_flow",
+            "mandate_revocation",
+            "agent_signal_hnp",
+            "json_ld_mandates",
+        ],
+        "payment_methods": list(PAYMENT_METHODS.keys()),
+        "endpoints": {
+            "intent_mandate": "/api/ap2/intent-mandate",
+            "cart_mandate": "/api/ap2/cart-mandate",
+            "payment_mandate": "/api/ap2/payment-mandate",
+            "execute_payment": "/api/ap2/execute-payment",
+            "complete_flow": "/api/ap2/complete-flow",
+            "mandate_status": "/api/ap2/mandate/{mandate_id}/status",
+            "user_mandates": "/api/ap2/user/mandates",
+            "stats": "/api/ap2/stats",
+            "protocol_info": "/api/ap2/protocol-info",
+            "agent_card": "/api/ap2/.well-known/agent.json",
+        },
+        "authentication": {
+            "type": "bearer_token",
+            "header": "Authorization",
+        },
+        "organization": {
+            "header": "X-Organization-Id",
+            "required": True,
+        },
+    }
+
+
+@router.get("/protocol-info")
+async def protocol_info():
+    """
+    AP2 protocol information — versions, capabilities, supported features.
+    Public endpoint for frontend and external agent discovery.
+    """
+    from ..payments.ap2_service import (
+        A2A_PROTOCOL_VERSION,
+        AGENT_ID,
+        AGENT_VERSION,
+        AP2_JSONLD_CONTEXT,
+        AP2_PROTOCOL_VERSION,
+        PAYMENT_METHODS,
+    )
+
+    return {
+        "@context": AP2_JSONLD_CONTEXT,
+        "@type": "ProtocolInfo",
+        "agent_id": AGENT_ID,
+        "agent_version": AGENT_VERSION,
+        "ap2_protocol_version": AP2_PROTOCOL_VERSION,
+        "a2a_protocol_version": A2A_PROTOCOL_VERSION,
+        "payment_methods": {k: v for k, v in PAYMENT_METHODS.items()},
+        "features": {
+            "json_ld_mandates": True,
+            "agent_signal_hnp": True,
+            "ucp_order_reference": True,
+            "x402_stablecoin": False,  # Stub -- not yet live
+            "mandate_revocation": True,
+            "cryptographic_signing": True,
+        },
+    }
+
+
+# ── Auto-approval preview ──────────────────────────────────────────
+@router.post("/check-auto-approval")
+async def check_auto_approval(
+    request: CheckAutoApprovalRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Preview whether an expense would be auto-approved by an existing
+    Intent Mandate. Does NOT create any records -- read-only check.
+    """
+    import json as _json
+
+    ap2_service = AP2PaymentService(db)
+    org_id = getattr(current_user, "active_organization_id", None) or ""
+
+    matching_mandate = ap2_service.find_matching_intent_mandate(
+        user_id=current_user.id,
+        amount=request.amount,
+        category=request.category,
+        merchant=request.vendor,
+        organization_id=org_id,
+    )
+
+    if matching_mandate:
+        try:
+            constraints = _json.loads(matching_mandate.constraints)
+        except Exception:
+            constraints = {}
+        remaining_monthly = None
+        monthly_limit = constraints.get("monthly_limit")
+        if monthly_limit:
+            current_usage = ap2_service._get_mandate_monthly_usage(
+                matching_mandate.id, org_id
+            )
+            remaining_monthly = float(monthly_limit) - current_usage
+
+        return {
+            "will_auto_approve": True,
+            "via": "intent_mandate",
+            "mandate_id": matching_mandate.id,
+            "mandate_constraints": {
+                k: v for k, v in constraints.items() if not k.startswith("@")
+            },
+            "remaining_monthly": remaining_monthly,
+        }
+
+    # Also check approval policies as fallback info
+    try:
+        from ..services.approval_policy_service import ApprovalPolicyService
+        from ..models import Expense, ExpenseCategory
+
+        policy_service = ApprovalPolicyService(db)
+        # Build a lightweight stub expense for evaluation
+        stub = type("Stub", (), {
+            "amount": request.amount,
+            "category": request.category,
+            "vendor": request.vendor,
+            "organization_id": org_id,
+        })()
+        should_approve, policy, reason = policy_service.evaluate_expense(
+            stub, current_user
+        )
+        if should_approve and policy:
+            return {
+                "will_auto_approve": True,
+                "via": "approval_policy",
+                "policy_name": policy.name,
+                "policy_id": policy.id,
+            }
+    except Exception:
+        pass
+
+    return {"will_auto_approve": False}
+
+
+# ── Suggest mandate from expense ────────────────────────────────────
+@router.post("/suggest-mandate")
+async def suggest_mandate_from_expense(
+    request: CheckAutoApprovalRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Given expense details, suggest Intent Mandate constraints that would
+    auto-approve similar expenses in the future.
+    """
+    import math
+
+    # Round up max_amount to nearest $25 for headroom
+    suggested_max = math.ceil(request.amount / 25) * 25
+    if suggested_max < request.amount * 1.2:
+        suggested_max = math.ceil(request.amount * 1.2 / 25) * 25
+
+    suggested_monthly = suggested_max * 5  # allow ~5 similar expenses/month
+
+    return {
+        "suggested_constraints": {
+            "max_amount": suggested_max,
+            "monthly_limit": suggested_monthly,
+            "category": request.category,
+            "merchant": request.vendor,
+        },
+        "explanation": (
+            f"This mandate would auto-approve {request.vendor} expenses "
+            f"in {request.category} up to ${suggested_max:.2f} each, "
+            f"with a ${suggested_monthly:.2f}/month limit."
+        ),
+    }
+
+
+# ── Monthly summary ────────────────────────────────────────────────
+class MonthlySummaryRequest(BaseModel):
+    year: Optional[int] = None
+    month: Optional[int] = None
+
+
+@router.post("/send-monthly-summary")
+async def send_monthly_summary(
+    request: MonthlySummaryRequest = MonthlySummaryRequest(),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Send the monthly auto-approval summary email to the current user.
+    Defaults to the previous month. Admins can trigger for all users
+    by adding ?all=true.
+    """
+    from ..services.monthly_summary_service import (
+        gather_user_monthly_stats,
+        send_user_monthly_summary,
+    )
+
+    now = datetime.utcnow()
+    year = request.year
+    month = request.month
+    if year is None or month is None:
+        if now.month == 1:
+            year = now.year - 1
+            month = 12
+        else:
+            year = now.year
+            month = now.month - 1
+
+    summary = await send_user_monthly_summary(db, current_user.id, year, month)
+    if not summary:
+        return {"detail": "No expenses found for the requested month", "sent": False}
+
+    return {
+        "sent": summary["auto_approved_count"] > 0,
+        "summary": summary,
+    }
+
+
+@router.post("/send-monthly-summary/all")
+async def send_all_monthly_summaries_endpoint(
+    request: MonthlySummaryRequest = MonthlySummaryRequest(),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Admin-only: Send monthly summary emails to ALL users who had
+    auto-approved expenses in the target month.
+    """
+    if current_user.role not in ("admin", "owner"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can trigger organization-wide summaries",
+        )
+
+    from ..services.monthly_summary_service import send_all_monthly_summaries
+
+    result = await send_all_monthly_summaries(request.year, request.month)
+    return result
+
+
+# ── AI Pattern Detection / Mandate Suggestions ─────────────────────
+@router.get("/mandate-suggestions")
+async def get_mandate_suggestions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Analyze the user's expense history and suggest Intent Mandates
+    for recurring vendor/category patterns that aren't yet covered.
+    """
+    from ..services.pattern_service import detect_patterns
+
+    org_id = getattr(current_user, "active_organization_id", None) or ""
+    suggestions = detect_patterns(db, current_user.id, org_id)
+    return {"suggestions": suggestions, "count": len(suggestions)}
+
+
+# ── Onboarding: sample mandate templates ────────────────────────────
+@router.get("/sample-mandates")
+async def get_sample_mandates(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Return sample Intent Mandate templates for onboarding.
+    Users can one-click create from these.
+    """
+    return {
+        "templates": [
+            {
+                "name": "Office Supplies",
+                "description": "Auto-approve office supply purchases from common vendors",
+                "constraints": {
+                    "max_amount": 100.00,
+                    "monthly_limit": 300.00,
+                    "category": "OFFICE_SUPPLIES",
+                },
+                "expiration_hours": 720,
+            },
+            {
+                "name": "Software Subscriptions",
+                "description": "Auto-approve software and SaaS subscriptions",
+                "constraints": {
+                    "max_amount": 50.00,
+                    "monthly_limit": 200.00,
+                    "category": "SOFTWARE",
+                },
+                "expiration_hours": 720,
+            },
+            {
+                "name": "Team Meals",
+                "description": "Auto-approve meals and team lunches",
+                "constraints": {
+                    "max_amount": 75.00,
+                    "monthly_limit": 300.00,
+                    "category": "MEALS",
+                },
+                "expiration_hours": 720,
+            },
+            {
+                "name": "Travel Expenses",
+                "description": "Auto-approve travel costs under $200",
+                "constraints": {
+                    "max_amount": 200.00,
+                    "monthly_limit": 1000.00,
+                    "category": "TRAVEL",
+                },
+                "expiration_hours": 720,
+            },
+        ],
+    }
+
+
+# ── Analytics: trends, cost savings, bottlenecks ────────────────────
+@router.get("/analytics/trends")
+async def get_auto_approval_trends(
+    days: int = 30,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Auto-approval trends over the last N days.
+    Returns daily counts of auto-approved vs manual expenses.
+    """
+    from sqlalchemy import func as sqlfunc, cast, Date
+    from collections import defaultdict
+
+    org_id = getattr(current_user, "active_organization_id", None) or ""
+    cutoff = datetime.utcnow() - __import__("datetime").timedelta(days=days)
+
+    from ..models import Expense
+
+    expenses = (
+        db.query(
+            sqlfunc.date(Expense.created_at).label("day"),
+            Expense.auto_approved,
+            Expense.auto_approved_via,
+            sqlfunc.count().label("cnt"),
+            sqlfunc.sum(Expense.amount).label("total"),
+        )
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.created_at >= cutoff,
+        )
+        .group_by(sqlfunc.date(Expense.created_at), Expense.auto_approved, Expense.auto_approved_via)
+        .all()
+    )
+
+    # Build daily buckets
+    daily = defaultdict(lambda: {
+        "date": None, "auto_mandate": 0, "auto_policy": 0,
+        "manual": 0, "total": 0, "auto_amount": 0.0, "manual_amount": 0.0,
+    })
+
+    for row in expenses:
+        day_str = str(row.day)
+        daily[day_str]["date"] = day_str
+        cnt = row.cnt
+        amt = float(row.total or 0)
+        daily[day_str]["total"] += cnt
+        if row.auto_approved:
+            daily[day_str]["auto_amount"] += amt
+            if row.auto_approved_via == "intent_mandate":
+                daily[day_str]["auto_mandate"] += cnt
+            else:
+                daily[day_str]["auto_policy"] += cnt
+        else:
+            daily[day_str]["manual"] += cnt
+            daily[day_str]["manual_amount"] += amt
+
+    trend_data = sorted(daily.values(), key=lambda d: d["date"])
+
+    # Compute overall rate
+    total_all = sum(d["total"] for d in trend_data)
+    total_auto = sum(d["auto_mandate"] + d["auto_policy"] for d in trend_data)
+    overall_rate = (total_auto / total_all * 100) if total_all > 0 else 0
+
+    return {
+        "days": days,
+        "trend": trend_data,
+        "overall_auto_approval_rate": round(overall_rate, 1),
+        "total_expenses": total_all,
+        "total_auto_approved": total_auto,
+    }
+
+
+@router.get("/analytics/cost-savings")
+async def get_cost_savings(
+    days: int = 30,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Cost savings from auto-approval: time saved, estimated dollar value.
+    """
+    from sqlalchemy import func as sqlfunc
+
+    org_id = getattr(current_user, "active_organization_id", None) or ""
+    cutoff = datetime.utcnow() - __import__("datetime").timedelta(days=days)
+
+    from ..models import Expense
+
+    auto_count = (
+        db.query(sqlfunc.count())
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.created_at >= cutoff,
+            Expense.auto_approved == True,
+        )
+        .scalar() or 0
+    )
+
+    auto_amount = (
+        db.query(sqlfunc.sum(Expense.amount))
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.created_at >= cutoff,
+            Expense.auto_approved == True,
+        )
+        .scalar() or 0
+    )
+
+    total_count = (
+        db.query(sqlfunc.count())
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.created_at >= cutoff,
+        )
+        .scalar() or 0
+    )
+
+    minutes_saved = auto_count * 3  # 3 min per auto-approval
+    hours_saved = round(minutes_saved / 60, 1)
+    # Estimated cost savings at $50/hr manager time
+    dollar_savings = round(hours_saved * 50, 2)
+
+    return {
+        "days": days,
+        "auto_approved_count": auto_count,
+        "auto_approved_amount": float(auto_amount),
+        "total_count": total_count,
+        "minutes_saved": minutes_saved,
+        "hours_saved": hours_saved,
+        "estimated_dollar_savings": dollar_savings,
+        "rate": round(auto_count / total_count * 100, 1) if total_count > 0 else 0,
+    }
+
+
+@router.get("/analytics/bottlenecks")
+async def get_bottlenecks(
+    days: int = 30,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Identify bottlenecks: categories/vendors with lowest auto-approval
+    rates or highest rejection rates.
+    """
+    from sqlalchemy import func as sqlfunc
+    from collections import defaultdict
+
+    org_id = getattr(current_user, "active_organization_id", None) or ""
+    cutoff = datetime.utcnow() - __import__("datetime").timedelta(days=days)
+
+    from ..models import Expense, ExpenseStatus
+
+    expenses = (
+        db.query(Expense)
+        .filter(
+            Expense.organization_id == org_id,
+            Expense.created_at >= cutoff,
+        )
+        .all()
+    )
+
+    # Group by category
+    cat_stats = defaultdict(lambda: {"total": 0, "auto": 0, "rejected": 0, "pending": 0, "amount": 0.0})
+    vendor_stats = defaultdict(lambda: {"total": 0, "auto": 0, "rejected": 0, "pending": 0, "amount": 0.0})
+
+    for e in expenses:
+        cat = e.category.value if hasattr(e.category, "value") else str(e.category)
+        vendor = e.vendor or "Unknown"
+        status = e.status.value if hasattr(e.status, "value") else str(e.status)
+        amt = float(e.amount)
+
+        for stats, key in [(cat_stats, cat), (vendor_stats, vendor)]:
+            stats[key]["total"] += 1
+            stats[key]["amount"] += amt
+            if e.auto_approved:
+                stats[key]["auto"] += 1
+            if status == "rejected":
+                stats[key]["rejected"] += 1
+            if status == "pending":
+                stats[key]["pending"] += 1
+
+    def build_bottleneck_list(stats_dict):
+        items = []
+        for name, s in stats_dict.items():
+            if s["total"] < 2:
+                continue
+            auto_rate = (s["auto"] / s["total"] * 100) if s["total"] > 0 else 0
+            rejection_rate = (s["rejected"] / s["total"] * 100) if s["total"] > 0 else 0
+            items.append({
+                "name": name,
+                "total": s["total"],
+                "auto_approved": s["auto"],
+                "rejected": s["rejected"],
+                "pending": s["pending"],
+                "amount": round(s["amount"], 2),
+                "auto_approval_rate": round(auto_rate, 1),
+                "rejection_rate": round(rejection_rate, 1),
+            })
+        # Sort by auto_approval_rate ascending (worst first)
+        items.sort(key=lambda x: x["auto_approval_rate"])
+        return items
+
+    return {
+        "days": days,
+        "category_bottlenecks": build_bottleneck_list(cat_stats),
+        "vendor_bottlenecks": build_bottleneck_list(vendor_stats)[:10],
     }

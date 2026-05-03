@@ -16,6 +16,8 @@ from .email_templates import (
     get_expense_rejected_email,
     get_pending_approval_email,
     get_budget_alert_email,
+    get_auto_approved_email,
+    get_monthly_auto_approval_summary_email,
 )
 
 logger = logging.getLogger(__name__)

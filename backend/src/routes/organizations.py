@@ -383,6 +383,14 @@ async def list_organizations(
     return organizations
 
 
+@router.get("/my-organizations", response_model=List[OrganizationResponse])
+async def my_organizations(
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
+):
+    """Alias for list_organizations — returns orgs the current user belongs to"""
+    return get_user_organizations(current_user.id, db)
+
+
 @router.get("/{organization_id}", response_model=OrganizationResponse)
 async def get_organization(
     organization_id: str,

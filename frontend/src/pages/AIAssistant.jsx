@@ -27,6 +27,7 @@ import IntentMandateManager from "../components/IntentMandateManager";
 import AgentActivityMonitor from "../components/AgentActivityMonitor";
 import ConstraintBuilder from "../components/ConstraintBuilder";
 import AP2CompleteFlow from "../components/AP2CompleteFlow";
+import AP2Onboarding from "../components/AP2Onboarding";
 
 const AIAssistant = () => {
   const { user } = useAuth();
@@ -41,6 +42,9 @@ const AIAssistant = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateMandate, setShowCreateMandate] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => !localStorage.getItem(AP2Onboarding.STORAGE_KEY)
+  );
 
   // Fetch AP2 stats and mandates
   useEffect(() => {
@@ -237,6 +241,16 @@ const AIAssistant = () => {
                 Request a Rule
               </button>
             )}
+            <button
+              onClick={() => setActiveView("analytics")}
+              className={`px-4 py-3 font-medium transition-colors ${
+                activeView === "analytics"
+                  ? "text-white border-b-2 border-white"
+                  : "text-purple-200 hover:text-white"
+              }`}
+            >
+              Analytics
+            </button>
             {/* One-time Authorization - Admin Only */}
             {isAdmin && (
               <button
@@ -256,6 +270,18 @@ const AIAssistant = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* AP2 Onboarding (first visit) */}
+        {showOnboarding && (
+          <div className="mb-8">
+            <AP2Onboarding
+              onComplete={() => {
+                setShowOnboarding(false);
+                fetchData();
+              }}
+            />
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
@@ -290,6 +316,8 @@ const AIAssistant = () => {
 
             {/* Employee: Request Rule */}
             {activeView === "request" && !isAdmin && <RequestRuleView />}
+
+            {activeView === "analytics" && <AnalyticsView />}
 
             {/* One-time Authorization - Admin Only */}
             {activeView === "flow" && isAdmin && <AP2CompleteFlow mandates={mandates} onRefresh={fetchData} />}
@@ -758,14 +786,19 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
   const [policies, setPolicies] = useState([]);
   const [approvalStats, setApprovalStats] = useState(null);
   const [ruleRequests, setRuleRequests] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
   const [loadingPolicies, setLoadingPolicies] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingRequests, setLoadingRequests] = useState(true);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+  const [creatingSuggestion, setCreatingSuggestion] = useState(null);
+  const { success: showSuccess, error: showError } = useToast();
 
   useEffect(() => {
     fetchPolicies();
     fetchApprovalStats();
     fetchRuleRequests();
+    fetchSuggestions();
   }, []);
 
   const fetchPolicies = async () => {
@@ -828,6 +861,52 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
       console.error("Failed to fetch rule requests:", err);
     } finally {
       setLoadingRequests(false);
+    }
+  };
+
+  const fetchSuggestions = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("/api/ap2/mandate-suggestions", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestions(data.suggestions || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch suggestions:", err);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const createMandateFromSuggestion = async (suggestion) => {
+    setCreatingSuggestion(suggestion.vendor);
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("/api/ap2/intent-mandate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          constraints: suggestion.suggested_constraints,
+          expiration_hours: 720,
+        }),
+      });
+      if (response.ok) {
+        showSuccess(`Rule created for ${suggestion.vendor}! Similar expenses will now auto-approve.`);
+        setSuggestions((prev) => prev.filter((s) => s.vendor !== suggestion.vendor));
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        showError(errorData.detail || "Failed to create rule");
+      }
+    } catch {
+      showError("Failed to create rule");
+    } finally {
+      setCreatingSuggestion(null);
     }
   };
 
@@ -1038,6 +1117,45 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
           <p className="text-gray-500 text-sm text-center py-4">No expense data yet.</p>
         )}
       </div>
+
+      {/* AI Suggestions */}
+      {!loadingSuggestions && suggestions.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-purple-200 p-6">
+          <div className="flex items-center space-x-3 mb-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Suggested Auto-Approval Rules</h3>
+          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            Based on your expense history, these rules could save you time by auto-approving recurring expenses.
+          </p>
+          <div className="space-y-3">
+            {suggestions.map((s) => (
+              <div key={`${s.vendor}-${s.category}`} className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="font-medium text-purple-900">
+                      {s.vendor} - {s.category.replace(/_/g, " ")}
+                    </p>
+                    <p className="text-sm text-purple-700 mt-1">{s.explanation}</p>
+                    <div className="flex gap-4 mt-2 text-xs text-purple-600">
+                      <span>Max: ${s.suggested_constraints.max_amount.toFixed(2)}</span>
+                      <span>Monthly: ${s.suggested_constraints.monthly_limit.toFixed(2)}</span>
+                      <span>~{s.estimated_time_saved_minutes_per_month} min/mo saved</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => createMandateFromSuggestion(s)}
+                    disabled={creatingSuggestion === s.vendor}
+                    className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 flex-shrink-0"
+                  >
+                    {creatingSuggestion === s.vendor ? "Creating..." : "Create Rule"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Your Rule Requests */}
       {!loadingRequests && ruleRequests.length > 0 && (
@@ -1513,6 +1631,195 @@ const RequestRuleView = () => {
           </li>
         </ul>
       </div>
+    </div>
+  );
+};
+
+
+// ── Analytics View ──────────────────────────────────────────────────
+const AnalyticsView = () => {
+  const [days, setDays] = useState(30);
+  const [trends, setTrends] = useState(null);
+  const [savings, setSavings] = useState(null);
+  const [bottlenecks, setBottlenecks] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAll();
+  }, [days]);
+
+  const fetchAll = async () => {
+    setLoading(true);
+    const token = localStorage.getItem("access_token");
+    const headers = { Authorization: `Bearer ${token}` };
+    try {
+      const [tRes, sRes, bRes] = await Promise.all([
+        fetch(`/api/ap2/analytics/trends?days=${days}`, { headers }),
+        fetch(`/api/ap2/analytics/cost-savings?days=${days}`, { headers }),
+        fetch(`/api/ap2/analytics/bottlenecks?days=${days}`, { headers }),
+      ]);
+      if (tRes.ok) setTrends(await tRes.json());
+      if (sRes.ok) setSavings(await sRes.json());
+      if (bRes.ok) setBottlenecks(await bRes.json());
+    } catch (err) {
+      console.error("Analytics fetch failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  const maxTrendTotal = trends?.trend?.length
+    ? Math.max(...trends.trend.map((d) => d.total), 1)
+    : 1;
+
+  return (
+    <div className="space-y-6">
+      {/* Time Range Selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-gray-700">Period:</span>
+        {[7, 30, 90].map((d) => (
+          <button
+            key={d}
+            onClick={() => setDays(d)}
+            className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+              days === d
+                ? "bg-purple-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {d} days
+          </button>
+        ))}
+      </div>
+
+      {/* Cost Savings Cards */}
+      {savings && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <p className="text-sm text-gray-500">Auto-Approval Rate</p>
+            <p className="text-3xl font-bold text-purple-700 mt-1">{savings.rate}%</p>
+            <p className="text-xs text-gray-400 mt-1">{savings.auto_approved_count} of {savings.total_count} expenses</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <p className="text-sm text-gray-500">Time Saved</p>
+            <p className="text-3xl font-bold text-green-700 mt-1">{savings.hours_saved}h</p>
+            <p className="text-xs text-gray-400 mt-1">{savings.minutes_saved} minutes of manager review</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <p className="text-sm text-gray-500">Est. Cost Savings</p>
+            <p className="text-3xl font-bold text-green-700 mt-1">${savings.estimated_dollar_savings.toLocaleString()}</p>
+            <p className="text-xs text-gray-400 mt-1">At $50/hr manager cost</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <p className="text-sm text-gray-500">Auto-Approved Amount</p>
+            <p className="text-3xl font-bold text-indigo-700 mt-1">
+              ${savings.auto_approved_amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">Processed without delays</p>
+          </div>
+        </div>
+      )}
+
+      {/* Trend Chart (bar chart) */}
+      {trends?.trend?.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Auto-Approval Trend</h3>
+          <div className="flex items-end gap-1 h-48 overflow-x-auto pb-2">
+            {trends.trend.map((d) => {
+              const autoH = ((d.auto_mandate + d.auto_policy) / maxTrendTotal) * 100;
+              const manualH = (d.manual / maxTrendTotal) * 100;
+              return (
+                <div key={d.date} className="flex flex-col items-center flex-shrink-0" style={{ minWidth: trends.trend.length > 14 ? 20 : 36 }}>
+                  <div className="flex flex-col-reverse w-full h-40">
+                    <div className="bg-green-500 rounded-t" style={{ height: `${autoH}%` }} title={`Auto: ${d.auto_mandate + d.auto_policy}`}></div>
+                    <div className="bg-yellow-400" style={{ height: `${manualH}%` }} title={`Manual: ${d.manual}`}></div>
+                  </div>
+                  <span className="text-[9px] text-gray-400 mt-1 whitespace-nowrap">
+                    {new Date(d.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex gap-4 mt-3 text-xs text-gray-500">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Auto-Approved</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"></span> Manual</span>
+          </div>
+        </div>
+      )}
+
+      {/* Bottlenecks */}
+      {bottlenecks && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Category Bottlenecks */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Categories Needing Rules</h3>
+            <p className="text-xs text-gray-500 mb-3">Categories with the lowest auto-approval rates</p>
+            {bottlenecks.category_bottlenecks.length > 0 ? (
+              <div className="space-y-3">
+                {bottlenecks.category_bottlenecks.slice(0, 6).map((b) => (
+                  <div key={b.name} className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-gray-800">{b.name.replace(/_/g, " ")}</span>
+                        <span className="text-xs text-gray-500">{b.total} expenses</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2 flex overflow-hidden">
+                        <div className="bg-green-500 h-full" style={{ width: `${b.auto_approval_rate}%` }}></div>
+                        <div className="bg-red-400 h-full" style={{ width: `${b.rejection_rate}%` }}></div>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+                        <span>{b.auto_approval_rate}% auto</span>
+                        {b.rejected > 0 && <span>{b.rejection_rate}% rejected</span>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-4">No data yet</p>
+            )}
+          </div>
+
+          {/* Vendor Bottlenecks */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Vendors Needing Rules</h3>
+            <p className="text-xs text-gray-500 mb-3">Vendors with the most manual approvals</p>
+            {bottlenecks.vendor_bottlenecks.length > 0 ? (
+              <div className="space-y-3">
+                {bottlenecks.vendor_bottlenecks.slice(0, 6).map((b) => (
+                  <div key={b.name} className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-gray-800">{b.name}</span>
+                        <span className="text-xs text-gray-500">${b.amount.toLocaleString()} ({b.total})</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2 flex overflow-hidden">
+                        <div className="bg-green-500 h-full" style={{ width: `${b.auto_approval_rate}%` }}></div>
+                        <div className="bg-red-400 h-full" style={{ width: `${b.rejection_rate}%` }}></div>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+                        <span>{b.auto_approval_rate}% auto</span>
+                        {b.pending > 0 && <span>{b.pending} pending</span>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-4">No data yet</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -74,8 +74,35 @@ class RecurringExpenseScheduler:
             except Exception as e:
                 logger.error(f"Error processing recurring expenses: {e}", exc_info=True)
 
+            # Check if monthly summaries should be sent (1st of month, early morning)
+            try:
+                await self._check_monthly_summaries()
+            except Exception as e:
+                logger.error(f"Error checking monthly summaries: {e}", exc_info=True)
+
             # Wait before next check
             await asyncio.sleep(self.check_interval)
+
+    async def _check_monthly_summaries(self):
+        """Send monthly summary emails on the 1st of each month."""
+        now = datetime.utcnow()
+        # Only run on the 1st, between 06:00-06:05 UTC (within one check interval)
+        if now.day != 1 or now.hour != 6 or now.minute >= 10:
+            return
+
+        # Use a simple flag to avoid re-sending within the same hour
+        month_key = f"{now.year}-{now.month}"
+        if getattr(self, "_last_summary_month", None) == month_key:
+            return
+        self._last_summary_month = month_key
+
+        logger.info(f"Triggering monthly auto-approval summaries for previous month")
+        try:
+            from src.services.monthly_summary_service import send_all_monthly_summaries
+            result = await send_all_monthly_summaries()
+            logger.info(f"Monthly summaries result: {result}")
+        except Exception as e:
+            logger.error(f"Monthly summary sending failed: {e}", exc_info=True)
 
     async def process_pending_expenses(self):
         """Process all pending recurring expense submissions"""

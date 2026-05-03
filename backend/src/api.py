@@ -36,6 +36,7 @@ from .routes.budgets import router as budgets_router
 from .routes.analytics import router as analytics_router
 from .routes.recurring_expenses import router as recurring_expenses_router
 from .routes.onboarding import router as onboarding_router
+from .routes.gdpr import router as gdpr_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
 from .startup_checks import validate_settings
 from .tenant_context import tenant_middleware
@@ -220,6 +221,7 @@ app.include_router(notifications_router)
 app.include_router(analytics_router)
 app.include_router(recurring_expenses_router)
 app.include_router(onboarding_router)
+app.include_router(gdpr_router)
 
 # Include GCP Marketplace webhooks
 app.include_router(gcp_webhooks_router)
@@ -233,7 +235,8 @@ try:
     from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
     @app.get("/metrics")
-    async def metrics():
+    async def metrics(current_user: User = Depends(get_current_active_user)):
+        check_permission(current_user, Permission.ADMIN_ACCESS)
         data = generate_latest()
         return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 

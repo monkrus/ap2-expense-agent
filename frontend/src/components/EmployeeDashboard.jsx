@@ -83,6 +83,50 @@ const EmployeeDashboard = () => {
     description: "",
     date: "", // Will be set when form opens
   });
+  const [autoApprovalPreview, setAutoApprovalPreview] = useState(null);
+  const [checkingAutoApproval, setCheckingAutoApproval] = useState(false);
+  const [suggestedMandate, setSuggestedMandate] = useState(null);
+  const [showCreateMandateModal, setShowCreateMandateModal] = useState(false);
+  const [mandateExpense, setMandateExpense] = useState(null);
+
+  // Debounced auto-approval preview check
+  useEffect(() => {
+    if (!showExpenseForm) {
+      setAutoApprovalPreview(null);
+      return;
+    }
+    const amount = parseFloat(newExpense.amount);
+    if (!amount || !newExpense.vendor || !newExpense.category) {
+      setAutoApprovalPreview(null);
+      return;
+    }
+    setCheckingAutoApproval(true);
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/ap2/check-auto-approval", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+          body: JSON.stringify({
+            amount,
+            category: newExpense.category,
+            vendor: newExpense.vendor,
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAutoApprovalPreview(data);
+        }
+      } catch {
+        // silent - preview is optional
+      } finally {
+        setCheckingAutoApproval(false);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [showExpenseForm, newExpense.amount, newExpense.vendor, newExpense.category]);
 
   // Fetch user's expenses
   useEffect(() => {
@@ -347,6 +391,61 @@ const EmployeeDashboard = () => {
     } finally {
       // SAFEGUARD: Always reset submitting state
       setIsSubmittingExpense(false);
+    }
+  };
+
+  const handleSuggestMandate = async (expense) => {
+    setMandateExpense(expense);
+    try {
+      const response = await fetch("/api/ap2/suggest-mandate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify({
+          amount: expense.amount,
+          category: expense.category,
+          vendor: expense.vendor,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestedMandate(data);
+        setShowCreateMandateModal(true);
+      } else {
+        showError("Failed to generate mandate suggestion");
+      }
+    } catch {
+      showError("Failed to generate mandate suggestion");
+    }
+  };
+
+  const handleCreateMandateFromSuggestion = async () => {
+    if (!suggestedMandate) return;
+    try {
+      const response = await fetch("/api/ap2/intent-mandate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify({
+          constraints: suggestedMandate.suggested_constraints,
+          expiration_hours: 720, // 30 days
+        }),
+      });
+      if (response.ok) {
+        success("Intent Mandate created! Similar expenses will now auto-approve.");
+        setShowCreateMandateModal(false);
+        setSuggestedMandate(null);
+        setMandateExpense(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        showError(errorData.detail || "Failed to create mandate");
+      }
+    } catch {
+      showError("Failed to create mandate");
     }
   };
 
@@ -883,6 +982,44 @@ const EmployeeDashboard = () => {
                 </div>
               </div>
 
+              {/* Auto-approval preview indicator */}
+              {newExpense.amount && newExpense.vendor && newExpense.category && (
+                <div className={`mt-2 p-3 rounded-lg border text-sm ${
+                  checkingAutoApproval
+                    ? "bg-gray-50 border-gray-200 text-gray-500"
+                    : autoApprovalPreview?.will_auto_approve
+                      ? "bg-green-50 border-green-200 text-green-800"
+                      : "bg-yellow-50 border-yellow-200 text-yellow-800"
+                }`}>
+                  {checkingAutoApproval ? (
+                    <span className="flex items-center gap-2">
+                      <span className="animate-spin h-3 w-3 border-2 border-gray-400 border-t-transparent rounded-full"></span>
+                      Checking auto-approval...
+                    </span>
+                  ) : autoApprovalPreview?.will_auto_approve ? (
+                    <span className="flex items-center gap-2">
+                      <Bot className="w-4 h-4 text-green-600" />
+                      <span>
+                        <strong>Will auto-approve</strong> via{" "}
+                        {autoApprovalPreview.via === "intent_mandate"
+                          ? "AI Agent (Intent Mandate)"
+                          : `Policy: ${autoApprovalPreview.policy_name || "Approval Policy"}`}
+                        {autoApprovalPreview.remaining_monthly != null && (
+                          <span className="text-green-600 ml-1">
+                            (${autoApprovalPreview.remaining_monthly.toFixed(2)} remaining this month)
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                  ) : autoApprovalPreview ? (
+                    <span className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-yellow-600" />
+                      <span>No matching mandate -- will require manual approval</span>
+                    </span>
+                  ) : null}
+                </div>
+              )}
+
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setShowExpenseForm(false)}
@@ -1239,14 +1376,26 @@ const EmployeeDashboard = () => {
                                   </>
                                 )}
                               {expense.status?.toLowerCase() !== "pending" && (
-                                <button
-                                  onClick={() => handleArchiveExpense(expense)}
-                                  className="flex items-center gap-1 px-2 py-1.5 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors text-xs font-medium"
-                                  title="Archive this expense"
-                                >
-                                  <Archive className="w-3.5 h-3.5" />
-                                  Archive
-                                </button>
+                                <>
+                                  {!expense.auto_approved && (
+                                    <button
+                                      onClick={() => handleSuggestMandate(expense)}
+                                      className="flex items-center gap-1 px-2 py-1.5 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors text-xs font-medium"
+                                      title="Create an Intent Mandate to auto-approve similar expenses"
+                                    >
+                                      <Bot className="w-3.5 h-3.5" />
+                                      Create Rule
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleArchiveExpense(expense)}
+                                    className="flex items-center gap-1 px-2 py-1.5 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors text-xs font-medium"
+                                    title="Archive this expense"
+                                  >
+                                    <Archive className="w-3.5 h-3.5" />
+                                    Archive
+                                  </button>
+                                </>
                               )}
                             </div>
                           </td>
@@ -1469,6 +1618,69 @@ const EmployeeDashboard = () => {
               setSelectedExpense(null);
             }}
           />
+        )}
+
+        {/* Create Mandate from Expense Modal */}
+        {showCreateMandateModal && suggestedMandate && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h2 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <Bot className="w-5 h-5 text-purple-600" />
+                Create Auto-Approval Rule
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                {suggestedMandate.explanation}
+              </p>
+
+              <div className="bg-purple-50 rounded-lg p-4 mb-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Max per expense:</span>
+                  <span className="font-semibold">${suggestedMandate.suggested_constraints.max_amount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Monthly limit:</span>
+                  <span className="font-semibold">${suggestedMandate.suggested_constraints.monthly_limit.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Category:</span>
+                  <span className="font-semibold">{suggestedMandate.suggested_constraints.category}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Vendor:</span>
+                  <span className="font-semibold">{suggestedMandate.suggested_constraints.merchant}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Duration:</span>
+                  <span className="font-semibold">30 days</span>
+                </div>
+              </div>
+
+              {mandateExpense && (
+                <p className="text-xs text-gray-500 mb-4">
+                  Based on: ${mandateExpense.amount.toFixed(2)} at {mandateExpense.vendor}
+                </p>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowCreateMandateModal(false);
+                    setSuggestedMandate(null);
+                    setMandateExpense(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateMandateFromSuggestion}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                >
+                  Create Rule
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Batch Receipt Upload Modal */}

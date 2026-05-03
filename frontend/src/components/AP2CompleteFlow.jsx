@@ -6,6 +6,7 @@ import {
   AlertCircle,
   DollarSign,
   Package,
+  CreditCard,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 
@@ -36,6 +37,7 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
     { description: "", amount: "", category: "OFFICE_SUPPLIES" },
   ]);
   const [merchant, setMerchant] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("stripe");
 
   const addItem = () => {
     setItems([
@@ -87,6 +89,7 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
           category: item.category,
         })),
         merchant: merchant,
+        payment_method: paymentMethod,
         constraints: {
           max_amount: maxAmount,
           monthly_limit: maxAmount,
@@ -110,13 +113,16 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
       }
 
       const data = await response.json().catch(() => ({}));
+      const method = data.payment_method || paymentMethod;
+      const methodLabels = { stripe: "Stripe", x402_stablecoin: "x402 Stablecoin", expense_reimbursement: "Reimbursement" };
       success(
-        `AP2 flow completed! Total: $${calculateTotal().toFixed(2)}`,
+        `AP2 flow completed via ${methodLabels[method] || method}! Total: $${calculateTotal().toFixed(2)}`,
       );
 
       // Reset form and refresh data
       setItems([{ description: "", amount: "", category: "OFFICE_SUPPLIES" }]);
       setMerchant("");
+      setPaymentMethod("stripe");
       if (onRefresh) onRefresh();
     } catch (err) {
       showError(err.message);
@@ -247,6 +253,55 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
         <p className="mt-2 text-sm text-gray-500">
           Authorization limit is automatically set to your item total + 5% buffer.
         </p>
+      </div>
+
+      {/* Payment Method */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <CreditCard className="w-5 h-5 mr-2 text-purple-600" />
+          Payment Method
+        </h3>
+        <div className="grid grid-cols-3 gap-3">
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("stripe")}
+            className={`p-3 rounded-lg border-2 text-left transition-colors ${
+              paymentMethod === "stripe"
+                ? "border-purple-600 bg-purple-50"
+                : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <p className="font-medium text-gray-900">Stripe</p>
+            <p className="text-xs text-gray-500 mt-1">Card / bank payment</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("expense_reimbursement")}
+            className={`p-3 rounded-lg border-2 text-left transition-colors ${
+              paymentMethod === "expense_reimbursement"
+                ? "border-purple-600 bg-purple-50"
+                : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <p className="font-medium text-gray-900">Reimbursement</p>
+            <p className="text-xs text-gray-500 mt-1">Internal expense</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("x402_stablecoin")}
+            className={`p-3 rounded-lg border-2 text-left transition-colors relative ${
+              paymentMethod === "x402_stablecoin"
+                ? "border-purple-600 bg-purple-50"
+                : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <span className="absolute -top-2 -right-2 bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              SOON
+            </span>
+            <p className="font-medium text-gray-900">x402 USDC</p>
+            <p className="text-xs text-gray-500 mt-1">Stablecoin payment</p>
+          </button>
+        </div>
       </div>
 
       {/* Submit */}

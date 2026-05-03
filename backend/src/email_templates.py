@@ -590,3 +590,239 @@ def get_budget_alert_email(budget_data: dict, current_spending: float, threshold
     """
 
     return subject, html_body, text_body
+
+
+def get_auto_approved_email(expense_data: dict, approval_via: str, mandate_details: dict = None) -> tuple:
+    """Email template for AI auto-approved expenses via Intent Mandate or Approval Policy."""
+    safe_vendor = _esc(expense_data.get('vendor', 'Unknown'))
+    safe_category = _esc(expense_data.get('category', 'Other'))
+    safe_description = _esc(expense_data.get('description', ''))
+    safe_date = _esc(expense_data.get('date', ''))
+    amount = expense_data.get('amount', 0)
+
+    if approval_via == "intent_mandate":
+        badge_color = "#7c3aed"
+        badge_text = "AI Agent (AP2 Intent Mandate)"
+        icon = "&#10024;"
+    else:
+        badge_color = "#2563eb"
+        badge_text = "Approval Policy"
+        icon = "&#128203;"
+
+    mandate_section = ""
+    if mandate_details:
+        safe_mandate_name = _esc(mandate_details.get('name', ''))
+        constraints = mandate_details.get('constraints', {})
+        mandate_section = f"""
+                    <div style="background: #f3f4f6; padding: 12px 16px; border-radius: 6px; margin-top: 16px;">
+                        <p style="margin: 0 0 4px 0; font-weight: 600; font-size: 13px; color: #374151;">Matched Rule:</p>
+                        <p style="margin: 0; font-size: 13px; color: #6b7280;">{safe_mandate_name or 'Intent Mandate'}</p>
+                        {"<p style='margin: 4px 0 0 0; font-size: 12px; color: #9ca3af;'>Max per transaction: $" + f"{constraints.get('max_amount', 'N/A')}" + "</p>" if constraints.get('max_amount') else ""}
+                    </div>"""
+
+    subject = f"Expense Auto-Approved: ${amount:,.2f} at {expense_data.get('vendor', 'Unknown')}"
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: linear-gradient(135deg, {badge_color} 0%, #4f46e5 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
+            .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }}
+            .detail-box {{ background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid {badge_color}; }}
+            .badge {{ display: inline-block; background: {badge_color}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }}
+            .footer {{ text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>{icon} Expense Auto-Approved</h1>
+                <p>Your expense was approved instantly by AI</p>
+            </div>
+            <div class="content">
+                <p>Great news! Your expense has been <strong>automatically approved</strong> -- no manager review needed.</p>
+
+                <div class="detail-box">
+                    <p style="margin-top:0;"><span class="badge">{badge_text}</span></p>
+                    <table style="width:100%; border-collapse:collapse; margin-top:12px;">
+                        <tr><td style="padding:6px 0; color:#6b7280; width:120px;">Amount</td><td style="padding:6px 0; font-weight:600;">${amount:,.2f}</td></tr>
+                        <tr><td style="padding:6px 0; color:#6b7280;">Vendor</td><td style="padding:6px 0;">{safe_vendor}</td></tr>
+                        <tr><td style="padding:6px 0; color:#6b7280;">Category</td><td style="padding:6px 0;">{safe_category}</td></tr>
+                        <tr><td style="padding:6px 0; color:#6b7280;">Description</td><td style="padding:6px 0;">{safe_description}</td></tr>
+                        <tr><td style="padding:6px 0; color:#6b7280;">Date</td><td style="padding:6px 0;">{safe_date}</td></tr>
+                    </table>
+                    {mandate_section}
+                </div>
+
+                <div class="footer">
+                    <p>AP2 Expense Manager<br>
+                    <a href="http://localhost:5173">View in Dashboard</a></p>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_body = f"""
+    Expense Auto-Approved
+
+    Your expense was automatically approved by {badge_text}.
+
+    Amount: ${amount:,.2f}
+    Vendor: {safe_vendor}
+    Category: {safe_category}
+    Description: {safe_description}
+    Date: {safe_date}
+
+    AP2 Expense Manager
+    """
+
+    return subject, html_body, text_body
+
+
+def get_monthly_auto_approval_summary_email(summary: dict) -> tuple:
+    """
+    Monthly digest email showing auto-approval statistics.
+
+    summary keys:
+        user_name, month_label, total_expenses, auto_approved_count,
+        manual_count, auto_approval_rate, total_amount, auto_approved_amount,
+        time_saved_minutes, by_mandate_count, by_policy_count,
+        top_vendors (list of {vendor, count, amount})
+    """
+    safe_name = _esc(summary.get("user_name", "there"))
+    month_label = _esc(summary.get("month_label", "Last Month"))
+    total = summary.get("total_expenses", 0)
+    auto_count = summary.get("auto_approved_count", 0)
+    manual_count = summary.get("manual_count", 0)
+    rate = summary.get("auto_approval_rate", 0)
+    total_amount = summary.get("total_amount", 0)
+    auto_amount = summary.get("auto_approved_amount", 0)
+    time_saved = summary.get("time_saved_minutes", 0)
+    by_mandate = summary.get("by_mandate_count", 0)
+    by_policy = summary.get("by_policy_count", 0)
+    top_vendors = summary.get("top_vendors", [])
+
+    # Build top vendors rows
+    vendor_rows = ""
+    for v in top_vendors[:5]:
+        vendor_rows += (
+            f'<tr><td style="padding:6px 12px; border-bottom:1px solid #e5e7eb;">{_esc(v["vendor"])}</td>'
+            f'<td style="padding:6px 12px; border-bottom:1px solid #e5e7eb; text-align:center;">{v["count"]}</td>'
+            f'<td style="padding:6px 12px; border-bottom:1px solid #e5e7eb; text-align:right;">${v["amount"]:,.2f}</td></tr>'
+        )
+
+    vendor_table = ""
+    if vendor_rows:
+        vendor_table = f"""
+                <h3 style="margin:24px 0 8px 0; font-size:15px; color:#374151;">Top Auto-Approved Vendors</h3>
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead><tr style="background:#f3f4f6;">
+                        <th style="padding:8px 12px; text-align:left;">Vendor</th>
+                        <th style="padding:8px 12px; text-align:center;">Count</th>
+                        <th style="padding:8px 12px; text-align:right;">Amount</th>
+                    </tr></thead>
+                    <tbody>{vendor_rows}</tbody>
+                </table>"""
+
+    # Rate color
+    if rate >= 60:
+        rate_color = "#16a34a"
+        rate_label = "Excellent"
+    elif rate >= 40:
+        rate_color = "#ca8a04"
+        rate_label = "Good"
+    else:
+        rate_color = "#6b7280"
+        rate_label = "Getting started"
+
+    subject = f"Monthly Report: {auto_count} expenses auto-approved in {summary.get('month_label', 'last month')}"
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
+            .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }}
+            .stat-grid {{ display: flex; gap: 12px; margin: 20px 0; flex-wrap: wrap; }}
+            .stat-card {{ flex: 1; min-width: 120px; background: white; padding: 16px; border-radius: 8px; text-align: center; }}
+            .stat-value {{ font-size: 28px; font-weight: 700; color: #111827; }}
+            .stat-label {{ font-size: 12px; color: #6b7280; margin-top: 4px; }}
+            .highlight {{ background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #7c3aed; }}
+            .footer {{ text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>&#128202; Monthly Auto-Approval Report</h1>
+                <p>{month_label}</p>
+            </div>
+            <div class="content">
+                <p>Hi {safe_name},</p>
+                <p>Here's your monthly summary of AI-powered expense approvals.</p>
+
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" style="color:{rate_color};">{rate:.0f}%</div>
+                        <div class="stat-label">Auto-Approval Rate<br><strong style="color:{rate_color};">{rate_label}</strong></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{auto_count}</div>
+                        <div class="stat-label">Auto-Approved</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{time_saved}</div>
+                        <div class="stat-label">Minutes Saved</div>
+                    </div>
+                </div>
+
+                <div class="highlight">
+                    <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                        <tr><td style="padding:4px 0; color:#6b7280;">Total expenses submitted</td><td style="padding:4px 0; text-align:right; font-weight:600;">{total}</td></tr>
+                        <tr><td style="padding:4px 0; color:#6b7280;">Auto-approved (AI Agent)</td><td style="padding:4px 0; text-align:right; font-weight:600; color:#7c3aed;">{by_mandate}</td></tr>
+                        <tr><td style="padding:4px 0; color:#6b7280;">Auto-approved (Policy)</td><td style="padding:4px 0; text-align:right; font-weight:600; color:#2563eb;">{by_policy}</td></tr>
+                        <tr><td style="padding:4px 0; color:#6b7280;">Manual approval</td><td style="padding:4px 0; text-align:right; font-weight:600;">{manual_count}</td></tr>
+                        <tr style="border-top:1px solid #e5e7eb;"><td style="padding:8px 0 4px; color:#6b7280;">Total amount</td><td style="padding:8px 0 4px; text-align:right; font-weight:600;">${total_amount:,.2f}</td></tr>
+                        <tr><td style="padding:4px 0; color:#6b7280;">Auto-approved amount</td><td style="padding:4px 0; text-align:right; font-weight:600; color:#16a34a;">${auto_amount:,.2f}</td></tr>
+                    </table>
+                </div>
+
+                {vendor_table}
+
+                {"<p style='margin-top:20px; padding:12px 16px; background:#fef3c7; border-radius:6px; font-size:13px; color:#92400e;'>&#128161; <strong>Tip:</strong> Create more Intent Mandates to increase your auto-approval rate and save even more time. Visit AP2 Automation in your dashboard.</p>" if rate < 60 else ""}
+
+                <div class="footer">
+                    <p>AP2 Expense Manager<br>
+                    <a href="http://localhost:5173">View Dashboard</a></p>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_body = f"""
+    Monthly Auto-Approval Report - {month_label}
+
+    Hi {safe_name},
+
+    Auto-Approval Rate: {rate:.0f}% ({rate_label})
+    Total Expenses: {total}
+    Auto-Approved: {auto_count} ({by_mandate} by AI Agent, {by_policy} by Policy)
+    Manual: {manual_count}
+    Total Amount: ${total_amount:,.2f}
+    Auto-Approved Amount: ${auto_amount:,.2f}
+    Time Saved: {time_saved} minutes
+
+    AP2 Expense Manager
+    """
+
+    return subject, html_body, text_body

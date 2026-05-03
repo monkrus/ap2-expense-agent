@@ -15,7 +15,8 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import status as http_status
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import and_, or_
 
@@ -57,7 +58,7 @@ def ensure_org_access(user_id: str, org_id: str, db: Session):
     """Verify user has access to organization, raise 403 if not"""
     if not verify_organization_access(user_id, org_id, db):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this organization"
         )
 
@@ -78,7 +79,7 @@ def ensure_expense_access(expense_id: str, user: User, org_id: str, db: Session)
 
     if not expense:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Expense not found"
         )
 
@@ -104,7 +105,7 @@ def ensure_expense_access(expense_id: str, user: User, org_id: str, db: Session)
     # Employees (and managers outside their dept) can only see their own expenses
     if expense.user_id != user.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You can only access your own expenses"
         )
 
@@ -147,7 +148,7 @@ def can_modify_expense(expense: Expense, user: User, org_id: str, db: Session, a
 # EXPENSE CRUD ENDPOINTS
 # ============================================================================
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=http_status.HTTP_201_CREATED)
 async def create_expense(
     data: ExpenseSubmission,
     request: Request,
@@ -164,7 +165,7 @@ async def create_expense(
 
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required (X-Organization-Id header missing)"
         )
 
@@ -178,7 +179,7 @@ async def create_expense(
         limit_enforcer.check_expense_limit(org_id, raise_error=True)
     except LimitExceededError as e:
         raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            status_code=http_status.HTTP_402_PAYMENT_REQUIRED,
             detail=str(e)
         )
 
@@ -269,7 +270,7 @@ async def create_expense(
             f"Rejecting duplicate to prevent accidental double-submission."
         )
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=http_status.HTTP_409_CONFLICT,
             detail=f"Duplicate submission detected. An identical expense was just submitted {int((datetime.utcnow() - recent_duplicate.created_at).total_seconds())} seconds ago. Please wait before submitting again."
         )
 
@@ -293,7 +294,7 @@ async def create_expense(
 
         if not guardian_result.allowed:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail={
                     "message": "Expense blocked by budget guardian",
                     "blocks": guardian_result.blocks,
@@ -427,7 +428,7 @@ async def list_expenses(
 
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required"
         )
 
@@ -535,7 +536,7 @@ async def get_expense_report(
 
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required",
         )
 
@@ -550,7 +551,7 @@ async def get_expense_report(
         )
         if not can_view_others:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=http_status.HTTP_403_FORBIDDEN,
                 detail="You do not have permission to view other users' expenses",
             )
 
@@ -565,7 +566,7 @@ async def get_expense_report(
         )
         if not member:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail="User not found in this organization",
             )
 
@@ -1119,7 +1120,7 @@ async def export_expenses(
 
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required"
         )
 
@@ -1136,7 +1137,7 @@ async def export_expenses(
 
     if not can_export:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to export expenses"
         )
 
@@ -1144,7 +1145,7 @@ async def export_expenses(
     organization = db.query(Organization).filter(Organization.id == org_id).first()
     if not organization:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
 
@@ -1204,7 +1205,7 @@ async def get_expense_stats(
     org_id = request.headers.get("X-Organization-Id")
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required",
         )
 
@@ -1242,7 +1243,7 @@ async def get_expense_stats(
     return stats
 
 
-@router.post("/bulk-approve", status_code=status.HTTP_200_OK)
+@router.post("/bulk-approve", status_code=http_status.HTTP_200_OK)
 async def bulk_approve_expenses(
     data: dict,
     request: Request,
@@ -1261,7 +1262,7 @@ async def bulk_approve_expenses(
     org_id = request.headers.get("X-Organization-Id")
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required",
         )
 
@@ -1270,14 +1271,14 @@ async def bulk_approve_expenses(
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
     if user_org_role not in ["owner", "admin", "manager"] and current_user.role != UserRole.ADMIN:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to bulk approve expenses",
         )
 
     expense_ids = data.get("expense_ids", [])
     if not expense_ids:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="expense_ids must be a non-empty list",
         )
 
@@ -1336,6 +1337,21 @@ async def bulk_approve_expenses(
     )
 
 
+@router.get("/categories")
+async def get_expense_categories(
+    current_user: User = Depends(get_current_active_user),
+):
+    """Return all valid expense categories"""
+    from ..models import ExpenseCategory
+
+    return {
+        "categories": [
+            {"value": cat.value, "label": cat.value.replace("_", " ").title()}
+            for cat in ExpenseCategory
+        ]
+    }
+
+
 @router.get("/{expense_id}")
 async def get_expense(
     expense_id: str,
@@ -1354,7 +1370,7 @@ async def get_expense(
 
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required"
         )
 
@@ -1400,7 +1416,7 @@ async def update_expense(
 
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required"
         )
 
@@ -1409,7 +1425,7 @@ async def update_expense(
     # Check modify permission
     if not can_modify_expense(expense, current_user, org_id, db):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You cannot modify this expense"
         )
 
@@ -1465,7 +1481,7 @@ async def delete_expense(
 
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required"
         )
 
@@ -1480,7 +1496,7 @@ async def delete_expense(
     # Check withdraw permission
     if not can_modify_expense(expense, current_user, org_id, db, action="withdraw"):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You cannot withdraw this expense"
         )
 
@@ -1515,7 +1531,7 @@ async def approve_expense(
 
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required"
         )
 
@@ -1524,14 +1540,14 @@ async def approve_expense(
     # Check if expense is in a state that can be approved
     if expense.status != ExpenseStatus.PENDING:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot approve expense with status {expense.status.value}. Only PENDING expenses can be approved."
         )
 
-    # Prevent self-approval (except for system admins)
-    if expense.user_id == current_user.id and current_user.role != UserRole.ADMIN:
+    # Prevent self-approval (no exceptions, even for admins)
+    if expense.user_id == current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You cannot approve your own expense"
         )
 
@@ -1539,7 +1555,7 @@ async def approve_expense(
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
     if user_org_role not in ["owner", "admin", "manager"] and current_user.role != UserRole.ADMIN:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to approve expenses",
         )
 
@@ -1572,7 +1588,7 @@ async def approve_expense(
 
     if not can_approve:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to approve expenses"
         )
 
@@ -1663,7 +1679,7 @@ async def reject_expense(
 
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required"
         )
 
@@ -1672,14 +1688,14 @@ async def reject_expense(
     # Check if expense is in a state that can be rejected
     if expense.status != ExpenseStatus.PENDING:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot reject expense with status {expense.status.value}. Only PENDING expenses can be rejected."
         )
 
-    # Prevent self-rejection (except for system admins)
-    if expense.user_id == current_user.id and current_user.role != UserRole.ADMIN:
+    # Prevent self-rejection (no exceptions, even for admins)
+    if expense.user_id == current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You cannot reject your own expense"
         )
 
@@ -1693,7 +1709,7 @@ async def reject_expense(
 
     if not can_reject:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to reject expenses"
         )
 
@@ -1704,7 +1720,7 @@ async def reject_expense(
     expense.status = ExpenseStatus.REJECTED
     expense.rejection_reason = reason
     expense.approved_by = current_user.id  # Track who rejected it
-    expense.approved_at = datetime.utcnow()  # Time of rejection
+    expense.approved_at = None  # Clear any previous approval timestamp
     expense.updated_at = datetime.utcnow()
 
     db.commit()
@@ -1784,7 +1800,7 @@ async def request_receipt(
 
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required"
         )
 
@@ -1800,7 +1816,7 @@ async def request_receipt(
 
     if not can_request:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to request receipts"
         )
 
@@ -1841,7 +1857,7 @@ async def flag_expense(
 
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required"
         )
 
@@ -1857,7 +1873,7 @@ async def flag_expense(
 
     if not can_flag:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to flag expenses"
         )
 
@@ -1878,7 +1894,7 @@ async def flag_expense(
 # COMMENTS ENDPOINTS
 # ============================================================================
 
-@router.post("/{expense_id}/comments", status_code=status.HTTP_201_CREATED)
+@router.post("/{expense_id}/comments", status_code=http_status.HTTP_201_CREATED)
 async def add_expense_comment(
     expense_id: str,
     data: dict,
@@ -1895,7 +1911,7 @@ async def add_expense_comment(
     org_id = request.headers.get("X-Organization-Id")
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required",
         )
 
@@ -1904,7 +1920,7 @@ async def add_expense_comment(
     comment_text = (data.get("comment") or "").strip()
     if not comment_text:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="comment must not be empty",
         )
 
@@ -1943,7 +1959,7 @@ async def get_expense_comments(
     org_id = request.headers.get("X-Organization-Id")
     if not org_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Organization context required",
         )
 

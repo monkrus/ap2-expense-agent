@@ -290,6 +290,7 @@ async def login(
 
 
 @router.post("/login/form", response_model=LoginResponse)
+@limiter.limit(RateLimits.LOGIN)
 async def login_form(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -392,8 +393,8 @@ async def request_password_reset(
 
     response_data = {"message": "If the email exists, a reset link has been sent"}
 
-    # Return token in test/dev environments (when database is SQLite)
-    if settings.database_url and "sqlite" in settings.database_url.lower():
+    # Return token only in explicit development/test environments
+    if settings.environment in ("development", "test") and settings.debug:
         response_data["reset_token"] = token
 
     return response_data

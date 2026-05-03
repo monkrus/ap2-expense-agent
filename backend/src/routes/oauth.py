@@ -31,18 +31,26 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 # In-memory storage for OAuth2 authorization codes (use Redis in production)
 authorization_codes = {}
 oauth_clients = {}
+# In-memory CSRF state store for OAuth flows (use Redis in production)
+_oauth_state_store = {}
 
 
 # Register some default OAuth2 clients (in production, store in database)
 def init_oauth_clients():
     """Initialize default OAuth2 clients"""
+    client_secret = getattr(settings, "oauth2_client_secret", None) or os.environ.get(
+        "OAUTH2_CLIENT_SECRET", "dev-secret-change-in-production"
+    )
+    redirect_uris = [
+        "http://localhost:3000/auth/callback",
+        "http://localhost:5173/auth/callback",
+    ]
+    if hasattr(settings, "oauth2_redirect_uris") and settings.oauth2_redirect_uris:
+        redirect_uris = settings.oauth2_redirect_uris.split(",")
     oauth_clients["ap2-expense-web"] = {
         "client_id": "ap2-expense-web",
-        "client_secret": "dev-secret-change-in-production",
-        "redirect_uris": [
-            "http://localhost:3000/auth/callback",
-            "http://localhost:5173/auth/callback",
-        ],
+        "client_secret": client_secret,
+        "redirect_uris": redirect_uris,
         "grant_types": ["authorization_code", "refresh_token"],
         "scope": "read write",
     }
@@ -324,6 +332,13 @@ async def google_login(state: Optional[str] = None):
             detail="Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.",
         )
 
+    # Generate CSRF nonce and store it
+    csrf_nonce = secrets.token_urlsafe(32)
+    _oauth_state_store[csrf_nonce] = {
+        "created_at": datetime.utcnow(),
+        "original_state": state,
+    }
+
     # Build authorization URL
     params = {
         "client_id": GOOGLE_CLIENT_ID,
@@ -332,10 +347,8 @@ async def google_login(state: Optional[str] = None):
         "scope": "openid email profile",
         "access_type": "offline",
         "prompt": "consent",
+        "state": csrf_nonce,
     }
-
-    if state:
-        params["state"] = state
 
     auth_url = f"{GOOGLE_AUTH_URL}?{'&'.join([f'{k}={v}' for k, v in params.items()])}"
 
@@ -352,6 +365,22 @@ async def google_callback(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Authorization code is required",
         )
+
+    # Validate CSRF state parameter
+    if not state or state not in _oauth_state_store:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or missing OAuth state parameter. Please try logging in again.",
+        )
+
+    state_data = _oauth_state_store.pop(state)
+    # Expire stale states (10-minute window)
+    if (datetime.utcnow() - state_data["created_at"]).total_seconds() > 600:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OAuth state expired. Please try logging in again.",
+        )
+    original_state = state_data.get("original_state")
 
     # Exchange code for tokens
     async with httpx.AsyncClient() as client:
@@ -423,8 +452,8 @@ async def google_callback(
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
     redirect_url = f"{frontend_url}/auth/google/success?access_token={app_access_token}&refresh_token={refresh_token}"
 
-    if state:
-        redirect_url += f"&state={state}"
+    if original_state:
+        redirect_url += f"&state={original_state}"
 
     return RedirectResponse(url=redirect_url)
 

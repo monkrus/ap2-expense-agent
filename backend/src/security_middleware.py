@@ -2,13 +2,14 @@
 Security middleware for HTTP headers and request processing
 """
 
-import os
 import uuid
 from typing import Callable
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
+
+from .config import settings
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -23,22 +24,34 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
-        # HSTS (HTTP Strict Transport Security) - enabled in production
-        if os.getenv("ENVIRONMENT") == "production":
+        # HSTS (HTTP Strict Transport Security) - enabled in production/staging
+        if settings.environment in ("production", "staging"):
             response.headers["Strict-Transport-Security"] = (
                 "max-age=31536000; includeSubDomains"
             )
 
         # Content Security Policy
-        csp_directives = [
-            "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # Adjust for production
-            "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: https:",
-            "font-src 'self' data:",
-            "connect-src 'self'",
-            "frame-ancestors 'none'",
-        ]
+        if settings.environment in ("production", "staging"):
+            csp_directives = [
+                "default-src 'self'",
+                "script-src 'self'",
+                "style-src 'self'",
+                "img-src 'self' data: https:",
+                "font-src 'self' data:",
+                "connect-src 'self'",
+                "frame-ancestors 'none'",
+            ]
+        else:
+            # Relaxed CSP for development (Vite HMR needs inline scripts/styles)
+            csp_directives = [
+                "default-src 'self'",
+                "script-src 'self' 'unsafe-inline'",
+                "style-src 'self' 'unsafe-inline'",
+                "img-src 'self' data: https:",
+                "font-src 'self' data:",
+                "connect-src 'self' ws:",
+                "frame-ancestors 'none'",
+            ]
         response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
 
         # Permissions Policy (formerly Feature-Policy)

@@ -30,6 +30,7 @@ class StripePaymentProcessor:
         amount: float,
         currency: str = "usd",
         customer_id: Optional[str] = None,
+        metadata: Optional[Dict] = None,
     ) -> Dict:
         """
         Process payment using AP2 mandate through Stripe
@@ -39,6 +40,7 @@ class StripePaymentProcessor:
             amount: Amount in dollars
             currency: Currency code
             customer_id: Stripe customer ID
+            metadata: Additional metadata (e.g. agent_signal for HNP scoring)
 
         Returns:
             Payment result with transaction details
@@ -63,16 +65,21 @@ class StripePaymentProcessor:
             }
 
         try:
+            # Build Stripe metadata — base AP2 fields + optional agent_signal
+            stripe_metadata = {
+                "ap2_payment_mandate_id": payment_mandate.id,
+                "ap2_cart_mandate_id": payment_mandate.cart_mandate_id,
+                "mandate_timestamp": payment_mandate.timestamp.isoformat(),
+            }
+            if metadata:
+                stripe_metadata.update(metadata)
+
             # Create PaymentIntent
             payment_intent = stripe.PaymentIntent.create(
                 amount=int(amount * 100),  # Convert to cents
                 currency=currency,
                 customer=customer_id,
-                metadata={
-                    "ap2_payment_mandate_id": payment_mandate.id,
-                    "ap2_cart_mandate_id": payment_mandate.cart_mandate_id,
-                    "mandate_timestamp": payment_mandate.timestamp.isoformat(),
-                },
+                metadata=stripe_metadata,
                 confirm=True,
                 automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
             )

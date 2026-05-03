@@ -6,10 +6,11 @@ import os
 import shutil
 import uuid
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from fastapi import status as http_status
+from pydantic import BaseModel, validator
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_active_user
@@ -492,28 +493,71 @@ async def batch_upload_receipts(
         raise HTTPException(status_code=500, detail=f"Batch upload failed: {str(e)}")
 
 
+class ReceiptExtractionData(BaseModel):
+    vendor: str
+    amount: float
+    category: str = "Other"
+    description: str = ""
+    temp_filename: str
+    original_filename: Optional[str] = None
+    content_type: str = "image/jpeg"
+
+    @validator("vendor")
+    def sanitize_vendor(cls, v):
+        import html
+        sanitized = html.escape(v)
+        if len(sanitized) > 200:
+            raise ValueError("Vendor name cannot exceed 200 characters")
+        return sanitized
+
+    @validator("description")
+    def sanitize_description(cls, v):
+        import html
+        sanitized = html.escape(v)
+        if len(sanitized) > 1000:
+            raise ValueError("Description cannot exceed 1000 characters")
+        return sanitized
+
+    @validator("amount")
+    def validate_amount(cls, v):
+        if v <= 0:
+            raise ValueError("Amount must be positive")
+        if v > 1000000:
+            raise ValueError("Amount cannot exceed $1,000,000")
+        return v
+
+    @validator("category")
+    def validate_category(cls, v):
+        from ..models import ExpenseCategory
+        valid_categories = [e.value for e in ExpenseCategory]
+        if v not in valid_categories:
+            raise ValueError(f'Category must be one of: {", ".join(valid_categories)}')
+        return v
+
+    @validator("temp_filename")
+    def validate_temp_filename(cls, v):
+        # Prevent path traversal
+        if ".." in v or "/" in v or "\\" in v:
+            raise ValueError("Invalid filename")
+        return v
+
+
 @router.post("/create-from-extraction")
 async def create_expense_from_extraction(
-    data: dict,
+    data: ReceiptExtractionData,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
     """Create an expense from extracted receipt data"""
 
     try:
-        # Get required fields
-        vendor = data.get("vendor")
-        amount = data.get("amount")
-        category = data.get("category", "Other")
-        description = data.get("description", "")
-        temp_filename = data.get("temp_filename")
-        original_filename = data.get("original_filename")
-
-        if not vendor or not amount or not temp_filename:
-            raise HTTPException(
-                status_code=400,
-                detail="Missing required fields: vendor, amount, temp_filename",
-            )
+        # Fields are already validated by Pydantic
+        vendor = data.vendor
+        amount = data.amount
+        category = data.category
+        description = data.description
+        temp_filename = data.temp_filename
+        original_filename = data.original_filename
 
         # Verify temp file exists
         file_path = UPLOAD_DIR / temp_filename
@@ -565,7 +609,7 @@ async def create_expense_from_extraction(
             original_filename=original_filename or temp_filename,
             file_path=str(file_path),
             file_size=file_stat.st_size,
-            content_type=data.get("content_type", "image/jpeg"),
+            content_type=data.content_type,
         )
 
         db.add(receipt)
