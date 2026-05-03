@@ -5,11 +5,11 @@ AP2 Protocol Payment API endpoints
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from ..auth import get_current_user
+from ..auth import get_current_user, require_admin
 from ..billing import UsageTracker
 from ..database import get_db
 from ..models import CartMandate, IntentMandate, PaymentMandate, User
@@ -131,9 +131,9 @@ class RevokeMandateRequest(BaseModel):
 
 
 class CheckAutoApprovalRequest(BaseModel):
-    amount: float
-    category: str
-    vendor: str
+    amount: float = Field(gt=0, le=1_000_000)
+    category: str = Field(max_length=100)
+    vendor: str = Field(max_length=255)
 
 
 def _validate_constraints(constraints: Dict):
@@ -1258,9 +1258,25 @@ async def protocol_info():
     }
 
 
+def _resolve_org_id(http_request: Request, db: Session, user_id: str) -> str:
+    """Resolve organisation ID from header or user's membership."""
+    org_id = http_request.headers.get("X-Organization-Id", "").strip()
+    if not org_id:
+        from ..models import OrganizationMember
+        membership = (
+            db.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == user_id, OrganizationMember.is_active == True)
+            .first()
+        )
+        org_id = membership.organization_id if membership else ""
+    return org_id
+
+
 # ── Auto-approval preview ──────────────────────────────────────────
 @router.post("/check-auto-approval")
+@limiter.limit("20/minute")
 async def check_auto_approval(
+    http_request: Request,
     request: CheckAutoApprovalRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -1272,7 +1288,7 @@ async def check_auto_approval(
     import json as _json
 
     ap2_service = AP2PaymentService(db)
-    org_id = getattr(current_user, "active_organization_id", None) or ""
+    org_id = _resolve_org_id(http_request, db, current_user.id)
 
     matching_mandate = ap2_service.find_matching_intent_mandate(
         user_id=current_user.id,
@@ -1328,15 +1344,18 @@ async def check_auto_approval(
                 "policy_name": policy.name,
                 "policy_id": policy.id,
             }
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Approval policy check failed: {e}")
 
     return {"will_auto_approve": False}
 
 
 # ── Suggest mandate from expense ────────────────────────────────────
 @router.post("/suggest-mandate")
+@limiter.limit("20/minute")
 async def suggest_mandate_from_expense(
+    http_request: Request,
     request: CheckAutoApprovalRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -1371,12 +1390,14 @@ async def suggest_mandate_from_expense(
 
 # ── Monthly summary ────────────────────────────────────────────────
 class MonthlySummaryRequest(BaseModel):
-    year: Optional[int] = None
-    month: Optional[int] = None
+    year: Optional[int] = Field(default=None, ge=2000, le=2100)
+    month: Optional[int] = Field(default=None, ge=1, le=12)
 
 
 @router.post("/send-monthly-summary")
+@limiter.limit("2/hour")
 async def send_monthly_summary(
+    http_request: Request,
     request: MonthlySummaryRequest = MonthlySummaryRequest(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -1413,30 +1434,30 @@ async def send_monthly_summary(
 
 
 @router.post("/send-monthly-summary/all")
+@limiter.limit("2/hour")
 async def send_all_monthly_summaries_endpoint(
+    http_request: Request,
     request: MonthlySummaryRequest = MonthlySummaryRequest(),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """
-    Admin-only: Send monthly summary emails to ALL users who had
-    auto-approved expenses in the target month.
+    Admin-only: Send monthly summary emails to users in the admin's
+    organization who had auto-approved expenses in the target month.
     """
-    if current_user.role not in ("admin", "owner"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admins can trigger organization-wide summaries",
-        )
+    org_id = _resolve_org_id(http_request, db, current_user.id)
 
     from ..services.monthly_summary_service import send_all_monthly_summaries
 
-    result = await send_all_monthly_summaries(request.year, request.month)
+    result = await send_all_monthly_summaries(request.year, request.month, organization_id=org_id)
     return result
 
 
 # ── AI Pattern Detection / Mandate Suggestions ─────────────────────
 @router.get("/mandate-suggestions")
+@limiter.limit("10/minute")
 async def get_mandate_suggestions(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1446,7 +1467,7 @@ async def get_mandate_suggestions(
     """
     from ..services.pattern_service import detect_patterns
 
-    org_id = getattr(current_user, "active_organization_id", None) or ""
+    org_id = _resolve_org_id(request, db, current_user.id)
     suggestions = detect_patterns(db, current_user.id, org_id)
     return {"suggestions": suggestions, "count": len(suggestions)}
 
@@ -1508,8 +1529,10 @@ async def get_sample_mandates(
 
 # ── Analytics: trends, cost savings, bottlenecks ────────────────────
 @router.get("/analytics/trends")
+@limiter.limit("10/minute")
 async def get_auto_approval_trends(
-    days: int = 30,
+    request: Request,
+    days: int = Query(default=30, ge=1, le=365),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1520,7 +1543,7 @@ async def get_auto_approval_trends(
     from sqlalchemy import func as sqlfunc, cast, Date
     from collections import defaultdict
 
-    org_id = getattr(current_user, "active_organization_id", None) or ""
+    org_id = _resolve_org_id(request, db, current_user.id)
     cutoff = datetime.utcnow() - __import__("datetime").timedelta(days=days)
 
     from ..models import Expense
@@ -1580,8 +1603,10 @@ async def get_auto_approval_trends(
 
 
 @router.get("/analytics/cost-savings")
+@limiter.limit("10/minute")
 async def get_cost_savings(
-    days: int = 30,
+    request: Request,
+    days: int = Query(default=30, ge=1, le=365),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1590,7 +1615,7 @@ async def get_cost_savings(
     """
     from sqlalchemy import func as sqlfunc
 
-    org_id = getattr(current_user, "active_organization_id", None) or ""
+    org_id = _resolve_org_id(request, db, current_user.id)
     cutoff = datetime.utcnow() - __import__("datetime").timedelta(days=days)
 
     from ..models import Expense
@@ -1642,8 +1667,10 @@ async def get_cost_savings(
 
 
 @router.get("/analytics/bottlenecks")
+@limiter.limit("10/minute")
 async def get_bottlenecks(
-    days: int = 30,
+    request: Request,
+    days: int = Query(default=30, ge=1, le=365),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1654,7 +1681,7 @@ async def get_bottlenecks(
     from sqlalchemy import func as sqlfunc
     from collections import defaultdict
 
-    org_id = getattr(current_user, "active_organization_id", None) or ""
+    org_id = _resolve_org_id(request, db, current_user.id)
     cutoff = datetime.utcnow() - __import__("datetime").timedelta(days=days)
 
     from ..models import Expense, ExpenseStatus

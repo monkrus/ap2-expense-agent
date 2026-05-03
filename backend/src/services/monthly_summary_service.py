@@ -137,9 +137,9 @@ async def send_user_monthly_summary(
             html_body=html_body,
             text_body=text_body,
         )
-        logger.info(f"Monthly summary sent to {summary['user_email']} for {summary['month_label']}")
+        logger.info(f"Monthly summary sent to user {summary['user_id']} for {summary['month_label']}")
     except Exception as e:
-        logger.error(f"Failed to send monthly summary to {summary.get('user_email')}: {e}")
+        logger.error(f"Failed to send monthly summary to user {summary.get('user_id')}: {e}")
 
     return summary
 
@@ -147,9 +147,11 @@ async def send_user_monthly_summary(
 async def send_all_monthly_summaries(
     year: Optional[int] = None,
     month: Optional[int] = None,
+    organization_id: Optional[str] = None,
 ) -> dict:
     """
-    Send monthly summary emails to all users who had expenses.
+    Send monthly summary emails to users who had expenses.
+    Scoped to organization_id when provided.
     Defaults to the previous month.
 
     Returns: {"sent": int, "skipped": int, "errors": int}
@@ -169,16 +171,17 @@ async def send_all_monthly_summaries(
     stats = {"sent": 0, "skipped": 0, "errors": 0}
 
     try:
-        # Find all users who had expenses in the target month
-        user_ids = (
+        # Find users who had expenses in the target month, scoped to org
+        query = (
             db.query(Expense.user_id)
             .filter(
                 Expense.created_at >= start,
                 Expense.created_at <= end,
             )
-            .distinct()
-            .all()
         )
+        if organization_id:
+            query = query.filter(Expense.organization_id == organization_id)
+        user_ids = query.distinct().all()
 
         logger.info(f"Sending monthly summaries for {datetime(year, month, 1).strftime('%B %Y')} to {len(user_ids)} users")
 

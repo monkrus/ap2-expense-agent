@@ -174,9 +174,9 @@ class TestMandateSuggestionsEndpoint:
     def test_returns_suggestions_for_recurring_vendor(
         self, client, auth_headers, db_session, test_user
     ):
-        # Endpoint uses org_id="" (no active_organization_id on user)
+        org_id = _get_org_id(db_session, test_user.id)
         _seed_expenses(
-            db_session, test_user.id, "",
+            db_session, test_user.id, org_id,
             vendor="Amazon", category="OFFICE_SUPPLIES", count=5,
             amount=40.0, auto_approved=False,
         )
@@ -195,8 +195,9 @@ class TestMandateSuggestionsEndpoint:
     def test_no_suggestions_when_below_minimum(
         self, client, auth_headers, db_session, test_user
     ):
+        org_id = _get_org_id(db_session, test_user.id)
         _seed_expenses(
-            db_session, test_user.id, "",
+            db_session, test_user.id, org_id,
             vendor="RareVendor", category="OTHER", count=2,
         )
 
@@ -217,14 +218,14 @@ class TestMandateSuggestionsEndpoint:
 
 class TestAnalyticsTrendsEndpoint:
     def test_returns_trend_data(self, client, auth_headers, db_session, test_user):
-        # Endpoint uses org_id="" (no active_organization_id on user)
+        org_id = _get_org_id(db_session, test_user.id)
         _seed_expenses(
-            db_session, test_user.id, "",
+            db_session, test_user.id, org_id,
             vendor="Amazon", category="OFFICE_SUPPLIES", count=3,
             auto_approved=True, auto_approved_via="intent_mandate",
         )
         _seed_expenses(
-            db_session, test_user.id, "",
+            db_session, test_user.id, org_id,
             vendor="Uber", category="TRAVEL", count=2,
             auto_approved=False,
         )
@@ -253,13 +254,14 @@ class TestAnalyticsTrendsEndpoint:
 
 class TestAnalyticsCostSavingsEndpoint:
     def test_calculates_savings(self, client, auth_headers, db_session, test_user):
+        org_id = _get_org_id(db_session, test_user.id)
         _seed_expenses(
-            db_session, test_user.id, "",
+            db_session, test_user.id, org_id,
             vendor="Staples", category="OFFICE_SUPPLIES", count=10,
             auto_approved=True, auto_approved_via="intent_mandate",
         )
         _seed_expenses(
-            db_session, test_user.id, "",
+            db_session, test_user.id, org_id,
             vendor="Uber", category="TRAVEL", count=5,
             auto_approved=False,
         )
@@ -296,16 +298,17 @@ class TestAnalyticsBottlenecksEndpoint:
     def test_identifies_bottleneck_categories(
         self, client, auth_headers, db_session, test_user
     ):
+        org_id = _get_org_id(db_session, test_user.id)
         # Office supplies: all auto-approved (high rate)
         _seed_expenses(
-            db_session, test_user.id, "",
+            db_session, test_user.id, org_id,
             vendor="Staples", category="OFFICE_SUPPLIES", count=5,
             auto_approved=True, auto_approved_via="intent_mandate",
         )
 
         # Travel: none auto-approved (bottleneck)
         _seed_expenses(
-            db_session, test_user.id, "",
+            db_session, test_user.id, org_id,
             vendor="Uber", category="TRAVEL", count=4,
             auto_approved=False,
         )
