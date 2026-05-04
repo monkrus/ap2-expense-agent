@@ -148,7 +148,7 @@ def add_user_to_organization(
     db_session,
     user: User,
     organization: Organization,
-    role: OrganizationRole = OrganizationRole.MEMBER,
+    role: OrganizationRole = OrganizationRole.EMPLOYEE,
     is_active: bool = True
 ) -> OrganizationMember:
     """
@@ -301,7 +301,7 @@ def create_multi_tenant_scenario(
     org1_admin = create_user(db_session, email="org1_admin@test.com")
     add_user_to_organization(db_session, org1_admin, org1, OrganizationRole.ADMIN)
     org1_employee = create_user(db_session, email="org1_emp@test.com")
-    add_user_to_organization(db_session, org1_employee, org1, OrganizationRole.MEMBER)
+    add_user_to_organization(db_session, org1_employee, org1, OrganizationRole.EMPLOYEE)
     org1_expense = create_pending_expense(db_session, org1_employee, org1, amount=150.0)
 
     # Organization 2 with single owner
@@ -351,11 +351,11 @@ def create_manager_approval_scenario(
 
     # Employee in same department
     employee_same_dept = create_employee(db_session, department_id=department)
-    add_user_to_organization(db_session, employee_same_dept, org, OrganizationRole.MEMBER)
+    add_user_to_organization(db_session, employee_same_dept, org, OrganizationRole.EMPLOYEE)
 
     # Employee in different department
     employee_other_dept = create_employee(db_session, department_id="engineering")
-    add_user_to_organization(db_session, employee_other_dept, org, OrganizationRole.MEMBER)
+    add_user_to_organization(db_session, employee_other_dept, org, OrganizationRole.EMPLOYEE)
 
     # Expenses with different amounts
     expense_under_5k = create_pending_expense(db_session, employee_same_dept, org, amount=3000.0)

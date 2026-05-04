@@ -68,7 +68,7 @@ def _make_user(db, org_id):
         id=str(uuid.uuid4()),
         organization_id=org_id,
         user_id=user.id,
-        role=OrganizationRole.MEMBER,
+        role=OrganizationRole.EMPLOYEE,
         is_active=True,
         joined_at=datetime.utcnow(),
     )

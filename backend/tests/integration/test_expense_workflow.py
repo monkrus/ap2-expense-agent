@@ -424,11 +424,15 @@ def test_invitation_flow(client, admin_auth, organization):
     assert resp.status_code == 200
     invitee_token = resp.json()["access_token"]
 
-    # Step 4: Invitee accepts invitation
-    resp = client.post(
-        f"/api/v1/organizations/invitations/{invitation_token}/accept",
-        headers={"Authorization": f"Bearer {invitee_token}"},
-    )
+    # Step 4: Invitee accepts invitation (bypass free tier member limit)
+    with patch(
+        "src.routes.organizations.LimitEnforcer.get_org_tier",
+        return_value=type("Tier", (), {"max_users": None})(),
+    ):
+        resp = client.post(
+            f"/api/v1/organizations/invitations/{invitation_token}/accept",
+            headers={"Authorization": f"Bearer {invitee_token}"},
+        )
     assert resp.status_code == 200
     assert "accepted" in resp.json()["message"].lower()
 

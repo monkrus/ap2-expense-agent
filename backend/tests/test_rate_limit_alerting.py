@@ -13,9 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Ensure monitoring module can be imported despite missing native deps
-sys.modules.setdefault("psutil", MagicMock())
-sys.modules.setdefault("prometheus_client", MagicMock())
+# psutil and prometheus_client are installed in the test environment
 
 from src.monitoring import AlertManager
 from src.rate_limit import rate_limit_handler

@@ -263,7 +263,7 @@ class TestCrossOrgDataLeakage:
         # Setup: Organization with owner and member
         org, owner = create_organization_with_owner(db_session)
         member = create_user(db_session, email="member@test.com")
-        membership = add_user_to_organization(db_session, member, org, OrganizationRole.MEMBER)
+        membership = add_user_to_organization(db_session, member, org, OrganizationRole.EMPLOYEE)
         expense = create_pending_expense(db_session, member, org, amount=100.0)
         db_session.commit()
 

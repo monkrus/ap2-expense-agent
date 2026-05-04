@@ -51,7 +51,7 @@ class TestPermissionBoundaries:
         admin_user = create_user(db_session, email="admin@test.com")
         add_user_to_organization(db_session, admin_user, org, OrganizationRole.ADMIN)
         regular_member = create_user(db_session, email="member@test.com")
-        member_membership = add_user_to_organization(db_session, regular_member, org, OrganizationRole.MEMBER)
+        member_membership = add_user_to_organization(db_session, regular_member, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login as ADMIN
@@ -64,8 +64,9 @@ class TestPermissionBoundaries:
 
         # Try to grant OWNER role to member
         response = client.patch(
-            f"/api/v1/organizations/{org.id}/members/{member_membership.id}/role?role=owner",  # Query param
-            headers=admin_headers
+            f"/api/v1/organizations/{org.id}/members/{member_membership.id}/role",
+            headers=admin_headers,
+            json={"role": "owner"}
         )
 
         # Should fail with 403 Forbidden
@@ -84,7 +85,7 @@ class TestPermissionBoundaries:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         new_owner_candidate = create_user(db_session, email="newowner@test.com")
-        membership = add_user_to_organization(db_session, new_owner_candidate, org, OrganizationRole.MEMBER)
+        membership = add_user_to_organization(db_session, new_owner_candidate, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login as OWNER
@@ -97,8 +98,9 @@ class TestPermissionBoundaries:
 
         # Grant OWNER role
         response = client.patch(
-            f"/api/v1/organizations/{org.id}/members/{membership.id}/role?role=owner",
-            headers=owner_headers
+            f"/api/v1/organizations/{org.id}/members/{membership.id}/role",
+            headers=owner_headers,
+            json={"role": "owner"}
         )
 
         # Should succeed
@@ -135,8 +137,9 @@ class TestPermissionBoundaries:
 
         # Try to modify own role to OWNER
         response = client.patch(
-            f"/api/v1/organizations/{org.id}/members/{admin_membership.id}/role?role=owner",
-            headers=admin_headers
+            f"/api/v1/organizations/{org.id}/members/{admin_membership.id}/role",
+            headers=admin_headers,
+            json={"role": "owner"}
         )
 
         # Should fail with 403 Forbidden
@@ -171,8 +174,9 @@ class TestPermissionBoundaries:
 
         # Try to demote self to MEMBER (still modifying own role)
         response = client.patch(
-            f"/api/v1/organizations/{org.id}/members/{owner_membership.id}/role?role=member",
-            headers=owner_headers
+            f"/api/v1/organizations/{org.id}/members/{owner_membership.id}/role",
+            headers=owner_headers,
+            json={"role": "employee"}
         )
 
         # Should fail
@@ -267,7 +271,7 @@ class TestPermissionBoundaries:
         admin_user = create_user(db_session, email="admin@test.com")
         add_user_to_organization(db_session, admin_user, org, OrganizationRole.ADMIN)
         member = create_user(db_session, email="member@test.com")
-        member_membership = add_user_to_organization(db_session, member, org, OrganizationRole.MEMBER)
+        member_membership = add_user_to_organization(db_session, member, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login as ADMIN
@@ -305,7 +309,7 @@ class TestPermissionBoundaries:
         # Setup: Organization with employee and their expense
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         expense = create_pending_expense(db_session, employee, org, amount=100.0)
         db_session.commit()
 
@@ -344,7 +348,7 @@ class TestPermissionBoundaries:
     #     # Setup
     #     org, owner = create_organization_with_owner(db_session)
     #     accountant = create_accountant(db_session)
-    #     add_user_to_organization(db_session, accountant, org, OrganizationRole.MEMBER)
+    #     add_user_to_organization(db_session, accountant, org, OrganizationRole.EMPLOYEE)
     #     expense = create_pending_expense(db_session, owner, org, amount=100.0)
     #     db_session.commit()
     #

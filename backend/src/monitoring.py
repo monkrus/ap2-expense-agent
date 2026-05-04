@@ -18,63 +18,82 @@ from prometheus_client import (
     Gauge,
     Histogram,
     generate_latest,
+    REGISTRY,
 )
 
 logger = logging.getLogger(__name__)
 
 
 # ============================================================================
-# Prometheus Metrics
+# Prometheus Metrics (safe against duplicate registration in tests)
 # ============================================================================
 
+def _counter(name, desc, labels=None):
+    try:
+        return Counter(name, desc, labels or [])
+    except ValueError:
+        return REGISTRY._names_to_collectors[name]
+
+def _histogram(name, desc, labels=None):
+    try:
+        return Histogram(name, desc, labels or [])
+    except ValueError:
+        return REGISTRY._names_to_collectors[name]
+
+def _gauge(name, desc):
+    try:
+        return Gauge(name, desc)
+    except ValueError:
+        return REGISTRY._names_to_collectors[name]
+
 # HTTP metrics
-http_requests_total = Counter(
+http_requests_total = _counter(
     "http_requests_total", "Total HTTP requests", ["method", "endpoint", "status"]
 )
 
-http_request_duration_seconds = Histogram(
+http_request_duration_seconds = _histogram(
     "http_request_duration_seconds",
     "HTTP request duration in seconds",
     ["method", "endpoint"],
 )
 
-http_requests_in_progress = Gauge(
+http_requests_in_progress = _gauge(
     "http_requests_in_progress", "HTTP requests currently being processed"
 )
 
 # Database metrics
-db_query_duration_seconds = Histogram(
+db_query_duration_seconds = _histogram(
     "db_query_duration_seconds", "Database query duration in seconds", ["operation"]
 )
 
-db_connections_total = Gauge(
+db_connections_total = _gauge(
     "db_connections_total", "Current number of database connections"
 )
 
 # Cache metrics
-cache_hits_total = Counter("cache_hits_total", "Total cache hits", ["cache_type"])
+cache_hits_total = _counter("cache_hits_total", "Total cache hits", ["cache_type"])
 
-cache_misses_total = Counter("cache_misses_total", "Total cache misses", ["cache_type"])
+cache_misses_total = _counter("cache_misses_total", "Total cache misses", ["cache_type"])
 
 # Business metrics
-expenses_created_total = Counter(
+expenses_created_total = _counter(
     "expenses_created_total", "Total expenses created", ["organization_id"]
 )
 
-expenses_approved_total = Counter(
+expenses_approved_total = _counter(
     "expenses_approved_total", "Total expenses approved", ["organization_id"]
 )
 
-ap2_payments_total = Counter(
+ap2_payments_total = _counter(
     "ap2_payments_total", "Total AP2 payments processed", ["status"]
 )
 
 # System metrics
-system_cpu_usage = Gauge("system_cpu_usage_percent", "System CPU usage percentage")
+system_cpu_usage = _gauge("system_cpu_usage_percent", "System CPU usage percentage")
 
-system_memory_usage = Gauge("system_memory_usage_bytes", "System memory usage in bytes")
+system_memory_usage = _gauge("system_memory_usage_bytes", "System memory usage in bytes")
 
-system_disk_usage = Gauge("system_disk_usage_percent", "System disk usage percentage")
+system_disk_usage = _gauge("system_disk_usage_percent", "System disk usage percentage")
 
 
 # ============================================================================

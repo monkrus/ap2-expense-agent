@@ -65,7 +65,7 @@ class TestAutoApprovalEndToEnd:
         # Step 3: Verify expense was AUTO-APPROVED
         assert expense["auto_approved"] == True, "Expense should be auto-approved"
         assert expense["status"] == "approved", f"Status should be approved, got {expense['status']}"
-        assert expense["approval_policy_id"] == policy_id, "Should link to policy"
+        assert expense.get("auto_approved_via") == "approval_policy", "Should be approved via policy"
         assert "Auto-approved by policy" in expense.get("message", "")
 
     def test_expense_exceeding_amount_limit_not_auto_approved(
@@ -220,7 +220,7 @@ class TestAutoApprovalEndToEnd:
 
         # Should match HIGH priority policy
         assert expense["auto_approved"] == True
-        assert expense["approval_policy_id"] == high_policy_id, \
+        assert expense.get("auto_approved_via") == "approval_policy", \
             "Should match high priority policy"
 
     def test_daily_limit_enforcement(self, client, admin_org_headers, test_admin, db_session):

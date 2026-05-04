@@ -45,7 +45,7 @@ class TestXSSPrevention:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login
@@ -99,7 +99,7 @@ class TestXSSPrevention:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login
@@ -217,7 +217,7 @@ class TestSQLInjectionPrevention:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login
@@ -333,7 +333,7 @@ class TestInputValidation:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login
@@ -376,7 +376,7 @@ class TestInputValidation:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login
@@ -419,7 +419,7 @@ class TestInputValidation:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login
@@ -470,7 +470,7 @@ class TestInputValidation:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login
@@ -566,7 +566,7 @@ class TestInputValidation:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login
@@ -611,7 +611,7 @@ class TestInputValidation:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login
@@ -668,7 +668,7 @@ class TestCommandInjectionPrevention:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         expense = create_pending_expense(db_session, employee, org, amount=100.0)
         db_session.commit()
 
@@ -731,7 +731,7 @@ class TestHeaderInjection:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login

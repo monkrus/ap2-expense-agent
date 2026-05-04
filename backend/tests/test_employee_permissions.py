@@ -47,7 +47,7 @@ class TestEmployeePermissions:
         # Setup: Employee in organization
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login as employee
@@ -97,7 +97,7 @@ class TestEmployeePermissions:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         expense = create_pending_expense(db_session, employee, org, amount=100.0)
         db_session.commit()
 
@@ -141,8 +141,8 @@ class TestEmployeePermissions:
         org, owner = create_organization_with_owner(db_session)
         employee1 = create_employee(db_session, email="emp1@test.com")
         employee2 = create_employee(db_session, email="emp2@test.com")
-        add_user_to_organization(db_session, employee1, org, OrganizationRole.MEMBER)
-        add_user_to_organization(db_session, employee2, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee1, org, OrganizationRole.EMPLOYEE)
+        add_user_to_organization(db_session, employee2, org, OrganizationRole.EMPLOYEE)
 
         # Employee2's expense
         employee2_expense = create_pending_expense(db_session, employee2, org, amount=200.0)
@@ -185,7 +185,7 @@ class TestEmployeePermissions:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         expense = create_pending_expense(db_session, employee, org, amount=100.0)
         db_session.commit()
 
@@ -235,7 +235,7 @@ class TestEmployeePermissions:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         approved_expense = create_approved_expense(
             db_session,
             employee,
@@ -287,7 +287,7 @@ class TestEmployeePermissions:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         expense = create_pending_expense(db_session, employee, org, amount=100.0)
         db_session.commit()
 
@@ -331,7 +331,7 @@ class TestEmployeePermissions:
         # Setup: Organization with multiple members
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login
@@ -369,7 +369,7 @@ class TestEmployeePermissions:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login
@@ -415,8 +415,8 @@ class TestEmployeePermissions:
         org, owner = create_organization_with_owner(db_session)
         employee1 = create_employee(db_session, email="emp1@test.com")
         employee2 = create_employee(db_session, email="emp2@test.com")
-        add_user_to_organization(db_session, employee1, org, OrganizationRole.MEMBER)
-        add_user_to_organization(db_session, employee2, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee1, org, OrganizationRole.EMPLOYEE)
+        add_user_to_organization(db_session, employee2, org, OrganizationRole.EMPLOYEE)
 
         # Employee2's expense
         employee2_expense = create_pending_expense(db_session, employee2, org, amount=200.0)
@@ -459,8 +459,8 @@ class TestEmployeePermissions:
         org, owner = create_organization_with_owner(db_session)
         employee1 = create_employee(db_session, email="emp1@test.com")
         employee2 = create_employee(db_session, email="emp2@test.com")
-        add_user_to_organization(db_session, employee1, org, OrganizationRole.MEMBER)
-        add_user_to_organization(db_session, employee2, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee1, org, OrganizationRole.EMPLOYEE)
+        add_user_to_organization(db_session, employee2, org, OrganizationRole.EMPLOYEE)
 
         # Create expenses for both
         emp1_expense = create_pending_expense(db_session, employee1, org, amount=100.0)
@@ -507,7 +507,7 @@ class TestEmployeePermissions:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         employee = create_employee(db_session)
-        add_user_to_organization(db_session, employee, org, OrganizationRole.MEMBER)
+        add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         db_session.commit()
 
         # Login

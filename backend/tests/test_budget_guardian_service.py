@@ -66,7 +66,7 @@ def user(db_session, org):
         id=str(uuid.uuid4()),
         organization_id=org.id,
         user_id=u.id,
-        role=OrganizationRole.MEMBER,
+        role=OrganizationRole.EMPLOYEE,
         is_active=True,
         joined_at=datetime.utcnow(),
     )
