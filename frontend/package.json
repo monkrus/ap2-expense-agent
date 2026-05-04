@@ -33,7 +33,9 @@
     "glob": "^11.0.0",
     "rimraf": "^6.0.0",
     "readdir-glob": "^3.0.0",
-    "uuid": "^14.0.0"
+    "uuid": "^14.0.0",
+    "semver": "^7.5.2",
+    "word-wrap": "^1.2.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
