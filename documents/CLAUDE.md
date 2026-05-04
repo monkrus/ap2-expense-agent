@@ -162,25 +162,19 @@ api/                     # API client functions
 
 ## 🤖 AP2 Autonomous Agent Architecture
 
-### **Current State vs. Goal**
+### **Current State (ALL PHASES COMPLETE)**
 
-**❌ CURRENT (BROKEN):** AP2 triggers AFTER manual approval
+**✅ IMPLEMENTED:** Intent Mandates drive auto-approval
 ```python
-# expenses.py:965 - WRONG: Retroactive AP2 creation
-expense.status = APPROVED  # Manager approved manually
-ap2_service.complete_ap2_flow()  # Creates mandates after decision
-```
-
-**✅ GOAL (CORRECT):** Intent Mandates enable auto-approval
-```python
-# expenses.py:240 - RIGHT: Intent Mandate drives decision
+# expenses.py - Intent Mandate drives decision
 matching_mandate = ap2_service.find_matching_intent_mandate(expense)
 if matching_mandate:
     # Auto-approve via AP2 (no human needed!)
     expense.status = APPROVED
     expense.auto_approved = True
+    expense.auto_approved_via = "intent_mandate"
 else:
-    # Manual approval needed
+    # Check approval policies (Tier 2), then manual
     expense.status = PENDING
 ```
 
@@ -203,61 +197,52 @@ Located in `backend/src/payments/ap2_service.py`:
    - Includes: payment_method, audit_trail, timestamp
    - Triggers Stripe payment
 
-### **Implementation Checklist**
+### **Implementation Status**
 
-**Phase 1: Core Autonomy (PRIORITY)** ⭐
+**Phase 1: Core Autonomy** ✅ COMPLETE
 
-- [ ] `backend/src/payments/ap2_service.py`:
-  - [ ] Add `find_matching_intent_mandate()` method
-  - [ ] Add `_expense_matches_constraints()` helper
-  - [ ] Add `_get_mandate_monthly_usage()` for spending limits
+- [x] `ap2_service.py`: `find_matching_intent_mandate()`, `_expense_matches_constraints()`, `_get_mandate_monthly_usage()`
+- [x] `expenses.py`: Two-tier auto-approval (Intent Mandates → Policies → Manual)
+- [x] Database: `auto_approved`, `auto_approved_via` fields on Expense
 
-- [ ] `backend/src/routes/expenses.py`:
-  - [ ] Check Intent Mandates BEFORE creating expense (line ~240)
-  - [ ] Auto-approve if mandate matches
-  - [ ] REMOVE AP2 from manual approval endpoint (lines 965-1003)
+**Phase 2: User Experience** ✅ COMPLETE
 
-- [ ] Database:
-  - [ ] Add `auto_approved` boolean to expenses table
-  - [ ] Add `intent_mandate_id` to expenses table (already exists)
+- [x] Real-time auto-approval preview in expense form (debounced 500ms)
+- [x] "Create Rule" from expense with smart constraint suggestions
+- [x] Auto-approval email notifications (per-expense + monthly summary)
+- [x] Monthly summary scheduler (1st of month, 06:00 UTC)
 
-**Phase 2: User Experience**
+**Phase 3: Advanced Features** ✅ COMPLETE
 
-- [ ] `frontend/src/components/ExpenseForm.jsx`:
-  - [ ] Show "Will auto-approve" indicator
-  - [ ] Suggest Intent Mandate creation for common expenses
-
-- [ ] `frontend/src/pages/AIAssistant.jsx`:
-  - [ ] Intent Mandate creation wizard
-  - [ ] Dashboard showing auto-approval stats
-  - [ ] Manager time saved metrics
-
-- [ ] `frontend/src/components/IntentMandateManager.jsx`:
-  - [ ] Intuitive constraint builder
-  - [ ] Monthly spending limits
-  - [ ] Activity preview
-
-**Phase 3: Advanced Features**
-
-- [ ] Learning: "Create mandate based on last 10 expenses?"
-- [ ] Analytics: Auto-approval rate, time saved
-- [ ] Manager override: Revoke mandate if abuse detected
+- [x] AI pattern detection: `detect_patterns()` in `pattern_service.py`
+- [x] Analytics: trends, cost savings, bottlenecks (3 endpoints)
+- [x] Manager override: Revoke with GDPR cascade (3 revoke endpoints)
+- [x] Onboarding wizard: `AP2Onboarding.jsx` with sample mandates
 
 ### **AP2 Files Reference**
 
-**Backend:**
-- `backend/src/payments/ap2_service.py` - AP2 protocol implementation
-- `backend/src/routes/ap2.py` - API endpoints (Intent/Cart/Payment Mandates)
-- `backend/src/models.py:766-833` - AP2 database models
-- `backend/src/security/kms_service.py` - Cryptographic signing
+**Backend - Core:**
+- `backend/src/payments/ap2_service.py` - AP2 protocol implementation + matching logic
+- `backend/src/routes/ap2.py` - All AP2 endpoints (mandates, analytics, suggestions, onboarding)
+- `backend/src/models.py` - AP2 database models (IntentMandate, CartMandate, PaymentMandate)
+- `backend/src/security/kms_service.py` - RSA cryptographic signing
+
+**Backend - Phase 2+3 Services:**
+- `backend/src/services/auto_approval_service.py` - Auto-approval engine + email dispatch
+- `backend/src/services/pattern_service.py` - AI pattern detection for mandate suggestions
+- `backend/src/services/monthly_summary_service.py` - Monthly stats + email digest
+- `backend/src/email_templates.py` - Auto-approval + monthly summary HTML templates
 
 **Frontend:**
-- `frontend/src/pages/AIAssistant.jsx` - Main AP2 interface
+- `frontend/src/pages/AIAssistant.jsx` - Main AP2 interface + analytics + suggestions
+- `frontend/src/components/AP2Onboarding.jsx` - 3-step onboarding wizard
+- `frontend/src/components/EmployeeDashboard.jsx` - Auto-approval preview + create-from-expense
 - `frontend/src/components/IntentMandateManager.jsx` - Mandate CRUD
 - `frontend/src/components/AgentActivityMonitor.jsx` - Transaction history
-- `frontend/src/components/ConstraintBuilder.jsx` - Constraint UI
 
-**Tests:**
+**Tests (42 total):**
+- `backend/tests/test_ap2_phase2_phase3.py` - 16 unit tests (services, templates, logic)
+- `backend/tests/test_ap2_integration.py` - 26 integration tests (API endpoints)
 - `backend/tests/test_ap2_protocol.py` - AP2 compliance tests
 - `backend/tests/test_ap2_payment_service.py` - Service tests
 
