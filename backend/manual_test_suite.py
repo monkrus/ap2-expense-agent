@@ -13,6 +13,7 @@ import io
 BASE_URL = "http://127.0.0.1:8000"
 TEST_RESULTS = []
 
+
 class Colors:
     GREEN = '\033[92m'
     RED = '\033[91m'
