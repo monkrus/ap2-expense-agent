@@ -29,6 +29,7 @@ from src.models import (
     User,
     UserRole,
 )
+import src.models_billing  # noqa: F401 — register BillingTier with Base.metadata
 
 # Test database setup (in-memory SQLite)
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
@@ -42,11 +43,38 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+def _seed_billing_tiers(session):
+    """Seed billing tiers into the test database"""
+    from src.models_billing import BillingTier
+
+    if session.query(BillingTier).first():
+        return
+    from seed_billing_tiers import OFFICIAL_TIERS
+
+    for tier_name, tier_data in OFFICIAL_TIERS.items():
+        tier = BillingTier(
+            id=f"tier_{tier_name}",
+            tier_name=tier_name,
+            display_name=tier_data["display_name"],
+            description=tier_data.get("description", ""),
+            base_price_monthly=tier_data["base_price_monthly"],
+            currency=tier_data.get("currency", "USD"),
+            limits=tier_data["limits"],
+            overage_pricing=tier_data.get("overage_pricing"),
+            features=tier_data.get("features", []),
+            is_active=True,
+            is_public=True,
+        )
+        session.add(tier)
+    session.commit()
+
+
 @pytest.fixture(scope="function")
 def db_session():
     """Create a fresh database session for each test"""
     Base.metadata.create_all(bind=engine)
     session = TestingSessionLocal()
+    _seed_billing_tiers(session)
     try:
         yield session
     finally:
