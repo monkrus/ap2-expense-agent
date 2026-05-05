@@ -36,8 +36,8 @@ def test_api_health():
     print("="*60)
 
     try:
-        # Test root endpoint
-        response = requests.get(f"{API_BASE_URL.replace('/api/v1', '')}/")
+        # Test health endpoint
+        response = requests.get(f"{API_BASE_URL.replace('/api/v1', '')}/health")
 
         if response.status_code == 200:
             print("[PASS] API is accessible")
