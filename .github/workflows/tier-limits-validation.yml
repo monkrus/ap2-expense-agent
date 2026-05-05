@@ -30,14 +30,14 @@ jobs:
     - name: Initialize database and seed billing tiers
       run: |
         cd backend
-        python -c "
-import src.models
-import src.models_billing
-from src.database import init_db
-init_db()
-from seed_billing_tiers import seed_billing_tiers
-seed_billing_tiers()
-"
+        python3 << 'PYEOF'
+        import src.models
+        import src.models_billing
+        from src.database import init_db
+        init_db()
+        from seed_billing_tiers import seed_billing_tiers
+        seed_billing_tiers()
+        PYEOF
       env:
         DATABASE_URL: sqlite:///./test.db
         TESTING: "true"
@@ -231,14 +231,14 @@ seed_billing_tiers()
     - name: Initialize database and seed billing tiers
       run: |
         cd backend
-        python -c "
-import src.models
-import src.models_billing
-from src.database import init_db
-init_db()
-from seed_billing_tiers import seed_billing_tiers
-seed_billing_tiers()
-"
+        python3 << 'PYEOF'
+        import src.models
+        import src.models_billing
+        from src.database import init_db
+        init_db()
+        from seed_billing_tiers import seed_billing_tiers
+        seed_billing_tiers()
+        PYEOF
       env:
         DATABASE_URL: sqlite:///./test.db
         TESTING: "true"
