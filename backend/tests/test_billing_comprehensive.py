@@ -13,12 +13,9 @@ import uuid
 from datetime import datetime, timedelta
 
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from src.api import app
 from src.auth import AuthService
-from src.database import SessionLocal
 from src.models import (
     Organization,
     OrganizationMember,
@@ -28,26 +25,19 @@ from src.models import (
 )
 from src.models_billing import BillingTier, OrganizationSubscription, UsageMetric
 
-
-@pytest.fixture
-def client():
-    """Test client fixture"""
-    return TestClient(app)
+# Use db_session and client from conftest.py (in-memory SQLite with billing tiers seeded)
+# Alias db_session -> db for convenience in this file
 
 
 @pytest.fixture
-def db():
-    """Database session fixture"""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+def db(db_session):
+    """Alias for db_session from conftest"""
+    return db_session
 
 
 @pytest.fixture
-def test_user(db: Session):
-    """Create a test user"""
+def test_user(db_session):
+    """Create a test user for billing tests"""
     user = User(
         id=str(uuid.uuid4()),
         username=f"billtest_{uuid.uuid4().hex[:8]}",
@@ -59,38 +49,10 @@ def test_user(db: Session):
         is_verified=True,
         created_at=datetime.utcnow(),
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-
-    yield user
-
-    # Cleanup
-    memberships = (
-        db.query(OrganizationMember).filter(OrganizationMember.user_id == user.id).all()
-    )
-    for m in memberships:
-        db.delete(m)
-
-    orgs = (
-        db.query(Organization)
-        .join(OrganizationMember)
-        .filter(OrganizationMember.user_id == user.id)
-        .all()
-    )
-    for org in orgs:
-        # Delete subscriptions
-        subs = (
-            db.query(OrganizationSubscription)
-            .filter(OrganizationSubscription.organization_id == org.id)
-            .all()
-        )
-        for sub in subs:
-            db.delete(sub)
-        db.delete(org)
-
-    db.delete(user)
-    db.commit()
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
 
 
 @pytest.fixture
@@ -106,7 +68,7 @@ def auth_headers(client, test_user):
 
 
 @pytest.fixture
-def test_org(db: Session, test_user):
+def test_org(db_session, test_user):
     """Create a test organization with the user as owner"""
     org = Organization(
         id=str(uuid.uuid4()),
@@ -115,9 +77,9 @@ def test_org(db: Session, test_user):
         is_active=True,
         created_at=datetime.utcnow(),
     )
-    db.add(org)
-    db.commit()
-    db.refresh(org)
+    db_session.add(org)
+    db_session.commit()
+    db_session.refresh(org)
 
     # Add user as owner
     member = OrganizationMember(
@@ -128,12 +90,10 @@ def test_org(db: Session, test_user):
         is_active=True,
         joined_at=datetime.utcnow(),
     )
-    db.add(member)
-    db.commit()
+    db_session.add(member)
+    db_session.commit()
 
-    yield org
-
-    # Cleanup is handled by test_user fixture
+    return org
 
 
 class TestBillingTiers:
