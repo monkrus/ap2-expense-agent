@@ -19,7 +19,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
-from ..models import Expense, ExpenseStatus, User, OrganizationMember
+from ..models import Expense, ExpenseStatus, OrganizationMember, User
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +62,12 @@ def gather_user_monthly_stats(
     total = len(expenses)
     auto_approved = [e for e in expenses if e.auto_approved]
     auto_count = len(auto_approved)
-    by_mandate = sum(1 for e in auto_approved if e.auto_approved_via == "intent_mandate")
-    by_policy = sum(1 for e in auto_approved if e.auto_approved_via == "approval_policy")
+    by_mandate = sum(
+        1 for e in auto_approved if e.auto_approved_via == "intent_mandate"
+    )
+    by_policy = sum(
+        1 for e in auto_approved if e.auto_approved_via == "approval_policy"
+    )
     manual_count = total - auto_count
 
     total_amount = sum(float(e.amount) for e in expenses)
@@ -137,9 +141,13 @@ async def send_user_monthly_summary(
             html_body=html_body,
             text_body=text_body,
         )
-        logger.info(f"Monthly summary sent to user {summary['user_id']} for {summary['month_label']}")
+        logger.info(
+            f"Monthly summary sent to user {summary['user_id']} for {summary['month_label']}"
+        )
     except Exception as e:
-        logger.error(f"Failed to send monthly summary to user {summary.get('user_id')}: {e}")
+        logger.error(
+            f"Failed to send monthly summary to user {summary.get('user_id')}: {e}"
+        )
 
     return summary
 
@@ -172,18 +180,17 @@ async def send_all_monthly_summaries(
 
     try:
         # Find users who had expenses in the target month, scoped to org
-        query = (
-            db.query(Expense.user_id)
-            .filter(
-                Expense.created_at >= start,
-                Expense.created_at <= end,
-            )
+        query = db.query(Expense.user_id).filter(
+            Expense.created_at >= start,
+            Expense.created_at <= end,
         )
         if organization_id:
             query = query.filter(Expense.organization_id == organization_id)
         user_ids = query.distinct().all()
 
-        logger.info(f"Sending monthly summaries for {datetime(year, month, 1).strftime('%B %Y')} to {len(user_ids)} users")
+        logger.info(
+            f"Sending monthly summaries for {datetime(year, month, 1).strftime('%B %Y')} to {len(user_ids)} users"
+        )
 
         for (uid,) in user_ids:
             try:

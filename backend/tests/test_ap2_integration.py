@@ -18,8 +18,8 @@ from src.models import (
     OrganizationMember,
 )
 
-
 # ── Helpers ────────────────────────────────────────────────────────
+
 
 def _get_org_id(db_session, user_id):
     """Get user's organization ID from membership."""
@@ -31,9 +31,18 @@ def _get_org_id(db_session, user_id):
     return membership.organization_id if membership else ""
 
 
-def _seed_expenses(db_session, user_id, org_id, vendor, category, count,
-                   amount=50.0, auto_approved=False, auto_approved_via=None,
-                   status=ExpenseStatus.APPROVED):
+def _seed_expenses(
+    db_session,
+    user_id,
+    org_id,
+    vendor,
+    category,
+    count,
+    amount=50.0,
+    auto_approved=False,
+    auto_approved_via=None,
+    status=ExpenseStatus.APPROVED,
+):
     """Create a batch of expenses for testing."""
     expenses = []
     for i in range(count):
@@ -75,6 +84,7 @@ def _seed_intent_mandate(db_session, user_id, constraints, status="active", hour
 
 # ── Sample Mandates (Onboarding) ──────────────────────────────────
 
+
 class TestSampleMandatesEndpoint:
     def test_returns_templates(self, client, auth_headers):
         response = client.get("/api/ap2/sample-mandates", headers=auth_headers)
@@ -92,6 +102,7 @@ class TestSampleMandatesEndpoint:
 
 
 # ── Suggest Mandate Endpoint ──────────────────────────────────────
+
 
 class TestSuggestMandateEndpoint:
     def test_suggests_constraints(self, client, auth_headers):
@@ -129,6 +140,7 @@ class TestSuggestMandateEndpoint:
 
 # ── Check Auto-Approval Endpoint ─────────────────────────────────
 
+
 class TestCheckAutoApprovalEndpoint:
     def test_no_mandates_returns_false(self, client, auth_headers):
         response = client.post(
@@ -143,12 +155,16 @@ class TestCheckAutoApprovalEndpoint:
         self, client, auth_headers, db_session, test_user
     ):
         org_id = _get_org_id(db_session, test_user.id)
-        _seed_intent_mandate(db_session, test_user.id, {
-            "max_amount": 100,
-            "monthly_limit": 500,
-            "category": "office_supplies",
-            "merchant": "Amazon",
-        })
+        _seed_intent_mandate(
+            db_session,
+            test_user.id,
+            {
+                "max_amount": 100,
+                "monthly_limit": 500,
+                "category": "office_supplies",
+                "merchant": "Amazon",
+            },
+        )
 
         response = client.post(
             "/api/ap2/check-auto-approval",
@@ -170,15 +186,21 @@ class TestCheckAutoApprovalEndpoint:
 
 # ── Mandate Suggestions (AI Pattern Detection) ───────────────────
 
+
 class TestMandateSuggestionsEndpoint:
     def test_returns_suggestions_for_recurring_vendor(
         self, client, auth_headers, db_session, test_user
     ):
         org_id = _get_org_id(db_session, test_user.id)
         _seed_expenses(
-            db_session, test_user.id, org_id,
-            vendor="Amazon", category="OFFICE_SUPPLIES", count=5,
-            amount=40.0, auto_approved=False,
+            db_session,
+            test_user.id,
+            org_id,
+            vendor="Amazon",
+            category="OFFICE_SUPPLIES",
+            count=5,
+            amount=40.0,
+            auto_approved=False,
         )
 
         response = client.get("/api/ap2/mandate-suggestions", headers=auth_headers)
@@ -186,9 +208,7 @@ class TestMandateSuggestionsEndpoint:
         data = response.json()
         assert "suggestions" in data
         assert data["count"] >= 1
-        amazon = next(
-            (s for s in data["suggestions"] if s["vendor"] == "Amazon"), None
-        )
+        amazon = next((s for s in data["suggestions"] if s["vendor"] == "Amazon"), None)
         assert amazon is not None
         assert amazon["expense_count"] == 5
 
@@ -197,8 +217,12 @@ class TestMandateSuggestionsEndpoint:
     ):
         org_id = _get_org_id(db_session, test_user.id)
         _seed_expenses(
-            db_session, test_user.id, org_id,
-            vendor="RareVendor", category="OTHER", count=2,
+            db_session,
+            test_user.id,
+            org_id,
+            vendor="RareVendor",
+            category="OTHER",
+            count=2,
         )
 
         response = client.get("/api/ap2/mandate-suggestions", headers=auth_headers)
@@ -216,17 +240,27 @@ class TestMandateSuggestionsEndpoint:
 
 # ── Analytics: Trends ─────────────────────────────────────────────
 
+
 class TestAnalyticsTrendsEndpoint:
     def test_returns_trend_data(self, client, auth_headers, db_session, test_user):
         org_id = _get_org_id(db_session, test_user.id)
         _seed_expenses(
-            db_session, test_user.id, org_id,
-            vendor="Amazon", category="OFFICE_SUPPLIES", count=3,
-            auto_approved=True, auto_approved_via="intent_mandate",
+            db_session,
+            test_user.id,
+            org_id,
+            vendor="Amazon",
+            category="OFFICE_SUPPLIES",
+            count=3,
+            auto_approved=True,
+            auto_approved_via="intent_mandate",
         )
         _seed_expenses(
-            db_session, test_user.id, org_id,
-            vendor="Uber", category="TRAVEL", count=2,
+            db_session,
+            test_user.id,
+            org_id,
+            vendor="Uber",
+            category="TRAVEL",
+            count=2,
             auto_approved=False,
         )
 
@@ -252,17 +286,27 @@ class TestAnalyticsTrendsEndpoint:
 
 # ── Analytics: Cost Savings ───────────────────────────────────────
 
+
 class TestAnalyticsCostSavingsEndpoint:
     def test_calculates_savings(self, client, auth_headers, db_session, test_user):
         org_id = _get_org_id(db_session, test_user.id)
         _seed_expenses(
-            db_session, test_user.id, org_id,
-            vendor="Staples", category="OFFICE_SUPPLIES", count=10,
-            auto_approved=True, auto_approved_via="intent_mandate",
+            db_session,
+            test_user.id,
+            org_id,
+            vendor="Staples",
+            category="OFFICE_SUPPLIES",
+            count=10,
+            auto_approved=True,
+            auto_approved_via="intent_mandate",
         )
         _seed_expenses(
-            db_session, test_user.id, org_id,
-            vendor="Uber", category="TRAVEL", count=5,
+            db_session,
+            test_user.id,
+            org_id,
+            vendor="Uber",
+            category="TRAVEL",
+            count=5,
             auto_approved=False,
         )
 
@@ -294,6 +338,7 @@ class TestAnalyticsCostSavingsEndpoint:
 
 # ── Analytics: Bottlenecks ────────────────────────────────────────
 
+
 class TestAnalyticsBottlenecksEndpoint:
     def test_identifies_bottleneck_categories(
         self, client, auth_headers, db_session, test_user
@@ -301,15 +346,24 @@ class TestAnalyticsBottlenecksEndpoint:
         org_id = _get_org_id(db_session, test_user.id)
         # Office supplies: all auto-approved (high rate)
         _seed_expenses(
-            db_session, test_user.id, org_id,
-            vendor="Staples", category="OFFICE_SUPPLIES", count=5,
-            auto_approved=True, auto_approved_via="intent_mandate",
+            db_session,
+            test_user.id,
+            org_id,
+            vendor="Staples",
+            category="OFFICE_SUPPLIES",
+            count=5,
+            auto_approved=True,
+            auto_approved_via="intent_mandate",
         )
 
         # Travel: none auto-approved (bottleneck)
         _seed_expenses(
-            db_session, test_user.id, org_id,
-            vendor="Uber", category="TRAVEL", count=4,
+            db_session,
+            test_user.id,
+            org_id,
+            vendor="Uber",
+            category="TRAVEL",
+            count=4,
             auto_approved=False,
         )
 
@@ -333,6 +387,7 @@ class TestAnalyticsBottlenecksEndpoint:
 
 
 # ── Monthly Summary Endpoint ─────────────────────────────────────
+
 
 class TestMonthlySummaryEndpoint:
     def test_returns_summary(self, client, auth_headers, db_session, test_user):
@@ -387,6 +442,7 @@ class TestMonthlySummaryEndpoint:
 
 # ── Admin-only: Send All Summaries ────────────────────────────────
 
+
 class TestSendAllSummariesEndpoint:
     def test_forbidden_for_employee(self, client, auth_headers):
         response = client.post(
@@ -402,6 +458,7 @@ class TestSendAllSummariesEndpoint:
 
 
 # ── Protocol Info (public-ish) ────────────────────────────────────
+
 
 class TestProtocolInfoEndpoint:
     def test_returns_protocol_info(self, client):

@@ -35,9 +35,7 @@ class TestEmployeePermissions:
     # ROLE-EMP-001: Employee can submit expense
     # ========================================================================
 
-    def test_ROLE_EMP_001_employee_can_submit_expense(
-        self, client, db_session
-    ):
+    def test_ROLE_EMP_001_employee_can_submit_expense(self, client, db_session):
         """
         Test ID: ROLE-EMP-001
         Priority: 🔴 CRITICAL
@@ -53,13 +51,10 @@ class TestEmployeePermissions:
         # Login as employee
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Submit expense
         expense_data = {
@@ -69,11 +64,7 @@ class TestEmployeePermissions:
             "vendor": "Restaurant",
         }
 
-        response = client.post(
-            "/api/v1/expenses",
-            json=expense_data,
-            headers=headers
-        )
+        response = client.post("/api/v1/expenses", json=expense_data, headers=headers)
 
         # Should succeed
         assert response.status_code == status.HTTP_201_CREATED
@@ -85,9 +76,7 @@ class TestEmployeePermissions:
     # ROLE-EMP-002: Employee can view own expense
     # ========================================================================
 
-    def test_ROLE_EMP_002_employee_can_view_own_expense(
-        self, client, db_session
-    ):
+    def test_ROLE_EMP_002_employee_can_view_own_expense(self, client, db_session):
         """
         Test ID: ROLE-EMP-002
         Priority: 🔴 CRITICAL
@@ -104,19 +93,13 @@ class TestEmployeePermissions:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # View own expense
-        response = client.get(
-            f"/api/v1/expenses/{expense.id}",
-            headers=headers
-        )
+        response = client.get(f"/api/v1/expenses/{expense.id}", headers=headers)
 
         # Should succeed
         assert response.status_code == status.HTTP_200_OK
@@ -126,9 +109,7 @@ class TestEmployeePermissions:
     # ROLE-EMP-003: Employee cannot view others' expense
     # ========================================================================
 
-    def test_ROLE_EMP_003_employee_cannot_view_others_expense(
-        self, client, db_session
-    ):
+    def test_ROLE_EMP_003_employee_cannot_view_others_expense(self, client, db_session):
         """
         Test ID: ROLE-EMP-003
         Priority: 🔴 CRITICAL
@@ -145,24 +126,22 @@ class TestEmployeePermissions:
         add_user_to_organization(db_session, employee2, org, OrganizationRole.EMPLOYEE)
 
         # Employee2's expense
-        employee2_expense = create_pending_expense(db_session, employee2, org, amount=200.0)
+        employee2_expense = create_pending_expense(
+            db_session, employee2, org, amount=200.0
+        )
         db_session.commit()
 
         # Login as employee1
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee1.username, "password": "TestPass123!"}
+            json={"username": employee1.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try to view employee2's expense
         response = client.get(
-            f"/api/v1/expenses/{employee2_expense.id}",
-            headers=headers
+            f"/api/v1/expenses/{employee2_expense.id}", headers=headers
         )
 
         # Should fail with 403 Forbidden
@@ -192,24 +171,16 @@ class TestEmployeePermissions:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Edit own pending expense
-        update_data = {
-            "amount": 150.0,
-            "description": "Updated description"
-        }
+        update_data = {"amount": 150.0, "description": "Updated description"}
 
         response = client.patch(
-            f"/api/v1/expenses/{expense.id}",
-            json=update_data,
-            headers=headers
+            f"/api/v1/expenses/{expense.id}", json=update_data, headers=headers
         )
 
         # Should succeed
@@ -237,47 +208,39 @@ class TestEmployeePermissions:
         employee = create_employee(db_session)
         add_user_to_organization(db_session, employee, org, OrganizationRole.EMPLOYEE)
         approved_expense = create_approved_expense(
-            db_session,
-            employee,
-            org,
-            amount=100.0,
-            approved_by=owner.id
+            db_session, employee, org, amount=100.0, approved_by=owner.id
         )
         db_session.commit()
 
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try to edit approved expense
         update_data = {
             "amount": 999.99,
-            "description": "Trying to change approved expense"
+            "description": "Trying to change approved expense",
         }
 
         response = client.patch(
-            f"/api/v1/expenses/{approved_expense.id}",
-            json=update_data,
-            headers=headers
+            f"/api/v1/expenses/{approved_expense.id}", json=update_data, headers=headers
         )
 
         # Should fail (403 or 400 depending on implementation)
-        assert response.status_code in [status.HTTP_403_FORBIDDEN, status.HTTP_400_BAD_REQUEST]
+        assert response.status_code in [
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_400_BAD_REQUEST,
+        ]
 
     # ========================================================================
     # ROLE-EMP-007: Employee can upload receipt
     # ========================================================================
 
-    def test_ROLE_EMP_007_employee_can_upload_receipt(
-        self, client, db_session
-    ):
+    def test_ROLE_EMP_007_employee_can_upload_receipt(self, client, db_session):
         """
         Test ID: ROLE-EMP-007
         Priority: 🟠 HIGH
@@ -294,22 +257,20 @@ class TestEmployeePermissions:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Upload receipt (multipart/form-data)
         import io
+
         receipt_file = io.BytesIO(b"fake image data")
 
         response = client.post(
             f"/api/v1/receipts/upload/{expense.id}",  # Correct endpoint path
             files={"file": ("receipt.jpg", receipt_file, "image/jpeg")},
-            headers=headers
+            headers=headers,
         )
 
         # Should succeed (201 or 200 depending on endpoint)
@@ -319,9 +280,7 @@ class TestEmployeePermissions:
     # ROLE-EMP-008: Employee can view org members (read-only)
     # ========================================================================
 
-    def test_ROLE_EMP_008_employee_can_view_org_members(
-        self, client, db_session
-    ):
+    def test_ROLE_EMP_008_employee_can_view_org_members(self, client, db_session):
         """
         Test ID: ROLE-EMP-008
         Priority: 🟡 MEDIUM
@@ -337,15 +296,14 @@ class TestEmployeePermissions:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
         # View org members
         response = client.get(
-            f"/api/v1/organizations/{org.id}/members",
-            headers=headers
+            f"/api/v1/organizations/{org.id}/members", headers=headers
         )
 
         # Should succeed (read-only access)
@@ -357,9 +315,7 @@ class TestEmployeePermissions:
     # ROLE-EMP-009: Employee cannot invite members
     # ========================================================================
 
-    def test_ROLE_EMP_009_employee_cannot_invite_members(
-        self, client, db_session
-    ):
+    def test_ROLE_EMP_009_employee_cannot_invite_members(self, client, db_session):
         """
         Test ID: ROLE-EMP-009
         Priority: 🟠 HIGH
@@ -375,26 +331,26 @@ class TestEmployeePermissions:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
         # Try to invite someone
-        invitation_data = {
-            "email": "newuser@test.com",
-            "role": "member"
-        }
+        invitation_data = {"email": "newuser@test.com", "role": "member"}
 
         response = client.post(
             f"/api/v1/organizations/{org.id}/invitations",
             json=invitation_data,
-            headers=headers
+            headers=headers,
         )
 
         # Should fail with 403 Forbidden
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Only organization owners and admins can invite" in response.json()["detail"]
+        assert (
+            "Only organization owners and admins can invite"
+            in response.json()["detail"]
+        )
 
     # ========================================================================
     # ROLE-EMP-010: Employee cannot delete others' expenses
@@ -419,36 +375,35 @@ class TestEmployeePermissions:
         add_user_to_organization(db_session, employee2, org, OrganizationRole.EMPLOYEE)
 
         # Employee2's expense
-        employee2_expense = create_pending_expense(db_session, employee2, org, amount=200.0)
+        employee2_expense = create_pending_expense(
+            db_session, employee2, org, amount=200.0
+        )
         db_session.commit()
 
         # Login as employee1
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee1.username, "password": "TestPass123!"}
+            json={"username": employee1.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try to delete employee2's expense
         response = client.delete(
-            f"/api/v1/expenses/{employee2_expense.id}",
-            headers=headers
+            f"/api/v1/expenses/{employee2_expense.id}", headers=headers
         )
 
         # Should fail with 403 Forbidden
-        assert response.status_code in [status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND]
+        assert response.status_code in [
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_404_NOT_FOUND,
+        ]
 
     # ========================================================================
     # ROLE-EMP-011: Employee can list own expenses only
     # ========================================================================
 
-    def test_ROLE_EMP_011_employee_lists_own_expenses_only(
-        self, client, db_session
-    ):
+    def test_ROLE_EMP_011_employee_lists_own_expenses_only(self, client, db_session):
         """
         Test ID: ROLE-EMP-011
         Priority: 🔴 CRITICAL
@@ -470,19 +425,13 @@ class TestEmployeePermissions:
         # Login as employee1
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee1.username, "password": "TestPass123!"}
+            json={"username": employee1.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # List expenses
-        response = client.get(
-            "/api/v1/expenses",
-            headers=headers
-        )
+        response = client.get("/api/v1/expenses", headers=headers)
 
         assert response.status_code == status.HTTP_200_OK
         expenses = response.json()
@@ -495,9 +444,7 @@ class TestEmployeePermissions:
     # ROLE-EMP-012: Employee cannot update organization settings
     # ========================================================================
 
-    def test_ROLE_EMP_012_employee_cannot_update_org_settings(
-        self, client, db_session
-    ):
+    def test_ROLE_EMP_012_employee_cannot_update_org_settings(self, client, db_session):
         """
         Test ID: ROLE-EMP-012
         Priority: 🟠 HIGH
@@ -513,7 +460,7 @@ class TestEmployeePermissions:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
@@ -521,13 +468,11 @@ class TestEmployeePermissions:
         # Try to update org settings
         update_data = {
             "name": "Hacked Organization",
-            "description": "Employee trying to change settings"
+            "description": "Employee trying to change settings",
         }
 
         response = client.patch(
-            f"/api/v1/organizations/{org.id}",
-            json=update_data,
-            headers=headers
+            f"/api/v1/organizations/{org.id}", json=update_data, headers=headers
         )
 
         # Should fail with 403 Forbidden

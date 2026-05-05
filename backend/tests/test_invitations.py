@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from src.auth import AuthService
 from src.models import (
     Organization,
     OrganizationInvitation,
@@ -18,7 +19,6 @@ from src.models import (
     User,
     UserRole,
 )
-from src.auth import AuthService
 
 
 @pytest.fixture

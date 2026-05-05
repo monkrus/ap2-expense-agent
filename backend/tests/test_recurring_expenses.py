@@ -174,9 +174,7 @@ class TestRecurringExpenses:
         template_id = create_response.json()["id"]
 
         # Pause first
-        client.post(
-            f"/api/recurring-expenses/{template_id}/pause", headers=org_headers
-        )
+        client.post(f"/api/recurring-expenses/{template_id}/pause", headers=org_headers)
 
         # Resume
         response = client.post(

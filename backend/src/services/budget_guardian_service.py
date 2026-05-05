@@ -344,8 +344,16 @@ class BudgetGuardianService:
                 BudgetHealthReport(
                     budget_id=budget.id,
                     budget_name=budget.name,
-                    period=budget.period.value if hasattr(budget.period, "value") else str(budget.period),
-                    category=budget.category.value if budget.category and hasattr(budget.category, "value") else (str(budget.category) if budget.category else None),
+                    period=(
+                        budget.period.value
+                        if hasattr(budget.period, "value")
+                        else str(budget.period)
+                    ),
+                    category=(
+                        budget.category.value
+                        if budget.category and hasattr(budget.category, "value")
+                        else (str(budget.category) if budget.category else None)
+                    ),
                     budget_amount=float(budget_amount),
                     current_spending=float(current_spending),
                     remaining=remaining,
@@ -472,7 +480,11 @@ class BudgetGuardianService:
 
             # Category-specific budget
             if budget.category and category:
-                cat_value = budget.category.value if hasattr(budget.category, "value") else str(budget.category)
+                cat_value = (
+                    budget.category.value
+                    if hasattr(budget.category, "value")
+                    else str(budget.category)
+                )
                 if cat_value == category:
                     if not budget.user_id:
                         applicable.append(budget)

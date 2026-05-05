@@ -14,11 +14,11 @@ from fastapi import Request, Response
 from fastapi.responses import PlainTextResponse
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
+    REGISTRY,
     Counter,
     Gauge,
     Histogram,
     generate_latest,
-    REGISTRY,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,11 +28,13 @@ logger = logging.getLogger(__name__)
 # Prometheus Metrics (safe against duplicate registration in tests)
 # ============================================================================
 
+
 def _counter(name, desc, labels=None):
     try:
         return Counter(name, desc, labels or [])
     except ValueError:
         return REGISTRY._names_to_collectors[name]
+
 
 def _histogram(name, desc, labels=None):
     try:
@@ -40,11 +42,13 @@ def _histogram(name, desc, labels=None):
     except ValueError:
         return REGISTRY._names_to_collectors[name]
 
+
 def _gauge(name, desc):
     try:
         return Gauge(name, desc)
     except ValueError:
         return REGISTRY._names_to_collectors[name]
+
 
 # HTTP metrics
 http_requests_total = _counter(
@@ -73,7 +77,9 @@ db_connections_total = _gauge(
 # Cache metrics
 cache_hits_total = _counter("cache_hits_total", "Total cache hits", ["cache_type"])
 
-cache_misses_total = _counter("cache_misses_total", "Total cache misses", ["cache_type"])
+cache_misses_total = _counter(
+    "cache_misses_total", "Total cache misses", ["cache_type"]
+)
 
 # Business metrics
 expenses_created_total = _counter(
@@ -91,7 +97,9 @@ ap2_payments_total = _counter(
 # System metrics
 system_cpu_usage = _gauge("system_cpu_usage_percent", "System CPU usage percentage")
 
-system_memory_usage = _gauge("system_memory_usage_bytes", "System memory usage in bytes")
+system_memory_usage = _gauge(
+    "system_memory_usage_bytes", "System memory usage in bytes"
+)
 
 system_disk_usage = _gauge("system_disk_usage_percent", "System disk usage percentage")
 
@@ -481,9 +489,7 @@ class AlertManager:
         # Classify severity: brute-force login attempts are critical
         critical_patterns = {"login", "register", "password"}
         severity = (
-            "critical"
-            if any(p in endpoint for p in critical_patterns)
-            else "warning"
+            "critical" if any(p in endpoint for p in critical_patterns) else "warning"
         )
 
         AlertManager.send_alert(

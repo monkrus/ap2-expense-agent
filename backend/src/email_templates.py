@@ -14,11 +14,11 @@ def _esc(value) -> str:
 def get_expense_approved_email(expense_data: dict, approver_name: str) -> tuple:
     """Email template for when an expense is approved"""
     safe_approver = _esc(approver_name)
-    safe_vendor = _esc(expense_data['vendor'])
-    safe_category = _esc(expense_data['category'])
-    safe_description = _esc(expense_data['description'])
-    safe_date = _esc(expense_data['date'])
-    safe_amount = _esc(expense_data['amount'])
+    safe_vendor = _esc(expense_data["vendor"])
+    safe_category = _esc(expense_data["category"])
+    safe_description = _esc(expense_data["description"])
+    safe_date = _esc(expense_data["date"])
+    safe_amount = _esc(expense_data["amount"])
     subject = f"Expense Approved: ${expense_data['amount']} - {expense_data['vendor']}"
 
     html_body = f"""
@@ -152,13 +152,15 @@ def get_expense_approved_email(expense_data: dict, approver_name: str) -> tuple:
     return subject, html_body, text_body
 
 
-def get_expense_rejected_email(expense_data: dict, rejector_name: str, reason: str) -> tuple:
+def get_expense_rejected_email(
+    expense_data: dict, rejector_name: str, reason: str
+) -> tuple:
     """Email template for when an expense is rejected"""
     safe_rejector = _esc(rejector_name)
-    safe_vendor = _esc(expense_data['vendor'])
-    safe_category = _esc(expense_data['category'])
-    safe_description = _esc(expense_data['description'])
-    safe_amount = _esc(expense_data['amount'])
+    safe_vendor = _esc(expense_data["vendor"])
+    safe_category = _esc(expense_data["category"])
+    safe_description = _esc(expense_data["description"])
+    safe_amount = _esc(expense_data["amount"])
     safe_reason = _esc(reason)
     subject = f"Expense Rejected: ${expense_data['amount']} - {expense_data['vendor']}"
 
@@ -314,16 +316,20 @@ def get_expense_rejected_email(expense_data: dict, rejector_name: str, reason: s
     return subject, html_body, text_body
 
 
-def get_pending_approval_email(expense_data: dict, submitter_name: str, manager_name: str) -> tuple:
+def get_pending_approval_email(
+    expense_data: dict, submitter_name: str, manager_name: str
+) -> tuple:
     """Email template for managers when an expense needs approval"""
     safe_submitter = _esc(submitter_name)
     safe_manager = _esc(manager_name)
-    safe_vendor = _esc(expense_data['vendor'])
-    safe_category = _esc(expense_data['category'])
-    safe_description = _esc(expense_data['description'])
-    safe_date = _esc(expense_data['date'])
-    safe_amount = _esc(expense_data['amount'])
-    subject = f"Approval Needed: ${expense_data['amount']} expense from {submitter_name}"
+    safe_vendor = _esc(expense_data["vendor"])
+    safe_category = _esc(expense_data["category"])
+    safe_description = _esc(expense_data["description"])
+    safe_date = _esc(expense_data["date"])
+    safe_amount = _esc(expense_data["amount"])
+    subject = (
+        f"Approval Needed: ${expense_data['amount']} expense from {submitter_name}"
+    )
 
     html_body = f"""
     <!DOCTYPE html>
@@ -474,10 +480,12 @@ def get_pending_approval_email(expense_data: dict, submitter_name: str, manager_
     return subject, html_body, text_body
 
 
-def get_budget_alert_email(budget_data: dict, current_spending: float, threshold_percent: int) -> tuple:
+def get_budget_alert_email(
+    budget_data: dict, current_spending: float, threshold_percent: int
+) -> tuple:
     """Email template for budget alerts"""
-    safe_budget_name = _esc(budget_data['name'])
-    safe_period = _esc(budget_data.get('period', 'Monthly'))
+    safe_budget_name = _esc(budget_data["name"])
+    safe_period = _esc(budget_data.get("period", "Monthly"))
     subject = f"Budget Alert: {budget_data['name']} at {threshold_percent}% ({current_spending}/{budget_data['amount']})"
 
     alert_level = "warning" if threshold_percent < 100 else "critical"
@@ -592,13 +600,15 @@ def get_budget_alert_email(budget_data: dict, current_spending: float, threshold
     return subject, html_body, text_body
 
 
-def get_auto_approved_email(expense_data: dict, approval_via: str, mandate_details: dict = None) -> tuple:
+def get_auto_approved_email(
+    expense_data: dict, approval_via: str, mandate_details: dict = None
+) -> tuple:
     """Email template for AI auto-approved expenses via Intent Mandate or Approval Policy."""
-    safe_vendor = _esc(expense_data.get('vendor', 'Unknown'))
-    safe_category = _esc(expense_data.get('category', 'Other'))
-    safe_description = _esc(expense_data.get('description', ''))
-    safe_date = _esc(expense_data.get('date', ''))
-    amount = expense_data.get('amount', 0)
+    safe_vendor = _esc(expense_data.get("vendor", "Unknown"))
+    safe_category = _esc(expense_data.get("category", "Other"))
+    safe_description = _esc(expense_data.get("description", ""))
+    safe_date = _esc(expense_data.get("date", ""))
+    amount = expense_data.get("amount", 0)
 
     if approval_via == "intent_mandate":
         badge_color = "#7c3aed"
@@ -611,8 +621,8 @@ def get_auto_approved_email(expense_data: dict, approval_via: str, mandate_detai
 
     mandate_section = ""
     if mandate_details:
-        safe_mandate_name = _esc(mandate_details.get('name', ''))
-        constraints = mandate_details.get('constraints', {})
+        safe_mandate_name = _esc(mandate_details.get("name", ""))
+        constraints = mandate_details.get("constraints", {})
         mandate_section = f"""
                     <div style="background: #f3f4f6; padding: 12px 16px; border-radius: 6px; margin-top: 16px;">
                         <p style="margin: 0 0 4px 0; font-weight: 600; font-size: 13px; color: #374151;">Matched Rule:</p>

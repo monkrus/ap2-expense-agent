@@ -11,7 +11,14 @@ from typing import Dict, List, Optional, Tuple
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
-from ..models import ApprovalPolicy, Expense, ExpenseCategory, ExpenseStatus, User, UserRole
+from ..models import (
+    ApprovalPolicy,
+    Expense,
+    ExpenseCategory,
+    ExpenseStatus,
+    User,
+    UserRole,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +94,11 @@ class ApprovalPolicyService:
         # report amount violations, which would be misleading in the test UI)
         if "categories" in conditions and conditions["categories"]:
             # Handle both enum and string category values
-            category_value = expense.category.value if hasattr(expense.category, 'value') else expense.category
+            category_value = (
+                expense.category.value
+                if hasattr(expense.category, "value")
+                else expense.category
+            )
             if category_value not in conditions["categories"]:
                 return False, f"Category '{category_value}' not in allowed list"
 
@@ -215,7 +226,7 @@ class ApprovalPolicyService:
         policy: ApprovalPolicy,
         simulated_daily_spent: Optional[Decimal] = None,
         simulated_monthly_spent: Optional[Decimal] = None,
-        simulated_yearly_spent: Optional[Decimal] = None
+        simulated_yearly_spent: Optional[Decimal] = None,
     ) -> Tuple[bool, str]:
         """
         Check if expense is within policy limits
@@ -270,7 +281,9 @@ class ApprovalPolicyService:
                 if now.month == 12:
                     month_end = datetime(now.year + 1, 1, 1) - timedelta(seconds=1)
                 else:
-                    month_end = datetime(now.year, now.month + 1, 1) - timedelta(seconds=1)
+                    month_end = datetime(now.year, now.month + 1, 1) - timedelta(
+                        seconds=1
+                    )
 
                 monthly_total = self.db.query(func.sum(Expense.amount)).filter(
                     Expense.organization_id == expense.organization_id,

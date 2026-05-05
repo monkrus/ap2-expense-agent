@@ -5,9 +5,10 @@ Tests archive endpoints, permissions, database updates, and archive state transi
 
 import uuid
 from datetime import datetime
+
 import pytest
 
-from src.models import Expense, ExpenseStatus, OrganizationMember, AuditLog
+from src.models import AuditLog, Expense, ExpenseStatus, OrganizationMember
 
 
 class TestArchiveSingleExpense:
@@ -15,25 +16,29 @@ class TestArchiveSingleExpense:
 
     def _get_admin_org_and_headers(self, client, db_session, test_admin):
         """Helper to get admin's organization and headers"""
-        membership = db_session.query(OrganizationMember).filter(
-            OrganizationMember.user_id == test_admin.id
-        ).first()
+        membership = (
+            db_session.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == test_admin.id)
+            .first()
+        )
         org_id = membership.organization_id
 
         response = client.post(
             "/api/v1/auth/login",
-            json={"username": "admin", "password": "AdminPass123!"}
+            json={"username": "admin", "password": "AdminPass123!"},
         )
         admin_token = response.json()["access_token"]
         headers = {
             "Authorization": f"Bearer {admin_token}",
-            "X-Organization-Id": org_id
+            "X-Organization-Id": org_id,
         }
         return org_id, headers
 
     def test_archive_approved_expense_as_admin(self, client, db_session, test_admin):
         """Test archiving a single approved expense as admin"""
-        org_id, headers = self._get_admin_org_and_headers(client, db_session, test_admin)
+        org_id, headers = self._get_admin_org_and_headers(
+            client, db_session, test_admin
+        )
 
         # Setup: Create approved expense
         expense = Expense(
@@ -58,10 +63,7 @@ class TestArchiveSingleExpense:
         assert expense_before.archived_by is None
 
         # Archive expense
-        response = client.post(
-            "/api/v1/admin/expenses/exp_1/archive",
-            headers=headers
-        )
+        response = client.post("/api/v1/admin/expenses/exp_1/archive", headers=headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -77,7 +79,9 @@ class TestArchiveSingleExpense:
 
     def test_archive_rejected_expense_as_admin(self, client, db_session, test_admin):
         """Test archiving a rejected expense as admin"""
-        org_id, headers = self._get_admin_org_and_headers(client, db_session, test_admin)
+        org_id, headers = self._get_admin_org_and_headers(
+            client, db_session, test_admin
+        )
 
         expense = Expense(
             id="exp_rejected",
@@ -89,26 +93,29 @@ class TestArchiveSingleExpense:
             description="Test rejected expense",
             status=ExpenseStatus.REJECTED,
             is_archived=False,
-            rejection_reason="Invalid receipt"
+            rejection_reason="Invalid receipt",
         )
         db_session.add(expense)
         db_session.commit()
 
         response = client.post(
-            "/api/v1/admin/expenses/exp_rejected/archive",
-            headers=headers
+            "/api/v1/admin/expenses/exp_rejected/archive", headers=headers
         )
 
         assert response.status_code == 200
         assert response.json()["success"] is True
 
         # Verify in database
-        expense_after = db_session.query(Expense).filter(Expense.id == "exp_rejected").first()
+        expense_after = (
+            db_session.query(Expense).filter(Expense.id == "exp_rejected").first()
+        )
         assert expense_after.is_archived is True
 
     def test_cannot_archive_pending_expense(self, client, db_session, test_admin):
         """Test that pending expenses cannot be archived"""
-        org_id, headers = self._get_admin_org_and_headers(client, db_session, test_admin)
+        org_id, headers = self._get_admin_org_and_headers(
+            client, db_session, test_admin
+        )
 
         expense = Expense(
             id="exp_pending",
@@ -119,26 +126,31 @@ class TestArchiveSingleExpense:
             category="office_supplies",
             description="Test pending expense",
             status=ExpenseStatus.PENDING,
-            is_archived=False
+            is_archived=False,
         )
         db_session.add(expense)
         db_session.commit()
 
         response = client.post(
-            "/api/v1/admin/expenses/exp_pending/archive",
-            headers=headers
+            "/api/v1/admin/expenses/exp_pending/archive", headers=headers
         )
 
         assert response.status_code == 400
         assert "Cannot archive pending" in response.json()["detail"]
 
         # Verify NOT archived in database
-        expense_after = db_session.query(Expense).filter(Expense.id == "exp_pending").first()
+        expense_after = (
+            db_session.query(Expense).filter(Expense.id == "exp_pending").first()
+        )
         assert expense_after.is_archived is False
 
-    def test_cannot_archive_already_archived_expense(self, client, db_session, test_admin):
+    def test_cannot_archive_already_archived_expense(
+        self, client, db_session, test_admin
+    ):
         """Test that already archived expenses cannot be archived again"""
-        org_id, headers = self._get_admin_org_and_headers(client, db_session, test_admin)
+        org_id, headers = self._get_admin_org_and_headers(
+            client, db_session, test_admin
+        )
 
         expense = Expense(
             id="exp_archived",
@@ -151,26 +163,28 @@ class TestArchiveSingleExpense:
             status=ExpenseStatus.APPROVED,
             is_archived=True,
             archived_at=datetime.utcnow(),
-            archived_by=test_admin.id
+            archived_by=test_admin.id,
         )
         db_session.add(expense)
         db_session.commit()
 
         response = client.post(
-            "/api/v1/admin/expenses/exp_archived/archive",
-            headers=headers
+            "/api/v1/admin/expenses/exp_archived/archive", headers=headers
         )
 
         assert response.status_code == 400
         assert "already archived" in response.json()["detail"]
 
-    def test_archive_nonexistent_expense_returns_404(self, client, db_session, test_admin):
+    def test_archive_nonexistent_expense_returns_404(
+        self, client, db_session, test_admin
+    ):
         """Test archiving nonexistent expense returns 404"""
-        org_id, headers = self._get_admin_org_and_headers(client, db_session, test_admin)
+        org_id, headers = self._get_admin_org_and_headers(
+            client, db_session, test_admin
+        )
 
         response = client.post(
-            "/api/v1/admin/expenses/nonexistent/archive",
-            headers=headers
+            "/api/v1/admin/expenses/nonexistent/archive", headers=headers
         )
 
         assert response.status_code == 404
@@ -179,9 +193,11 @@ class TestArchiveSingleExpense:
     def test_non_admin_cannot_archive_expense(self, client, db_session, test_user):
         """Test that non-admin users cannot archive expenses"""
         # Get user's organization
-        membership = db_session.query(OrganizationMember).filter(
-            OrganizationMember.user_id == test_user.id
-        ).first()
+        membership = (
+            db_session.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == test_user.id)
+            .first()
+        )
         org_id = membership.organization_id
 
         expense = Expense(
@@ -194,24 +210,20 @@ class TestArchiveSingleExpense:
             description="Test expense",
             status=ExpenseStatus.APPROVED,
             is_archived=False,
-            approved_by=test_user.id
+            approved_by=test_user.id,
         )
         db_session.add(expense)
         db_session.commit()
 
         response = client.post(
             "/api/v1/auth/login",
-            json={"username": "testuser", "password": "TestPass123!"}
+            json={"username": "testuser", "password": "TestPass123!"},
         )
         user_token = response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {user_token}",
-            "X-Organization-Id": org_id
-        }
+        headers = {"Authorization": f"Bearer {user_token}", "X-Organization-Id": org_id}
 
         response = client.post(
-            "/api/v1/admin/expenses/exp_user/archive",
-            headers=headers
+            "/api/v1/admin/expenses/exp_user/archive", headers=headers
         )
 
         assert response.status_code == 403  # Forbidden
@@ -229,14 +241,14 @@ class TestArchiveSingleExpense:
             category="travel",
             description="Test expense",
             status=ExpenseStatus.APPROVED,
-            is_archived=False
+            is_archived=False,
         )
         db_session.add(expense)
         db_session.commit()
 
         response = client.post(
             "/api/v1/auth/login",
-            json={"username": "admin", "password": "AdminPass123!"}
+            json={"username": "admin", "password": "AdminPass123!"},
         )
         admin_token = response.json()["access_token"]
         headers = {
@@ -245,8 +257,7 @@ class TestArchiveSingleExpense:
         }
 
         response = client.post(
-            "/api/v1/admin/expenses/exp_header_test/archive",
-            headers=headers
+            "/api/v1/admin/expenses/exp_header_test/archive", headers=headers
         )
 
         assert response.status_code == 400
@@ -258,25 +269,29 @@ class TestArchiveAllExpenses:
 
     def _get_admin_org_and_headers(self, client, db_session, test_admin):
         """Helper to get admin's organization and headers"""
-        membership = db_session.query(OrganizationMember).filter(
-            OrganizationMember.user_id == test_admin.id
-        ).first()
+        membership = (
+            db_session.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == test_admin.id)
+            .first()
+        )
         org_id = membership.organization_id
 
         response = client.post(
             "/api/v1/auth/login",
-            json={"username": "admin", "password": "AdminPass123!"}
+            json={"username": "admin", "password": "AdminPass123!"},
         )
         admin_token = response.json()["access_token"]
         headers = {
             "Authorization": f"Bearer {admin_token}",
-            "X-Organization-Id": org_id
+            "X-Organization-Id": org_id,
         }
         return org_id, headers
 
     def test_archive_all_expenses_as_admin(self, client, db_session, test_admin):
         """Test archiving all non-pending expenses at once"""
-        org_id, headers = self._get_admin_org_and_headers(client, db_session, test_admin)
+        org_id, headers = self._get_admin_org_and_headers(
+            client, db_session, test_admin
+        )
 
         # Create multiple expenses in various states
         approved_exp = Expense(
@@ -288,7 +303,7 @@ class TestArchiveAllExpenses:
             category="travel",
             description="Approved",
             status=ExpenseStatus.APPROVED,
-            is_archived=False
+            is_archived=False,
         )
 
         rejected_exp = Expense(
@@ -301,7 +316,7 @@ class TestArchiveAllExpenses:
             description="Rejected",
             status=ExpenseStatus.REJECTED,
             is_archived=False,
-            rejection_reason="Invalid"
+            rejection_reason="Invalid",
         )
 
         pending_exp = Expense(
@@ -313,26 +328,29 @@ class TestArchiveAllExpenses:
             category="office_supplies",
             description="Pending",
             status=ExpenseStatus.PENDING,
-            is_archived=False
+            is_archived=False,
         )
 
         db_session.add_all([approved_exp, rejected_exp, pending_exp])
         db_session.commit()
 
         # Archive all
-        response = client.post(
-            "/api/v1/admin/expenses/archive-all",
-            headers=headers
-        )
+        response = client.post("/api/v1/admin/expenses/archive-all", headers=headers)
 
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
-        assert data["statistics"]["expenses_archived"] == 2  # Approved and rejected only
+        assert (
+            data["statistics"]["expenses_archived"] == 2
+        )  # Approved and rejected only
 
         # Verify database state
-        approved = db_session.query(Expense).filter(Expense.id == "exp_approved").first()
-        rejected = db_session.query(Expense).filter(Expense.id == "exp_rejected").first()
+        approved = (
+            db_session.query(Expense).filter(Expense.id == "exp_approved").first()
+        )
+        rejected = (
+            db_session.query(Expense).filter(Expense.id == "exp_rejected").first()
+        )
         pending = db_session.query(Expense).filter(Expense.id == "exp_pending").first()
 
         assert approved.is_archived is True
@@ -341,9 +359,13 @@ class TestArchiveAllExpenses:
         assert rejected.archived_by == test_admin.id
         assert pending.is_archived is False  # Should NOT be archived
 
-    def test_archive_all_with_no_expenses_to_archive(self, client, db_session, test_admin):
+    def test_archive_all_with_no_expenses_to_archive(
+        self, client, db_session, test_admin
+    ):
         """Test archive-all when there are no archivable expenses"""
-        org_id, headers = self._get_admin_org_and_headers(client, db_session, test_admin)
+        org_id, headers = self._get_admin_org_and_headers(
+            client, db_session, test_admin
+        )
 
         # Create only pending expenses
         pending_exp = Expense(
@@ -355,24 +377,25 @@ class TestArchiveAllExpenses:
             category="travel",
             description="Pending",
             status=ExpenseStatus.PENDING,
-            is_archived=False
+            is_archived=False,
         )
         db_session.add(pending_exp)
         db_session.commit()
 
-        response = client.post(
-            "/api/v1/admin/expenses/archive-all",
-            headers=headers
-        )
+        response = client.post("/api/v1/admin/expenses/archive-all", headers=headers)
 
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
         assert data["statistics"]["expenses_archived"] == 0
 
-    def test_archive_all_does_not_archive_already_archived(self, client, db_session, test_admin):
+    def test_archive_all_does_not_archive_already_archived(
+        self, client, db_session, test_admin
+    ):
         """Test that archive-all doesn't re-archive already archived expenses"""
-        org_id, headers = self._get_admin_org_and_headers(client, db_session, test_admin)
+        org_id, headers = self._get_admin_org_and_headers(
+            client, db_session, test_admin
+        )
 
         # Create mix of archived and non-archived
         approved_exp = Expense(
@@ -384,7 +407,7 @@ class TestArchiveAllExpenses:
             category="travel",
             description="New approved",
             status=ExpenseStatus.APPROVED,
-            is_archived=False
+            is_archived=False,
         )
 
         already_archived = Expense(
@@ -398,16 +421,13 @@ class TestArchiveAllExpenses:
             status=ExpenseStatus.APPROVED,
             is_archived=True,
             archived_at=datetime.utcnow(),
-            archived_by=test_admin.id
+            archived_by=test_admin.id,
         )
 
         db_session.add_all([approved_exp, already_archived])
         db_session.commit()
 
-        response = client.post(
-            "/api/v1/admin/expenses/archive-all",
-            headers=headers
-        )
+        response = client.post("/api/v1/admin/expenses/archive-all", headers=headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -416,25 +436,21 @@ class TestArchiveAllExpenses:
     def test_archive_all_requires_admin(self, client, db_session, test_user):
         """Test that archive-all requires admin permissions"""
         # Get user's organization
-        membership = db_session.query(OrganizationMember).filter(
-            OrganizationMember.user_id == test_user.id
-        ).first()
+        membership = (
+            db_session.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == test_user.id)
+            .first()
+        )
         org_id = membership.organization_id
 
         response = client.post(
             "/api/v1/auth/login",
-            json={"username": "testuser", "password": "TestPass123!"}
+            json={"username": "testuser", "password": "TestPass123!"},
         )
         user_token = response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {user_token}",
-            "X-Organization-Id": org_id
-        }
+        headers = {"Authorization": f"Bearer {user_token}", "X-Organization-Id": org_id}
 
-        response = client.post(
-            "/api/v1/admin/expenses/archive-all",
-            headers=headers
-        )
+        response = client.post("/api/v1/admin/expenses/archive-all", headers=headers)
 
         assert response.status_code == 403
 
@@ -444,25 +460,29 @@ class TestGetArchivedExpenses:
 
     def _get_admin_org_and_headers(self, client, db_session, test_admin):
         """Helper to get admin's organization and headers"""
-        membership = db_session.query(OrganizationMember).filter(
-            OrganizationMember.user_id == test_admin.id
-        ).first()
+        membership = (
+            db_session.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == test_admin.id)
+            .first()
+        )
         org_id = membership.organization_id
 
         response = client.post(
             "/api/v1/auth/login",
-            json={"username": "admin", "password": "AdminPass123!"}
+            json={"username": "admin", "password": "AdminPass123!"},
         )
         admin_token = response.json()["access_token"]
         headers = {
             "Authorization": f"Bearer {admin_token}",
-            "X-Organization-Id": org_id
+            "X-Organization-Id": org_id,
         }
         return org_id, headers
 
     def test_get_archived_expenses_as_admin(self, client, db_session, test_admin):
         """Test retrieving archived expenses as admin"""
-        org_id, headers = self._get_admin_org_and_headers(client, db_session, test_admin)
+        org_id, headers = self._get_admin_org_and_headers(
+            client, db_session, test_admin
+        )
 
         # Create archived and non-archived expenses
         archived_exp = Expense(
@@ -476,7 +496,7 @@ class TestGetArchivedExpenses:
             status=ExpenseStatus.APPROVED,
             is_archived=True,
             archived_at=datetime.utcnow(),
-            archived_by=test_admin.id
+            archived_by=test_admin.id,
         )
 
         non_archived_exp = Expense(
@@ -488,16 +508,13 @@ class TestGetArchivedExpenses:
             category="meals",
             description="Active",
             status=ExpenseStatus.APPROVED,
-            is_archived=False
+            is_archived=False,
         )
 
         db_session.add_all([archived_exp, non_archived_exp])
         db_session.commit()
 
-        response = client.get(
-            "/api/v1/admin/expenses/archived",
-            headers=headers
-        )
+        response = client.get("/api/v1/admin/expenses/archived", headers=headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -512,25 +529,29 @@ class TestUnarchiveExpenses:
 
     def _get_admin_org_and_headers(self, client, db_session, test_admin):
         """Helper to get admin's organization and headers"""
-        membership = db_session.query(OrganizationMember).filter(
-            OrganizationMember.user_id == test_admin.id
-        ).first()
+        membership = (
+            db_session.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == test_admin.id)
+            .first()
+        )
         org_id = membership.organization_id
 
         response = client.post(
             "/api/v1/auth/login",
-            json={"username": "admin", "password": "AdminPass123!"}
+            json={"username": "admin", "password": "AdminPass123!"},
         )
         admin_token = response.json()["access_token"]
         headers = {
             "Authorization": f"Bearer {admin_token}",
-            "X-Organization-Id": org_id
+            "X-Organization-Id": org_id,
         }
         return org_id, headers
 
     def test_unarchive_single_expense(self, client, db_session, test_admin):
         """Test unarchiving a single archived expense"""
-        org_id, headers = self._get_admin_org_and_headers(client, db_session, test_admin)
+        org_id, headers = self._get_admin_org_and_headers(
+            client, db_session, test_admin
+        )
 
         archived_exp = Expense(
             id="exp_to_unarchive",
@@ -543,28 +564,31 @@ class TestUnarchiveExpenses:
             status=ExpenseStatus.APPROVED,
             is_archived=True,
             archived_at=datetime.utcnow(),
-            archived_by=test_admin.id
+            archived_by=test_admin.id,
         )
         db_session.add(archived_exp)
         db_session.commit()
 
         response = client.post(
-            "/api/v1/admin/expenses/exp_to_unarchive/unarchive",
-            headers=headers
+            "/api/v1/admin/expenses/exp_to_unarchive/unarchive", headers=headers
         )
 
         assert response.status_code == 200
         assert response.json()["success"] is True
 
         # Verify in database
-        expense = db_session.query(Expense).filter(Expense.id == "exp_to_unarchive").first()
+        expense = (
+            db_session.query(Expense).filter(Expense.id == "exp_to_unarchive").first()
+        )
         assert expense.is_archived is False
         assert expense.archived_at is None
         assert expense.archived_by is None
 
     def test_unarchive_all_expenses(self, client, db_session, test_admin):
         """Test unarchiving all archived expenses at once"""
-        org_id, headers = self._get_admin_org_and_headers(client, db_session, test_admin)
+        org_id, headers = self._get_admin_org_and_headers(
+            client, db_session, test_admin
+        )
 
         archived_exp1 = Expense(
             id="exp_archived1",
@@ -577,7 +601,7 @@ class TestUnarchiveExpenses:
             status=ExpenseStatus.APPROVED,
             is_archived=True,
             archived_at=datetime.utcnow(),
-            archived_by=test_admin.id
+            archived_by=test_admin.id,
         )
 
         archived_exp2 = Expense(
@@ -591,16 +615,13 @@ class TestUnarchiveExpenses:
             status=ExpenseStatus.APPROVED,
             is_archived=True,
             archived_at=datetime.utcnow(),
-            archived_by=test_admin.id
+            archived_by=test_admin.id,
         )
 
         db_session.add_all([archived_exp1, archived_exp2])
         db_session.commit()
 
-        response = client.post(
-            "/api/v1/admin/expenses/unarchive-all",
-            headers=headers
-        )
+        response = client.post("/api/v1/admin/expenses/unarchive-all", headers=headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -620,25 +641,29 @@ class TestArchiveAuditTrail:
 
     def _get_admin_org_and_headers(self, client, db_session, test_admin):
         """Helper to get admin's organization and headers"""
-        membership = db_session.query(OrganizationMember).filter(
-            OrganizationMember.user_id == test_admin.id
-        ).first()
+        membership = (
+            db_session.query(OrganizationMember)
+            .filter(OrganizationMember.user_id == test_admin.id)
+            .first()
+        )
         org_id = membership.organization_id
 
         response = client.post(
             "/api/v1/auth/login",
-            json={"username": "admin", "password": "AdminPass123!"}
+            json={"username": "admin", "password": "AdminPass123!"},
         )
         admin_token = response.json()["access_token"]
         headers = {
             "Authorization": f"Bearer {admin_token}",
-            "X-Organization-Id": org_id
+            "X-Organization-Id": org_id,
         }
         return org_id, headers
 
     def test_archive_creates_audit_log(self, client, db_session, test_admin):
         """Test that archiving creates proper audit log entries"""
-        org_id, headers = self._get_admin_org_and_headers(client, db_session, test_admin)
+        org_id, headers = self._get_admin_org_and_headers(
+            client, db_session, test_admin
+        )
 
         expense = Expense(
             id="exp_audit_test",
@@ -649,14 +674,13 @@ class TestArchiveAuditTrail:
             category="travel",
             description="Test",
             status=ExpenseStatus.APPROVED,
-            is_archived=False
+            is_archived=False,
         )
         db_session.add(expense)
         db_session.commit()
 
         response = client.post(
-            "/api/v1/admin/expenses/exp_audit_test/archive",
-            headers=headers
+            "/api/v1/admin/expenses/exp_audit_test/archive", headers=headers
         )
 
         assert response.status_code == 200
@@ -666,7 +690,7 @@ class TestArchiveAuditTrail:
             db_session.query(AuditLog)
             .filter(
                 AuditLog.action == "admin.archive_expense",
-                AuditLog.resource_id == "exp_audit_test"
+                AuditLog.resource_id == "exp_audit_test",
             )
             .first()
         )

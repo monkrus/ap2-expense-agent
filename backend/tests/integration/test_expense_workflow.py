@@ -9,21 +9,22 @@ Tests the complete end-to-end flow:
 """
 
 import uuid
+from datetime import datetime
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime
 
 from src.api import app
 from src.database import Base, get_db
-from src.models import User, Organization, OrganizationMember, OrganizationRole
-
+from src.models import Organization, OrganizationMember, OrganizationRole, User
 
 # Test database setup — isolated file-based SQLite DB for this module
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test_workflow.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -262,6 +263,7 @@ def test_expense_rejection_workflow(client, admin_auth, organization):
 
     # Create a fresh employee for this test
     import uuid
+
     unique_suffix = uuid.uuid4().hex[:8]
     response = client.post(
         "/api/v1/admin/users/create",
@@ -377,12 +379,15 @@ def test_invitation_flow(client, admin_auth, organization):
     invitee_email = f"invitee_{uuid.uuid4().hex[:6]}@test.com"
 
     # Step 1: Admin creates invitation (mock email sending + bypass free tier limit)
-    with patch(
-        "src.routes.organizations.EmailService.send_organization_invitation_email",
-        new_callable=AsyncMock,
-    ), patch(
-        "src.routes.organizations.LimitEnforcer.check_user_limit",
-        return_value=None,
+    with (
+        patch(
+            "src.routes.organizations.EmailService.send_organization_invitation_email",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "src.routes.organizations.LimitEnforcer.check_user_limit",
+            return_value=None,
+        ),
     ):
         resp = client.post(
             f"/api/v1/organizations/{org_id}/invitations",
@@ -397,9 +402,12 @@ def test_invitation_flow(client, admin_auth, organization):
 
     # Retrieve the token directly from DB (not exposed in the response schema)
     from src.models import OrganizationInvitation as OrgInv
+
     db = TestingSessionLocal()
     try:
-        invitation_token = db.query(OrgInv).filter(OrgInv.id == invitation_id).first().token
+        invitation_token = (
+            db.query(OrgInv).filter(OrgInv.id == invitation_id).first().token
+        )
     finally:
         db.close()
 
@@ -446,7 +454,9 @@ def test_invitation_flow(client, admin_auth, organization):
     )
     assert resp.status_code == 200
     members = resp.json()
-    member_emails = [m.get("email") or m.get("user", {}).get("email", "") for m in members]
+    member_emails = [
+        m.get("email") or m.get("user", {}).get("email", "") for m in members
+    ]
     assert invitee_email in member_emails or any(
         invitee_email in str(m) for m in members
     )

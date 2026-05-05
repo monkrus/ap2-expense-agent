@@ -1,6 +1,6 @@
-import os
 import logging
-from typing import List, Tuple, Optional
+import os
+from typing import List, Optional, Tuple
 
 from .config import settings
 
@@ -54,7 +54,9 @@ def validate_settings() -> None:
         )
 
     # SMTP must be configured in production
-    smtp_server = getattr(settings, "smtp_server", None) or getattr(settings, "smtp_host", None)
+    smtp_server = getattr(settings, "smtp_server", None) or getattr(
+        settings, "smtp_host", None
+    )
     smtp_username = getattr(settings, "smtp_username", None)
     if not smtp_server or not smtp_username:
         errors.append(
@@ -91,8 +93,9 @@ def validate_database_connection() -> Tuple[bool, Optional[str]]:
     Returns: (is_valid, error_message)
     """
     try:
-        from .database import SessionLocal, engine
         from sqlalchemy import text
+
+        from .database import SessionLocal, engine
 
         # Try to connect
         with engine.connect() as conn:
@@ -119,7 +122,9 @@ def validate_secrets() -> Tuple[bool, List[str]]:
     secret_key = os.getenv("SECRET_KEY")
     if secret_key:
         if len(secret_key) < 32:
-            warnings.append("SECRET_KEY is too short (should be at least 32 characters)")
+            warnings.append(
+                "SECRET_KEY is too short (should be at least 32 characters)"
+            )
         if secret_key in ["changeme", "secret", "dev"]:
             warnings.append("SECRET_KEY appears to be a default/weak value")
 
@@ -127,7 +132,9 @@ def validate_secrets() -> Tuple[bool, List[str]]:
     jwt_secret = os.getenv("JWT_SECRET_KEY")
     if jwt_secret:
         if len(jwt_secret) < 32:
-            warnings.append("JWT_SECRET_KEY is too short (should be at least 32 characters)")
+            warnings.append(
+                "JWT_SECRET_KEY is too short (should be at least 32 characters)"
+            )
         if jwt_secret == secret_key:
             warnings.append("JWT_SECRET_KEY should be different from SECRET_KEY")
 

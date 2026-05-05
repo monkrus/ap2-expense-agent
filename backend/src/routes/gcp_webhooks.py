@@ -49,7 +49,9 @@ def verify_gcp_signature(request_body: bytes, signature: Optional[str]) -> bool:
     """
     if not settings.gcp_webhook_secret:
         # SECURITY: Fail closed - never allow unsigned webhooks
-        logger.error("GCP webhook secret not configured. Rejecting webhook. Set GCP_WEBHOOK_SECRET environment variable.")
+        logger.error(
+            "GCP webhook secret not configured. Rejecting webhook. Set GCP_WEBHOOK_SECRET environment variable."
+        )
         return False
 
     if not signature:
@@ -62,7 +64,9 @@ def verify_gcp_signature(request_body: bytes, signature: Optional[str]) -> bool:
     )
 
     if not is_valid:
-        logger.error(f"GCP webhook signature verification failed (env: {settings.environment})")
+        logger.error(
+            f"GCP webhook signature verification failed (env: {settings.environment})"
+        )
 
     return is_valid
 

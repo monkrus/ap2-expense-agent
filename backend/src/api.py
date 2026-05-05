@@ -22,21 +22,21 @@ from .permissions import (
 )
 from .rate_limit import limiter, rate_limit_handler
 from .routes import admin_router, auth_router, oauth_router, users_router
-from .routes.ap2 import router as ap2_router
-from .routes.billing_org import router as billing_org_router
-from .routes.dlq_admin import router as dlq_admin_router
-from .routes.gcp_webhooks import router as gcp_webhooks_router
-from .routes.notifications import router as notifications_router
-from .routes.organizations import router as organizations_router
-from .routes.expenses import router as expenses_router
-from .routes.receipts import router as receipts_router
-from .routes.webhooks import router as webhooks_router
-from .routes.approval_policies import router as approval_policies_router
-from .routes.budgets import router as budgets_router
 from .routes.analytics import router as analytics_router
-from .routes.recurring_expenses import router as recurring_expenses_router
-from .routes.onboarding import router as onboarding_router
+from .routes.ap2 import router as ap2_router
+from .routes.approval_policies import router as approval_policies_router
+from .routes.billing_org import router as billing_org_router
+from .routes.budgets import router as budgets_router
+from .routes.dlq_admin import router as dlq_admin_router
+from .routes.expenses import router as expenses_router
+from .routes.gcp_webhooks import router as gcp_webhooks_router
 from .routes.gdpr import router as gdpr_router
+from .routes.notifications import router as notifications_router
+from .routes.onboarding import router as onboarding_router
+from .routes.organizations import router as organizations_router
+from .routes.receipts import router as receipts_router
+from .routes.recurring_expenses import router as recurring_expenses_router
+from .routes.webhooks import router as webhooks_router
 from .security_middleware import RequestIDMiddleware, SecurityHeadersMiddleware
 from .startup_checks import validate_settings
 from .tenant_context import tenant_middleware
@@ -253,9 +253,11 @@ async def startup_event():
     # This ensures tier limits haven't been tampered with
     # Skip in test mode — test DB won't have billing tiers seeded
     import os as _os
+
     if not _os.environ.get("TESTING"):
         try:
             from .billing.tier_limit_guardian import verify_tier_limits_on_startup
+
             verify_tier_limits_on_startup()
         except Exception as e:
             print(f"[CRITICAL] Tier limit verification failed: {e}")
@@ -268,6 +270,7 @@ async def startup_event():
     # Start recurring expense scheduler
     try:
         from .scheduler import RecurringExpenseScheduler
+
         scheduler = RecurringExpenseScheduler(check_interval=60)
         await scheduler.start()
     except Exception as e:

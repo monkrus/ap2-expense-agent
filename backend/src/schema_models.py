@@ -290,6 +290,7 @@ class ExpenseSubmission(BaseModel):
 
 class ExpenseUpdate(BaseModel):
     """Schema for partial expense updates - all fields optional"""
+
     amount: Optional[float] = None
     vendor: Optional[str] = None
     category: Optional[str] = None
@@ -309,6 +310,7 @@ class ExpenseUpdate(BaseModel):
     def sanitize_description(cls, v):
         if v is not None:
             import html
+
             sanitized = html.escape(v)
             if len(sanitized) > 1000:
                 raise ValueError("Description cannot exceed 1000 characters")
@@ -319,6 +321,7 @@ class ExpenseUpdate(BaseModel):
     def sanitize_vendor(cls, v):
         if v is not None:
             import html
+
             sanitized = html.escape(v)
             if len(sanitized) > 200:
                 raise ValueError("Vendor name cannot exceed 200 characters")
@@ -329,15 +332,19 @@ class ExpenseUpdate(BaseModel):
     def validate_category(cls, v):
         if v is not None:
             from .models import ExpenseCategory
+
             valid_categories = [e.value for e in ExpenseCategory]
             if v not in valid_categories:
-                raise ValueError(f'Category must be one of: {", ".join(valid_categories)}')
+                raise ValueError(
+                    f'Category must be one of: {", ".join(valid_categories)}'
+                )
         return v
 
     @validator("date")
     def validate_date(cls, v):
         if v is not None:
             from datetime import datetime
+
             try:
                 datetime.fromisoformat(v)
                 return v

@@ -2,13 +2,13 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     DateTime,
     Enum,
     ForeignKey,
     Integer,
-    JSON,
     Numeric,
     String,
     Table,
@@ -409,8 +409,14 @@ class Expense(Base):
 
     # Auto-approval tracking
     auto_approved = Column(Boolean, nullable=False, default=False)
-    auto_approved_via = Column(String(50), nullable=True)  # "intent_mandate" or "approval_policy"
-    approval_policy_id = Column(String(255), ForeignKey("approval_policies.id", ondelete="SET NULL"), nullable=True)
+    auto_approved_via = Column(
+        String(50), nullable=True
+    )  # "intent_mandate" or "approval_policy"
+    approval_policy_id = Column(
+        String(255),
+        ForeignKey("approval_policies.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     # AP2 Integration
     transaction_id = Column(
@@ -822,7 +828,9 @@ class CartMandate(Base):
 
     # AP2 2026: UCP (Universal Commerce Protocol) reference
     ucp_order_id = Column(String(255), nullable=True)
-    merchant_agent_signature = Column(Text, nullable=True)  # Merchant agent's signing of the cart
+    merchant_agent_signature = Column(
+        Text, nullable=True
+    )  # Merchant agent's signing of the cart
 
     # Relationships
     intent_mandate = relationship("IntentMandate", back_populates="cart_mandates")
@@ -852,7 +860,9 @@ class PaymentMandate(Base):
     updated_at = Column(DateTime, onupdate=func.now())
 
     # AP2 2026: Agent Signal for HNP (Human-Not-Present) risk scoring
-    agent_signal = Column(Text, nullable=True)  # JSON: agent_id, confidence, authorization chain
+    agent_signal = Column(
+        Text, nullable=True
+    )  # JSON: agent_id, confidence, authorization chain
 
     # Relationships
     cart_mandate = relationship("CartMandate", back_populates="payment_mandates")
@@ -875,7 +885,10 @@ class ApprovalPolicy(Base):
     # Primary key
     id = Column(String(255), primary_key=True)
     organization_id = Column(
-        String(255), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+        String(255),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
 
     # Policy details
@@ -978,6 +991,7 @@ class ApprovalPolicy(Base):
 
 class NotificationType(str, enum.Enum):
     """Notification types for different events"""
+
     EXPENSE_SUBMITTED = "expense_submitted"
     EXPENSE_APPROVED = "expense_approved"
     EXPENSE_REJECTED = "expense_rejected"
@@ -994,11 +1008,14 @@ class Notification(Base):
     """
     In-app notifications for users
     """
+
     __tablename__ = "notifications"
 
     id = Column(String(36), primary_key=True)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
-    organization_id = Column(String(36), ForeignKey("organizations.id"), nullable=True, index=True)
+    organization_id = Column(
+        String(36), ForeignKey("organizations.id"), nullable=True, index=True
+    )
 
     notification_type = Column(StringEnum(NotificationType), nullable=False, index=True)
     title = Column(String(255), nullable=False)
@@ -1006,7 +1023,9 @@ class Notification(Base):
 
     # Optional reference to related entities
     expense_id = Column(String(36), ForeignKey("expenses.id"), nullable=True)
-    recurring_template_id = Column(String(36), ForeignKey("recurring_expense_templates.id"), nullable=True)
+    recurring_template_id = Column(
+        String(36), ForeignKey("recurring_expense_templates.id"), nullable=True
+    )
 
     # Metadata
     is_read = Column(Boolean, default=False, nullable=False, index=True)
@@ -1050,11 +1069,16 @@ class RuleRequest(Base):
     """
     Track employee requests for auto-approval rules
     """
+
     __tablename__ = "rule_requests"
 
     id = Column(String(36), primary_key=True)
-    organization_id = Column(String(36), ForeignKey("organizations.id"), nullable=False, index=True)
-    requester_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    organization_id = Column(
+        String(36), ForeignKey("organizations.id"), nullable=False, index=True
+    )
+    requester_id = Column(
+        String(36), ForeignKey("users.id"), nullable=False, index=True
+    )
 
     # Request details
     category = Column(String(50), nullable=True)
@@ -1063,7 +1087,12 @@ class RuleRequest(Base):
     reason = Column(Text, nullable=False)
 
     # Status tracking
-    status = Column(StringEnum(RuleRequestStatus), default=RuleRequestStatus.PENDING, nullable=False, index=True)
+    status = Column(
+        StringEnum(RuleRequestStatus),
+        default=RuleRequestStatus.PENDING,
+        nullable=False,
+        index=True,
+    )
     reviewed_by = Column(String(36), ForeignKey("users.id"), nullable=True)
     reviewed_at = Column(DateTime, nullable=True)
     admin_note = Column(Text, nullable=True)

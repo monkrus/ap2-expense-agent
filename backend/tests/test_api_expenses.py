@@ -142,13 +142,13 @@ class TestExpenseAPIRoutes:
 
     def test_delete_nonexistent_expense(self, client, org_headers):
         """Test deleting non-existent expense"""
-        response = client.delete(
-            "/api/v1/expenses/nonexistent_id", headers=org_headers
-        )
+        response = client.delete("/api/v1/expenses/nonexistent_id", headers=org_headers)
 
         assert response.status_code == 404
 
-    def test_approve_expense_as_manager(self, client, manager_org_headers, manager_expense):
+    def test_approve_expense_as_manager(
+        self, client, manager_org_headers, manager_expense
+    ):
         """Test approving expense as manager"""
         response = client.put(
             f"/api/v1/expenses/{manager_expense.id}/approve",

@@ -4,12 +4,12 @@ Enhanced Error Tracking and Logging
 Provides structured logging and error tracking to catch issues in production.
 """
 
+import json
 import logging
 import traceback
-import json
 from datetime import datetime
-from typing import Any, Dict, Optional
 from functools import wraps
+from typing import Any, Dict, Optional
 
 
 # Configure structured logging
@@ -21,20 +21,15 @@ class StructuredLogger:
         """Setup structured logging configuration"""
         logging.basicConfig(
             level=getattr(logging, log_level.upper()),
-            format='%(message)s',
+            format="%(message)s",
             handlers=[
                 logging.StreamHandler(),
-                logging.FileHandler('logs/app.log', mode='a'),
-            ]
+                logging.FileHandler("logs/app.log", mode="a"),
+            ],
         )
 
     @staticmethod
-    def log_event(
-        event_type: str,
-        message: str,
-        level: str = "INFO",
-        **kwargs
-    ):
+    def log_event(event_type: str, message: str, level: str = "INFO", **kwargs):
         """
         Log a structured event.
 
@@ -49,7 +44,7 @@ class StructuredLogger:
             "event_type": event_type,
             "level": level,
             "message": message,
-            **kwargs
+            **kwargs,
         }
 
         logger = logging.getLogger(__name__)
@@ -64,7 +59,7 @@ class StructuredLogger:
         duration_ms: float,
         user_id: Optional[str] = None,
         org_id: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ):
         """Log an API call with relevant context"""
         StructuredLogger.log_event(
@@ -77,14 +72,12 @@ class StructuredLogger:
             duration_ms=duration_ms,
             user_id=user_id,
             organization_id=org_id,
-            **kwargs
+            **kwargs,
         )
 
     @staticmethod
     def log_error(
-        error: Exception,
-        context: Optional[Dict[str, Any]] = None,
-        level: str = "ERROR"
+        error: Exception, context: Optional[Dict[str, Any]] = None, level: str = "ERROR"
     ):
         """
         Log an error with full context and stack trace.
@@ -107,16 +100,12 @@ class StructuredLogger:
             event_type="error",
             message=f"{type(error).__name__}: {str(error)}",
             level=level,
-            **error_data
+            **error_data,
         )
 
     @staticmethod
     def log_database_query(
-        query_type: str,
-        table: str,
-        duration_ms: float,
-        success: bool = True,
-        **kwargs
+        query_type: str, table: str, duration_ms: float, success: bool = True, **kwargs
     ):
         """Log database query performance"""
         StructuredLogger.log_event(
@@ -127,7 +116,7 @@ class StructuredLogger:
             table=table,
             duration_ms=duration_ms,
             success=success,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -140,6 +129,7 @@ def track_errors(func):
         def my_function():
             ...
     """
+
     @wraps(func)
     async def async_wrapper(*args, **kwargs):
         try:
@@ -151,7 +141,7 @@ def track_errors(func):
                     "function": func.__name__,
                     "args": str(args)[:100],  # Limit arg length
                     "kwargs": str(kwargs)[:100],
-                }
+                },
             )
             raise
 
@@ -166,12 +156,13 @@ def track_errors(func):
                     "function": func.__name__,
                     "args": str(args)[:100],
                     "kwargs": str(kwargs)[:100],
-                }
+                },
             )
             raise
 
     # Return appropriate wrapper based on function type
     import inspect
+
     if inspect.iscoroutinefunction(func):
         return async_wrapper
     return sync_wrapper
@@ -206,7 +197,9 @@ class ErrorPatternDetector:
                 level="WARNING",
                 error_key=key,
                 count=ErrorPatternDetector.error_counts[key]["count"],
-                first_seen=ErrorPatternDetector.error_counts[key]["first_seen"].isoformat(),
+                first_seen=ErrorPatternDetector.error_counts[key][
+                    "first_seen"
+                ].isoformat(),
             )
 
     @staticmethod
@@ -236,6 +229,7 @@ class ErrorTrackingMiddleware:
             return
 
         import time
+
         start_time = time.time()
 
         async def send_wrapper(message):
@@ -254,8 +248,7 @@ class ErrorTrackingMiddleware:
                 # Track errors
                 if status_code >= 400:
                     ErrorPatternDetector.record_error(
-                        error_type=f"HTTP_{status_code}",
-                        endpoint=scope["path"]
+                        error_type=f"HTTP_{status_code}", endpoint=scope["path"]
                     )
 
             await send(message)
@@ -263,18 +256,21 @@ class ErrorTrackingMiddleware:
         try:
             await self.app(scope, receive, send_wrapper)
         except Exception as e:
-            StructuredLogger.log_error(e, context={
-                "endpoint": scope["path"],
-                "method": scope["method"],
-            })
+            StructuredLogger.log_error(
+                e,
+                context={
+                    "endpoint": scope["path"],
+                    "method": scope["method"],
+                },
+            )
             ErrorPatternDetector.record_error(
-                error_type=type(e).__name__,
-                endpoint=scope["path"]
+                error_type=type(e).__name__, endpoint=scope["path"]
             )
             raise
 
 
 # Initialize logging
 import os
+
 os.makedirs("logs", exist_ok=True)
 StructuredLogger.setup_logging()

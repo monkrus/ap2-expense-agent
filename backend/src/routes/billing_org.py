@@ -88,15 +88,22 @@ def get_organization_subscription(
         # No subscription = Free tier
         # Get the free tier details
         import logging
+
         logger = logging.getLogger(__name__)
         logger.info(f"No subscription found for org {org_id}, fetching free tier")
 
-        free_tier = db.query(BillingTier).filter(BillingTier.tier_name == "free").first()
+        free_tier = (
+            db.query(BillingTier).filter(BillingTier.tier_name == "free").first()
+        )
         logger.info(f"Free tier found: {free_tier is not None}")
 
         if not free_tier:
             logger.warning("Free tier not found in database!")
-            return {"has_subscription": False, "tier": "free", "organization_id": org_id}
+            return {
+                "has_subscription": False,
+                "tier": "free",
+                "organization_id": org_id,
+            }
 
         # Parse limits and features
         limits = free_tier.limits if free_tier else {}
@@ -234,6 +241,7 @@ def get_monthly_usage(
     # Usage metrics track API calls (60), but we need actual expenses (11)
     # This matches what LimitEnforcer.check_expense_limit() uses
     from ..models import Expense
+
     actual_expense_count = (
         db.query(func.count(Expense.id))
         .filter(
@@ -285,8 +293,14 @@ def get_monthly_usage(
 
             # Map usage types to limit keys (try multiple keys for compatibility)
             limit_mapping = {
-                "ai_categorization": ["max_ai_categorizations", "ai_categorizations_included"],
-                "ap2_transaction": ["max_ap2_transactions", "ap2_transactions_included"],
+                "ai_categorization": [
+                    "max_ai_categorizations",
+                    "ai_categorizations_included",
+                ],
+                "ap2_transaction": [
+                    "max_ap2_transactions",
+                    "ap2_transactions_included",
+                ],
                 "ocr_scan": ["ocr_scans_included"],
                 "expense": ["max_expenses_per_month"],
             }
@@ -340,13 +354,24 @@ def get_monthly_usage(
 
         # BUGFIX: Always include all metric types even if they have 0 usage
         # This ensures the frontend can display all metrics consistently
-        all_metric_types = ["expense", "ai_categorization", "ocr_scan", "ap2_transaction"]
+        all_metric_types = [
+            "expense",
+            "ai_categorization",
+            "ocr_scan",
+            "ap2_transaction",
+        ]
         for metric_type in all_metric_types:
             if metric_type not in usage_details:
                 # Map usage types to limit keys (try multiple keys for compatibility)
                 limit_mapping = {
-                    "ai_categorization": ["max_ai_categorizations", "ai_categorizations_included"],
-                    "ap2_transaction": ["max_ap2_transactions", "ap2_transactions_included"],
+                    "ai_categorization": [
+                        "max_ai_categorizations",
+                        "ai_categorizations_included",
+                    ],
+                    "ap2_transaction": [
+                        "max_ap2_transactions",
+                        "ap2_transactions_included",
+                    ],
                     "ocr_scan": ["ocr_scans_included"],
                     "expense": ["max_expenses_per_month"],
                 }
@@ -382,7 +407,12 @@ def get_monthly_usage(
         }
 
         # BUGFIX: Always include all metric types even if they have 0 usage
-        all_metric_types = ["expense", "ai_categorization", "ocr_scan", "ap2_transaction"]
+        all_metric_types = [
+            "expense",
+            "ai_categorization",
+            "ocr_scan",
+            "ap2_transaction",
+        ]
         for metric_type in all_metric_types:
             if metric_type not in usage_details:
                 usage_details[metric_type] = {
@@ -520,9 +550,21 @@ def get_all_tiers(db: Session = Depends(get_db)):
                 "tier": tier.tier_name,
                 "display_name": tier.display_name,
                 "price_monthly": float(tier.base_price_monthly),
-                "limits": json.loads(tier.limits) if isinstance(tier.limits, str) else tier.limits,
-                "features": json.loads(tier.features) if isinstance(tier.features, str) else tier.features,
-                "overage_pricing": json.loads(tier.overage_pricing) if isinstance(tier.overage_pricing, str) else tier.overage_pricing,
+                "limits": (
+                    json.loads(tier.limits)
+                    if isinstance(tier.limits, str)
+                    else tier.limits
+                ),
+                "features": (
+                    json.loads(tier.features)
+                    if isinstance(tier.features, str)
+                    else tier.features
+                ),
+                "overage_pricing": (
+                    json.loads(tier.overage_pricing)
+                    if isinstance(tier.overage_pricing, str)
+                    else tier.overage_pricing
+                ),
             }
             for tier in tiers
         ]
@@ -549,9 +591,19 @@ def get_tier_info(tier_name: str, db: Session = Depends(get_db)):
         "tier": tier.tier_name,
         "display_name": tier.display_name,
         "price_monthly": float(tier.base_price_monthly),
-        "limits": json.loads(tier.limits) if isinstance(tier.limits, str) else tier.limits,
-        "features": json.loads(tier.features) if isinstance(tier.features, str) else tier.features,
-        "overage_pricing": json.loads(tier.overage_pricing) if isinstance(tier.overage_pricing, str) else tier.overage_pricing,
+        "limits": (
+            json.loads(tier.limits) if isinstance(tier.limits, str) else tier.limits
+        ),
+        "features": (
+            json.loads(tier.features)
+            if isinstance(tier.features, str)
+            else tier.features
+        ),
+        "overage_pricing": (
+            json.loads(tier.overage_pricing)
+            if isinstance(tier.overage_pricing, str)
+            else tier.overage_pricing
+        ),
     }
 
 
@@ -643,6 +695,7 @@ def create_organization_subscription(
 ):
     """Create a new subscription for the user's organization"""
     import uuid
+
     if settings.enable_gcp_marketplace:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

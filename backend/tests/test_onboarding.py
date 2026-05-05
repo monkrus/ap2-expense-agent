@@ -75,7 +75,9 @@ class TestOnboardingCreateOrganization:
         assert "organization_id" in data
 
         # Verify org exists in DB
-        org = db_session.query(Organization).filter_by(id=data["organization_id"]).first()
+        org = (
+            db_session.query(Organization).filter_by(id=data["organization_id"]).first()
+        )
         assert org is not None
         assert org.name == "My Startup"
 

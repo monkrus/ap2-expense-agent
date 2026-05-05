@@ -13,10 +13,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# psutil and prometheus_client are installed in the test environment
-
 from src.monitoring import AlertManager
 from src.rate_limit import rate_limit_handler
+
+# psutil and prometheus_client are installed in the test environment
+
 
 pytestmark = pytest.mark.asyncio
 
@@ -40,7 +41,9 @@ class TestRateLimitHandler:
     """Tests for the rate_limit_handler function."""
 
     async def test_returns_429_with_correct_body(self):
-        resp = await rate_limit_handler(_make_request("/api/v1/expenses"), _make_exc(30))
+        resp = await rate_limit_handler(
+            _make_request("/api/v1/expenses"), _make_exc(30)
+        )
         assert resp.status_code == 429
         body = json.loads(resp.body)
         assert body["error"] == "rate_limit_exceeded"
@@ -49,9 +52,7 @@ class TestRateLimitHandler:
 
     async def test_fires_alert_for_login_path(self):
         with patch.object(AlertManager, "alert_suspicious_activity") as mock_alert:
-            await rate_limit_handler(
-                _make_request("/api/v1/auth/login"), _make_exc()
-            )
+            await rate_limit_handler(_make_request("/api/v1/auth/login"), _make_exc())
             mock_alert.assert_called_once()
             kw = mock_alert.call_args[1]
             assert kw["endpoint"] == "/api/v1/auth/login"
@@ -66,9 +67,7 @@ class TestRateLimitHandler:
 
     async def test_no_alert_for_non_sensitive_path(self):
         with patch.object(AlertManager, "alert_suspicious_activity") as mock_alert:
-            await rate_limit_handler(
-                _make_request("/api/v1/expenses"), _make_exc()
-            )
+            await rate_limit_handler(_make_request("/api/v1/expenses"), _make_exc())
             mock_alert.assert_not_called()
 
 

@@ -77,20 +77,26 @@ class LimitEnforcer:
                 return OrgLimits(
                     tier_name="free",
                     max_users=self._normalize_limit(limits.get("max_users")),
-                    max_organizations=self._normalize_limit(limits.get("max_organizations")),
+                    max_organizations=self._normalize_limit(
+                        limits.get("max_organizations")
+                    ),
                     max_expenses_per_month=self._normalize_limit(
                         limits.get("max_expenses_per_month")
                     ),
                     max_ai_categorizations=self._normalize_limit(
-                        limits.get("max_ai_categorizations") or limits.get("ai_categorizations_included")
+                        limits.get("max_ai_categorizations")
+                        or limits.get("ai_categorizations_included")
                     ),
                     max_ap2_transactions=self._normalize_limit(
-                        limits.get("max_ap2_transactions") or limits.get("ap2_transactions_included")
+                        limits.get("max_ap2_transactions")
+                        or limits.get("ap2_transactions_included")
                     ),
                     ocr_scans_included=self._normalize_limit(
                         limits.get("ocr_scans_included")
                     ),
-                    data_retention_days=self._normalize_limit(limits.get("data_retention_days")),
+                    data_retention_days=self._normalize_limit(
+                        limits.get("data_retention_days")
+                    ),
                     features=features,
                     has_subscription=False,
                 )
@@ -134,10 +140,10 @@ class LimitEnforcer:
             max_ap2_transactions=self._normalize_limit(
                 limits.get("max_ap2_transactions")
             ),
-            ocr_scans_included=self._normalize_limit(
-                limits.get("ocr_scans_included")
+            ocr_scans_included=self._normalize_limit(limits.get("ocr_scans_included")),
+            data_retention_days=self._normalize_limit(
+                limits.get("data_retention_days")
             ),
-            data_retention_days=self._normalize_limit(limits.get("data_retention_days")),
             features=features,
             has_subscription=True,
         )
@@ -253,7 +259,9 @@ class LimitEnforcer:
             return None
         return limit
 
-    def _feature_flags(self, value: object, tier_name: Optional[str]) -> Dict[str, bool]:
+    def _feature_flags(
+        self, value: object, tier_name: Optional[str]
+    ) -> Dict[str, bool]:
         features = []
         if isinstance(value, list):
             features = value
@@ -285,10 +293,12 @@ class LimitEnforcer:
         return {
             "api_access": ("api" in " ".join(normalized)) or rank >= 2,  # Professional+
             "sso_enabled": ("sso" in " ".join(normalized)) or rank >= 3,  # Enterprise+
-            "custom_integrations": ("integration" in " ".join(normalized)) or rank >= 3,  # Enterprise+
+            "custom_integrations": ("integration" in " ".join(normalized))
+            or rank >= 3,  # Enterprise+
             "advanced_analytics": False,  # REMOVED: Not implemented
             "approval_workflows": True,  # FIXED: Available in ALL tiers
-            "priority_support": ("priority" in " ".join(normalized)) or rank >= 1,  # Starter+
+            "priority_support": ("priority" in " ".join(normalized))
+            or rank >= 1,  # Starter+
         }
 
     def check_user_limit(
@@ -358,6 +368,7 @@ class LimitEnforcer:
 
         # Bypass limits in testing environment
         import os
+
         if os.environ.get("TESTING") == "true":
             return True, "Testing mode - limits bypassed"
 
@@ -377,7 +388,10 @@ class LimitEnforcer:
         # For free tier users with no orgs yet, use default free tier limits
         user_org = (
             self.db.query(Organization)
-            .join(OrganizationMember, OrganizationMember.organization_id == Organization.id)
+            .join(
+                OrganizationMember,
+                OrganizationMember.organization_id == Organization.id,
+            )
             .filter(OrganizationMember.user_id == user_id)
             .filter(OrganizationMember.role == OrganizationRole.OWNER)
             .filter(OrganizationMember.is_active == True)
@@ -396,18 +410,25 @@ class LimitEnforcer:
 
         # Debug logging
         import logging
+
         logger = logging.getLogger(__name__)
-        logger.info(f"[ORG_LIMIT_CHECK] user_id={user_id}, current_count={current_org_count}, max={max_orgs}, tier={limits.tier_name}")
+        logger.info(
+            f"[ORG_LIMIT_CHECK] user_id={user_id}, current_count={current_org_count}, max={max_orgs}, tier={limits.tier_name}"
+        )
 
         if max_orgs is None:  # Unlimited
             return True, "Unlimited organizations allowed"
 
         if current_org_count >= max_orgs:
             message = f"Organization limit reached ({current_org_count}/{max_orgs})"
-            logger.warning(f"[ORG_LIMIT_EXCEEDED] {message}, tier={limits.tier_name}, raise_error={raise_error}")
+            logger.warning(
+                f"[ORG_LIMIT_EXCEEDED] {message}, tier={limits.tier_name}, raise_error={raise_error}"
+            )
 
             if limits.tier_name.lower() == "free" and raise_error:
-                logger.error(f"[ORG_LIMIT_ERROR] Raising LimitExceededError for user {user_id}")
+                logger.error(
+                    f"[ORG_LIMIT_ERROR] Raising LimitExceededError for user {user_id}"
+                )
                 raise LimitExceededError(
                     feature="Organizations",
                     limit=max_orgs,
@@ -426,6 +447,7 @@ class LimitEnforcer:
 
         # Bypass limits in testing environment
         import os
+
         if os.environ.get("TESTING") == "true":
             return True, "Testing mode - limits bypassed"
 
@@ -790,7 +812,9 @@ class LimitEnforcer:
             "features": {
                 "api_access": limits.features.get("api_access", False),
                 "sso_enabled": limits.features.get("sso_enabled", False),
-                "custom_integrations": limits.features.get("custom_integrations", False),
+                "custom_integrations": limits.features.get(
+                    "custom_integrations", False
+                ),
                 "advanced_analytics": limits.features.get("advanced_analytics", False),
                 "priority_support": limits.features.get("priority_support", False),
             },

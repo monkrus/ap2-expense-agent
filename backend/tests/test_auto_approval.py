@@ -15,7 +15,9 @@ from src.models import ApprovalPolicy, Expense, ExpenseStatus, OrganizationRole
 class TestAutoApprovalEndToEnd:
     """Test auto-approval system end-to-end"""
 
-    def test_simple_auto_approval(self, client, admin_org_headers, test_organization, test_admin, db_session):
+    def test_simple_auto_approval(
+        self, client, admin_org_headers, test_organization, test_admin, db_session
+    ):
         """Test basic auto-approval flow"""
         # Step 1: Create an approval policy
         policy_data = {
@@ -28,14 +30,12 @@ class TestAutoApprovalEndToEnd:
             "max_amount_per_expense": 50.00,
             "conditions": {
                 "categories": ["MEALS", "OFFICE_SUPPLIES"],
-                "min_amount": 1.00
-            }
+                "min_amount": 1.00,
+            },
         }
 
         response = client.post(
-            "/api/v1/approval-policies",
-            headers=admin_org_headers,
-            json=policy_data
+            "/api/v1/approval-policies", headers=admin_org_headers, json=policy_data
         )
 
         assert response.status_code == 201, f"Policy creation failed: {response.json()}"
@@ -54,18 +54,22 @@ class TestAutoApprovalEndToEnd:
         }
 
         response = client.post(
-            "/api/v1/expenses",
-            headers=admin_org_headers,
-            json=expense_data
+            "/api/v1/expenses", headers=admin_org_headers, json=expense_data
         )
 
-        assert response.status_code == 201, f"Expense creation failed: {response.json()}"
+        assert (
+            response.status_code == 201
+        ), f"Expense creation failed: {response.json()}"
         expense = response.json()
 
         # Step 3: Verify expense was AUTO-APPROVED
         assert expense["auto_approved"] == True, "Expense should be auto-approved"
-        assert expense["status"] == "approved", f"Status should be approved, got {expense['status']}"
-        assert expense.get("auto_approved_via") == "approval_policy", "Should be approved via policy"
+        assert (
+            expense["status"] == "approved"
+        ), f"Status should be approved, got {expense['status']}"
+        assert (
+            expense.get("auto_approved_via") == "approval_policy"
+        ), "Should be approved via policy"
         assert "Auto-approved by policy" in expense.get("message", "")
 
     def test_expense_exceeding_amount_limit_not_auto_approved(
@@ -79,13 +83,11 @@ class TestAutoApprovalEndToEnd:
             "auto_approve": True,
             "require_receipt": False,
             "max_amount_per_expense": 50.00,
-            "conditions": {"categories": ["MEALS"]}
+            "conditions": {"categories": ["MEALS"]},
         }
 
         response = client.post(
-            "/api/v1/approval-policies",
-            headers=admin_org_headers,
-            json=policy_data
+            "/api/v1/approval-policies", headers=admin_org_headers, json=policy_data
         )
         assert response.status_code == 201
 
@@ -99,9 +101,7 @@ class TestAutoApprovalEndToEnd:
         }
 
         response = client.post(
-            "/api/v1/expenses",
-            headers=admin_org_headers,
-            json=expense_data
+            "/api/v1/expenses", headers=admin_org_headers, json=expense_data
         )
 
         assert response.status_code == 201
@@ -112,7 +112,9 @@ class TestAutoApprovalEndToEnd:
         assert expense["status"] == "pending", "Status should be pending"
         assert "manual approval" in expense.get("message", "").lower()
 
-    def test_category_filtering(self, client, admin_org_headers, test_admin, db_session):
+    def test_category_filtering(
+        self, client, admin_org_headers, test_admin, db_session
+    ):
         """Test that only matching categories are auto-approved"""
         # Create policy for MEALS only
         policy_data = {
@@ -121,15 +123,11 @@ class TestAutoApprovalEndToEnd:
             "auto_approve": True,
             "require_receipt": False,
             "max_amount_per_expense": 100.00,
-            "conditions": {
-                "categories": ["MEALS"]  # Only MEALS allowed
-            }
+            "conditions": {"categories": ["MEALS"]},  # Only MEALS allowed
         }
 
         response = client.post(
-            "/api/v1/approval-policies",
-            headers=admin_org_headers,
-            json=policy_data
+            "/api/v1/approval-policies", headers=admin_org_headers, json=policy_data
         )
         assert response.status_code == 201
 
@@ -143,7 +141,7 @@ class TestAutoApprovalEndToEnd:
                 "description": "Coffee",
                 "category": "MEALS",
                 "date": datetime.utcnow().isoformat(),
-            }
+            },
         )
         assert response.status_code == 201
         expense = response.json()
@@ -159,13 +157,15 @@ class TestAutoApprovalEndToEnd:
                 "description": "Taxi",
                 "category": "TRAVEL",  # Not in allowed categories
                 "date": datetime.utcnow().isoformat(),
-            }
+            },
         )
         assert response.status_code == 201
         expense = response.json()
         assert expense["auto_approved"] == False, "TRAVEL should NOT be auto-approved"
 
-    def test_priority_based_policy_matching(self, client, admin_org_headers, test_admin, db_session):
+    def test_priority_based_policy_matching(
+        self, client, admin_org_headers, test_admin, db_session
+    ):
         """Test that higher priority policies are checked first"""
         # Create low priority policy (priority 10)
         low_priority_policy = {
@@ -174,13 +174,13 @@ class TestAutoApprovalEndToEnd:
             "auto_approve": True,
             "require_receipt": False,
             "max_amount_per_expense": 100.00,
-            "conditions": {"categories": ["MEALS"]}
+            "conditions": {"categories": ["MEALS"]},
         }
 
         response = client.post(
             "/api/v1/approval-policies",
             headers=admin_org_headers,
-            json=low_priority_policy
+            json=low_priority_policy,
         )
         assert response.status_code == 201
         low_policy_id = response.json()["id"]
@@ -192,13 +192,13 @@ class TestAutoApprovalEndToEnd:
             "auto_approve": True,
             "require_receipt": False,
             "max_amount_per_expense": 20.00,  # Stricter limit
-            "conditions": {"categories": ["MEALS"]}
+            "conditions": {"categories": ["MEALS"]},
         }
 
         response = client.post(
             "/api/v1/approval-policies",
             headers=admin_org_headers,
-            json=high_priority_policy
+            json=high_priority_policy,
         )
         assert response.status_code == 201
         high_policy_id = response.json()["id"]
@@ -213,17 +213,20 @@ class TestAutoApprovalEndToEnd:
                 "description": "Coffee",
                 "category": "MEALS",
                 "date": datetime.utcnow().isoformat(),
-            }
+            },
         )
         assert response.status_code == 201
         expense = response.json()
 
         # Should match HIGH priority policy
         assert expense["auto_approved"] == True
-        assert expense.get("auto_approved_via") == "approval_policy", \
-            "Should match high priority policy"
+        assert (
+            expense.get("auto_approved_via") == "approval_policy"
+        ), "Should match high priority policy"
 
-    def test_daily_limit_enforcement(self, client, admin_org_headers, test_admin, db_session):
+    def test_daily_limit_enforcement(
+        self, client, admin_org_headers, test_admin, db_session
+    ):
         """Test that daily limits per user are enforced"""
         # Create policy with $100 daily limit
         policy_data = {
@@ -233,13 +236,11 @@ class TestAutoApprovalEndToEnd:
             "require_receipt": False,
             "max_amount_per_expense": 50.00,
             "daily_limit_per_user": 100.00,  # $100 per day
-            "conditions": {"categories": ["MEALS"]}
+            "conditions": {"categories": ["MEALS"]},
         }
 
         response = client.post(
-            "/api/v1/approval-policies",
-            headers=admin_org_headers,
-            json=policy_data
+            "/api/v1/approval-policies", headers=admin_org_headers, json=policy_data
         )
         assert response.status_code == 201
 
@@ -253,7 +254,7 @@ class TestAutoApprovalEndToEnd:
                 "description": "Lunch",
                 "category": "MEALS",
                 "date": datetime.utcnow().isoformat(),
-            }
+            },
         )
         assert response.status_code == 201
         expense1 = response.json()
@@ -269,11 +270,13 @@ class TestAutoApprovalEndToEnd:
                 "description": "Dinner",
                 "category": "MEALS",
                 "date": datetime.utcnow().isoformat(),
-            }
+            },
         )
         assert response.status_code == 201
         expense2 = response.json()
-        assert expense2["auto_approved"] == True, "Second expense should auto-approve (total $80)"
+        assert (
+            expense2["auto_approved"] == True
+        ), "Second expense should auto-approve (total $80)"
 
         # Submit third expense ($40) - should NOT auto-approve (would exceed $100 daily limit)
         response = client.post(
@@ -285,14 +288,17 @@ class TestAutoApprovalEndToEnd:
                 "description": "Snacks",
                 "category": "MEALS",
                 "date": datetime.utcnow().isoformat(),
-            }
+            },
         )
         assert response.status_code == 201
         expense3 = response.json()
-        assert expense3["auto_approved"] == False, \
-            "Third expense should NOT auto-approve (would exceed daily limit)"
+        assert (
+            expense3["auto_approved"] == False
+        ), "Third expense should NOT auto-approve (would exceed daily limit)"
 
-    def test_policy_can_be_disabled(self, client, admin_org_headers, test_admin, db_session):
+    def test_policy_can_be_disabled(
+        self, client, admin_org_headers, test_admin, db_session
+    ):
         """Test that disabled policies don't auto-approve"""
         # Create active policy
         policy_data = {
@@ -302,13 +308,11 @@ class TestAutoApprovalEndToEnd:
             "is_active": True,
             "require_receipt": False,
             "max_amount_per_expense": 50.00,
-            "conditions": {"categories": ["MEALS"]}
+            "conditions": {"categories": ["MEALS"]},
         }
 
         response = client.post(
-            "/api/v1/approval-policies",
-            headers=admin_org_headers,
-            json=policy_data
+            "/api/v1/approval-policies", headers=admin_org_headers, json=policy_data
         )
         assert response.status_code == 201
         policy_id = response.json()["id"]
@@ -323,7 +327,7 @@ class TestAutoApprovalEndToEnd:
                 "description": "Coffee",
                 "category": "MEALS",
                 "date": datetime.utcnow().isoformat(),
-            }
+            },
         )
         assert response.status_code == 201
         expense1 = response.json()
@@ -333,7 +337,7 @@ class TestAutoApprovalEndToEnd:
         response = client.patch(
             f"/api/v1/approval-policies/{policy_id}",
             headers=admin_org_headers,
-            json={"is_active": False}
+            json={"is_active": False},
         )
         assert response.status_code == 200
 
@@ -347,14 +351,17 @@ class TestAutoApprovalEndToEnd:
                 "description": "Afternoon tea",
                 "category": "MEALS",
                 "date": datetime.utcnow().isoformat(),
-            }
+            },
         )
         assert response.status_code == 201
         expense2 = response.json()
-        assert expense2["auto_approved"] == False, \
-            "Should NOT auto-approve when policy is disabled"
+        assert (
+            expense2["auto_approved"] == False
+        ), "Should NOT auto-approve when policy is disabled"
 
-    def test_no_policies_results_in_manual_approval(self, client, admin_org_headers, test_admin, db_session):
+    def test_no_policies_results_in_manual_approval(
+        self, client, admin_org_headers, test_admin, db_session
+    ):
         """Test that expenses require manual approval when no policies exist"""
         response = client.post(
             "/api/v1/expenses",
@@ -365,7 +372,7 @@ class TestAutoApprovalEndToEnd:
                 "description": "Test",
                 "category": "MEALS",
                 "date": datetime.utcnow().isoformat(),
-            }
+            },
         )
 
         assert response.status_code == 201
@@ -389,16 +396,11 @@ class TestApprovalPolicyAPI:
             "notify_on_auto_approve": True,
             "max_amount_per_expense": 100.00,
             "daily_limit_per_user": 500.00,
-            "conditions": {
-                "categories": ["MEALS", "TRAVEL"],
-                "min_amount": 5.00
-            }
+            "conditions": {"categories": ["MEALS", "TRAVEL"], "min_amount": 5.00},
         }
 
         response = client.post(
-            "/api/v1/approval-policies",
-            headers=admin_org_headers,
-            json=policy_data
+            "/api/v1/approval-policies", headers=admin_org_headers, json=policy_data
         )
 
         assert response.status_code == 201
@@ -416,21 +418,16 @@ class TestApprovalPolicyAPI:
             "priority": 100,
             "auto_approve": True,
             "require_receipt": False,
-            "max_amount_per_expense": 50.00
+            "max_amount_per_expense": 50.00,
         }
 
         create_response = client.post(
-            "/api/v1/approval-policies",
-            headers=admin_org_headers,
-            json=policy_data
+            "/api/v1/approval-policies", headers=admin_org_headers, json=policy_data
         )
         assert create_response.status_code == 201
 
         # List policies
-        response = client.get(
-            "/api/v1/approval-policies",
-            headers=admin_org_headers
-        )
+        response = client.get("/api/v1/approval-policies", headers=admin_org_headers)
 
         assert response.status_code == 200
         policies = response.json()
@@ -446,27 +443,22 @@ class TestApprovalPolicyAPI:
             "priority": 100,
             "auto_approve": True,
             "require_receipt": False,
-            "max_amount_per_expense": 50.00
+            "max_amount_per_expense": 50.00,
         }
 
         create_response = client.post(
-            "/api/v1/approval-policies",
-            headers=admin_org_headers,
-            json=policy_data
+            "/api/v1/approval-policies", headers=admin_org_headers, json=policy_data
         )
         assert create_response.status_code == 201
         policy_id = create_response.json()["id"]
 
         # Update policy
-        update_data = {
-            "name": "Updated Name",
-            "max_amount_per_expense": 75.00
-        }
+        update_data = {"name": "Updated Name", "max_amount_per_expense": 75.00}
 
         update_response = client.patch(
             f"/api/v1/approval-policies/{policy_id}",
             headers=admin_org_headers,
-            json=update_data
+            json=update_data,
         )
 
         assert update_response.status_code == 200
@@ -482,28 +474,24 @@ class TestApprovalPolicyAPI:
             "priority": 100,
             "auto_approve": True,
             "require_receipt": False,
-            "max_amount_per_expense": 50.00
+            "max_amount_per_expense": 50.00,
         }
 
         create_response = client.post(
-            "/api/v1/approval-policies",
-            headers=admin_org_headers,
-            json=policy_data
+            "/api/v1/approval-policies", headers=admin_org_headers, json=policy_data
         )
         assert create_response.status_code == 201
         policy_id = create_response.json()["id"]
 
         # Delete policy
         delete_response = client.delete(
-            f"/api/v1/approval-policies/{policy_id}",
-            headers=admin_org_headers
+            f"/api/v1/approval-policies/{policy_id}", headers=admin_org_headers
         )
 
         assert delete_response.status_code == 204 or delete_response.status_code == 200
 
         # Verify it's gone
         get_response = client.get(
-            f"/api/v1/approval-policies/{policy_id}",
-            headers=admin_org_headers
+            f"/api/v1/approval-policies/{policy_id}", headers=admin_org_headers
         )
         assert get_response.status_code == 404

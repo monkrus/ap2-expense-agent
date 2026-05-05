@@ -206,18 +206,30 @@ async def create_recurring_expense(
             db.query(OrganizationMember)
             .filter(
                 OrganizationMember.organization_id == org_id,
-                OrganizationMember.role.in_([
-                    OrganizationRole.ADMIN.value,
-                    OrganizationRole.OWNER.value,
-                ]),
+                OrganizationMember.role.in_(
+                    [
+                        OrganizationRole.ADMIN.value,
+                        OrganizationRole.OWNER.value,
+                    ]
+                ),
                 OrganizationMember.is_active == True,
             )
             .all()
         )
 
-        display_name = current_user.full_name or current_user.username or current_user.email
-        freq_label = data.frequency.value if hasattr(data.frequency, 'value') else str(data.frequency)
-        category_label = data.category.value if hasattr(data.category, 'value') else str(data.category)
+        display_name = (
+            current_user.full_name or current_user.username or current_user.email
+        )
+        freq_label = (
+            data.frequency.value
+            if hasattr(data.frequency, "value")
+            else str(data.frequency)
+        )
+        category_label = (
+            data.category.value
+            if hasattr(data.category, "value")
+            else str(data.category)
+        )
 
         for member in admin_members:
             if member.user_id == current_user.id:
@@ -240,12 +252,23 @@ async def create_recurring_expense(
         pass  # Don't fail the request if notifications fail
 
     # If auto_submit and start_date is today or past, create the first expense immediately
-    start_naive = data.start_date.replace(tzinfo=None) if data.start_date.tzinfo else data.start_date
+    start_naive = (
+        data.start_date.replace(tzinfo=None)
+        if data.start_date.tzinfo
+        else data.start_date
+    )
     if data.auto_submit and start_naive <= datetime.utcnow():
         try:
-            from src.services.auto_approval_service import evaluate_auto_approval, notify_admins_new_expense
+            from src.services.auto_approval_service import (
+                evaluate_auto_approval,
+                notify_admins_new_expense,
+            )
 
-            category_val = data.category.value if hasattr(data.category, 'value') else str(data.category)
+            category_val = (
+                data.category.value
+                if hasattr(data.category, "value")
+                else str(data.category)
+            )
             expense = Expense(
                 id=str(uuid.uuid4()),
                 organization_id=org_id,
@@ -262,7 +285,9 @@ async def create_recurring_expense(
             db.flush()
 
             # Run auto-approval (same logic as manual expenses)
-            approval_result = await evaluate_auto_approval(db, expense, current_user, org_id)
+            approval_result = await evaluate_auto_approval(
+                db, expense, current_user, org_id
+            )
 
             template.total_submitted = (template.total_submitted or 0) + 1
             template.last_submitted_at = datetime.utcnow()

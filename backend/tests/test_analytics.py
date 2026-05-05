@@ -36,9 +36,7 @@ class TestAnalyticsRoutes:
 
     def test_dashboard_invalid_days(self, client, org_headers):
         """Test dashboard with out-of-range days parameter"""
-        response = client.get(
-            "/api/v1/analytics/dashboard?days=1", headers=org_headers
-        )
+        response = client.get("/api/v1/analytics/dashboard?days=1", headers=org_headers)
         assert response.status_code == 422
 
     def test_dashboard_requires_auth(self, client):
@@ -63,9 +61,7 @@ class TestAnalyticsRoutes:
 
     def test_variance_report(self, client, org_headers):
         """Test getting variance report"""
-        response = client.get(
-            "/api/v1/analytics/variance-report", headers=org_headers
-        )
+        response = client.get("/api/v1/analytics/variance-report", headers=org_headers)
         assert response.status_code == 200
         data = response.json()
         assert "budgets" in data
@@ -110,9 +106,7 @@ class TestAnalyticsRoutes:
 
     def test_user_spending(self, client, org_headers):
         """Test getting user spending report"""
-        response = client.get(
-            "/api/v1/analytics/user-spending", headers=org_headers
-        )
+        response = client.get("/api/v1/analytics/user-spending", headers=org_headers)
         assert response.status_code == 200
         data = response.json()
         assert "users" in data

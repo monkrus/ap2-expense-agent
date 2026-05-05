@@ -26,8 +26,8 @@ from src.models import (
     UserRole,
 )
 
-
 # ── Fixtures ────────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="function")
 def test_db():
@@ -75,10 +75,21 @@ def org_id():
     return "org_phase23_001"
 
 
-def _create_expense(db, user_id, org_id, vendor, category, amount, auto_approved=False,
-                    auto_approved_via=None, status=ExpenseStatus.APPROVED, days_ago=0):
+def _create_expense(
+    db,
+    user_id,
+    org_id,
+    vendor,
+    category,
+    amount,
+    auto_approved=False,
+    auto_approved_via=None,
+    status=ExpenseStatus.APPROVED,
+    days_ago=0,
+):
     """Helper to create an expense."""
     import uuid
+
     exp = Expense(
         id=f"EXP-{uuid.uuid4().hex[:12].upper()}",
         user_id=user_id,
@@ -101,6 +112,7 @@ def _create_expense(db, user_id, org_id, vendor, category, amount, auto_approved
 def _create_intent_mandate(db, user_id, constraints, status="active", hours=720):
     """Helper to create an Intent Mandate."""
     import uuid
+
     mandate = IntentMandate(
         id=str(uuid.uuid4()),
         user_id=user_id,
@@ -116,6 +128,7 @@ def _create_intent_mandate(db, user_id, constraints, status="active", hours=720)
 
 
 # ── Email Template Tests ────────────────────────────────────────────
+
 
 class TestAutoApprovalEmailTemplate:
     def test_renders_intent_mandate_email(self):
@@ -225,6 +238,7 @@ class TestMonthlySummaryEmailTemplate:
 
 # ── Pattern Service Tests ───────────────────────────────────────────
 
+
 class TestPatternService:
     def test_detects_recurring_vendor_pattern(self, test_db, user, org_id):
         from src.services.pattern_service import detect_patterns
@@ -232,8 +246,13 @@ class TestPatternService:
         # Create 5 expenses at Amazon (non-auto-approved)
         for i in range(5):
             _create_expense(
-                test_db, user.id, org_id, "Amazon", "OFFICE_SUPPLIES",
-                45.00 + i * 5, days_ago=i * 7,
+                test_db,
+                user.id,
+                org_id,
+                "Amazon",
+                "OFFICE_SUPPLIES",
+                45.00 + i * 5,
+                days_ago=i * 7,
             )
 
         suggestions = detect_patterns(test_db, user.id, org_id)
@@ -244,8 +263,12 @@ class TestPatternService:
         )
         assert amazon_suggestion is not None
         assert amazon_suggestion["expense_count"] == 5
-        assert amazon_suggestion["suggested_constraints"]["category"] == "OFFICE_SUPPLIES"
-        assert amazon_suggestion["suggested_constraints"]["max_amount"] > 65  # max was 65
+        assert (
+            amazon_suggestion["suggested_constraints"]["category"] == "OFFICE_SUPPLIES"
+        )
+        assert (
+            amazon_suggestion["suggested_constraints"]["max_amount"] > 65
+        )  # max was 65
         assert amazon_suggestion["suggested_constraints"]["monthly_limit"] > 0
         assert amazon_suggestion["estimated_time_saved_minutes_per_month"] > 0
 
@@ -255,8 +278,14 @@ class TestPatternService:
         # Create 5 already auto-approved expenses (should be ignored)
         for i in range(5):
             _create_expense(
-                test_db, user.id, org_id, "Staples", "OFFICE_SUPPLIES",
-                30.00, auto_approved=True, auto_approved_via="intent_mandate",
+                test_db,
+                user.id,
+                org_id,
+                "Staples",
+                "OFFICE_SUPPLIES",
+                30.00,
+                auto_approved=True,
+                auto_approved_via="intent_mandate",
                 days_ago=i * 7,
             )
 
@@ -273,15 +302,18 @@ class TestPatternService:
         # Only 2 expenses (below minimum of 3)
         for i in range(2):
             _create_expense(
-                test_db, user.id, org_id, "Uber", "TRAVEL",
-                25.00, days_ago=i * 7,
+                test_db,
+                user.id,
+                org_id,
+                "Uber",
+                "TRAVEL",
+                25.00,
+                days_ago=i * 7,
             )
 
         suggestions = detect_patterns(test_db, user.id, org_id)
 
-        uber_suggestion = next(
-            (s for s in suggestions if s["vendor"] == "Uber"), None
-        )
+        uber_suggestion = next((s for s in suggestions if s["vendor"] == "Uber"), None)
         assert uber_suggestion is None
 
     def test_skips_already_covered_patterns(self, test_db, user, org_id):
@@ -290,17 +322,26 @@ class TestPatternService:
         # Create expenses
         for i in range(4):
             _create_expense(
-                test_db, user.id, org_id, "Amazon", "OFFICE_SUPPLIES",
-                50.00, days_ago=i * 7,
+                test_db,
+                user.id,
+                org_id,
+                "Amazon",
+                "OFFICE_SUPPLIES",
+                50.00,
+                days_ago=i * 7,
             )
 
         # Create existing mandate covering Amazon + OFFICE_SUPPLIES
-        _create_intent_mandate(test_db, user.id, {
-            "max_amount": 100,
-            "monthly_limit": 500,
-            "merchant": "Amazon",
-            "category": "office_supplies",
-        })
+        _create_intent_mandate(
+            test_db,
+            user.id,
+            {
+                "max_amount": 100,
+                "monthly_limit": 500,
+                "merchant": "Amazon",
+                "category": "office_supplies",
+            },
+        )
 
         suggestions = detect_patterns(test_db, user.id, org_id)
 
@@ -312,6 +353,7 @@ class TestPatternService:
 
 # ── Monthly Summary Service Tests ───────────────────────────────────
 
+
 class TestMonthlySummaryService:
     def test_gathers_monthly_stats(self, test_db, user, org_id):
         from src.services.monthly_summary_service import gather_user_monthly_stats
@@ -321,14 +363,25 @@ class TestMonthlySummaryService:
         # Create expenses this month
         for i in range(3):
             _create_expense(
-                test_db, user.id, org_id, "Amazon", "OFFICE_SUPPLIES",
-                50.00, auto_approved=True, auto_approved_via="intent_mandate",
+                test_db,
+                user.id,
+                org_id,
+                "Amazon",
+                "OFFICE_SUPPLIES",
+                50.00,
+                auto_approved=True,
+                auto_approved_via="intent_mandate",
                 days_ago=i,
             )
         for i in range(2):
             _create_expense(
-                test_db, user.id, org_id, "Uber", "TRAVEL",
-                30.00, days_ago=i,
+                test_db,
+                user.id,
+                org_id,
+                "Uber",
+                "TRAVEL",
+                30.00,
+                days_ago=i,
             )
 
         stats = gather_user_monthly_stats(test_db, user.id, now.year, now.month)
@@ -356,6 +409,7 @@ class TestMonthlySummaryService:
 
 # ── Suggest Mandate Endpoint Logic Tests ────────────────────────────
 
+
 class TestSuggestMandate:
     def test_suggest_mandate_rounds_up(self):
         """Test the suggestion math from the ap2 route."""
@@ -366,7 +420,9 @@ class TestSuggestMandate:
         if suggested_max < amount * 1.2:
             suggested_max = math.ceil(amount * 1.2 / 25) * 25
 
-        assert suggested_max == 75  # ceil(45/25)*25 = 50, 50 < 54 -> ceil(54/25)*25 = 75
+        assert (
+            suggested_max == 75
+        )  # ceil(45/25)*25 = 50, 50 < 54 -> ceil(54/25)*25 = 75
 
         suggested_monthly = suggested_max * 5
         assert suggested_monthly == 375
@@ -384,6 +440,7 @@ class TestSuggestMandate:
 
 # ── Sample Mandates Tests ──────────────────────────────────────────
 
+
 class TestSampleMandates:
     def test_sample_mandates_structure(self):
         """Verify sample mandate templates have required fields."""
@@ -391,12 +448,20 @@ class TestSampleMandates:
         templates = [
             {
                 "name": "Office Supplies",
-                "constraints": {"max_amount": 100.00, "monthly_limit": 300.00, "category": "OFFICE_SUPPLIES"},
+                "constraints": {
+                    "max_amount": 100.00,
+                    "monthly_limit": 300.00,
+                    "category": "OFFICE_SUPPLIES",
+                },
                 "expiration_hours": 720,
             },
             {
                 "name": "Software Subscriptions",
-                "constraints": {"max_amount": 50.00, "monthly_limit": 200.00, "category": "SOFTWARE"},
+                "constraints": {
+                    "max_amount": 50.00,
+                    "monthly_limit": 200.00,
+                    "category": "SOFTWARE",
+                },
                 "expiration_hours": 720,
             },
         ]
@@ -413,6 +478,7 @@ class TestSampleMandates:
 
 
 # ── Analytics Logic Tests ──────────────────────────────────────────
+
 
 class TestAnalyticsLogic:
     def test_cost_savings_calculation(self):
@@ -442,20 +508,41 @@ class TestAnalyticsLogic:
         """Test that expenses aggregate into daily trend buckets."""
         # Create a mix of auto and manual expenses
         _create_expense(
-            test_db, user.id, org_id, "Amazon", "OFFICE_SUPPLIES", 50.00,
-            auto_approved=True, auto_approved_via="intent_mandate", days_ago=0,
+            test_db,
+            user.id,
+            org_id,
+            "Amazon",
+            "OFFICE_SUPPLIES",
+            50.00,
+            auto_approved=True,
+            auto_approved_via="intent_mandate",
+            days_ago=0,
         )
         _create_expense(
-            test_db, user.id, org_id, "Uber", "TRAVEL", 30.00, days_ago=0,
+            test_db,
+            user.id,
+            org_id,
+            "Uber",
+            "TRAVEL",
+            30.00,
+            days_ago=0,
         )
         _create_expense(
-            test_db, user.id, org_id, "Amazon", "OFFICE_SUPPLIES", 60.00,
-            auto_approved=True, auto_approved_via="approval_policy", days_ago=1,
+            test_db,
+            user.id,
+            org_id,
+            "Amazon",
+            "OFFICE_SUPPLIES",
+            60.00,
+            auto_approved=True,
+            auto_approved_via="approval_policy",
+            days_ago=1,
         )
 
         # Query like the analytics endpoint does
-        from sqlalchemy import func as sqlfunc
         from collections import defaultdict
+
+        from sqlalchemy import func as sqlfunc
 
         cutoff = datetime.utcnow() - timedelta(days=7)
         rows = (

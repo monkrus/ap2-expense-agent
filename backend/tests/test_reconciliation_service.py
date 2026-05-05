@@ -8,6 +8,7 @@ from decimal import Decimal
 
 import pytest
 
+from src.auth import AuthService
 from src.models import (
     Budget,
     BudgetPeriod,
@@ -19,9 +20,7 @@ from src.models import (
     User,
     UserRole,
 )
-from src.auth import AuthService
 from src.services.reconciliation_service import ReconciliationService
-
 
 # ============================================================================
 # Fixtures
@@ -188,8 +187,13 @@ class TestVarianceReport:
 
     def test_variance_report_totals(self, db_session, org, user, service):
         """Report totals should aggregate across budgets."""
-        _make_budget(db_session, org, amount=1000, name="Budget A",
-                     category=ExpenseCategory.TRAVEL)
+        _make_budget(
+            db_session,
+            org,
+            amount=1000,
+            name="Budget A",
+            category=ExpenseCategory.TRAVEL,
+        )
         _make_expense(db_session, org, user, amount=200, category="TRAVEL")
 
         report = service.generate_variance_report(organization_id=org.id)
@@ -218,15 +222,25 @@ class TestCategoryReconciliation:
         assert "TRAVEL" in category_names
         assert "MEALS" in category_names
 
-    def test_category_reconciliation_with_date_range(self, db_session, org, user, service):
+    def test_category_reconciliation_with_date_range(
+        self, db_session, org, user, service
+    ):
         """Only expenses in the date range should be included."""
         now = datetime.utcnow()
         _make_expense(
-            db_session, org, user, amount=100, category="TRAVEL",
+            db_session,
+            org,
+            user,
+            amount=100,
+            category="TRAVEL",
             created_at=now - timedelta(days=5),
         )
         _make_expense(
-            db_session, org, user, amount=200, category="TRAVEL",
+            db_session,
+            org,
+            user,
+            amount=200,
+            category="TRAVEL",
             created_at=now - timedelta(days=30),
         )
 

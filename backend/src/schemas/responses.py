@@ -5,8 +5,9 @@ This module defines consistent response structures for all API endpoints.
 All responses follow a predictable pattern to prevent frontend-backend contract mismatches.
 """
 
-from typing import Any, Dict, Generic, List, Optional, TypeVar
 from datetime import datetime
+from typing import Any, Dict, Generic, List, Optional, TypeVar
+
 from pydantic import BaseModel, Field
 
 # Generic type for data payload

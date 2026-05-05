@@ -8,16 +8,25 @@ Tests all billing functionality:
 - Free tier enforcement
 - Paid tier features
 """
-import pytest
+
 import uuid
 from datetime import datetime, timedelta
+
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+
 from src.api import app
-from src.database import SessionLocal
-from src.models import User, Organization, OrganizationMember, OrganizationRole, UserRole
-from src.models_billing import BillingTier, OrganizationSubscription, UsageMetric
 from src.auth import AuthService
+from src.database import SessionLocal
+from src.models import (
+    Organization,
+    OrganizationMember,
+    OrganizationRole,
+    User,
+    UserRole,
+)
+from src.models_billing import BillingTier, OrganizationSubscription, UsageMetric
 
 
 @pytest.fixture
@@ -48,7 +57,7 @@ def test_user(db: Session):
         hashed_password=AuthService.hash_password("TestPassword123!"),
         is_active=True,
         is_verified=True,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
     )
     db.add(user)
     db.commit()
@@ -57,20 +66,25 @@ def test_user(db: Session):
     yield user
 
     # Cleanup
-    memberships = db.query(OrganizationMember).filter(
-        OrganizationMember.user_id == user.id
-    ).all()
+    memberships = (
+        db.query(OrganizationMember).filter(OrganizationMember.user_id == user.id).all()
+    )
     for m in memberships:
         db.delete(m)
 
-    orgs = db.query(Organization).join(OrganizationMember).filter(
-        OrganizationMember.user_id == user.id
-    ).all()
+    orgs = (
+        db.query(Organization)
+        .join(OrganizationMember)
+        .filter(OrganizationMember.user_id == user.id)
+        .all()
+    )
     for org in orgs:
         # Delete subscriptions
-        subs = db.query(OrganizationSubscription).filter(
-            OrganizationSubscription.organization_id == org.id
-        ).all()
+        subs = (
+            db.query(OrganizationSubscription)
+            .filter(OrganizationSubscription.organization_id == org.id)
+            .all()
+        )
         for sub in subs:
             db.delete(sub)
         db.delete(org)
@@ -84,10 +98,7 @@ def auth_headers(client, test_user):
     """Get authentication headers for test user"""
     response = client.post(
         "/api/v1/auth/login",
-        json={
-            "username": test_user.username,
-            "password": "TestPassword123!"
-        }
+        json={"username": test_user.username, "password": "TestPassword123!"},
     )
     assert response.status_code == 200
     token = response.json()["access_token"]
@@ -102,7 +113,7 @@ def test_org(db: Session, test_user):
         name=f"Billing Test Org {uuid.uuid4().hex[:6]}",
         slug=f"bill-test-{uuid.uuid4().hex[:8]}",
         is_active=True,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
     )
     db.add(org)
     db.commit()
@@ -115,7 +126,7 @@ def test_org(db: Session, test_user):
         user_id=test_user.id,
         role=OrganizationRole.OWNER,
         is_active=True,
-        joined_at=datetime.utcnow()
+        joined_at=datetime.utcnow(),
     )
     db.add(member)
     db.commit()
@@ -130,10 +141,7 @@ class TestBillingTiers:
 
     def test_get_all_tiers(self, client, auth_headers):
         """Test retrieving all available billing tiers"""
-        response = client.get(
-            "/api/billing/org/tiers",
-            headers=auth_headers
-        )
+        response = client.get("/api/billing/org/tiers", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -145,7 +153,9 @@ class TestBillingTiers:
         tier = data["tiers"][0]
         assert "tier" in tier  # API returns "tier" not "tier_name"
         assert "display_name" in tier
-        assert "price_monthly" in tier  # API returns "price_monthly" not "monthly_price"
+        assert (
+            "price_monthly" in tier
+        )  # API returns "price_monthly" not "monthly_price"
         assert "limits" in tier
 
     def test_get_specific_tier_info(self, client, auth_headers, db):
@@ -156,8 +166,7 @@ class TestBillingTiers:
             pytest.skip("No billing tiers in database")
 
         response = client.get(
-            f"/api/billing/org/tiers/{tier.tier_name}",
-            headers=auth_headers
+            f"/api/billing/org/tiers/{tier.tier_name}", headers=auth_headers
         )
 
         assert response.status_code == 200
@@ -165,13 +174,14 @@ class TestBillingTiers:
         assert data["tier"] == tier.tier_name  # API returns "tier" not "tier_name"
         assert "limits" in data
         assert "features" in data
-        assert "price_monthly" in data  # API returns "price_monthly" not "monthly_price"
+        assert (
+            "price_monthly" in data
+        )  # API returns "price_monthly" not "monthly_price"
 
     def test_get_nonexistent_tier(self, client, auth_headers):
         """Test retrieving a tier that doesn't exist"""
         response = client.get(
-            "/api/billing/org/tiers/nonexistent-tier",
-            headers=auth_headers
+            "/api/billing/org/tiers/nonexistent-tier", headers=auth_headers
         )
 
         assert response.status_code == 404
@@ -182,10 +192,7 @@ class TestOrganizationSubscriptions:
 
     def test_get_subscription_no_org(self, client, auth_headers):
         """Test getting subscription when user has no organization"""
-        response = client.get(
-            "/api/billing/org/subscription",
-            headers=auth_headers
-        )
+        response = client.get("/api/billing/org/subscription", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -194,10 +201,7 @@ class TestOrganizationSubscriptions:
 
     def test_get_subscription_with_org_no_sub(self, client, auth_headers, test_org):
         """Test getting subscription when org exists but has no subscription"""
-        response = client.get(
-            "/api/billing/org/subscription",
-            headers=auth_headers
-        )
+        response = client.get("/api/billing/org/subscription", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -208,11 +212,8 @@ class TestOrganizationSubscriptions:
         """Test creating a new subscription for organization"""
         response = client.post(
             "/api/billing/org/subscription",
-            json={
-                "tier": "starter",
-                "trial_days": 14
-            },
-            headers=auth_headers
+            json={"tier": "starter", "trial_days": 14},
+            headers=auth_headers,
         )
 
         # Should be 201, 200, or 400 if already has subscription
@@ -225,9 +226,11 @@ class TestOrganizationSubscriptions:
             assert "is_trial" in data
 
             # Verify subscription was created in database
-            subscription = db.query(OrganizationSubscription).filter(
-                OrganizationSubscription.organization_id == test_org.id
-            ).first()
+            subscription = (
+                db.query(OrganizationSubscription)
+                .filter(OrganizationSubscription.organization_id == test_org.id)
+                .first()
+            )
             assert subscription is not None
             assert subscription.tier_name == "starter"
 
@@ -235,11 +238,8 @@ class TestOrganizationSubscriptions:
         """Test creating subscription with invalid tier"""
         response = client.post(
             "/api/billing/org/subscription",
-            json={
-                "tier": "invalid-tier-name",
-                "trial_days": 14
-            },
-            headers=auth_headers
+            json={"tier": "invalid-tier-name", "trial_days": 14},
+            headers=auth_headers,
         )
 
         assert response.status_code == 404
@@ -255,9 +255,9 @@ class TestUsageTracking:
             json={
                 "usage_type": "expense",
                 "quantity": 1,
-                "metadata": {"expense_id": "test-123"}
+                "metadata": {"expense_id": "test-123"},
             },
-            headers=auth_headers
+            headers=auth_headers,
         )
 
         # Just verify it succeeds
@@ -269,13 +269,10 @@ class TestUsageTracking:
         client.post(
             "/api/billing/org/usage/track",
             json={"usage_type": "expense_created", "quantity": 1},
-            headers=auth_headers
+            headers=auth_headers,
         )
 
-        response = client.get(
-            "/api/billing/org/usage/monthly",
-            headers=auth_headers
-        )
+        response = client.get("/api/billing/org/usage/monthly", headers=auth_headers)
 
         # Just verify it succeeds - API may return different structure
         assert response.status_code == 200
@@ -283,8 +280,7 @@ class TestUsageTracking:
     def test_check_usage_limit(self, client, auth_headers, test_org):
         """Test checking if usage is within limits"""
         response = client.get(
-            "/api/billing/org/usage/check-limit/expense_created",
-            headers=auth_headers
+            "/api/billing/org/usage/check-limit/expense_created", headers=auth_headers
         )
 
         # May return 400 if usage type not supported, or 200 if it is
@@ -292,10 +288,7 @@ class TestUsageTracking:
 
     def test_usage_summary(self, client, auth_headers, test_org):
         """Test getting usage summary"""
-        response = client.get(
-            "/api/billing/org/usage/summary",
-            headers=auth_headers
-        )
+        response = client.get("/api/billing/org/usage/summary", headers=auth_headers)
 
         # Just verify it succeeds
         assert response.status_code == 200
@@ -304,7 +297,9 @@ class TestUsageTracking:
 class TestFreeTierLimits:
     """Test free tier limit enforcement"""
 
-    def test_free_tier_organization_limit(self, client, auth_headers, test_user, db, monkeypatch):
+    def test_free_tier_organization_limit(
+        self, client, auth_headers, test_user, db, monkeypatch
+    ):
         """Test that free tier users can only create 1 organization
 
         Note: Limits are bypassed when TESTING=true, so we temporarily disable it.
@@ -317,12 +312,10 @@ class TestFreeTierLimits:
             "name": "First Free Org",
             "slug": f"free-org-1-{uuid.uuid4().hex[:6]}",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         response1 = client.post(
-            "/api/v1/organizations",
-            json=org1_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org1_data, headers=auth_headers
         )
         assert response1.status_code == 201
 
@@ -331,12 +324,10 @@ class TestFreeTierLimits:
             "name": "Second Free Org",
             "slug": f"free-org-2-{uuid.uuid4().hex[:6]}",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         response2 = client.post(
-            "/api/v1/organizations",
-            json=org2_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org2_data, headers=auth_headers
         )
 
         assert response2.status_code == 402
@@ -349,8 +340,7 @@ class TestFreeTierLimits:
         # Note: This test verifies the limit check endpoint works
         # Actual limit enforcement happens in the expense creation endpoint
         response = client.get(
-            "/api/billing/org/usage/check-limit/expense_created",
-            headers=auth_headers
+            "/api/billing/org/usage/check-limit/expense_created", headers=auth_headers
         )
 
         # May return 400 if usage type not supported, or 200 if it is
@@ -365,7 +355,7 @@ class TestSubscriptionUpgrade:
         response = client.put(
             "/api/billing/org/subscription/upgrade",
             params={"new_tier": "starter"},
-            headers=auth_headers
+            headers=auth_headers,
         )
 
         # Expect 201 (created), 200 (updated), 400 (already has), or 404 (no subscription to upgrade)
@@ -379,7 +369,7 @@ class TestSubscriptionUpgrade:
         response = client.put(
             "/api/billing/org/subscription/upgrade",
             params={"new_tier": "invalid-tier"},
-            headers=auth_headers
+            headers=auth_headers,
         )
 
         assert response.status_code == 404
@@ -389,7 +379,7 @@ class TestSubscriptionUpgrade:
         response = client.put(
             "/api/billing/org/subscription/upgrade",
             params={"new_tier": "starter"},
-            headers=auth_headers
+            headers=auth_headers,
         )
 
         assert response.status_code == 404
@@ -403,12 +393,8 @@ class TestUsageMetrics:
         # Track usage
         response = client.post(
             "/api/billing/org/usage/track",
-            json={
-                "usage_type": "expense",
-                "quantity": 5,
-                "metadata": {"test": "data"}
-            },
-            headers=auth_headers
+            json={"usage_type": "expense", "quantity": 5, "metadata": {"test": "data"}},
+            headers=auth_headers,
         )
 
         # Just verify tracking succeeded
@@ -421,15 +407,12 @@ class TestUsageMetrics:
             response = client.post(
                 "/api/billing/org/usage/track",
                 json={"usage_type": "expense", "quantity": 1},
-                headers=auth_headers
+                headers=auth_headers,
             )
             assert response.status_code == 200
 
         # Get monthly usage
-        response = client.get(
-            "/api/billing/org/usage/monthly",
-            headers=auth_headers
-        )
+        response = client.get("/api/billing/org/usage/monthly", headers=auth_headers)
 
         # Just verify endpoint works
         assert response.status_code == 200
@@ -443,7 +426,7 @@ class TestBillingEdgeCases:
         response = client.post(
             "/api/billing/org/usage/track",
             json={"usage_type": "expense", "quantity": 1},
-            headers=auth_headers
+            headers=auth_headers,
         )
 
         # Should fail gracefully - user has no org so 404
@@ -451,15 +434,14 @@ class TestBillingEdgeCases:
 
     def test_get_usage_without_org(self, client, auth_headers):
         """Test getting usage when user has no organization"""
-        response = client.get(
-            "/api/billing/org/usage/monthly",
-            headers=auth_headers
-        )
+        response = client.get("/api/billing/org/usage/monthly", headers=auth_headers)
 
         # Should return appropriate response
         assert response.status_code in [200, 404]
 
-    def test_subscription_with_past_trial_date(self, client, auth_headers, test_org, db):
+    def test_subscription_with_past_trial_date(
+        self, client, auth_headers, test_org, db
+    ):
         """Test subscription behavior when trial period has ended"""
         # Get a tier ID
         tier = db.query(BillingTier).filter(BillingTier.tier_name == "starter").first()
@@ -476,16 +458,13 @@ class TestBillingEdgeCases:
             is_trial=True,
             trial_start=datetime.utcnow() - timedelta(days=15),
             trial_end=datetime.utcnow() - timedelta(days=1),  # Expired
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
         db.add(subscription)
         db.commit()
 
         # Get subscription
-        response = client.get(
-            "/api/billing/org/subscription",
-            headers=auth_headers
-        )
+        response = client.get("/api/billing/org/subscription", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()

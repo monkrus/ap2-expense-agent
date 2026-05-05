@@ -49,10 +49,12 @@ def detect_patterns(
             Expense.organization_id == organization_id,
             Expense.created_at >= cutoff,
             Expense.auto_approved == False,
-            Expense.status.in_([
-                ExpenseStatus.APPROVED.value,
-                ExpenseStatus.PENDING.value,
-            ]),
+            Expense.status.in_(
+                [
+                    ExpenseStatus.APPROVED.value,
+                    ExpenseStatus.PENDING.value,
+                ]
+            ),
         )
         .all()
     )
@@ -83,8 +85,11 @@ def detect_patterns(
     for m in existing_mandates:
         try:
             import json
+
             constraints = json.loads(m.constraints)
-            constraints = {k: v for k, v in constraints.items() if not k.startswith("@")}
+            constraints = {
+                k: v for k, v in constraints.items() if not k.startswith("@")
+            }
             key = (
                 (constraints.get("merchant", "")).strip().lower(),
                 (constraints.get("category", "")).strip().lower(),
@@ -124,27 +129,29 @@ def detect_patterns(
         # Time saved estimate (3 min per manual approval)
         time_saved_per_month = round(count / months_in_period * 3)
 
-        suggestions.append({
-            "vendor": original_vendor,
-            "category": category,
-            "expense_count": count,
-            "avg_amount": round(avg_amount, 2),
-            "max_amount": round(max_amount, 2),
-            "total_amount": round(total_amount, 2),
-            "suggested_constraints": {
-                "max_amount": suggested_max,
-                "monthly_limit": suggested_monthly,
+        suggestions.append(
+            {
+                "vendor": original_vendor,
                 "category": category,
-                "merchant": original_vendor,
-            },
-            "estimated_time_saved_minutes_per_month": time_saved_per_month,
-            "explanation": (
-                f"You've submitted {count} expenses to {original_vendor} "
-                f"({category}) in the last {lookback_days} days, averaging "
-                f"${avg_amount:.2f} each. Creating this rule would auto-approve "
-                f"similar expenses and save ~{time_saved_per_month} min/month."
-            ),
-        })
+                "expense_count": count,
+                "avg_amount": round(avg_amount, 2),
+                "max_amount": round(max_amount, 2),
+                "total_amount": round(total_amount, 2),
+                "suggested_constraints": {
+                    "max_amount": suggested_max,
+                    "monthly_limit": suggested_monthly,
+                    "category": category,
+                    "merchant": original_vendor,
+                },
+                "estimated_time_saved_minutes_per_month": time_saved_per_month,
+                "explanation": (
+                    f"You've submitted {count} expenses to {original_vendor} "
+                    f"({category}) in the last {lookback_days} days, averaging "
+                    f"${avg_amount:.2f} each. Creating this rule would auto-approve "
+                    f"similar expenses and save ~{time_saved_per_month} min/month."
+                ),
+            }
+        )
 
     # Sort by expense count (most frequent patterns first)
     suggestions.sort(key=lambda s: s["expense_count"], reverse=True)

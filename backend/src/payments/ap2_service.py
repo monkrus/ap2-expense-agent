@@ -123,7 +123,9 @@ class AP2PaymentService:
             if monthly_limit <= 0:
                 raise ValueError("monthly_limit must be greater than zero")
             if max_amount is not None and monthly_limit < max_amount:
-                raise ValueError("monthly_limit must be greater than or equal to max_amount")
+                raise ValueError(
+                    "monthly_limit must be greater than or equal to max_amount"
+                )
 
         if expiration_hours <= 0:
             raise ValueError("expiration_hours must be greater than zero")
@@ -225,12 +227,17 @@ class AP2PaymentService:
                 for merchant_name in allowed_merchants
                 if merchant_name
             }
-            if normalized_merchants and str(merchant).strip().lower() not in normalized_merchants:
+            if (
+                normalized_merchants
+                and str(merchant).strip().lower() not in normalized_merchants
+            ):
                 raise ValueError(
                     f"Merchant '{merchant}' is not permitted by the intent mandate"
                 )
 
-        allowed_categories = constraints.get("categories") or constraints.get("category")
+        allowed_categories = constraints.get("categories") or constraints.get(
+            "category"
+        )
         if allowed_categories:
             if isinstance(allowed_categories, str):
                 allowed_categories = [allowed_categories]
@@ -327,7 +334,11 @@ class AP2PaymentService:
 
         # Build Agent Signal for HNP risk scoring (AP2 2026)
         agent_signal = build_agent_signal(
-            authorization_type=intent_mandate.authorization_type if intent_mandate else "human_delegated",
+            authorization_type=(
+                intent_mandate.authorization_type
+                if intent_mandate
+                else "human_delegated"
+            ),
             confidence_score=1.0,
             human_verification="pre_authorized",
             intent_mandate_signature=intent_signature,
@@ -335,7 +346,11 @@ class AP2PaymentService:
 
         # Parse items safely — handle JSON-LD wrapped format
         items_data = json.loads(cart_mandate.items)
-        items_list = items_data.get("items", items_data) if isinstance(items_data, dict) else items_data
+        items_list = (
+            items_data.get("items", items_data)
+            if isinstance(items_data, dict)
+            else items_data
+        )
 
         # Create audit trail with Agent Signal
         audit_trail = {
@@ -437,7 +452,11 @@ class AP2PaymentService:
                     payment_mandate=payment_mandate,
                     amount=float(cart_mandate.total),
                     customer_id=stripe_customer_id,
-                    metadata={"agent_signal": json.dumps(agent_signal)} if agent_signal else None,
+                    metadata=(
+                        {"agent_signal": json.dumps(agent_signal)}
+                        if agent_signal
+                        else None
+                    ),
                 )
 
             if payment_result.get("success"):
@@ -634,8 +653,10 @@ class AP2PaymentService:
         if not constraints:
             total = sum(item.get("amount", 0) for item in items)
             import math
+
             constraints = {
-                "max_amount": math.ceil(total * 1.05 * 100) / 100,  # 5% buffer (matches frontend)
+                "max_amount": math.ceil(total * 1.05 * 100)
+                / 100,  # 5% buffer (matches frontend)
                 "merchant": merchant,
                 "approval_required": False,
             }
@@ -685,7 +706,7 @@ class AP2PaymentService:
         amount: float,
         category: str,
         merchant: str,
-        organization_id: str
+        organization_id: str,
     ) -> Optional[IntentMandate]:
         """
         Find active Intent Mandate that authorizes this expense.
@@ -716,20 +737,23 @@ class AP2PaymentService:
             .filter(
                 IntentMandate.user_id == user_id,
                 IntentMandate.status == "active",
-                IntentMandate.expiration > now
+                IntentMandate.expiration > now,
             )
             .all()
         )
 
-        logger.info(f"[AP2] Found {len(mandates)} active Intent Mandates for user {user_id}")
+        logger.info(
+            f"[AP2] Found {len(mandates)} active Intent Mandates for user {user_id}"
+        )
 
         # Try each mandate (most specific first if we add priority later)
         for mandate in mandates:
             try:
                 constraints = json.loads(mandate.constraints)
                 # Strip JSON-LD envelope if present
-                constraints = {k: v for k, v in constraints.items()
-                               if not k.startswith("@")}
+                constraints = {
+                    k: v for k, v in constraints.items() if not k.startswith("@")
+                }
 
                 # Check if expense matches this mandate's constraints
                 if self._expense_matches_constraints(
@@ -758,7 +782,7 @@ class AP2PaymentService:
         merchant: str,
         constraints: Dict,
         mandate_id: str,
-        organization_id: str
+        organization_id: str,
     ) -> bool:
         """
         Check if expense satisfies Intent Mandate constraints.
@@ -788,7 +812,9 @@ class AP2PaymentService:
                 return False
 
         # 2. Check category restrictions
-        allowed_categories = constraints.get("categories") or constraints.get("category")
+        allowed_categories = constraints.get("categories") or constraints.get(
+            "category"
+        )
         if allowed_categories:
             # Normalize to list
             if isinstance(allowed_categories, str):
@@ -796,9 +822,7 @@ class AP2PaymentService:
 
             # Case-insensitive matching
             normalized_categories = {
-                str(cat).strip().lower()
-                for cat in allowed_categories
-                if cat
+                str(cat).strip().lower() for cat in allowed_categories if cat
             }
 
             if normalized_categories:
@@ -818,9 +842,7 @@ class AP2PaymentService:
 
             # Case-insensitive matching
             normalized_merchants = {
-                str(merch).strip().lower()
-                for merch in allowed_merchants
-                if merch
+                str(merch).strip().lower() for merch in allowed_merchants if merch
             }
 
             if normalized_merchants:
@@ -861,8 +883,9 @@ class AP2PaymentService:
         Returns:
             Total amount spent via this mandate this month
         """
-        from ..models import Expense
         from sqlalchemy import func
+
+        from ..models import Expense
 
         now = datetime.utcnow()
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -874,7 +897,7 @@ class AP2PaymentService:
                 Expense.intent_mandate_id == mandate_id,
                 Expense.organization_id == organization_id,
                 Expense.auto_approved == True,
-                Expense.created_at >= start_of_month
+                Expense.created_at >= start_of_month,
             )
             .scalar()
         ) or 0

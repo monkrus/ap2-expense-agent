@@ -288,9 +288,7 @@ class ReconciliationService:
                 continue
 
             b_start, b_end = _get_budget_period_dates(budget)
-            actual = float(
-                _calculate_budget_spending(self.db, budget, b_start, b_end)
-            )
+            actual = float(_calculate_budget_spending(self.db, budget, b_start, b_end))
             budgeted = float(budget.amount)
             variance = budgeted - actual
             variance_pct = (variance / budgeted * 100) if budgeted > 0 else 0
@@ -306,14 +304,22 @@ class ReconciliationService:
 
             cat_value = None
             if budget.category:
-                cat_value = budget.category.value if hasattr(budget.category, "value") else str(budget.category)
+                cat_value = (
+                    budget.category.value
+                    if hasattr(budget.category, "value")
+                    else str(budget.category)
+                )
 
             report.budgets.append(
                 BudgetVariance(
                     budget_id=budget.id,
                     budget_name=budget.name,
                     category=cat_value,
-                    period=budget.period.value if hasattr(budget.period, "value") else str(budget.period),
+                    period=(
+                        budget.period.value
+                        if hasattr(budget.period, "value")
+                        else str(budget.period)
+                    ),
                     budgeted_amount=budgeted,
                     actual_spending=round(actual, 2),
                     variance_amount=round(variance, 2),
@@ -395,7 +401,11 @@ class ReconciliationService:
 
         budget_map: Dict[str, float] = {}
         for budget in budgets:
-            cat = budget.category.value if hasattr(budget.category, "value") else str(budget.category)
+            cat = (
+                budget.category.value
+                if hasattr(budget.category, "value")
+                else str(budget.category)
+            )
             budget_map[cat] = float(budget.amount)
 
         report = CategoryReport(
@@ -417,7 +427,9 @@ class ReconciliationService:
             variance_pct = None
             if is_budgeted:
                 variance_amt = round(budgeted - actual, 2)
-                variance_pct = round((variance_amt / budgeted * 100) if budgeted > 0 else 0, 2)
+                variance_pct = round(
+                    (variance_amt / budgeted * 100) if budgeted > 0 else 0, 2
+                )
                 report.total_budgeted += budgeted
             else:
                 report.unbudgeted_spending += actual
@@ -427,7 +439,9 @@ class ReconciliationService:
             report.categories.append(
                 CategoryVariance(
                     category=cat,
-                    budgeted_amount=round(budgeted, 2) if budgeted is not None else None,
+                    budgeted_amount=(
+                        round(budgeted, 2) if budgeted is not None else None
+                    ),
                     actual_spending=round(actual, 2),
                     variance_amount=variance_amt,
                     variance_percentage=variance_pct,
@@ -522,7 +536,9 @@ class ReconciliationService:
                     email=row.email,
                     expense_count=count,
                     total_spending=round(total, 2),
-                    budget_amount=round(budget_amt, 2) if budget_amt is not None else None,
+                    budget_amount=(
+                        round(budget_amt, 2) if budget_amt is not None else None
+                    ),
                     percentage_used=pct_used,
                     avg_expense=round(total / count, 2) if count > 0 else 0,
                 )

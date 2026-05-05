@@ -53,8 +53,11 @@ async def register(
     """
     # Debug logging to see what data is received
     import logging
+
     logger = logging.getLogger(__name__)
-    logger.info(f"[REGISTER-DEBUG] Received registration data: email={user_data.email}, username={user_data.username}, full_name={user_data.full_name}, role={user_data.role}")
+    logger.info(
+        f"[REGISTER-DEBUG] Received registration data: email={user_data.email}, username={user_data.username}, full_name={user_data.full_name}, role={user_data.role}"
+    )
 
     # Check if user already exists
     existing_user = (
@@ -78,6 +81,7 @@ async def register(
     if is_first_user:
         user_role = UserRole.ADMIN
         import logging
+
         logger = logging.getLogger(__name__)
         logger.info(f"[FIRST-USER] Creating first admin user: {user_data.username}")
     else:
@@ -90,7 +94,7 @@ async def register(
         username=user_data.username,
         full_name=user_data.full_name,
         hashed_password=AuthService.hash_password(user_data.password),
-        role=user_role.value if hasattr(user_role, 'value') else user_role,
+        role=user_role.value if hasattr(user_role, "value") else user_role,
         is_active=True,
         is_verified=False,
     )
@@ -112,6 +116,7 @@ async def register(
     )
 
     import logging
+
     logger = logging.getLogger(__name__)
 
     if not has_pending_invitation:
@@ -142,7 +147,9 @@ async def register(
         db.commit()
         logger.info(f"[AUTO-ORG] Membership created for {user.username} - SUCCESS")
     else:
-        logger.info(f"[AUTO-ORG] Skipping org creation for {user.username} — has pending invitation")
+        logger.info(
+            f"[AUTO-ORG] Skipping org creation for {user.username} — has pending invitation"
+        )
 
     # Create email verification token
     verification_token = secrets.token_urlsafe(32)

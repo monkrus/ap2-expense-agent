@@ -23,9 +23,7 @@ def ensure_intent_mandate_owner(
     db: Session, intent_mandate_id: str, user_id: str
 ) -> IntentMandate:
     intent_mandate = (
-        db.query(IntentMandate)
-        .filter_by(id=intent_mandate_id, user_id=user_id)
-        .first()
+        db.query(IntentMandate).filter_by(id=intent_mandate_id, user_id=user_id).first()
     )
     if not intent_mandate:
         raise HTTPException(
@@ -60,18 +58,16 @@ def ensure_cart_mandate_owner(
 def ensure_payment_mandate_owner(
     db: Session, payment_mandate_id: str, user_id: str
 ) -> PaymentMandate:
-    payment_mandate = (
-        db.query(PaymentMandate).filter_by(id=payment_mandate_id).first()
-    )
+    payment_mandate = db.query(PaymentMandate).filter_by(id=payment_mandate_id).first()
     if not payment_mandate:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Payment mandate not found",
         )
 
-    cart_mandate = db.query(CartMandate).filter_by(
-        id=payment_mandate.cart_mandate_id
-    ).first()
+    cart_mandate = (
+        db.query(CartMandate).filter_by(id=payment_mandate.cart_mandate_id).first()
+    )
     if not cart_mandate:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -142,7 +138,7 @@ def _validate_constraints(constraints: Dict):
     if not constraints or not constraints.get("max_amount"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Constraints must include max_amount (maximum amount per transaction)"
+            detail="Constraints must include max_amount (maximum amount per transaction)",
         )
 
     # Validate max_amount is numeric and positive
@@ -152,12 +148,12 @@ def _validate_constraints(constraints: Dict):
     except (TypeError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Constraint validation error: max_amount must be a number"
+            detail="Constraint validation error: max_amount must be a number",
         )
     if max_amount <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Constraint validation error: max_amount must be greater than zero"
+            detail="Constraint validation error: max_amount must be greater than zero",
         )
 
     # Validate monthly_limit if provided
@@ -168,17 +164,17 @@ def _validate_constraints(constraints: Dict):
         except (TypeError, ValueError):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Constraint validation error: monthly_limit must be a number"
+                detail="Constraint validation error: monthly_limit must be a number",
             )
         if monthly_limit <= 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Constraint validation error: monthly_limit must be greater than zero"
+                detail="Constraint validation error: monthly_limit must be greater than zero",
             )
         if monthly_limit < max_amount:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Constraint validation error: monthly_limit must be greater than or equal to max_amount"
+                detail="Constraint validation error: monthly_limit must be greater than or equal to max_amount",
             )
 
 
@@ -264,7 +260,7 @@ async def create_intent_mandate(
     if not constraints.get("monthly_limit"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Constraints must include monthly_limit (total monthly spending cap)"
+            detail="Constraints must include monthly_limit (total monthly spending cap)",
         )
 
     # Require at least one category restriction
@@ -272,14 +268,14 @@ async def create_intent_mandate(
     if not has_category:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Constraints must include at least one category"
+            detail="Constraints must include at least one category",
         )
 
     # Validate expiration_hours is positive
     if request.expiration_hours is not None and request.expiration_hours <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Constraint validation error: expiration_hours must be greater than zero"
+            detail="Constraint validation error: expiration_hours must be greater than zero",
         )
 
     ap2_service = AP2PaymentService(db)
@@ -390,6 +386,7 @@ async def create_payment_mandate(
     if payment_mandate.agent_signal:
         try:
             import json as _json
+
             sig = _json.loads(payment_mandate.agent_signal)
             agent_signal_summary = {
                 "agent_id": sig.get("agent_id"),
@@ -481,11 +478,12 @@ async def execute_payment(
     if membership:
         try:
             limit_enforcer = LimitEnforcer(db)
-            limit_enforcer.check_ap2_transaction_limit(membership.organization_id, raise_error=True)
+            limit_enforcer.check_ap2_transaction_limit(
+                membership.organization_id, raise_error=True
+            )
         except LimitExceededError as e:
             raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail=str(e)
+                status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(e)
             )
 
     ap2_service = AP2PaymentService(db)
@@ -497,7 +495,9 @@ async def execute_payment(
             user_id=current_user.id, usage_type="ap2_transaction", quantity=1
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)
+        )
 
     payment_result = await ap2_service.execute_payment(
         payment_mandate_id=data.payment_mandate_id,
@@ -548,11 +548,12 @@ async def complete_ap2_flow(
     if membership:
         try:
             limit_enforcer = LimitEnforcer(db)
-            limit_enforcer.check_ap2_transaction_limit(membership.organization_id, raise_error=True)
+            limit_enforcer.check_ap2_transaction_limit(
+                membership.organization_id, raise_error=True
+            )
         except LimitExceededError as e:
             raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail=str(e)
+                status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(e)
             )
 
     ap2_service = AP2PaymentService(db)
@@ -564,7 +565,9 @@ async def complete_ap2_flow(
             user_id=current_user.id, usage_type="ap2_transaction", quantity=1
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)
+        )
 
     try:
         result = await ap2_service.complete_ap2_flow(
@@ -577,10 +580,7 @@ async def complete_ap2_flow(
         )
     except ValueError as exc:
         # Convert validation errors to proper HTTP 400 responses
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
     return result
 
@@ -636,10 +636,14 @@ async def get_user_mandates(
         include_deleted: Include deleted/archived mandates (default: False)
         limit: Max number of results
     """
-    from ..models import CartMandate, IntentMandate, PaymentMandate
     import logging
+
+    from ..models import CartMandate, IntentMandate, PaymentMandate
+
     logger = logging.getLogger(__name__)
-    logger.info(f"get_user_mandates: include_deleted={include_deleted} (type: {type(include_deleted)})")
+    logger.info(
+        f"get_user_mandates: include_deleted={include_deleted} (type: {type(include_deleted)})"
+    )
 
     results = []
 
@@ -648,10 +652,14 @@ async def get_user_mandates(
 
         # Exclude deleted mandates by default unless explicitly requested
         if not include_deleted:
-            logger.info(f"Filtering out deleted mandates (include_deleted={include_deleted})")
+            logger.info(
+                f"Filtering out deleted mandates (include_deleted={include_deleted})"
+            )
             query = query.filter(IntentMandate.status != "deleted")
         else:
-            logger.info(f"Including deleted mandates (include_deleted={include_deleted})")
+            logger.info(
+                f"Including deleted mandates (include_deleted={include_deleted})"
+            )
 
         if status_filter:
             query = query.filter(IntentMandate.status == status_filter)
@@ -663,6 +671,7 @@ async def get_user_mandates(
             # Parse constraints JSON
             import json
             from datetime import datetime
+
             constraints = {}
             try:
                 raw = json.loads(mandate.constraints) if mandate.constraints else {}
@@ -687,10 +696,20 @@ async def get_user_mandates(
                     "timestamp": mandate.timestamp,
                     "expiration": mandate.expiration,
                     "created_at": mandate.created_at,
-                    "merchant": constraints.get("merchant") or (constraints.get("merchants", [None])[0] if isinstance(constraints.get("merchants"), list) else None),
+                    "merchant": constraints.get("merchant")
+                    or (
+                        constraints.get("merchants", [None])[0]
+                        if isinstance(constraints.get("merchants"), list)
+                        else None
+                    ),
                     "max_amount": constraints.get("max_amount"),
                     "monthly_limit": constraints.get("monthly_limit"),
-                    "category": constraints.get("category") or (constraints.get("categories", [None])[0] if isinstance(constraints.get("categories"), list) else None),
+                    "category": constraints.get("category")
+                    or (
+                        constraints.get("categories", [None])[0]
+                        if isinstance(constraints.get("categories"), list)
+                        else None
+                    ),
                     "constraints": constraints,
                 }
             )
@@ -785,7 +804,7 @@ async def get_ap2_stats(
         db.query(IntentMandate.status, func.count(IntentMandate.id).label("count"))
         .filter(
             IntentMandate.user_id == current_user.id,
-            IntentMandate.status != "deleted"  # Exclude deleted from stats
+            IntentMandate.status != "deleted",  # Exclude deleted from stats
         )
         .group_by(IntentMandate.status)
         .all()
@@ -1263,9 +1282,13 @@ def _resolve_org_id(http_request: Request, db: Session, user_id: str) -> str:
     org_id = http_request.headers.get("X-Organization-Id", "").strip()
     if not org_id:
         from ..models import OrganizationMember
+
         membership = (
             db.query(OrganizationMember)
-            .filter(OrganizationMember.user_id == user_id, OrganizationMember.is_active == True)
+            .filter(
+                OrganizationMember.user_id == user_id,
+                OrganizationMember.is_active == True,
+            )
             .first()
         )
         org_id = membership.organization_id if membership else ""
@@ -1323,17 +1346,21 @@ async def check_auto_approval(
 
     # Also check approval policies as fallback info
     try:
-        from ..services.approval_policy_service import ApprovalPolicyService
         from ..models import Expense, ExpenseCategory
+        from ..services.approval_policy_service import ApprovalPolicyService
 
         policy_service = ApprovalPolicyService(db)
         # Build a lightweight stub expense for evaluation
-        stub = type("Stub", (), {
-            "amount": request.amount,
-            "category": request.category,
-            "vendor": request.vendor,
-            "organization_id": org_id,
-        })()
+        stub = type(
+            "Stub",
+            (),
+            {
+                "amount": request.amount,
+                "category": request.category,
+                "vendor": request.vendor,
+                "organization_id": org_id,
+            },
+        )()
         should_approve, policy, reason = policy_service.evaluate_expense(
             stub, current_user
         )
@@ -1346,6 +1373,7 @@ async def check_auto_approval(
             }
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).warning(f"Approval policy check failed: {e}")
 
     return {"will_auto_approve": False}
@@ -1449,7 +1477,9 @@ async def send_all_monthly_summaries_endpoint(
 
     from ..services.monthly_summary_service import send_all_monthly_summaries
 
-    result = await send_all_monthly_summaries(request.year, request.month, organization_id=org_id)
+    result = await send_all_monthly_summaries(
+        request.year, request.month, organization_id=org_id
+    )
     return result
 
 
@@ -1540,8 +1570,10 @@ async def get_auto_approval_trends(
     Auto-approval trends over the last N days.
     Returns daily counts of auto-approved vs manual expenses.
     """
-    from sqlalchemy import func as sqlfunc, cast, Date
     from collections import defaultdict
+
+    from sqlalchemy import Date, cast
+    from sqlalchemy import func as sqlfunc
 
     org_id = _resolve_org_id(request, db, current_user.id)
     cutoff = datetime.utcnow() - __import__("datetime").timedelta(days=days)
@@ -1560,15 +1592,26 @@ async def get_auto_approval_trends(
             Expense.organization_id == org_id,
             Expense.created_at >= cutoff,
         )
-        .group_by(sqlfunc.date(Expense.created_at), Expense.auto_approved, Expense.auto_approved_via)
+        .group_by(
+            sqlfunc.date(Expense.created_at),
+            Expense.auto_approved,
+            Expense.auto_approved_via,
+        )
         .all()
     )
 
     # Build daily buckets
-    daily = defaultdict(lambda: {
-        "date": None, "auto_mandate": 0, "auto_policy": 0,
-        "manual": 0, "total": 0, "auto_amount": 0.0, "manual_amount": 0.0,
-    })
+    daily = defaultdict(
+        lambda: {
+            "date": None,
+            "auto_mandate": 0,
+            "auto_policy": 0,
+            "manual": 0,
+            "total": 0,
+            "auto_amount": 0.0,
+            "manual_amount": 0.0,
+        }
+    )
 
     for row in expenses:
         day_str = str(row.day)
@@ -1627,7 +1670,8 @@ async def get_cost_savings(
             Expense.created_at >= cutoff,
             Expense.auto_approved == True,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     auto_amount = (
@@ -1637,7 +1681,8 @@ async def get_cost_savings(
             Expense.created_at >= cutoff,
             Expense.auto_approved == True,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     total_count = (
@@ -1646,7 +1691,8 @@ async def get_cost_savings(
             Expense.organization_id == org_id,
             Expense.created_at >= cutoff,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     minutes_saved = auto_count * 3  # 3 min per auto-approval
@@ -1678,8 +1724,9 @@ async def get_bottlenecks(
     Identify bottlenecks: categories/vendors with lowest auto-approval
     rates or highest rejection rates.
     """
-    from sqlalchemy import func as sqlfunc
     from collections import defaultdict
+
+    from sqlalchemy import func as sqlfunc
 
     org_id = _resolve_org_id(request, db, current_user.id)
     cutoff = datetime.utcnow() - __import__("datetime").timedelta(days=days)
@@ -1696,8 +1743,12 @@ async def get_bottlenecks(
     )
 
     # Group by category
-    cat_stats = defaultdict(lambda: {"total": 0, "auto": 0, "rejected": 0, "pending": 0, "amount": 0.0})
-    vendor_stats = defaultdict(lambda: {"total": 0, "auto": 0, "rejected": 0, "pending": 0, "amount": 0.0})
+    cat_stats = defaultdict(
+        lambda: {"total": 0, "auto": 0, "rejected": 0, "pending": 0, "amount": 0.0}
+    )
+    vendor_stats = defaultdict(
+        lambda: {"total": 0, "auto": 0, "rejected": 0, "pending": 0, "amount": 0.0}
+    )
 
     for e in expenses:
         cat = e.category.value if hasattr(e.category, "value") else str(e.category)
@@ -1722,16 +1773,18 @@ async def get_bottlenecks(
                 continue
             auto_rate = (s["auto"] / s["total"] * 100) if s["total"] > 0 else 0
             rejection_rate = (s["rejected"] / s["total"] * 100) if s["total"] > 0 else 0
-            items.append({
-                "name": name,
-                "total": s["total"],
-                "auto_approved": s["auto"],
-                "rejected": s["rejected"],
-                "pending": s["pending"],
-                "amount": round(s["amount"], 2),
-                "auto_approval_rate": round(auto_rate, 1),
-                "rejection_rate": round(rejection_rate, 1),
-            })
+            items.append(
+                {
+                    "name": name,
+                    "total": s["total"],
+                    "auto_approved": s["auto"],
+                    "rejected": s["rejected"],
+                    "pending": s["pending"],
+                    "amount": round(s["amount"], 2),
+                    "auto_approval_rate": round(auto_rate, 1),
+                    "rejection_rate": round(rejection_rate, 1),
+                }
+            )
         # Sort by auto_approval_rate ascending (worst first)
         items.sort(key=lambda x: x["auto_approval_rate"])
         return items

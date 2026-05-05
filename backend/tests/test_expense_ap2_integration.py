@@ -29,7 +29,6 @@ from src.models import (
 )
 from src.payments.ap2_service import AP2PaymentService
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -95,7 +94,9 @@ def _create_intent_mandate(db, user_id, constraints, expiration_hours=24):
     return mandate
 
 
-def _create_expense_linked(db, user_id, org_id, amount, mandate_id, cart_id, payment_id):
+def _create_expense_linked(
+    db, user_id, org_id, amount, mandate_id, cart_id, payment_id
+):
     """Create an auto-approved Expense linked to an existing mandate."""
     expense = Expense(
         id=str(uuid.uuid4()),
@@ -273,8 +274,12 @@ class TestMonthlyUsageAccumulation:
         )
 
         # Mandate A should show $75; mandate B should show $0
-        assert service._get_mandate_monthly_usage(mandate_a.id, org.id) == pytest.approx(75.00)
-        assert service._get_mandate_monthly_usage(mandate_b.id, org.id) == pytest.approx(0.00)
+        assert service._get_mandate_monthly_usage(
+            mandate_a.id, org.id
+        ) == pytest.approx(75.00)
+        assert service._get_mandate_monthly_usage(
+            mandate_b.id, org.id
+        ) == pytest.approx(0.00)
 
 
 class TestMonthlyLimitEnforcement:
@@ -330,9 +335,9 @@ class TestMonthlyLimitEnforcement:
             merchant="Acme",
             organization_id=org.id,
         )
-        assert matching is None, (
-            "Expected no matching mandate when second expense would exceed monthly_limit"
-        )
+        assert (
+            matching is None
+        ), "Expected no matching mandate when second expense would exceed monthly_limit"
 
     async def test_second_expense_approved_when_within_monthly_limit(self, db_session):
         """
@@ -404,7 +409,14 @@ class TestMandateExhaustion:
         service = AP2PaymentService(db_session)
 
         # Build AP2 chain
-        cart_items = [{"description": "Software license", "amount": 150.00, "vendor": "Test Vendor", "category": "software"}]
+        cart_items = [
+            {
+                "description": "Software license",
+                "amount": 150.00,
+                "vendor": "Test Vendor",
+                "category": "software",
+            }
+        ]
         cart_mandate = await service.create_cart_mandate(
             intent_mandate_id=mandate.id,
             items=cart_items,
@@ -449,6 +461,6 @@ class TestMandateExhaustion:
             merchant="Test Vendor",
             organization_id=org.id,
         )
-        assert matching is None, (
-            "Expected no matching mandate after it has been marked exhausted"
-        )
+        assert (
+            matching is None
+        ), "Expected no matching mandate after it has been marked exhausted"

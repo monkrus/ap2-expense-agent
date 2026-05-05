@@ -3,15 +3,16 @@ Analytics endpoints for organization-level insights
 Provides chart-ready data for dashboard visualizations
 """
 
-from datetime import datetime, timedelta, date
+from datetime import date, datetime, timedelta
 from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import func, case
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_active_user
 from ..database import get_db
-from ..models import Expense, ExpenseStatus, ExpenseCategory, User, OrganizationMember
+from ..models import Expense, ExpenseCategory, ExpenseStatus, OrganizationMember, User
 from ..tenant_context import verify_organization_access
 
 router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
@@ -23,7 +24,7 @@ def get_org_id_from_request(request: Request) -> str:
     if not org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required (X-Organization-Id header missing)"
+            detail="Organization context required (X-Organization-Id header missing)",
         )
     return org_id
 
@@ -51,7 +52,7 @@ async def get_dashboard_analytics(
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have access to this organization"
+            detail="You do not have access to this organization",
         )
 
     start_date = datetime.utcnow() - timedelta(days=days)
@@ -122,7 +123,9 @@ async def get_dashboard_analytics(
     )
 
     # 5. Monthly Comparison (current vs previous period)
-    current_month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    current_month_start = datetime.utcnow().replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0
+    )
     previous_month_start = (current_month_start - timedelta(days=1)).replace(day=1)
 
     current_month_stats = (
@@ -156,8 +159,16 @@ async def get_dashboard_analytics(
     current_amount = float(current_month_stats.total_amount or 0)
     previous_amount = float(previous_month_stats.total_amount or 0)
 
-    count_change = ((current_count - previous_count) / previous_count * 100) if previous_count > 0 else 0
-    amount_change = ((current_amount - previous_amount) / previous_amount * 100) if previous_amount > 0 else 0
+    count_change = (
+        ((current_count - previous_count) / previous_count * 100)
+        if previous_count > 0
+        else 0
+    )
+    amount_change = (
+        ((current_amount - previous_amount) / previous_amount * 100)
+        if previous_amount > 0
+        else 0
+    )
 
     # 6. Top Vendors
     top_vendors = (
@@ -187,7 +198,11 @@ async def get_dashboard_analytics(
         },
         "spending_over_time": [
             {
-                "date": d.date.isoformat() if isinstance(d.date, (date, datetime)) else str(d.date),
+                "date": (
+                    d.date.isoformat()
+                    if isinstance(d.date, (date, datetime))
+                    else str(d.date)
+                ),
                 "count": d.count,
                 "amount": float(d.total_amount or 0),
             }
@@ -259,7 +274,7 @@ async def get_analytics_summary(
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have access to this organization"
+            detail="You do not have access to this organization",
         )
 
     # Overall totals
@@ -273,7 +288,9 @@ async def get_analytics_summary(
     )
 
     # This month
-    month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_start = datetime.utcnow().replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0
+    )
     month_stats = (
         db.query(
             func.count(Expense.id).label("count"),
@@ -293,7 +310,8 @@ async def get_analytics_summary(
             Expense.organization_id == org_id,
             Expense.status == ExpenseStatus.PENDING,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     # Active users count
@@ -303,7 +321,8 @@ async def get_analytics_summary(
             OrganizationMember.organization_id == org_id,
             OrganizationMember.is_active == True,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     return {
@@ -328,7 +347,9 @@ async def get_analytics_summary(
 @router.get("/variance-report")
 async def get_variance_report(
     request: Request,
-    period: str = Query("monthly", description="Budget period: monthly, quarterly, yearly"),
+    period: str = Query(
+        "monthly", description="Budget period: monthly, quarterly, yearly"
+    ),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
@@ -441,7 +462,9 @@ async def get_category_reconciliation(
 @router.get("/user-spending")
 async def get_user_spending_report(
     request: Request,
-    period: str = Query("monthly", description="Budget period: monthly, quarterly, yearly"),
+    period: str = Query(
+        "monthly", description="Budget period: monthly, quarterly, yearly"
+    ),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):

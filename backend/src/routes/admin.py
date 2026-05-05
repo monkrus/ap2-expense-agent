@@ -209,11 +209,7 @@ async def get_dashboard_stats(
     """Get platform-wide statistics for admin dashboard"""
 
     # User statistics (only count active users)
-    total_users = (
-        db.query(func.count(User.id))
-        .filter(User.is_active == True)
-        .scalar()
-    )
+    total_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar()
     active_users_30d = (
         db.query(func.count(User.id))
         .filter(User.is_active == True)
@@ -254,7 +250,8 @@ async def get_dashboard_stats(
             db.query(func.sum(Expense.amount))
             .filter(Expense.is_archived == False)
             .filter(Expense.status != ExpenseStatus.WITHDRAWN)
-            .scalar() or 0
+            .scalar()
+            or 0
         )
         expenses_this_month = (
             db.query(func.count(Expense.id))
@@ -270,7 +267,7 @@ async def get_dashboard_stats(
 
     # Try to get subscription statistics if the table exists
     try:
-        from ..models_billing import OrganizationSubscription, BillingTier
+        from ..models_billing import BillingTier, OrganizationSubscription
 
         active_subscriptions_query = (
             db.query(OrganizationSubscription)
@@ -281,10 +278,11 @@ async def get_dashboard_stats(
         active_subscriptions = len(active_subscriptions_query)
 
         # Get tier prices from the database instead of hardcoding
-        billing_tiers = db.query(BillingTier).filter(BillingTier.is_active == True).all()
+        billing_tiers = (
+            db.query(BillingTier).filter(BillingTier.is_active == True).all()
+        )
         tier_prices = {
-            tier.tier_name.lower(): tier.base_price_monthly
-            for tier in billing_tiers
+            tier.tier_name.lower(): tier.base_price_monthly for tier in billing_tiers
         }
 
         monthly_revenue = sum(
@@ -359,27 +357,25 @@ async def list_users(
         )
 
         organizations = [
-            {
-                "id": org.id,
-                "name": org.name,
-                "role": member.role
-            }
+            {"id": org.id, "name": org.name, "role": member.role}
             for member, org in memberships
         ]
 
-        users_data.append({
-            "id": u.id,
-            "email": u.email,
-            "username": u.username,
-            "full_name": u.full_name,
-            "role": u.role.value,
-            "department_id": u.department_id,
-            "is_active": u.is_active,
-            "is_verified": u.is_verified,
-            "created_at": u.created_at.isoformat(),
-            "last_login": u.last_login.isoformat() if u.last_login else None,
-            "organizations": organizations,
-        })
+        users_data.append(
+            {
+                "id": u.id,
+                "email": u.email,
+                "username": u.username,
+                "full_name": u.full_name,
+                "role": u.role.value,
+                "department_id": u.department_id,
+                "is_active": u.is_active,
+                "is_verified": u.is_verified,
+                "created_at": u.created_at.isoformat(),
+                "last_login": u.last_login.isoformat() if u.last_login else None,
+                "organizations": organizations,
+            }
+        )
 
     return {
         "users": users_data,
@@ -664,6 +660,7 @@ async def get_all_expenses(
 ):
     """Get all expenses from all users with optional status filter (admin and manager)"""
     import logging
+
     from fastapi import status as http_status
 
     from ..models import Expense, ExpenseStatus
@@ -678,21 +675,20 @@ async def get_all_expenses(
     if not org_id:
         raise HTTPException(
             status_code=400,
-            detail="Organization context required (X-Organization-Id header missing)"
+            detail="Organization context required (X-Organization-Id header missing)",
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=403,
-            detail="You do not have access to this organization"
+            status_code=403, detail="You do not have access to this organization"
         )
 
     # Build query - exclude withdrawn and archived by default + filter by organization
     query = db.query(Expense).filter(
         Expense.organization_id == org_id,
         Expense.status != ExpenseStatus.WITHDRAWN,
-        Expense.is_archived == False
+        Expense.is_archived == False,
     )
 
     # Apply status filter if provided
@@ -704,7 +700,9 @@ async def get_all_expenses(
             )
             query = query.filter(Expense.status == status_enum)
         except ValueError:
-            logger.warning(f"[admin.get_all_expenses] Invalid status value: {status_filter}")
+            logger.warning(
+                f"[admin.get_all_expenses] Invalid status value: {status_filter}"
+            )
             pass  # Invalid status, ignore filter
 
     # Get all expenses ordered by creation date (newest first)
@@ -734,7 +732,11 @@ async def get_all_expenses(
                 "rejection_reason": e.rejection_reason,
                 "user_id": e.user_id,
                 "user_email": user.email if user else "Unknown",
-                "user_name": (user.full_name or user.username or user.email) if user else "Unknown",
+                "user_name": (
+                    (user.full_name or user.username or user.email)
+                    if user
+                    else "Unknown"
+                ),
                 "approved_by_name": approver.full_name if approver else None,
                 "approved_by_email": approver.email if approver else None,
             }
@@ -779,14 +781,13 @@ async def clear_pending_expenses(
     if not org_id:
         raise HTTPException(
             status_code=400,
-            detail="Organization context required (X-Organization-Id header missing)"
+            detail="Organization context required (X-Organization-Id header missing)",
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=403,
-            detail="You do not have access to this organization"
+            status_code=403, detail="You do not have access to this organization"
         )
 
     try:
@@ -795,7 +796,7 @@ async def clear_pending_expenses(
             db.query(Expense)
             .filter(
                 Expense.organization_id == org_id,
-                Expense.status == ExpenseStatus.PENDING
+                Expense.status == ExpenseStatus.PENDING,
             )
             .all()
         )
@@ -922,14 +923,13 @@ async def archive_all_expenses(
     if not org_id:
         raise HTTPException(
             status_code=400,
-            detail="Organization context required (X-Organization-Id header missing)"
+            detail="Organization context required (X-Organization-Id header missing)",
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=403,
-            detail="You do not have access to this organization"
+            status_code=403, detail="You do not have access to this organization"
         )
 
     try:
@@ -939,7 +939,7 @@ async def archive_all_expenses(
             .filter(
                 Expense.organization_id == org_id,
                 Expense.status != ExpenseStatus.PENDING,
-                Expense.is_archived == False
+                Expense.is_archived == False,
             )
             .all()
         )
@@ -994,7 +994,7 @@ async def archive_all_expenses(
 async def get_archived_expenses(
     request: Request,
     current_user: User = Depends(require_admin),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get all archived expenses (Admin only)"""
     from ..models import Expense
@@ -1006,14 +1006,13 @@ async def get_archived_expenses(
     if not org_id:
         raise HTTPException(
             status_code=400,
-            detail="Organization context required (X-Organization-Id header missing)"
+            detail="Organization context required (X-Organization-Id header missing)",
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=403,
-            detail="You do not have access to this organization"
+            status_code=403, detail="You do not have access to this organization"
         )
 
     archived_expenses = (
@@ -1051,7 +1050,11 @@ async def get_archived_expenses(
                 "archived_at": e.archived_at.isoformat() if e.archived_at else None,
                 "user_id": e.user_id,
                 "user_email": user.email if user else "Unknown",
-                "user_name": (user.full_name or user.username or user.email) if user else "Unknown",
+                "user_name": (
+                    (user.full_name or user.username or user.email)
+                    if user
+                    else "Unknown"
+                ),
                 "archived_by_name": archiver.full_name if archiver else None,
                 "archived_by_email": archiver.email if archiver else None,
                 "approved_by": e.approved_by,
@@ -1085,20 +1088,20 @@ async def archive_expense(
     if not org_id:
         raise HTTPException(
             status_code=400,
-            detail="Organization context required (X-Organization-Id header missing)"
+            detail="Organization context required (X-Organization-Id header missing)",
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=403,
-            detail="You do not have access to this organization"
+            status_code=403, detail="You do not have access to this organization"
         )
 
-    expense = db.query(Expense).filter(
-        Expense.id == expense_id,
-        Expense.organization_id == org_id
-    ).first()
+    expense = (
+        db.query(Expense)
+        .filter(Expense.id == expense_id, Expense.organization_id == org_id)
+        .first()
+    )
     if not expense:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found"
@@ -1161,29 +1164,27 @@ async def unarchive_expense(
     if not org_id:
         raise HTTPException(
             status_code=400,
-            detail="Organization context required (X-Organization-Id header missing)"
+            detail="Organization context required (X-Organization-Id header missing)",
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=403,
-            detail="You do not have access to this organization"
+            status_code=403, detail="You do not have access to this organization"
         )
 
-    expense = db.query(Expense).filter(
-        Expense.id == expense_id,
-        Expense.organization_id == org_id
-    ).first()
+    expense = (
+        db.query(Expense)
+        .filter(Expense.id == expense_id, Expense.organization_id == org_id)
+        .first()
+    )
     if not expense:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found"
         )
 
     if not expense.is_archived:
-        raise HTTPException(
-            status_code=400, detail="Expense is not archived"
-        )
+        raise HTTPException(status_code=400, detail="Expense is not archived")
 
     expense.is_archived = False
     expense.archived_at = None
@@ -1232,22 +1233,22 @@ async def unarchive_all_expenses(
     if not org_id:
         raise HTTPException(
             status_code=400,
-            detail="Organization context required (X-Organization-Id header missing)"
+            detail="Organization context required (X-Organization-Id header missing)",
         )
 
     # SECURITY: Verify user has access to this organization
     if not verify_organization_access(current_user.id, org_id, db):
         raise HTTPException(
-            status_code=403,
-            detail="You do not have access to this organization"
+            status_code=403, detail="You do not have access to this organization"
         )
 
     try:
         # Get all archived expenses for THIS organization only
-        archived_expenses = db.query(Expense).filter(
-            Expense.organization_id == org_id,
-            Expense.is_archived == True
-        ).all()
+        archived_expenses = (
+            db.query(Expense)
+            .filter(Expense.organization_id == org_id, Expense.is_archived == True)
+            .all()
+        )
 
         unarchive_count = len(archived_expenses)
 
@@ -1334,9 +1335,11 @@ async def create_user(
 
     Requires X-Organization-Id header to specify which organization the user belongs to.
     """
-    import uuid
-    import bcrypt
     import logging
+    import uuid
+
+    import bcrypt
+
     from ..utils.validators import HeaderValidator
 
     logger = logging.getLogger(__name__)
@@ -1347,18 +1350,14 @@ async def create_user(
     # Check if email already exists
     existing_email = db.query(User).filter(User.email == user_data.email).first()
     if existing_email:
-        raise HTTPException(
-            status_code=400, detail="Email already registered"
-        )
+        raise HTTPException(status_code=400, detail="Email already registered")
 
     # Check if username already exists
     existing_username = (
         db.query(User).filter(User.username == user_data.username).first()
     )
     if existing_username:
-        raise HTTPException(
-            status_code=400, detail="Username already taken"
-        )
+        raise HTTPException(status_code=400, detail="Username already taken")
 
     # Hash the password
     hashed_password = bcrypt.hashpw(
@@ -1546,7 +1545,11 @@ async def update_user_organization(
         )
 
     # Verify the organization exists
-    organization = db.query(Organization).filter(Organization.id == org_data.organization_id).first()
+    organization = (
+        db.query(Organization)
+        .filter(Organization.id == org_data.organization_id)
+        .first()
+    )
     if not organization:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
@@ -1580,7 +1583,7 @@ async def update_user_organization(
             organization_id=org_data.organization_id,
             role=OrganizationRole.EMPLOYEE.value,
             is_active=True,
-            joined_at=datetime.utcnow()
+            joined_at=datetime.utcnow(),
         )
         db.add(new_member)
         db.commit()
@@ -1642,9 +1645,7 @@ async def update_user_email(
 
     email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     if not re.match(email_regex, email_data.email):
-        raise HTTPException(
-            status_code=400, detail="Invalid email format"
-        )
+        raise HTTPException(status_code=400, detail="Invalid email format")
 
     old_email = user.email
     user.email = email_data.email
@@ -1734,9 +1735,7 @@ async def update_user_profile(
 
         email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         if not re.match(email_regex, profile_data.email):
-            raise HTTPException(
-                status_code=400, detail="Invalid email format"
-            )
+            raise HTTPException(status_code=400, detail="Invalid email format")
 
         changes["email"] = {"old": user.email, "new": profile_data.email}
         user.email = profile_data.email

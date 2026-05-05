@@ -9,20 +9,20 @@ from datetime import datetime
 from typing import List, Optional
 
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.lib.pagesizes import A4, letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import (
+    PageBreak,
+    Paragraph,
     SimpleDocTemplate,
+    Spacer,
     Table,
     TableStyle,
-    Paragraph,
-    Spacer,
-    PageBreak,
 )
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 
-from ..models import Expense, User, Organization
+from ..models import Expense, Organization, User
 
 
 class PDFExpenseReportGenerator:
@@ -147,21 +147,33 @@ class PDFExpenseReportGenerator:
             for expense in expenses:
                 data.append(
                     [
-                        (
-                            expense.date.strftime("%Y-%m-%d")
-                            if expense.date
-                            else "N/A"
-                        ),
+                        (expense.date.strftime("%Y-%m-%d") if expense.date else "N/A"),
                         expense.vendor or "N/A",
-                        expense.category.value if hasattr(expense.category, "value") else str(expense.category),
+                        (
+                            expense.category.value
+                            if hasattr(expense.category, "value")
+                            else str(expense.category)
+                        ),
                         f"${float(expense.amount):,.2f}",
-                        expense.status.value.upper() if hasattr(expense.status, "value") else str(expense.status).upper(),
+                        (
+                            expense.status.value.upper()
+                            if hasattr(expense.status, "value")
+                            else str(expense.status).upper()
+                        ),
                         expense.user_id[:8] + "...",
                     ]
                 )
 
             expense_table = Table(
-                data, colWidths=[0.9 * inch, 1.5 * inch, 1 * inch, 0.9 * inch, 0.9 * inch, 1 * inch]
+                data,
+                colWidths=[
+                    0.9 * inch,
+                    1.5 * inch,
+                    1 * inch,
+                    0.9 * inch,
+                    0.9 * inch,
+                    1 * inch,
+                ],
             )
             expense_table.setStyle(
                 TableStyle(
@@ -178,7 +190,12 @@ class PDFExpenseReportGenerator:
                         ("ALIGN", (3, 1), (3, -1), "RIGHT"),  # Amount column
                         ("ALIGN", (4, 1), (4, -1), "CENTER"),  # Status column
                         ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F5F5")]),
+                        (
+                            "ROWBACKGROUNDS",
+                            (0, 1),
+                            (-1, -1),
+                            [colors.white, colors.HexColor("#F5F5F5")],
+                        ),
                         ("TOPPADDING", (0, 1), (-1, -1), 8),
                         ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
                     ]
@@ -206,9 +223,18 @@ class PDFExpenseReportGenerator:
         summary_data = [
             ["Total Expenses:", str(len(expenses))],
             ["Total Amount:", f"${total_amount:,.2f}"],
-            ["Approved:", f"{len(approved_expenses)} (${sum(float(e.amount) for e in approved_expenses):,.2f})"],
-            ["Pending:", f"{len(pending_expenses)} (${sum(float(e.amount) for e in pending_expenses):,.2f})"],
-            ["Rejected:", f"{len(rejected_expenses)} (${sum(float(e.amount) for e in rejected_expenses):,.2f})"],
+            [
+                "Approved:",
+                f"{len(approved_expenses)} (${sum(float(e.amount) for e in approved_expenses):,.2f})",
+            ],
+            [
+                "Pending:",
+                f"{len(pending_expenses)} (${sum(float(e.amount) for e in pending_expenses):,.2f})",
+            ],
+            [
+                "Rejected:",
+                f"{len(rejected_expenses)} (${sum(float(e.amount) for e in rejected_expenses):,.2f})",
+            ],
         ]
 
         summary_table = Table(summary_data, colWidths=[2 * inch, 3 * inch])
@@ -272,9 +298,17 @@ class PDFExpenseReportGenerator:
                 [
                     expense.date.strftime("%Y-%m-%d") if expense.date else "",
                     expense.vendor or "",
-                    expense.category.value if hasattr(expense.category, "value") else str(expense.category),
+                    (
+                        expense.category.value
+                        if hasattr(expense.category, "value")
+                        else str(expense.category)
+                    ),
                     f"{float(expense.amount):.2f}",
-                    expense.status.value if hasattr(expense.status, "value") else str(expense.status),
+                    (
+                        expense.status.value
+                        if hasattr(expense.status, "value")
+                        else str(expense.status)
+                    ),
                     expense.description or "",
                     expense.user_id or "",
                     (

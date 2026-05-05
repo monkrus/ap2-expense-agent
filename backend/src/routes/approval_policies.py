@@ -12,7 +12,13 @@ from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import ApprovalPolicy, OrganizationMember, OrganizationRole, User, UserRole
+from ..models import (
+    ApprovalPolicy,
+    OrganizationMember,
+    OrganizationRole,
+    User,
+    UserRole,
+)
 from ..services.approval_policy_service import ApprovalPolicyService
 
 router = APIRouter(prefix="/api/v1/approval-policies", tags=["approval-policies"])
@@ -206,6 +212,7 @@ def create_approval_policy(
         # Validate category list
         if "categories" in data.conditions:
             from ..models import ExpenseCategory
+
             valid_categories = [cat.value for cat in ExpenseCategory]
             for cat in data.conditions["categories"]:
                 if cat not in valid_categories:
@@ -427,8 +434,11 @@ def test_all_policies(
     Tests against all active policies in priority order (highest first)
     """
     import logging
+
     logger = logging.getLogger(__name__)
-    logger.info(f"[TEST] Request: amount={test_data.amount}, test_limit_type='{test_data.test_limit_type}'")
+    logger.info(
+        f"[TEST] Request: amount={test_data.amount}, test_limit_type='{test_data.test_limit_type}'"
+    )
 
     org_id = get_user_organization(db, current_user.id)
     if not org_id:
@@ -463,7 +473,11 @@ def test_all_policies(
 
     # Use a default category if none specified (for "All Categories" test)
     # The category value doesn't matter when testing against policies with no category restrictions
-    test_category = test_data.category.strip() if test_data.category and test_data.category.strip() else "MEALS"
+    test_category = (
+        test_data.category.strip()
+        if test_data.category and test_data.category.strip()
+        else "MEALS"
+    )
 
     mock_expense = Expense(
         id="test_expense",
@@ -482,13 +496,23 @@ def test_all_policies(
     best_partial_match = None  # Track policies that match except for amount
 
     for policy in policies:
-        matches, reason = policy_service._matches_policy(mock_expense, current_user, policy)
+        matches, reason = policy_service._matches_policy(
+            mock_expense, current_user, policy
+        )
         test_amount = Decimal(str(test_data.amount))
 
         # When a specific limit type is selected, test that specific limit
-        logger.info(f"[TEST] test_limit_type='{test_data.test_limit_type}', type={type(test_data.test_limit_type)}")
-        if test_data.test_limit_type and test_data.test_limit_type not in ['', 'None', None]:
-            logger.info(f"[TEST] Entering limit type check for '{test_data.test_limit_type}'")
+        logger.info(
+            f"[TEST] test_limit_type='{test_data.test_limit_type}', type={type(test_data.test_limit_type)}"
+        )
+        if test_data.test_limit_type and test_data.test_limit_type not in [
+            "",
+            "None",
+            None,
+        ]:
+            logger.info(
+                f"[TEST] Entering limit type check for '{test_data.test_limit_type}'"
+            )
             # Check if the requested limit is configured on this policy
             limit_not_configured = None
             limit_value = None
@@ -509,7 +533,9 @@ def test_all_policies(
 
             # If this policy doesn't have the requested limit, try next policy
             if limit_not_configured:
-                logger.info(f"[TEST] Policy '{policy.name}' has no {limit_not_configured} limit, trying next policy")
+                logger.info(
+                    f"[TEST] Policy '{policy.name}' has no {limit_not_configured} limit, trying next policy"
+                )
                 continue
 
             # Note: We skip the per-expense max check here because user is specifically testing
@@ -518,7 +544,9 @@ def test_all_policies(
             # Check if this single expense would exceed the selected limit
             # (Assumes no prior spending - tests if expense fits within the limit)
             limit_decimal = Decimal(str(limit_value))
-            logger.info(f"[TEST] Comparing: test_amount={test_amount} vs limit={limit_decimal}, max_per_expense={policy.max_amount_per_expense}")
+            logger.info(
+                f"[TEST] Comparing: test_amount={test_amount} vs limit={limit_decimal}, max_per_expense={policy.max_amount_per_expense}"
+            )
             if test_amount > limit_decimal:
                 return PolicyTestResponse(
                     would_auto_approve=False,
@@ -538,7 +566,9 @@ def test_all_policies(
         # Standard test (no specific limit type selected - "Per-expense only")
         if matches:
             logger.info(f"[TEST] Matched policy: {policy.name}")
-            logger.info(f"[TEST] Policy limits: daily={policy.daily_limit_per_user}, monthly={policy.monthly_limit_per_user}, yearly={policy.yearly_limit_per_user}")
+            logger.info(
+                f"[TEST] Policy limits: daily={policy.daily_limit_per_user}, monthly={policy.monthly_limit_per_user}, yearly={policy.yearly_limit_per_user}"
+            )
 
             within_limits, limit_reason = policy_service._check_limits(
                 mock_expense,
@@ -546,7 +576,7 @@ def test_all_policies(
                 policy,
                 simulated_daily_spent=None,
                 simulated_monthly_spent=None,
-                simulated_yearly_spent=None
+                simulated_yearly_spent=None,
             )
 
             if within_limits:
@@ -556,10 +586,14 @@ def test_all_policies(
                 )
 
                 # Convert Decimal to float for JSON serialization
-                remaining_limits_json = {
-                    k: float(v) if isinstance(v, Decimal) else v
-                    for k, v in remaining_limits.items()
-                } if remaining_limits else None
+                remaining_limits_json = (
+                    {
+                        k: float(v) if isinstance(v, Decimal) else v
+                        for k, v in remaining_limits.items()
+                    }
+                    if remaining_limits
+                    else None
+                )
 
                 return PolicyTestResponse(
                     would_auto_approve=True,
@@ -590,7 +624,11 @@ def test_all_policies(
         )
 
     # If a specific limit type was requested but no policy had it configured
-    if test_data.test_limit_type and test_data.test_limit_type not in ['', 'None', None]:
+    if test_data.test_limit_type and test_data.test_limit_type not in [
+        "",
+        "None",
+        None,
+    ]:
         limit_label = test_data.test_limit_type
         return PolicyTestResponse(
             would_auto_approve=False,
@@ -649,7 +687,11 @@ def test_policy(
 
     # Use a default category if none specified (for "All Categories" test)
     # The category value doesn't matter when testing against policies with no category restrictions
-    test_category = test_data.category.strip() if test_data.category and test_data.category.strip() else "MEALS"
+    test_category = (
+        test_data.category.strip()
+        if test_data.category and test_data.category.strip()
+        else "MEALS"
+    )
 
     mock_expense = Expense(
         id="test_expense",
@@ -822,4 +864,3 @@ def get_policy_analytics(
         "policy_breakdown": policy_breakdown,
         "time_saved_estimate_hours": auto_approved * 0.05,  # Assume 3 min/expense saved
     }
-

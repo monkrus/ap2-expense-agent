@@ -57,7 +57,11 @@ async def evaluate_auto_approval(
 
         ap2_service = AP2PaymentService(db)
 
-        category_str = expense.category.value if hasattr(expense.category, 'value') else str(expense.category)
+        category_str = (
+            expense.category.value
+            if hasattr(expense.category, "value")
+            else str(expense.category)
+        )
 
         matching_mandate = ap2_service.find_matching_intent_mandate(
             user_id=user.id,
@@ -68,14 +72,18 @@ async def evaluate_auto_approval(
         )
 
         if matching_mandate:
-            logger.info(f"[AP2] Auto-approving expense {expense.id} via Intent Mandate {matching_mandate.id}")
+            logger.info(
+                f"[AP2] Auto-approving expense {expense.id} via Intent Mandate {matching_mandate.id}"
+            )
 
-            cart_items = [{
-                "description": expense.description or f"Expense: {expense.vendor}",
-                "amount": float(expense.amount),
-                "vendor": expense.vendor or "Unknown Vendor",
-                "category": category_str,
-            }]
+            cart_items = [
+                {
+                    "description": expense.description or f"Expense: {expense.vendor}",
+                    "amount": float(expense.amount),
+                    "vendor": expense.vendor or "Unknown Vendor",
+                    "category": category_str,
+                }
+            ]
 
             now = datetime.utcnow()
             agent_signature = ap2_service._generate_signature(
@@ -110,11 +118,15 @@ async def evaluate_auto_approval(
                 constraints = json.loads(matching_mandate.constraints)
                 monthly_limit = constraints.get("monthly_limit")
                 if monthly_limit:
-                    current_usage = ap2_service._get_mandate_monthly_usage(matching_mandate.id, org_id)
+                    current_usage = ap2_service._get_mandate_monthly_usage(
+                        matching_mandate.id, org_id
+                    )
                     if current_usage >= float(monthly_limit):
                         matching_mandate.status = "exhausted"
                         db.add(matching_mandate)
-                        logger.info(f"[AP2] Intent Mandate {matching_mandate.id} exhausted")
+                        logger.info(
+                            f"[AP2] Intent Mandate {matching_mandate.id} exhausted"
+                        )
             except Exception as e:
                 logger.error(f"[AP2] Failed to check mandate exhaustion: {e}")
 
@@ -137,7 +149,9 @@ async def evaluate_auto_approval(
 
             # Send email notification (async, non-blocking)
             try:
-                _send_auto_approval_email(user, expense, "intent_mandate", matching_mandate)
+                _send_auto_approval_email(
+                    user, expense, "intent_mandate", matching_mandate
+                )
             except Exception as e:
                 logger.error(f"Failed to queue auto-approval email: {e}")
 
@@ -162,7 +176,9 @@ async def evaluate_auto_approval(
         )
 
         if should_auto_approve and matching_policy:
-            logger.info(f"Auto-approving expense {expense.id} via Approval Policy {matching_policy.id}")
+            logger.info(
+                f"Auto-approving expense {expense.id} via Approval Policy {matching_policy.id}"
+            )
 
             expense.status = ExpenseStatus.APPROVED
             expense.approved_by = user.id
@@ -186,7 +202,9 @@ async def evaluate_auto_approval(
                         created_at=datetime.utcnow(),
                     )
                     db.add(notification)
-                    logger.info(f"Notification sent for auto-approved expense {expense.id}")
+                    logger.info(
+                        f"Notification sent for auto-approved expense {expense.id}"
+                    )
                 except Exception as e:
                     logger.error(f"Failed to create auto-approval notification: {e}")
 
@@ -213,6 +231,7 @@ async def evaluate_auto_approval(
 def _send_auto_approval_email(user: User, expense, approval_via: str, mandate=None):
     """Queue an auto-approval email to the user (fire-and-forget)."""
     import asyncio
+
     try:
         from ..email_service import EmailService
         from ..email_templates import get_auto_approved_email
@@ -223,7 +242,11 @@ def _send_auto_approval_email(user: User, expense, approval_via: str, mandate=No
         expense_data = {
             "amount": float(expense.amount),
             "vendor": expense.vendor or "Unknown",
-            "category": expense.category.value if hasattr(expense.category, "value") else str(expense.category),
+            "category": (
+                expense.category.value
+                if hasattr(expense.category, "value")
+                else str(expense.category)
+            ),
             "description": expense.description or "",
             "date": str(expense.date) if expense.date else "",
         }
@@ -232,12 +255,19 @@ def _send_auto_approval_email(user: User, expense, approval_via: str, mandate=No
         if mandate:
             try:
                 import json as _json
-                constraints = _json.loads(mandate.constraints) if isinstance(mandate.constraints, str) else {}
+
+                constraints = (
+                    _json.loads(mandate.constraints)
+                    if isinstance(mandate.constraints, str)
+                    else {}
+                )
             except Exception:
                 constraints = {}
             mandate_details = {
                 "name": getattr(mandate, "description", "") or "Intent Mandate",
-                "constraints": {k: v for k, v in constraints.items() if not k.startswith("@")},
+                "constraints": {
+                    k: v for k, v in constraints.items() if not k.startswith("@")
+                },
             }
 
         subject, html_body, text_body = get_auto_approved_email(
@@ -247,7 +277,11 @@ def _send_auto_approval_email(user: User, expense, approval_via: str, mandate=No
         # Schedule the async email send without blocking
         try:
             loop = asyncio.get_running_loop()
-            loop.create_task(EmailService.send_email(user.email, subject, html_body=html_body, text_body=text_body))
+            loop.create_task(
+                EmailService.send_email(
+                    user.email, subject, html_body=html_body, text_body=text_body
+                )
+            )
         except RuntimeError:
             # No running loop -- skip email silently
             logger.debug("No event loop available for auto-approval email")
@@ -268,10 +302,12 @@ def notify_admins_new_expense(
             db.query(OrganizationMember)
             .filter(
                 OrganizationMember.organization_id == org_id,
-                OrganizationMember.role.in_([
-                    OrganizationRole.ADMIN.value,
-                    OrganizationRole.OWNER.value,
-                ]),
+                OrganizationMember.role.in_(
+                    [
+                        OrganizationRole.ADMIN.value,
+                        OrganizationRole.OWNER.value,
+                    ]
+                ),
                 OrganizationMember.is_active == True,
             )
             .all()

@@ -8,9 +8,9 @@ from datetime import datetime
 from typing import Dict
 
 import stripe
-from stripe import _error as stripe_error
 from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
+from stripe import _error as stripe_error
 
 from ..config import settings
 from ..models import PaymentMandate

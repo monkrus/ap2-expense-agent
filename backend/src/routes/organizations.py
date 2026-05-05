@@ -32,6 +32,7 @@ from ..models import (
     User,
 )
 from ..models_billing import OrganizationSubscription
+from ..rate_limit import RateLimits, limiter
 from ..schemas import (
     OrganizationCreate,
     OrganizationInvitationCreate,
@@ -40,11 +41,10 @@ from ..schemas import (
     OrganizationResponse,
     OrganizationUpdate,
 )
-from ..rate_limit import RateLimits, limiter
 from ..tenant_context import (
+    FREE_TIER_MAX_MEMBERS,
     TenantAwareQuery,
     TenantContext,
-    FREE_TIER_MAX_MEMBERS,
     get_organization_or_404,
     get_user_organization_role,
     get_user_organizations,
@@ -143,7 +143,9 @@ async def create_organization(
     db: Session = Depends(get_db),
 ):
     """Create a new organization"""
-    logger.info(f"[CREATE_ORG] User {current_user.id} ({current_user.username}) attempting to create org: {org_data.name}")
+    logger.info(
+        f"[CREATE_ORG] User {current_user.id} ({current_user.username}) attempting to create org: {org_data.name}"
+    )
     if settings.enable_gcp_marketplace:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -296,6 +298,7 @@ async def create_organization(
 
         # Create Free tier subscription for the new organization
         from ..models_billing import BillingTier
+
         free_tier = (
             db.query(BillingTier)
             .filter(BillingTier.tier_name == "free", BillingTier.is_active == True)
@@ -311,9 +314,13 @@ async def create_organization(
                 billing_period_start=datetime.utcnow(),
             )
             db.add(subscription)
-            logger.info(f"Created Free tier subscription for organization {organization.id}")
+            logger.info(
+                f"Created Free tier subscription for organization {organization.id}"
+            )
         else:
-            logger.warning(f"Free tier not found, skipping subscription creation for org {organization.id}")
+            logger.warning(
+                f"Free tier not found, skipping subscription creation for org {organization.id}"
+            )
 
         db.commit()
         db.refresh(organization)
@@ -325,7 +332,10 @@ async def create_organization(
 
         # Check if it's a UNIQUE constraint error on slug
         error_message = str(e)
-        if "UNIQUE constraint failed: organizations.slug" in error_message or "slug" in error_message.lower():
+        if (
+            "UNIQUE constraint failed: organizations.slug" in error_message
+            or "slug" in error_message.lower()
+        ):
             logger.error(
                 f"UNIQUE constraint violation on slug '{org_data.slug}' despite checks. "
                 f"This indicates a race condition or incomplete cleanup. Error: {e}"
@@ -535,7 +545,11 @@ async def list_organization_members(
                     "user_id": member.user.id,
                     "email": member.user.email,
                     "full_name": member.user.full_name,
-                    "role": member.role.value if hasattr(member.role, 'value') else member.role,
+                    "role": (
+                        member.role.value
+                        if hasattr(member.role, "value")
+                        else member.role
+                    ),
                     "joined_at": member.joined_at,
                 }
             )
@@ -647,7 +661,10 @@ async def remove_organization_member(
         )
 
     # SECURITY FIX (HIGH-2): Only OWNER can remove ADMINs
-    if member.role == OrganizationRole.ADMIN and user_role != OrganizationRole.OWNER.value:
+    if (
+        member.role == OrganizationRole.ADMIN
+        and user_role != OrganizationRole.OWNER.value
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the organization OWNER can remove administrators.",
@@ -757,7 +774,9 @@ async def create_invitation(
             base_url=base_url,
         )
     except Exception as e:
-        logger.warning("Failed to send invitation email to %s: %s", invitation.email, str(e))
+        logger.warning(
+            "Failed to send invitation email to %s: %s", invitation.email, str(e)
+        )
 
     if not email_sent:
         logger.info("Invitation link for %s: %s", invitation.email, invitation_link)
@@ -766,7 +785,11 @@ async def create_invitation(
         "id": invitation.id,
         "organization_id": invitation.organization_id,
         "email": invitation.email,
-        "role": invitation.role.value if hasattr(invitation.role, 'value') else invitation.role,
+        "role": (
+            invitation.role.value
+            if hasattr(invitation.role, "value")
+            else invitation.role
+        ),
         "status": invitation.status,
         "invited_by": invitation.invited_by,
         "expires_at": invitation.expires_at,

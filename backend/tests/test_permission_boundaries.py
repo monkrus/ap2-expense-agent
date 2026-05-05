@@ -34,9 +34,7 @@ class TestPermissionBoundaries:
     # CRITICAL-1: Only OWNER can grant OWNER role
     # ========================================================================
 
-    def test_SEC_PERM_002_admin_cannot_grant_owner_role(
-        self, client, db_session
-    ):
+    def test_SEC_PERM_002_admin_cannot_grant_owner_role(self, client, db_session):
         """
         Test ID: SEC-PERM-002
         Priority: 🔴 CRITICAL-1
@@ -51,13 +49,15 @@ class TestPermissionBoundaries:
         admin_user = create_user(db_session, email="admin@test.com")
         add_user_to_organization(db_session, admin_user, org, OrganizationRole.ADMIN)
         regular_member = create_user(db_session, email="member@test.com")
-        member_membership = add_user_to_organization(db_session, regular_member, org, OrganizationRole.EMPLOYEE)
+        member_membership = add_user_to_organization(
+            db_session, regular_member, org, OrganizationRole.EMPLOYEE
+        )
         db_session.commit()
 
         # Login as ADMIN
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": admin_user.username, "password": "TestPass123!"}
+            json={"username": admin_user.username, "password": "TestPass123!"},
         )
         admin_token = login_response.json()["access_token"]
         admin_headers = {"Authorization": f"Bearer {admin_token}"}
@@ -66,16 +66,17 @@ class TestPermissionBoundaries:
         response = client.patch(
             f"/api/v1/organizations/{org.id}/members/{member_membership.id}/role",
             headers=admin_headers,
-            json={"role": "owner"}
+            json={"role": "owner"},
         )
 
         # Should fail with 403 Forbidden
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Only the organization OWNER can grant OWNER role" in response.json()["detail"]
+        assert (
+            "Only the organization OWNER can grant OWNER role"
+            in response.json()["detail"]
+        )
 
-    def test_SEC_PERM_002_owner_can_grant_owner_role(
-        self, client, db_session
-    ):
+    def test_SEC_PERM_002_owner_can_grant_owner_role(self, client, db_session):
         """
         Test ID: SEC-PERM-002b
         Priority: 🔴 CRITICAL-1
@@ -85,13 +86,15 @@ class TestPermissionBoundaries:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         new_owner_candidate = create_user(db_session, email="newowner@test.com")
-        membership = add_user_to_organization(db_session, new_owner_candidate, org, OrganizationRole.EMPLOYEE)
+        membership = add_user_to_organization(
+            db_session, new_owner_candidate, org, OrganizationRole.EMPLOYEE
+        )
         db_session.commit()
 
         # Login as OWNER
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": owner.username, "password": "TestPass123!"}
+            json={"username": owner.username, "password": "TestPass123!"},
         )
         owner_token = login_response.json()["access_token"]
         owner_headers = {"Authorization": f"Bearer {owner_token}"}
@@ -100,7 +103,7 @@ class TestPermissionBoundaries:
         response = client.patch(
             f"/api/v1/organizations/{org.id}/members/{membership.id}/role",
             headers=owner_headers,
-            json={"role": "owner"}
+            json={"role": "owner"},
         )
 
         # Should succeed
@@ -110,9 +113,7 @@ class TestPermissionBoundaries:
     # CRITICAL-2: Users cannot modify their own role
     # ========================================================================
 
-    def test_SEC_PERM_001_user_cannot_modify_own_role(
-        self, client, db_session
-    ):
+    def test_SEC_PERM_001_user_cannot_modify_own_role(self, client, db_session):
         """
         Test ID: SEC-PERM-001
         Priority: 🔴 CRITICAL-2
@@ -124,13 +125,15 @@ class TestPermissionBoundaries:
         # Setup: Organization with ADMIN
         org, owner = create_organization_with_owner(db_session)
         admin_user = create_user(db_session, email="admin@test.com")
-        admin_membership = add_user_to_organization(db_session, admin_user, org, OrganizationRole.ADMIN)
+        admin_membership = add_user_to_organization(
+            db_session, admin_user, org, OrganizationRole.ADMIN
+        )
         db_session.commit()
 
         # Login as ADMIN
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": admin_user.username, "password": "TestPass123!"}
+            json={"username": admin_user.username, "password": "TestPass123!"},
         )
         admin_token = login_response.json()["access_token"]
         admin_headers = {"Authorization": f"Bearer {admin_token}"}
@@ -139,16 +142,14 @@ class TestPermissionBoundaries:
         response = client.patch(
             f"/api/v1/organizations/{org.id}/members/{admin_membership.id}/role",
             headers=admin_headers,
-            json={"role": "owner"}
+            json={"role": "owner"},
         )
 
         # Should fail with 403 Forbidden
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "Cannot modify your own role" in response.json()["detail"]
 
-    def test_SEC_PERM_001_owner_cannot_modify_own_role(
-        self, client, db_session
-    ):
+    def test_SEC_PERM_001_owner_cannot_modify_own_role(self, client, db_session):
         """
         Test ID: SEC-PERM-001b
         Priority: 🔴 CRITICAL-2
@@ -158,16 +159,21 @@ class TestPermissionBoundaries:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         from src.models import OrganizationMember
-        owner_membership = db_session.query(OrganizationMember).filter(
-            OrganizationMember.user_id == owner.id,
-            OrganizationMember.organization_id == org.id
-        ).first()
+
+        owner_membership = (
+            db_session.query(OrganizationMember)
+            .filter(
+                OrganizationMember.user_id == owner.id,
+                OrganizationMember.organization_id == org.id,
+            )
+            .first()
+        )
         db_session.commit()
 
         # Login as OWNER
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": owner.username, "password": "TestPass123!"}
+            json={"username": owner.username, "password": "TestPass123!"},
         )
         owner_token = login_response.json()["access_token"]
         owner_headers = {"Authorization": f"Bearer {owner_token}"}
@@ -176,7 +182,7 @@ class TestPermissionBoundaries:
         response = client.patch(
             f"/api/v1/organizations/{org.id}/members/{owner_membership.id}/role",
             headers=owner_headers,
-            json={"role": "employee"}
+            json={"role": "employee"},
         )
 
         # Should fail
@@ -187,9 +193,7 @@ class TestPermissionBoundaries:
     # HIGH-2: Only OWNER can remove ADMINs
     # ========================================================================
 
-    def test_SEC_PERM_003_admin_cannot_remove_another_admin(
-        self, client, db_session
-    ):
+    def test_SEC_PERM_003_admin_cannot_remove_another_admin(self, client, db_session):
         """
         Test ID: SEC-PERM-003
         Priority: 🟠 HIGH-2
@@ -204,13 +208,15 @@ class TestPermissionBoundaries:
         admin1 = create_user(db_session, email="admin1@test.com")
         add_user_to_organization(db_session, admin1, org, OrganizationRole.ADMIN)
         admin2 = create_user(db_session, email="admin2@test.com")
-        admin2_membership = add_user_to_organization(db_session, admin2, org, OrganizationRole.ADMIN)
+        admin2_membership = add_user_to_organization(
+            db_session, admin2, org, OrganizationRole.ADMIN
+        )
         db_session.commit()
 
         # Login as ADMIN1
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": admin1.username, "password": "TestPass123!"}
+            json={"username": admin1.username, "password": "TestPass123!"},
         )
         admin1_token = login_response.json()["access_token"]
         admin1_headers = {"Authorization": f"Bearer {admin1_token}"}
@@ -218,16 +224,17 @@ class TestPermissionBoundaries:
         # Try to remove ADMIN2
         response = client.delete(
             f"/api/v1/organizations/{org.id}/members/{admin2_membership.id}",
-            headers=admin1_headers
+            headers=admin1_headers,
         )
 
         # Should fail with 403 Forbidden
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Only the organization OWNER can remove administrators" in response.json()["detail"]
+        assert (
+            "Only the organization OWNER can remove administrators"
+            in response.json()["detail"]
+        )
 
-    def test_SEC_PERM_003_owner_can_remove_admin(
-        self, client, db_session
-    ):
+    def test_SEC_PERM_003_owner_can_remove_admin(self, client, db_session):
         """
         Test ID: SEC-PERM-003b
         Priority: 🟠 HIGH-2
@@ -237,13 +244,15 @@ class TestPermissionBoundaries:
         # Setup
         org, owner = create_organization_with_owner(db_session)
         admin_user = create_user(db_session, email="admin@test.com")
-        admin_membership = add_user_to_organization(db_session, admin_user, org, OrganizationRole.ADMIN)
+        admin_membership = add_user_to_organization(
+            db_session, admin_user, org, OrganizationRole.ADMIN
+        )
         db_session.commit()
 
         # Login as OWNER
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": owner.username, "password": "TestPass123!"}
+            json={"username": owner.username, "password": "TestPass123!"},
         )
         owner_token = login_response.json()["access_token"]
         owner_headers = {"Authorization": f"Bearer {owner_token}"}
@@ -251,15 +260,13 @@ class TestPermissionBoundaries:
         # Remove ADMIN
         response = client.delete(
             f"/api/v1/organizations/{org.id}/members/{admin_membership.id}",
-            headers=owner_headers
+            headers=owner_headers,
         )
 
         # Should succeed
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
-    def test_SEC_PERM_003_admin_can_remove_member(
-        self, client, db_session
-    ):
+    def test_SEC_PERM_003_admin_can_remove_member(self, client, db_session):
         """
         Test ID: SEC-PERM-003c
         Priority: 🟠 HIGH-2
@@ -271,13 +278,15 @@ class TestPermissionBoundaries:
         admin_user = create_user(db_session, email="admin@test.com")
         add_user_to_organization(db_session, admin_user, org, OrganizationRole.ADMIN)
         member = create_user(db_session, email="member@test.com")
-        member_membership = add_user_to_organization(db_session, member, org, OrganizationRole.EMPLOYEE)
+        member_membership = add_user_to_organization(
+            db_session, member, org, OrganizationRole.EMPLOYEE
+        )
         db_session.commit()
 
         # Login as ADMIN
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": admin_user.username, "password": "TestPass123!"}
+            json={"username": admin_user.username, "password": "TestPass123!"},
         )
         admin_token = login_response.json()["access_token"]
         admin_headers = {"Authorization": f"Bearer {admin_token}"}
@@ -285,7 +294,7 @@ class TestPermissionBoundaries:
         # Remove MEMBER
         response = client.delete(
             f"/api/v1/organizations/{org.id}/members/{member_membership.id}",
-            headers=admin_headers
+            headers=admin_headers,
         )
 
         # Should succeed
@@ -295,9 +304,7 @@ class TestPermissionBoundaries:
     # ROLE-BASED PERMISSION TESTS
     # ========================================================================
 
-    def test_ROLE_EMP_004_employee_cannot_approve_expense(
-        self, client, db_session
-    ):
+    def test_ROLE_EMP_004_employee_cannot_approve_expense(self, client, db_session):
         """
         Test ID: ROLE-EMP-004
         Priority: 🔴 CRITICAL
@@ -316,18 +323,17 @@ class TestPermissionBoundaries:
         # Login as employee
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         employee_token = login_response.json()["access_token"]
         employee_headers = {
             "Authorization": f"Bearer {employee_token}",
-            "X-Organization-Id": org.id
+            "X-Organization-Id": org.id,
         }
 
         # Try to approve expense
         response = client.put(  # PUT not POST
-            f"/api/v1/expenses/{expense.id}/approve",
-            headers=employee_headers
+            f"/api/v1/expenses/{expense.id}/approve", headers=employee_headers
         )
 
         # Should fail with 403 Forbidden
@@ -372,9 +378,7 @@ class TestPermissionBoundaries:
     #     # Should fail with 403 Forbidden
     #     assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_ROLE_MGR_002_manager_cannot_approve_over_5k(
-        self, client, db_session
-    ):
+    def test_ROLE_MGR_002_manager_cannot_approve_over_5k(self, client, db_session):
         """
         Test ID: ROLE-MGR-002
         Priority: 🔴 CRITICAL
@@ -387,34 +391,34 @@ class TestPermissionBoundaries:
 
         # Setup: Manager with employee's $10K expense
         scenario = create_manager_approval_scenario(db_session)
-        manager = scenario['manager']
-        expense_over_5k = scenario['expense_over_5k']
-        org = scenario['org']
+        manager = scenario["manager"]
+        expense_over_5k = scenario["expense_over_5k"]
+        org = scenario["org"]
 
         # Login as manager
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": manager.username, "password": "TestPass123!"}
+            json={"username": manager.username, "password": "TestPass123!"},
         )
         manager_token = login_response.json()["access_token"]
         manager_headers = {
             "Authorization": f"Bearer {manager_token}",
-            "X-Organization-Id": org.id
+            "X-Organization-Id": org.id,
         }
 
         # Try to approve $10K expense
         response = client.put(  # PUT not POST
-            f"/api/v1/expenses/{expense_over_5k.id}/approve",
-            headers=manager_headers
+            f"/api/v1/expenses/{expense_over_5k.id}/approve", headers=manager_headers
         )
 
         # Should fail with 403 Forbidden
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Expenses over $5000" in response.json()["detail"] or "require admin approval" in response.json()["detail"]
+        assert (
+            "Expenses over $5000" in response.json()["detail"]
+            or "require admin approval" in response.json()["detail"]
+        )
 
-    def test_ROLE_MGR_001_manager_can_approve_under_5k(
-        self, client, db_session
-    ):
+    def test_ROLE_MGR_001_manager_can_approve_under_5k(self, client, db_session):
         """
         Test ID: ROLE-MGR-001
         Priority: 🔴 CRITICAL
@@ -425,33 +429,30 @@ class TestPermissionBoundaries:
 
         # Setup: Manager with employee's $3K expense
         scenario = create_manager_approval_scenario(db_session)
-        manager = scenario['manager']
-        expense_under_5k = scenario['expense_under_5k']
-        org = scenario['org']
+        manager = scenario["manager"]
+        expense_under_5k = scenario["expense_under_5k"]
+        org = scenario["org"]
 
         # Login as manager
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": manager.username, "password": "TestPass123!"}
+            json={"username": manager.username, "password": "TestPass123!"},
         )
         manager_token = login_response.json()["access_token"]
         manager_headers = {
             "Authorization": f"Bearer {manager_token}",
-            "X-Organization-Id": org.id
+            "X-Organization-Id": org.id,
         }
 
         # Approve $3K expense
         response = client.put(  # PUT not POST
-            f"/api/v1/expenses/{expense_under_5k.id}/approve",
-            headers=manager_headers
+            f"/api/v1/expenses/{expense_under_5k.id}/approve", headers=manager_headers
         )
 
         # Should succeed
         assert response.status_code == status.HTTP_200_OK
 
-    def test_ROLE_MGR_006_manager_cannot_self_approve(
-        self, client, db_session
-    ):
+    def test_ROLE_MGR_006_manager_cannot_self_approve(self, client, db_session):
         """
         Test ID: ROLE-MGR-006
         Priority: 🔴 CRITICAL
@@ -464,26 +465,30 @@ class TestPermissionBoundaries:
         org, owner = create_organization_with_owner(db_session)
         manager = create_manager(db_session, department_id="sales")
         add_user_to_organization(db_session, manager, org, OrganizationRole.ADMIN)
-        manager_expense = create_pending_expense(db_session, manager, org, amount=1000.0)
+        manager_expense = create_pending_expense(
+            db_session, manager, org, amount=1000.0
+        )
         db_session.commit()
 
         # Login as manager
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": manager.username, "password": "TestPass123!"}
+            json={"username": manager.username, "password": "TestPass123!"},
         )
         manager_token = login_response.json()["access_token"]
         manager_headers = {
             "Authorization": f"Bearer {manager_token}",
-            "X-Organization-Id": org.id
+            "X-Organization-Id": org.id,
         }
 
         # Try to approve own expense
         response = client.put(  # PUT not POST
-            f"/api/v1/expenses/{manager_expense.id}/approve",
-            headers=manager_headers
+            f"/api/v1/expenses/{manager_expense.id}/approve", headers=manager_headers
         )
 
         # Should fail with 403 Forbidden
         # Note: Self-approval is prevented by permissions.py:466
-        assert response.status_code == status.HTTP_403_FORBIDDEN or response.status_code == status.HTTP_400_BAD_REQUEST
+        assert (
+            response.status_code == status.HTTP_403_FORBIDDEN
+            or response.status_code == status.HTTP_400_BAD_REQUEST
+        )

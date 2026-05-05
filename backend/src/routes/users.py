@@ -1,3 +1,4 @@
+import logging
 import uuid
 from typing import List, Optional
 
@@ -6,9 +7,9 @@ from sqlalchemy.orm import Session
 
 from ..auth import AuthService, get_current_active_user, require_admin
 from ..database import get_db
+from ..models import OrganizationMember, OrganizationRole
 from ..models import Session as UserSession
-from ..models import User, UserRole, OrganizationMember, OrganizationRole
-import logging
+from ..models import User, UserRole
 
 logger = logging.getLogger(__name__)
 from ..schemas import (
@@ -57,25 +58,23 @@ async def list_users(
         )
 
         organizations = [
-            {
-                "id": org.id,
-                "name": org.name,
-                "role": member.role
-            }
+            {"id": org.id, "name": org.name, "role": member.role}
             for member, org in memberships
         ]
 
-        result.append({
-            "id": user.id,
-            "email": user.email,
-            "username": user.username,
-            "full_name": user.full_name,
-            "role": user.role.value if hasattr(user.role, 'value') else user.role,
-            "is_active": user.is_active,
-            "is_verified": user.is_verified,
-            "created_at": user.created_at.isoformat() if user.created_at else None,
-            "organizations": organizations
-        })
+        result.append(
+            {
+                "id": user.id,
+                "email": user.email,
+                "username": user.username,
+                "full_name": user.full_name,
+                "role": user.role.value if hasattr(user.role, "value") else user.role,
+                "is_active": user.is_active,
+                "is_verified": user.is_verified,
+                "created_at": user.created_at.isoformat() if user.created_at else None,
+                "organizations": organizations,
+            }
+        )
 
     return result
 
@@ -152,17 +151,20 @@ async def create_user(
     if admin_org_member:
         # Add new user to the same organization as the admin
         from datetime import datetime
+
         new_member = OrganizationMember(
             id=str(uuid.uuid4()),
             user_id=user.id,
             organization_id=admin_org_member.organization_id,
             role=OrganizationRole.EMPLOYEE.value,  # New users are members by default
             is_active=True,
-            joined_at=datetime.utcnow()
+            joined_at=datetime.utcnow(),
         )
         db.add(new_member)
         db.commit()
-        logger.info(f"Added user {user.username} to organization {admin_org_member.organization_id}")
+        logger.info(
+            f"Added user {user.username} to organization {admin_org_member.organization_id}"
+        )
 
     # Log audit event
     AuthService.log_audit(

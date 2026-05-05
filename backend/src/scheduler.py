@@ -99,6 +99,7 @@ class RecurringExpenseScheduler:
         logger.info(f"Triggering monthly auto-approval summaries for previous month")
         try:
             from src.services.monthly_summary_service import send_all_monthly_summaries
+
             result = await send_all_monthly_summaries()
             logger.info(f"Monthly summaries result: {result}")
         except Exception as e:
@@ -172,16 +173,24 @@ class RecurringExpenseScheduler:
 
                 # Run auto-approval (same logic as manual expenses)
                 try:
-                    from src.services.auto_approval_service import evaluate_auto_approval, notify_admins_new_expense
+                    from src.services.auto_approval_service import (
+                        evaluate_auto_approval,
+                        notify_admins_new_expense,
+                    )
+
                     user = db.query(User).filter(User.id == template.user_id).first()
                     if user:
                         approval_result = await evaluate_auto_approval(
                             db, expense, user, template.organization_id
                         )
                         if not approval_result.approved:
-                            notify_admins_new_expense(db, expense, user, template.organization_id)
+                            notify_admins_new_expense(
+                                db, expense, user, template.organization_id
+                            )
                 except Exception as e:
-                    logger.error(f"Auto-approval check failed for scheduled expense: {e}")
+                    logger.error(
+                        f"Auto-approval check failed for scheduled expense: {e}"
+                    )
 
                 # Update template statistics
                 template.total_submitted += 1

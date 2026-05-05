@@ -12,12 +12,12 @@ from typing import Optional
 
 from .config import settings
 from .email_templates import (
+    get_auto_approved_email,
+    get_budget_alert_email,
     get_expense_approved_email,
     get_expense_rejected_email,
-    get_pending_approval_email,
-    get_budget_alert_email,
-    get_auto_approved_email,
     get_monthly_auto_approval_summary_email,
+    get_pending_approval_email,
 )
 
 logger = logging.getLogger(__name__)
@@ -597,7 +597,10 @@ class EmailService:
 
     @staticmethod
     async def send_budget_alert_email(
-        to_email: str, budget_data: dict, current_spending: float, threshold_percent: int
+        to_email: str,
+        budget_data: dict,
+        current_spending: float,
+        threshold_percent: int,
     ) -> bool:
         """Send budget alert notification email"""
         subject, html_body, text_body = get_budget_alert_email(

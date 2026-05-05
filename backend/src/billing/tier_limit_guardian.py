@@ -12,12 +12,13 @@ This module provides runtime protection for tier limits:
 import hashlib
 import json
 import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.orm import Session
 
-from ..models_billing import BillingTier
 from ..database import SessionLocal
+from ..models_billing import BillingTier
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ OFFICIAL_TIER_LIMITS = {
 
 class TierLimitTamperError(Exception):
     """Raised when tier limits have been tampered with"""
+
     pass
 
 
@@ -120,9 +122,9 @@ class TierLimitGuardian:
         violations = []
 
         for tier_name, official_limits in OFFICIAL_TIER_LIMITS.items():
-            tier = db.query(BillingTier).filter(
-                BillingTier.tier_name == tier_name
-            ).first()
+            tier = (
+                db.query(BillingTier).filter(BillingTier.tier_name == tier_name).first()
+            )
 
             if not tier:
                 violation = {
@@ -174,18 +176,18 @@ class TierLimitGuardian:
             self._verification_failures = violations
 
             # Log detailed violation report
-            logger.critical("="*60)
+            logger.critical("=" * 60)
             logger.critical("TIER LIMIT TAMPERING DETECTED")
-            logger.critical("="*60)
+            logger.critical("=" * 60)
             for violation in violations:
                 logger.critical(json.dumps(violation, indent=2))
-            logger.critical("="*60)
+            logger.critical("=" * 60)
             logger.critical("IMMEDIATE ACTION REQUIRED:")
             logger.critical("1. Investigate who modified tier limits")
             logger.critical("2. Run: python backend/seed_billing_tiers.py --force")
             logger.critical("3. Review audit logs in tier_limit_audit table")
             logger.critical("4. Notify security team")
-            logger.critical("="*60)
+            logger.critical("=" * 60)
 
             # Raise exception to prevent application from starting
             raise TierLimitTamperError(
@@ -218,8 +220,10 @@ class TierLimitGuardian:
             raise ValueError(f"Unknown tier: {tier_name}")
 
         # Verify limits on first access or if cache is stale
-        if not self._last_verification or \
-           (datetime.utcnow() - self._last_verification).total_seconds() > 3600:
+        if (
+            not self._last_verification
+            or (datetime.utcnow() - self._last_verification).total_seconds() > 3600
+        ):
             self.verify_tier_limits(db)
 
         # Return copy to prevent modification
@@ -249,10 +253,7 @@ class TierLimitGuardian:
             Dictionary of all tier limits
         """
         # Return deep copy to prevent modification
-        return {
-            tier: limits.copy()
-            for tier, limits in OFFICIAL_TIER_LIMITS.items()
-        }
+        return {tier: limits.copy() for tier, limits in OFFICIAL_TIER_LIMITS.items()}
 
     def get_verification_status(self) -> Dict[str, Any]:
         """
@@ -262,7 +263,9 @@ class TierLimitGuardian:
             Dictionary with verification status
         """
         return {
-            "last_verification": self._last_verification.isoformat() if self._last_verification else None,
+            "last_verification": (
+                self._last_verification.isoformat() if self._last_verification else None
+            ),
             "failures": self._verification_failures,
             "is_healthy": len(self._verification_failures) == 0,
         }
@@ -317,9 +320,13 @@ def verify_tier_limits_on_startup():
 
     try:
         guardian.verify_tier_limits(db)
-        logger.info("[PASS] Tier limits verification passed - application startup allowed")
+        logger.info(
+            "[PASS] Tier limits verification passed - application startup allowed"
+        )
     except TierLimitTamperError as e:
-        logger.critical(f"[FAIL] Tier limits verification FAILED - application startup BLOCKED")
+        logger.critical(
+            f"[FAIL] Tier limits verification FAILED - application startup BLOCKED"
+        )
         logger.critical(f"Error: {e}")
         raise
     finally:
@@ -328,9 +335,9 @@ def verify_tier_limits_on_startup():
 
 # Expose for easy imports
 __all__ = [
-    'TierLimitGuardian',
-    'TierLimitTamperError',
-    'get_tier_limit_guardian',
-    'verify_tier_limits_on_startup',
-    'OFFICIAL_TIER_LIMITS',
+    "TierLimitGuardian",
+    "TierLimitTamperError",
+    "get_tier_limit_guardian",
+    "verify_tier_limits_on_startup",
+    "OFFICIAL_TIER_LIMITS",
 ]

@@ -3,17 +3,22 @@ Notification API routes
 Handles notification creation, retrieval, and management
 """
 
+import uuid
 from datetime import datetime, timedelta
 from typing import Optional
-import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_active_user
 from ..database import get_db
-from ..models import User, Notification, NotificationType, OrganizationMember, OrganizationRole
-from fastapi import Request
+from ..models import (
+    Notification,
+    NotificationType,
+    OrganizationMember,
+    OrganizationRole,
+    User,
+)
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
@@ -34,11 +39,7 @@ async def get_notifications(
         query = query.filter(Notification.is_read == False)
 
     # Order by most recent first
-    notifications = (
-        query.order_by(Notification.created_at.desc())
-        .limit(limit)
-        .all()
-    )
+    notifications = query.order_by(Notification.created_at.desc()).limit(limit).all()
 
     # Get unread count
     unread_count = (
@@ -91,8 +92,7 @@ async def mark_notification_read(
 
     if not notification:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notification not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found"
         )
 
     if not notification.is_read:
@@ -141,8 +141,7 @@ async def delete_notification(
 
     if not notification:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notification not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found"
         )
 
     db.delete(notification)
@@ -171,7 +170,10 @@ async def send_batch_expense_notification(
         # Try to find user's org
         member = (
             db.query(OrganizationMember)
-            .filter(OrganizationMember.user_id == current_user.id, OrganizationMember.is_active == True)
+            .filter(
+                OrganizationMember.user_id == current_user.id,
+                OrganizationMember.is_active == True,
+            )
             .first()
         )
         org_id = member.organization_id if member else None
@@ -183,7 +185,9 @@ async def send_batch_expense_notification(
         db.query(OrganizationMember)
         .filter(
             OrganizationMember.organization_id == org_id,
-            OrganizationMember.role.in_([OrganizationRole.OWNER.value, OrganizationRole.ADMIN.value]),
+            OrganizationMember.role.in_(
+                [OrganizationRole.OWNER.value, OrganizationRole.ADMIN.value]
+            ),
             OrganizationMember.is_active == True,
         )
         .all()

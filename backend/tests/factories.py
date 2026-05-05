@@ -21,7 +21,6 @@ from src.models import (
     UserRole,
 )
 
-
 # ============================================================================
 # User Factories
 # ============================================================================
@@ -35,7 +34,7 @@ def create_user(
     password: str = "TestPass123!",
     is_active: bool = True,
     is_verified: bool = True,
-    **kwargs
+    **kwargs,
 ) -> User:
     """
     Create a test user with specified attributes.
@@ -84,7 +83,9 @@ def create_employee(db_session, **kwargs) -> User:
 
 def create_manager(db_session, department_id: str = "sales", **kwargs) -> User:
     """Create a MANAGER role user with department"""
-    return create_user(db_session, role=UserRole.MANAGER, department_id=department_id, **kwargs)
+    return create_user(
+        db_session, role=UserRole.MANAGER, department_id=department_id, **kwargs
+    )
 
 
 # TEMPORARILY DISABLED — ACCOUNTANT role disconnected
@@ -108,7 +109,7 @@ def create_organization(
     name: Optional[str] = None,
     slug: Optional[str] = None,
     is_active: bool = True,
-    **kwargs
+    **kwargs,
 ) -> Organization:
     """
     Create a test organization.
@@ -149,7 +150,7 @@ def add_user_to_organization(
     user: User,
     organization: Organization,
     role: OrganizationRole = OrganizationRole.EMPLOYEE,
-    is_active: bool = True
+    is_active: bool = True,
 ) -> OrganizationMember:
     """
     Add a user to an organization with a specific role.
@@ -178,10 +179,7 @@ def add_user_to_organization(
 
 
 def create_organization_with_owner(
-    db_session,
-    owner: Optional[User] = None,
-    org_name: Optional[str] = None,
-    **kwargs
+    db_session, owner: Optional[User] = None, org_name: Optional[str] = None, **kwargs
 ) -> tuple[Organization, User]:
     """
     Create an organization with an owner user.
@@ -219,7 +217,7 @@ def create_expense(
     amount: float = 100.0,
     status: ExpenseStatus = ExpenseStatus.PENDING,
     category: ExpenseCategory = ExpenseCategory.MEALS,
-    **kwargs
+    **kwargs,
 ) -> Expense:
     """
     Create a test expense.
@@ -257,19 +255,31 @@ def create_expense(
     return expense
 
 
-def create_pending_expense(db_session, user: User, organization: Organization, amount: float = 100.0, **kwargs) -> Expense:
+def create_pending_expense(
+    db_session, user: User, organization: Organization, amount: float = 100.0, **kwargs
+) -> Expense:
     """Create a PENDING expense"""
-    return create_expense(db_session, user, organization, amount, ExpenseStatus.PENDING, **kwargs)
+    return create_expense(
+        db_session, user, organization, amount, ExpenseStatus.PENDING, **kwargs
+    )
 
 
-def create_approved_expense(db_session, user: User, organization: Organization, amount: float = 100.0, **kwargs) -> Expense:
+def create_approved_expense(
+    db_session, user: User, organization: Organization, amount: float = 100.0, **kwargs
+) -> Expense:
     """Create an APPROVED expense"""
-    return create_expense(db_session, user, organization, amount, ExpenseStatus.APPROVED, **kwargs)
+    return create_expense(
+        db_session, user, organization, amount, ExpenseStatus.APPROVED, **kwargs
+    )
 
 
-def create_rejected_expense(db_session, user: User, organization: Organization, amount: float = 100.0, **kwargs) -> Expense:
+def create_rejected_expense(
+    db_session, user: User, organization: Organization, amount: float = 100.0, **kwargs
+) -> Expense:
     """Create a REJECTED expense"""
-    return create_expense(db_session, user, organization, amount, ExpenseStatus.REJECTED, **kwargs)
+    return create_expense(
+        db_session, user, organization, amount, ExpenseStatus.REJECTED, **kwargs
+    )
 
 
 # ============================================================================
@@ -277,9 +287,7 @@ def create_rejected_expense(db_session, user: User, organization: Organization, 
 # ============================================================================
 
 
-def create_multi_tenant_scenario(
-    db_session
-) -> dict:
+def create_multi_tenant_scenario(db_session) -> dict:
     """
     Create a complete multi-tenant test scenario with 2 organizations.
 
@@ -311,21 +319,18 @@ def create_multi_tenant_scenario(
     db_session.commit()
 
     return {
-        'org1': org1,
-        'org1_owner': org1_owner,
-        'org1_admin': org1_admin,
-        'org1_employee': org1_employee,
-        'org1_expense': org1_expense,
-        'org2': org2,
-        'org2_owner': org2_owner,
-        'org2_expense': org2_expense,
+        "org1": org1,
+        "org1_owner": org1_owner,
+        "org1_admin": org1_admin,
+        "org1_employee": org1_employee,
+        "org1_expense": org1_expense,
+        "org2": org2,
+        "org2_owner": org2_owner,
+        "org2_expense": org2_expense,
     }
 
 
-def create_manager_approval_scenario(
-    db_session,
-    department: str = "sales"
-) -> dict:
+def create_manager_approval_scenario(db_session, department: str = "sales") -> dict:
     """
     Create a scenario for testing manager approval workflows.
 
@@ -351,23 +356,31 @@ def create_manager_approval_scenario(
 
     # Employee in same department
     employee_same_dept = create_employee(db_session, department_id=department)
-    add_user_to_organization(db_session, employee_same_dept, org, OrganizationRole.EMPLOYEE)
+    add_user_to_organization(
+        db_session, employee_same_dept, org, OrganizationRole.EMPLOYEE
+    )
 
     # Employee in different department
     employee_other_dept = create_employee(db_session, department_id="engineering")
-    add_user_to_organization(db_session, employee_other_dept, org, OrganizationRole.EMPLOYEE)
+    add_user_to_organization(
+        db_session, employee_other_dept, org, OrganizationRole.EMPLOYEE
+    )
 
     # Expenses with different amounts
-    expense_under_5k = create_pending_expense(db_session, employee_same_dept, org, amount=3000.0)
-    expense_over_5k = create_pending_expense(db_session, employee_same_dept, org, amount=10000.0)
+    expense_under_5k = create_pending_expense(
+        db_session, employee_same_dept, org, amount=3000.0
+    )
+    expense_over_5k = create_pending_expense(
+        db_session, employee_same_dept, org, amount=10000.0
+    )
 
     db_session.commit()
 
     return {
-        'org': org,
-        'manager': manager,
-        'employee_same_dept': employee_same_dept,
-        'employee_other_dept': employee_other_dept,
-        'expense_under_5k': expense_under_5k,
-        'expense_over_5k': expense_over_5k,
+        "org": org,
+        "manager": manager,
+        "employee_same_dept": employee_same_dept,
+        "employee_other_dept": employee_other_dept,
+        "expense_under_5k": expense_under_5k,
+        "expense_over_5k": expense_over_5k,
     }

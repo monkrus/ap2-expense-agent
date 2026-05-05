@@ -92,7 +92,15 @@ async def export_user_data(
                 "vendor": expense.vendor,
                 "description": expense.description,
                 "date": expense.date.isoformat() if expense.date else None,
-                "status": (expense.status.value.lower() if expense.status and hasattr(expense.status, 'value') else str(expense.status).lower()) if expense.status else None,
+                "status": (
+                    (
+                        expense.status.value.lower()
+                        if expense.status and hasattr(expense.status, "value")
+                        else str(expense.status).lower()
+                    )
+                    if expense.status
+                    else None
+                ),
                 "submitted_at": (
                     expense.created_at.isoformat() if expense.created_at else None
                 ),

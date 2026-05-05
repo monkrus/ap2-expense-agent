@@ -101,7 +101,12 @@ def get_user_organizations(user_id: str, db: Session) -> list:
             "is_active": org.is_active,
             "created_at": org.created_at,
             "role": next(
-                (m.role.value if hasattr(m.role, 'value') else m.role for m in memberships if m.organization_id == org.id), None
+                (
+                    m.role.value if hasattr(m.role, "value") else m.role
+                    for m in memberships
+                    if m.organization_id == org.id
+                ),
+                None,
             ),
         }
         for org in organizations
@@ -122,7 +127,11 @@ def get_user_organization_role(
         .first()
     )
 
-    return membership.role.value if membership and hasattr(membership.role, 'value') else (membership.role if membership else None)
+    return (
+        membership.role.value
+        if membership and hasattr(membership.role, "value")
+        else (membership.role if membership else None)
+    )
 
 
 def verify_organization_access(user_id: str, organization_id: str, db: Session) -> bool:

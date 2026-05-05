@@ -90,7 +90,9 @@ class Settings(BaseSettings):
     frontend_url: Optional[str] = "http://localhost:5173"
 
     # CORS
-    cors_origins: str = "http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost,http://127.0.0.1:5173,http://127.0.0.1:5174"
+    cors_origins: str = (
+        "http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost,http://127.0.0.1:5173,http://127.0.0.1:5174"
+    )
 
     # Environment
     environment: str = "development"

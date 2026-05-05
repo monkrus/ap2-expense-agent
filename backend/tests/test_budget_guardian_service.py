@@ -8,6 +8,7 @@ from decimal import Decimal
 
 import pytest
 
+from src.auth import AuthService
 from src.models import (
     Budget,
     BudgetAlert,
@@ -20,9 +21,7 @@ from src.models import (
     User,
     UserRole,
 )
-from src.auth import AuthService
 from src.services.budget_guardian_service import BudgetGuardianService
-
 
 # ============================================================================
 # Fixtures
@@ -187,7 +186,9 @@ class TestEvaluateExpense:
         assert result.allowed is True
         assert len(result.warnings) > 0
 
-    def test_evaluate_expense_returns_budget_impacts(self, db_session, org, user, service):
+    def test_evaluate_expense_returns_budget_impacts(
+        self, db_session, org, user, service
+    ):
         """Result should contain budget impact details."""
         _make_budget(db_session, org, amount=1000)
         _make_expense(db_session, org, user, amount=200)

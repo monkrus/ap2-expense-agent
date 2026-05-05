@@ -126,9 +126,9 @@ def _seed_default_org(db: Session, users: list) -> None:
         return
 
     # Check if org already exists
-    existing_org = db.query(Organization).filter(
-        Organization.name == DEFAULT_ORG_NAME
-    ).first()
+    existing_org = (
+        db.query(Organization).filter(Organization.name == DEFAULT_ORG_NAME).first()
+    )
 
     if not existing_org:
         org = Organization(
@@ -144,10 +144,14 @@ def _seed_default_org(db: Session, users: list) -> None:
 
     # Add each user to the org if not already a member
     for user in users:
-        existing_member = db.query(OrganizationMember).filter(
-            OrganizationMember.organization_id == org.id,
-            OrganizationMember.user_id == user.id,
-        ).first()
+        existing_member = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.organization_id == org.id,
+                OrganizationMember.user_id == user.id,
+            )
+            .first()
+        )
         if not existing_member:
             if user.username in ("adminfree", "admintest"):
                 role = OrganizationRole.OWNER
@@ -181,12 +185,15 @@ def ensure_default_users_exist(db: Session) -> None:
     - In DEVELOPMENT/TESTING, it creates a default admin for convenience.
     """
     import os
+
     from .config import settings
 
     # Skip default user creation in production or when explicitly disabled
     # This ensures first registered user becomes admin (marketplace safeguard)
     is_production = settings.environment == "production"
-    disable_default_admin = os.getenv("DISABLE_DEFAULT_ADMIN", "false").lower() == "true"
+    disable_default_admin = (
+        os.getenv("DISABLE_DEFAULT_ADMIN", "false").lower() == "true"
+    )
 
     if is_production or disable_default_admin:
         print("[SEED] Skipping default admin creation (production/marketplace mode)")

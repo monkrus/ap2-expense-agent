@@ -17,11 +17,12 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi import status as http_status
-from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session, selectinload
 
 from ..auth import get_current_active_user
 from ..database import get_db
+from ..email_service import EmailService
 from ..models import (
     Expense,
     ExpenseComment,
@@ -30,21 +31,20 @@ from ..models import (
     NotificationType,
     Organization,
     OrganizationMember,
+    OrganizationRole,
     PaymentMandate,
     RuleRequest,
     RuleRequestStatus,
     User,
     UserRole,
-    OrganizationRole,
 )
+from ..permissions import can_approve_expense
 from ..schemas import ExpenseSubmission, ExpenseUpdate
 from ..tenant_context import (
     TenantContext,
-    verify_organization_access,
     get_user_organization_role,
+    verify_organization_access,
 )
-from ..permissions import can_approve_expense
-from ..email_service import EmailService
 
 router = APIRouter(prefix="/api/v1/expenses", tags=["expenses"])
 logger = logging.getLogger(__name__)
@@ -54,16 +54,19 @@ logger = logging.getLogger(__name__)
 # SECURITY HELPER FUNCTIONS
 # ============================================================================
 
+
 def ensure_org_access(user_id: str, org_id: str, db: Session):
     """Verify user has access to organization, raise 403 if not"""
     if not verify_organization_access(user_id, org_id, db):
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
-            detail="You do not have access to this organization"
+            detail="You do not have access to this organization",
         )
 
 
-def ensure_expense_access(expense_id: str, user: User, org_id: str, db: Session) -> Expense:
+def ensure_expense_access(
+    expense_id: str, user: User, org_id: str, db: Session
+) -> Expense:
     """
     Verify user can access specific expense
     Returns expense if authorized, raises 403/404 otherwise
@@ -72,15 +75,15 @@ def ensure_expense_access(expense_id: str, user: User, org_id: str, db: Session)
     ensure_org_access(user.id, org_id, db)
 
     # Get expense
-    expense = db.query(Expense).filter(
-        Expense.id == expense_id,
-        Expense.organization_id == org_id
-    ).first()
+    expense = (
+        db.query(Expense)
+        .filter(Expense.id == expense_id, Expense.organization_id == org_id)
+        .first()
+    )
 
     if not expense:
         raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail="Expense not found"
+            status_code=http_status.HTTP_404_NOT_FOUND, detail="Expense not found"
         )
 
     # Check role-based access
@@ -106,13 +109,15 @@ def ensure_expense_access(expense_id: str, user: User, org_id: str, db: Session)
     if expense.user_id != user.id:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
-            detail="You can only access your own expenses"
+            detail="You can only access your own expenses",
         )
 
     return expense
 
 
-def can_modify_expense(expense: Expense, user: User, org_id: str, db: Session, action: str = "edit") -> bool:
+def can_modify_expense(
+    expense: Expense, user: User, org_id: str, db: Session, action: str = "edit"
+) -> bool:
     """Check if user can modify expense.
 
     action='edit' enforces strict locking on approved/rejected expenses.
@@ -148,6 +153,7 @@ def can_modify_expense(expense: Expense, user: User, org_id: str, db: Session, a
 # EXPENSE CRUD ENDPOINTS
 # ============================================================================
 
+
 @router.post("", status_code=http_status.HTTP_201_CREATED)
 async def create_expense(
     data: ExpenseSubmission,
@@ -166,7 +172,7 @@ async def create_expense(
     if not org_id:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required (X-Organization-Id header missing)"
+            detail="Organization context required (X-Organization-Id header missing)",
         )
 
     # Verify organization access (CRITICAL SECURITY CHECK)
@@ -174,13 +180,13 @@ async def create_expense(
 
     # Check tier limits (BILLING ENFORCEMENT)
     from ..billing.limit_enforcer import LimitEnforcer, LimitExceededError
+
     try:
         limit_enforcer = LimitEnforcer(db)
         limit_enforcer.check_expense_limit(org_id, raise_error=True)
     except LimitExceededError as e:
         raise HTTPException(
-            status_code=http_status.HTTP_402_PAYMENT_REQUIRED,
-            detail=str(e)
+            status_code=http_status.HTTP_402_PAYMENT_REQUIRED, detail=str(e)
         )
 
     # =====================================================================
@@ -189,36 +195,29 @@ async def create_expense(
 
     # Validate expense amount
     if data.amount <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Expense amount must be positive"
-        )
+        raise HTTPException(status_code=400, detail="Expense amount must be positive")
 
     # Maximum amount validation (prevent unrealistic expenses)
     MAX_EXPENSE_AMOUNT = 100000.00  # $100,000
     if data.amount > MAX_EXPENSE_AMOUNT:
         raise HTTPException(
             status_code=400,
-            detail=f"Expense amount cannot exceed ${MAX_EXPENSE_AMOUNT:,.2f}. Please contact admin for special approval."
+            detail=f"Expense amount cannot exceed ${MAX_EXPENSE_AMOUNT:,.2f}. Please contact admin for special approval.",
         )
 
     # Decimal precision validation (currency should have max 2 decimal places)
     if round(data.amount, 2) != data.amount:
         raise HTTPException(
-            status_code=400,
-            detail="Expense amount must have at most 2 decimal places"
+            status_code=400, detail="Expense amount must have at most 2 decimal places"
         )
 
     # Parse and validate expense date
-    expense_date = (
-        datetime.fromisoformat(data.date) if data.date else datetime.utcnow()
-    )
+    expense_date = datetime.fromisoformat(data.date) if data.date else datetime.utcnow()
 
     # Date validation: cannot be in the future
     if expense_date > datetime.utcnow():
         raise HTTPException(
-            status_code=400,
-            detail="Expense date cannot be in the future"
+            status_code=400, detail="Expense date cannot be in the future"
         )
 
     # Date validation: cannot be too old (more than 1 year)
@@ -226,21 +225,19 @@ async def create_expense(
     if expense_date < one_year_ago:
         raise HTTPException(
             status_code=400,
-            detail="Expense date cannot be older than 1 year. Please contact admin if you need to submit an older expense."
+            detail="Expense date cannot be older than 1 year. Please contact admin if you need to submit an older expense.",
         )
 
     # Vendor validation
     if data.vendor and len(data.vendor) > 200:
         raise HTTPException(
-            status_code=400,
-            detail="Vendor name cannot exceed 200 characters"
+            status_code=400, detail="Vendor name cannot exceed 200 characters"
         )
 
     # Description validation
     if data.description and len(data.description) > 1000:
         raise HTTPException(
-            status_code=400,
-            detail="Description cannot exceed 1000 characters"
+            status_code=400, detail="Description cannot exceed 1000 characters"
         )
 
     # =====================================================================
@@ -249,19 +246,24 @@ async def create_expense(
     # Check if an identical expense was submitted in the last 10 seconds
     # This prevents accidental duplicate submissions from button double-clicks
     from datetime import timedelta
+
     duplicate_window = datetime.utcnow() - timedelta(seconds=10)
 
-    recent_duplicate = db.query(Expense).filter(
-        and_(
-            Expense.user_id == current_user.id,
-            Expense.organization_id == org_id,
-            Expense.amount == data.amount,
-            Expense.vendor == data.vendor,
-            Expense.category == data.category,
-            Expense.description == data.description,
-            Expense.created_at >= duplicate_window
+    recent_duplicate = (
+        db.query(Expense)
+        .filter(
+            and_(
+                Expense.user_id == current_user.id,
+                Expense.organization_id == org_id,
+                Expense.amount == data.amount,
+                Expense.vendor == data.vendor,
+                Expense.category == data.category,
+                Expense.description == data.description,
+                Expense.created_at >= duplicate_window,
+            )
         )
-    ).first()
+        .first()
+    )
 
     if recent_duplicate:
         logger.warning(
@@ -271,7 +273,7 @@ async def create_expense(
         )
         raise HTTPException(
             status_code=http_status.HTTP_409_CONFLICT,
-            detail=f"Duplicate submission detected. An identical expense was just submitted {int((datetime.utcnow() - recent_duplicate.created_at).total_seconds())} seconds ago. Please wait before submitting again."
+            detail=f"Duplicate submission detected. An identical expense was just submitted {int((datetime.utcnow() - recent_duplicate.created_at).total_seconds())} seconds ago. Please wait before submitting again.",
         )
 
     # =====================================================================
@@ -282,7 +284,11 @@ async def create_expense(
         from ..services.budget_guardian_service import BudgetGuardianService
 
         guardian = BudgetGuardianService(db)
-        category_value = data.category.value if hasattr(data.category, 'value') else str(data.category)
+        category_value = (
+            data.category.value
+            if hasattr(data.category, "value")
+            else str(data.category)
+        )
         guardian_result = guardian.evaluate_expense(
             expense_amount=data.amount,
             organization_id=org_id,
@@ -308,7 +314,7 @@ async def create_expense(
                         }
                         for i in guardian_result.budget_impacts
                     ],
-                }
+                },
             )
     except HTTPException:
         raise
@@ -341,13 +347,17 @@ async def create_expense(
     # AUTO-APPROVAL EVALUATION (TWO-TIER HIERARCHY)
     # Uses shared service: Tier 1 AP2 Intent Mandates, Tier 2 Approval Policies
     # =====================================================================
-    from ..services.auto_approval_service import evaluate_auto_approval, notify_admins_new_expense
+    from ..services.auto_approval_service import (
+        evaluate_auto_approval,
+        notify_admins_new_expense,
+    )
 
     approval_result = await evaluate_auto_approval(db, expense, current_user, org_id)
 
     # Track expense submission for billing
     try:
         from ..billing.usage_tracker import UsageTracker
+
         tracker = UsageTracker(db)
         metadata = {"expense_id": expense.id, "amount": float(expense.amount)}
         if approval_result.approved:
@@ -376,7 +386,9 @@ async def create_expense(
             "description": expense.description,
             "status": expense.status.value.lower(),
             "date": expense.date.isoformat() if expense.date else None,
-            "created_at": expense.created_at.isoformat() if expense.created_at else None,
+            "created_at": (
+                expense.created_at.isoformat() if expense.created_at else None
+            ),
             "auto_approved": True,
             "auto_approved_via": approval_result.via,
             "message": approval_result.message,
@@ -400,7 +412,7 @@ async def create_expense(
         "date": expense.date.isoformat() if expense.date else None,
         "created_at": expense.created_at.isoformat() if expense.created_at else None,
         "auto_approved": False,
-        "message": "Expense submitted for manual approval"
+        "message": "Expense submitted for manual approval",
     }
     if budget_warnings:
         response["budget_warnings"] = budget_warnings
@@ -429,14 +441,16 @@ async def list_expenses(
     if not org_id:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required"
+            detail="Organization context required",
         )
 
     # Verify organization access (CRITICAL SECURITY CHECK)
     ensure_org_access(current_user.id, org_id, db)
 
     # Base query — exclude archived expenses (they have their own admin endpoint)
-    query = db.query(Expense).filter(Expense.organization_id == org_id, Expense.is_archived == False)
+    query = db.query(Expense).filter(
+        Expense.organization_id == org_id, Expense.is_archived == False
+    )
 
     # Apply status filter — accept both ?status= and ?status_filter= param names
     effective_status = status or status_filter
@@ -450,6 +464,7 @@ async def list_expenses(
     # Apply category filter
     if category:
         from ..models import ExpenseCategory
+
         try:
             category_enum = ExpenseCategory[category.upper()]
             query = query.filter(Expense.category == category_enum)
@@ -466,9 +481,12 @@ async def list_expenses(
     elif user_org_role == "manager":
         # Managers see their own + department expenses
         if current_user.department_id:
-            dept_user_ids = [u.id for u in db.query(User.id).filter(
-                User.department_id == current_user.department_id
-            ).all()]
+            dept_user_ids = [
+                u.id
+                for u in db.query(User.id)
+                .filter(User.department_id == current_user.department_id)
+                .all()
+            ]
             query = query.filter(Expense.user_id.in_(dept_user_ids))
         else:
             # No department set — see only own expenses
@@ -490,31 +508,41 @@ async def list_expenses(
 
         # Resolve display name: prefer full_name, fall back to username, then email
         if expense_owner:
-            display_name = expense_owner.full_name or expense_owner.username or expense_owner.email
+            display_name = (
+                expense_owner.full_name or expense_owner.username or expense_owner.email
+            )
         else:
             display_name = "Unknown User"
 
-        expense_list.append({
-            "id": e.id,
-            "amount": e.amount,
-            "vendor": e.vendor,
-            "category": e.category,
-            "description": e.description,
-            "status": (e.status.value.lower() if hasattr(e.status, 'value') else str(e.status).lower()),
-            "date": e.date.isoformat() if e.date else None,
-            "user_id": e.user_id,
-            "user_name": display_name,
-            "user_email": expense_owner.email if expense_owner else "unknown@example.com",
-            "created_at": e.created_at.isoformat() if e.created_at else None,
-            "updated_at": e.updated_at.isoformat() if e.updated_at else None,
-            "approved_by": e.approved_by,
-            "approved_by_name": approver.full_name if approver else None,
-            "approved_at": e.approved_at.isoformat() if e.approved_at else None,
-            "transaction_id": e.transaction_id,
-            "rejection_reason": e.rejection_reason,
-            "auto_approved": e.auto_approved,
-            "auto_approved_via": e.auto_approved_via,
-        })
+        expense_list.append(
+            {
+                "id": e.id,
+                "amount": e.amount,
+                "vendor": e.vendor,
+                "category": e.category,
+                "description": e.description,
+                "status": (
+                    e.status.value.lower()
+                    if hasattr(e.status, "value")
+                    else str(e.status).lower()
+                ),
+                "date": e.date.isoformat() if e.date else None,
+                "user_id": e.user_id,
+                "user_name": display_name,
+                "user_email": (
+                    expense_owner.email if expense_owner else "unknown@example.com"
+                ),
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+                "updated_at": e.updated_at.isoformat() if e.updated_at else None,
+                "approved_by": e.approved_by,
+                "approved_by_name": approver.full_name if approver else None,
+                "approved_at": e.approved_at.isoformat() if e.approved_at else None,
+                "transaction_id": e.transaction_id,
+                "rejection_reason": e.rejection_reason,
+                "auto_approved": e.auto_approved,
+                "auto_approved_via": e.auto_approved_via,
+            }
+        )
 
     # Return expenses as direct list (API contract)
     return expense_list
@@ -546,8 +574,7 @@ async def get_expense_report(
         user_org_role = get_user_organization_role(current_user.id, org_id, db)
         can_view_others = (
             user_org_role in ["owner", "admin", "manager"]
-            or current_user.role
-            == UserRole.ADMIN
+            or current_user.role == UserRole.ADMIN
         )
         if not can_view_others:
             raise HTTPException(
@@ -586,19 +613,25 @@ async def get_expense_report(
     pending_count = sum(
         1
         for expense in expenses
-        if (expense.status.value if hasattr(expense.status, "value") else expense.status)
+        if (
+            expense.status.value if hasattr(expense.status, "value") else expense.status
+        )
         == ExpenseStatus.PENDING.value
     )
     approved_count = sum(
         1
         for expense in expenses
-        if (expense.status.value if hasattr(expense.status, "value") else expense.status)
+        if (
+            expense.status.value if hasattr(expense.status, "value") else expense.status
+        )
         == ExpenseStatus.APPROVED.value
     )
     rejected_count = sum(
         1
         for expense in expenses
-        if (expense.status.value if hasattr(expense.status, "value") else expense.status)
+        if (
+            expense.status.value if hasattr(expense.status, "value") else expense.status
+        )
         == ExpenseStatus.REJECTED.value
     )
 
@@ -669,11 +702,15 @@ async def archive_expense(
 
     ensure_org_access(current_user.id, org_id, db)
 
-    expense = db.query(Expense).filter(
-        Expense.id == expense_id,
-        Expense.organization_id == org_id,
-        Expense.user_id == current_user.id,
-    ).first()
+    expense = (
+        db.query(Expense)
+        .filter(
+            Expense.id == expense_id,
+            Expense.organization_id == org_id,
+            Expense.user_id == current_user.id,
+        )
+        .first()
+    )
 
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -706,11 +743,15 @@ async def unarchive_expense(
 
     ensure_org_access(current_user.id, org_id, db)
 
-    expense = db.query(Expense).filter(
-        Expense.id == expense_id,
-        Expense.organization_id == org_id,
-        Expense.user_id == current_user.id,
-    ).first()
+    expense = (
+        db.query(Expense)
+        .filter(
+            Expense.id == expense_id,
+            Expense.organization_id == org_id,
+            Expense.user_id == current_user.id,
+        )
+        .first()
+    )
 
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -760,9 +801,15 @@ async def get_archived_expenses(
                 "user_id": e.user_id,
                 "amount": float(e.amount),
                 "vendor": e.vendor,
-                "category": e.category.value if hasattr(e.category, "value") else e.category,
+                "category": (
+                    e.category.value if hasattr(e.category, "value") else e.category
+                ),
                 "description": e.description,
-                "status": e.status.value.lower() if hasattr(e.status, "value") else str(e.status).lower(),
+                "status": (
+                    e.status.value.lower()
+                    if hasattr(e.status, "value")
+                    else str(e.status).lower()
+                ),
                 "date": e.date.isoformat() if e.date else None,
                 "transaction_id": e.transaction_id,
                 "created_at": e.created_at.isoformat() if e.created_at else None,
@@ -793,7 +840,8 @@ async def get_my_approval_stats(
     total = (
         db.query(func.count(Expense.id))
         .filter(Expense.organization_id == org_id, Expense.user_id == current_user.id)
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     # Auto-approved
@@ -804,7 +852,8 @@ async def get_my_approval_stats(
             Expense.user_id == current_user.id,
             Expense.auto_approved == True,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     # Auto-approved by method
@@ -816,7 +865,8 @@ async def get_my_approval_stats(
             Expense.auto_approved == True,
             Expense.auto_approved_via == "intent_mandate",
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     by_policy = (
@@ -827,7 +877,8 @@ async def get_my_approval_stats(
             Expense.auto_approved == True,
             Expense.auto_approved_via == "approval_policy",
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     # Manually reviewed (approved but not auto)
@@ -839,7 +890,8 @@ async def get_my_approval_stats(
             Expense.status == "approved",
             or_(Expense.auto_approved == False, Expense.auto_approved == None),
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     # Pending
@@ -850,7 +902,8 @@ async def get_my_approval_stats(
             Expense.user_id == current_user.id,
             Expense.status == "pending",
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     # Total amount auto-approved
@@ -861,7 +914,8 @@ async def get_my_approval_stats(
             Expense.user_id == current_user.id,
             Expense.auto_approved == True,
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     # Time saved estimate (3 min per auto-approved expense)
@@ -876,7 +930,9 @@ async def get_my_approval_stats(
         "pending": pending,
         "auto_approved_amount": float(auto_amount),
         "time_saved_minutes": time_saved_minutes,
-        "auto_rate_percent": round((auto_approved / total * 100), 1) if total > 0 else 0,
+        "auto_rate_percent": (
+            round((auto_approved / total * 100), 1) if total > 0 else 0
+        ),
     }
 
 
@@ -900,7 +956,9 @@ async def request_approval_rule(
     reason = body.get("reason", "")
 
     if not reason:
-        raise HTTPException(status_code=400, detail="Please provide a reason for your request")
+        raise HTTPException(
+            status_code=400, detail="Please provide a reason for your request"
+        )
 
     # Create RuleRequest record
     rule_request = RuleRequest(
@@ -921,7 +979,9 @@ async def request_approval_rule(
         .filter(
             OrganizationMember.organization_id == org_id,
             OrganizationMember.is_active == True,
-            OrganizationMember.role.in_([OrganizationRole.OWNER, OrganizationRole.ADMIN]),
+            OrganizationMember.role.in_(
+                [OrganizationRole.OWNER, OrganizationRole.ADMIN]
+            ),
         )
         .all()
     )
@@ -952,7 +1012,11 @@ async def request_approval_rule(
 
     db.commit()
 
-    return {"status": "ok", "message": "Request sent to your admin(s)", "request_id": rule_request.id}
+    return {
+        "status": "ok",
+        "message": "Request sent to your admin(s)",
+        "request_id": rule_request.id,
+    }
 
 
 @router.get("/rule-requests")
@@ -969,7 +1033,10 @@ async def list_rule_requests(
     ensure_org_access(current_user.id, org_id, db)
 
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
-    is_admin = current_user.role == UserRole.ADMIN or user_org_role in ["owner", "admin"]
+    is_admin = current_user.role == UserRole.ADMIN or user_org_role in [
+        "owner",
+        "admin",
+    ]
 
     query = db.query(RuleRequest).filter(RuleRequest.organization_id == org_id)
 
@@ -997,20 +1064,31 @@ async def approve_rule_request(
 
     # Check admin permission
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
-    is_admin = current_user.role == UserRole.ADMIN or user_org_role in ["owner", "admin"]
+    is_admin = current_user.role == UserRole.ADMIN or user_org_role in [
+        "owner",
+        "admin",
+    ]
     if not is_admin:
-        raise HTTPException(status_code=403, detail="Only admins can approve rule requests")
+        raise HTTPException(
+            status_code=403, detail="Only admins can approve rule requests"
+        )
 
-    rule_req = db.query(RuleRequest).filter(
-        RuleRequest.id == request_id,
-        RuleRequest.organization_id == org_id,
-    ).first()
+    rule_req = (
+        db.query(RuleRequest)
+        .filter(
+            RuleRequest.id == request_id,
+            RuleRequest.organization_id == org_id,
+        )
+        .first()
+    )
 
     if not rule_req:
         raise HTTPException(status_code=404, detail="Rule request not found")
 
     if rule_req.status != RuleRequestStatus.PENDING:
-        raise HTTPException(status_code=400, detail=f"Request already {rule_req.status}")
+        raise HTTPException(
+            status_code=400, detail=f"Request already {rule_req.status}"
+        )
 
     rule_req.status = RuleRequestStatus.APPROVED
     rule_req.reviewed_by = current_user.id
@@ -1051,20 +1129,31 @@ async def deny_rule_request(
 
     # Check admin permission
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
-    is_admin = current_user.role == UserRole.ADMIN or user_org_role in ["owner", "admin"]
+    is_admin = current_user.role == UserRole.ADMIN or user_org_role in [
+        "owner",
+        "admin",
+    ]
     if not is_admin:
-        raise HTTPException(status_code=403, detail="Only admins can deny rule requests")
+        raise HTTPException(
+            status_code=403, detail="Only admins can deny rule requests"
+        )
 
-    rule_req = db.query(RuleRequest).filter(
-        RuleRequest.id == request_id,
-        RuleRequest.organization_id == org_id,
-    ).first()
+    rule_req = (
+        db.query(RuleRequest)
+        .filter(
+            RuleRequest.id == request_id,
+            RuleRequest.organization_id == org_id,
+        )
+        .first()
+    )
 
     if not rule_req:
         raise HTTPException(status_code=404, detail="Rule request not found")
 
     if rule_req.status != RuleRequestStatus.PENDING:
-        raise HTTPException(status_code=400, detail=f"Request already {rule_req.status}")
+        raise HTTPException(
+            status_code=400, detail=f"Request already {rule_req.status}"
+        )
 
     body = await request.json()
     admin_note = body.get("note", "")
@@ -1112,16 +1201,18 @@ async def export_expenses(
     Args:
         format: Export format - 'pdf' or 'csv' (default: pdf)
     """
-    from fastapi.responses import StreamingResponse
-    from ..services.pdf_generator import PDFExpenseReportGenerator
     import io
+
+    from fastapi.responses import StreamingResponse
+
+    from ..services.pdf_generator import PDFExpenseReportGenerator
 
     org_id = request.headers.get("X-Organization-Id")
 
     if not org_id:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required"
+            detail="Organization context required",
         )
 
     # Verify organization access
@@ -1131,22 +1222,20 @@ async def export_expenses(
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
 
     can_export = (
-        user_org_role in ["owner", "admin"] or
-        current_user.role == UserRole.ADMIN
+        user_org_role in ["owner", "admin"] or current_user.role == UserRole.ADMIN
     )
 
     if not can_export:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to export expenses"
+            detail="You do not have permission to export expenses",
         )
 
     # Get organization details
     organization = db.query(Organization).filter(Organization.id == org_id).first()
     if not organization:
         raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail="Organization not found"
+            status_code=http_status.HTTP_404_NOT_FOUND, detail="Organization not found"
         )
 
     # Get all expenses for organization
@@ -1158,13 +1247,17 @@ async def export_expenses(
         expenses=expenses,
         organization=organization,
         generated_by=current_user,
-        format_type=format.lower()
+        format_type=format.lower(),
     )
 
     # Transition payment mandates to completed for exported approved expenses
     for exp in expenses:
         if exp.payment_mandate_id and exp.status == ExpenseStatus.APPROVED:
-            pm = db.query(PaymentMandate).filter(PaymentMandate.id == exp.payment_mandate_id).first()
+            pm = (
+                db.query(PaymentMandate)
+                .filter(PaymentMandate.id == exp.payment_mandate_id)
+                .first()
+            )
             if pm and pm.status == "pending":
                 pm.status = "completed"
                 pm.completed_at = datetime.utcnow()
@@ -1174,16 +1267,20 @@ async def export_expenses(
     # Determine content type and filename
     if format.lower() == "csv":
         content_type = "text/csv"
-        filename = f"expenses_{organization.slug}_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+        filename = (
+            f"expenses_{organization.slug}_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+        )
     else:
         content_type = "application/pdf"
-        filename = f"expenses_{organization.slug}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
+        filename = (
+            f"expenses_{organization.slug}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
+        )
 
     # Return file as streaming response
     return StreamingResponse(
         io.BytesIO(file_bytes),
         media_type=content_type,
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
@@ -1226,7 +1323,15 @@ async def get_expense_stats(
 
     expenses = query.all()
 
-    stats: dict = {"total": len(expenses), "count": len(expenses), "by_status": {}, "total_amount": 0.0, "by_status_amount": {}, "by_category": {}, "by_category_amount": {}}
+    stats: dict = {
+        "total": len(expenses),
+        "count": len(expenses),
+        "by_status": {},
+        "total_amount": 0.0,
+        "by_status_amount": {},
+        "by_category": {},
+        "by_category_amount": {},
+    }
     for exp in expenses:
         s = exp.status.value.lower() if exp.status else "unknown"
         stats["by_status"][s] = stats["by_status"].get(s, 0) + 1
@@ -1235,11 +1340,17 @@ async def get_expense_stats(
         stats["by_status_amount"][s] = stats["by_status_amount"].get(s, 0.0) + amount
         cat = exp.category if exp.category else "uncategorized"
         stats["by_category"][cat] = stats["by_category"].get(cat, 0) + 1
-        stats["by_category_amount"][cat] = stats["by_category_amount"].get(cat, 0.0) + amount
+        stats["by_category_amount"][cat] = (
+            stats["by_category_amount"].get(cat, 0.0) + amount
+        )
 
     stats["total_amount"] = round(stats["total_amount"], 2)
-    stats["by_status_amount"] = {k: round(v, 2) for k, v in stats["by_status_amount"].items()}
-    stats["by_category_amount"] = {k: round(v, 2) for k, v in stats["by_category_amount"].items()}
+    stats["by_status_amount"] = {
+        k: round(v, 2) for k, v in stats["by_status_amount"].items()
+    }
+    stats["by_category_amount"] = {
+        k: round(v, 2) for k, v in stats["by_category_amount"].items()
+    }
     return stats
 
 
@@ -1269,7 +1380,10 @@ async def bulk_approve_expenses(
     ensure_org_access(current_user.id, org_id, db)
 
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
-    if user_org_role not in ["owner", "admin", "manager"] and current_user.role != UserRole.ADMIN:
+    if (
+        user_org_role not in ["owner", "admin", "manager"]
+        and current_user.role != UserRole.ADMIN
+    ):
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to bulk approve expenses",
@@ -1297,25 +1411,52 @@ async def bulk_approve_expenses(
             continue
 
         if expense.status != ExpenseStatus.PENDING:
-            results.append({"id": expense_id, "status": "skipped", "detail": f"Already {expense.status.value.lower()}"})
+            results.append(
+                {
+                    "id": expense_id,
+                    "status": "skipped",
+                    "detail": f"Already {expense.status.value.lower()}",
+                }
+            )
             continue
 
         if expense.user_id == current_user.id and current_user.role != UserRole.ADMIN:
-            results.append({"id": expense_id, "status": "error", "detail": "Cannot approve own expense"})
+            results.append(
+                {
+                    "id": expense_id,
+                    "status": "error",
+                    "detail": "Cannot approve own expense",
+                }
+            )
             any_failure = True
             continue
 
         # Enforce manager approval limit
         if current_user.role == UserRole.MANAGER and expense.amount > 5000.00:
-            results.append({"id": expense_id, "status": "error", "detail": "Expenses over $5000 require admin approval"})
+            results.append(
+                {
+                    "id": expense_id,
+                    "status": "error",
+                    "detail": "Expenses over $5000 require admin approval",
+                }
+            )
             any_failure = True
             continue
 
         # Department check for managers
         if user_org_role == "manager" and current_user.department_id:
             expense_owner = db.query(User).filter(User.id == expense.user_id).first()
-            if expense_owner and expense_owner.department_id != current_user.department_id:
-                results.append({"id": expense_id, "status": "error", "detail": "Cannot approve expenses outside your department"})
+            if (
+                expense_owner
+                and expense_owner.department_id != current_user.department_id
+            ):
+                results.append(
+                    {
+                        "id": expense_id,
+                        "status": "error",
+                        "detail": "Cannot approve expenses outside your department",
+                    }
+                )
                 any_failure = True
                 continue
 
@@ -1328,12 +1469,17 @@ async def bulk_approve_expenses(
         db.commit()
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to commit bulk approval: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to commit bulk approval: {str(e)}"
+        )
 
     response_status = 207 if any_failure else 200
     return _JSONResponse(
         status_code=response_status,
-        content={"results": results, "approved": sum(1 for r in results if r["status"] == "approved")},
+        content={
+            "results": results,
+            "approved": sum(1 for r in results if r["status"] == "approved"),
+        },
     )
 
 
@@ -1371,7 +1517,7 @@ async def get_expense(
     if not org_id:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required"
+            detail="Organization context required",
         )
 
     # This function handles all security checks
@@ -1383,7 +1529,11 @@ async def get_expense(
         "vendor": expense.vendor,
         "category": expense.category,
         "description": expense.description,
-        "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else str(expense.status).lower()),
+        "status": (
+            expense.status.value.lower()
+            if hasattr(expense.status, "value")
+            else str(expense.status).lower()
+        ),
         "date": expense.date.isoformat() if expense.date else None,
         "user_id": expense.user_id,
         "organization_id": expense.organization_id,
@@ -1417,7 +1567,7 @@ async def update_expense(
     if not org_id:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required"
+            detail="Organization context required",
         )
 
     expense = ensure_expense_access(expense_id, current_user, org_id, db)
@@ -1426,7 +1576,7 @@ async def update_expense(
     if not can_modify_expense(expense, current_user, org_id, db):
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
-            detail="You cannot modify this expense"
+            detail="You cannot modify this expense",
         )
 
     # Update only provided fields (partial update)
@@ -1454,7 +1604,11 @@ async def update_expense(
         "vendor": expense.vendor,
         "category": expense.category,
         "description": expense.description,
-        "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else str(expense.status).lower()),
+        "status": (
+            expense.status.value.lower()
+            if hasattr(expense.status, "value")
+            else str(expense.status).lower()
+        ),
         "date": expense.date.isoformat() if expense.date else None,
         "user_id": expense.user_id,
         "organization_id": expense.organization_id,
@@ -1482,22 +1636,27 @@ async def delete_expense(
     if not org_id:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required"
+            detail="Organization context required",
         )
 
     expense = ensure_expense_access(expense_id, current_user, org_id, db)
 
     # DEBUG: Log user role
     import logging
+
     logger = logging.getLogger(__name__)
-    logger.info(f"WITHDRAW EXPENSE - User: {current_user.username}, Role: {current_user.role}, RoleType: {type(current_user.role)}")
-    logger.info(f"WITHDRAW EXPENSE - Checking if role == UserRole.ADMIN: {current_user.role == UserRole.ADMIN}")
+    logger.info(
+        f"WITHDRAW EXPENSE - User: {current_user.username}, Role: {current_user.role}, RoleType: {type(current_user.role)}"
+    )
+    logger.info(
+        f"WITHDRAW EXPENSE - Checking if role == UserRole.ADMIN: {current_user.role == UserRole.ADMIN}"
+    )
 
     # Check withdraw permission
     if not can_modify_expense(expense, current_user, org_id, db, action="withdraw"):
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
-            detail="You cannot withdraw this expense"
+            detail="You cannot withdraw this expense",
         )
 
     # Soft delete: Set status to WITHDRAWN instead of hard deleting
@@ -1511,6 +1670,7 @@ async def delete_expense(
 # ============================================================================
 # APPROVAL WORKFLOW ENDPOINTS
 # ============================================================================
+
 
 @router.put("/{expense_id}/approve")
 async def approve_expense(
@@ -1532,7 +1692,7 @@ async def approve_expense(
     if not org_id:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required"
+            detail="Organization context required",
         )
 
     expense = ensure_expense_access(expense_id, current_user, org_id, db)
@@ -1541,19 +1701,22 @@ async def approve_expense(
     if expense.status != ExpenseStatus.PENDING:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot approve expense with status {expense.status.value}. Only PENDING expenses can be approved."
+            detail=f"Cannot approve expense with status {expense.status.value}. Only PENDING expenses can be approved.",
         )
 
     # Prevent self-approval (no exceptions, even for admins)
     if expense.user_id == current_user.id:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
-            detail="You cannot approve your own expense"
+            detail="You cannot approve your own expense",
         )
 
     # Check approval permission — global admins bypass org-role check
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
-    if user_org_role not in ["owner", "admin", "manager"] and current_user.role != UserRole.ADMIN:
+    if (
+        user_org_role not in ["owner", "admin", "manager"]
+        and current_user.role != UserRole.ADMIN
+    ):
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to approve expenses",
@@ -1589,7 +1752,7 @@ async def approve_expense(
     if not can_approve:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to approve expenses"
+            detail="You do not have permission to approve expenses",
         )
 
     # Update expense status with approval metadata
@@ -1613,13 +1776,16 @@ async def approve_expense(
                 message=f"Your expense of ${float(expense.amount):.2f} for {expense.vendor or 'Unknown vendor'} has been approved by {current_user.full_name or current_user.username}.",
                 expense_id=expense.id,
                 is_read=False,
-                created_at=datetime.utcnow()
+                created_at=datetime.utcnow(),
             )
             db.add(notification)
             db.commit()
     except Exception as e:
         # Log error but don't fail the approval
-        logger.error(f"Failed to create in-app notification for expense {expense.id}: {str(e)}", exc_info=True)
+        logger.error(
+            f"Failed to create in-app notification for expense {expense.id}: {str(e)}",
+            exc_info=True,
+        )
 
     # Send approval notification email to expense owner
     try:
@@ -1631,16 +1797,23 @@ async def approve_expense(
                 "description": expense.description or "",
                 "category": expense.category or "Uncategorized",
                 "date": expense.date.strftime("%Y-%m-%d") if expense.date else "N/A",
-                "submitted_at": expense.created_at.strftime("%Y-%m-%d %H:%M") if expense.created_at else "N/A"
+                "submitted_at": (
+                    expense.created_at.strftime("%Y-%m-%d %H:%M")
+                    if expense.created_at
+                    else "N/A"
+                ),
             }
             await EmailService.send_expense_approved_email(
                 to_email=expense_owner.email,
                 expense_data=expense_data,
-                approver_name=current_user.full_name or current_user.username
+                approver_name=current_user.full_name or current_user.username,
             )
     except Exception as e:
         # Log error but don't fail the approval
-        logger.error(f"Failed to send approval email for expense {expense.id}: {str(e)}", exc_info=True)
+        logger.error(
+            f"Failed to send approval email for expense {expense.id}: {str(e)}",
+            exc_info=True,
+        )
 
     # NOTE: AP2 mandates are NOT created here for manual approvals.
     # Rationale:
@@ -1654,7 +1827,11 @@ async def approve_expense(
 
     return {
         "id": expense.id,
-        "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else str(expense.status).lower()),
+        "status": (
+            expense.status.value.lower()
+            if hasattr(expense.status, "value")
+            else str(expense.status).lower()
+        ),
         "message": f"Expense approved by {current_user.username}",
         "approved_by": current_user.id,
         "approved_at": expense.approved_at.isoformat(),
@@ -1680,7 +1857,7 @@ async def reject_expense(
     if not org_id:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required"
+            detail="Organization context required",
         )
 
     expense = ensure_expense_access(expense_id, current_user, org_id, db)
@@ -1689,28 +1866,28 @@ async def reject_expense(
     if expense.status != ExpenseStatus.PENDING:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot reject expense with status {expense.status.value}. Only PENDING expenses can be rejected."
+            detail=f"Cannot reject expense with status {expense.status.value}. Only PENDING expenses can be rejected.",
         )
 
     # Prevent self-rejection (no exceptions, even for admins)
     if expense.user_id == current_user.id:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
-            detail="You cannot reject your own expense"
+            detail="You cannot reject your own expense",
         )
 
     # Check rejection permission
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
 
     can_reject = (
-        user_org_role in ["owner", "admin", "manager"] or
-        current_user.role == UserRole.ADMIN
+        user_org_role in ["owner", "admin", "manager"]
+        or current_user.role == UserRole.ADMIN
     )
 
     if not can_reject:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to reject expenses"
+            detail="You do not have permission to reject expenses",
         )
 
     # Get rejection reason
@@ -1739,13 +1916,16 @@ async def reject_expense(
                 message=f"Your expense of ${float(expense.amount):.2f} for {expense.vendor or 'Unknown vendor'} was rejected by {current_user.full_name or current_user.username}. Reason: {reason}",
                 expense_id=expense.id,
                 is_read=False,
-                created_at=datetime.utcnow()
+                created_at=datetime.utcnow(),
             )
             db.add(notification)
             db.commit()
     except Exception as e:
         # Log error but don't fail the rejection
-        logger.error(f"Failed to create in-app notification for expense {expense.id}: {str(e)}", exc_info=True)
+        logger.error(
+            f"Failed to create in-app notification for expense {expense.id}: {str(e)}",
+            exc_info=True,
+        )
 
     # Send rejection notification email to expense owner
     try:
@@ -1758,30 +1938,42 @@ async def reject_expense(
                 "description": expense.description or "",
                 "category": expense.category or "Uncategorized",
                 "date": expense.date.strftime("%Y-%m-%d") if expense.date else "N/A",
-                "submitted_at": expense.created_at.strftime("%Y-%m-%d %H:%M") if expense.created_at else "N/A"
+                "submitted_at": (
+                    expense.created_at.strftime("%Y-%m-%d %H:%M")
+                    if expense.created_at
+                    else "N/A"
+                ),
             }
             await EmailService.send_expense_rejected_email(
                 to_email=expense_owner.email,
                 expense_data=expense_data,
                 rejector_name=current_user.full_name or current_user.username,
-                reason=reason
+                reason=reason,
             )
     except Exception as e:
         # Log error but don't fail the rejection
-        logger.error(f"Failed to send rejection email for expense {expense.id}: {str(e)}", exc_info=True)
+        logger.error(
+            f"Failed to send rejection email for expense {expense.id}: {str(e)}",
+            exc_info=True,
+        )
 
     return {
         "id": expense.id,
-        "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else str(expense.status).lower()),
+        "status": (
+            expense.status.value.lower()
+            if hasattr(expense.status, "value")
+            else str(expense.status).lower()
+        ),
         "message": f"Expense rejected by {current_user.username}",
         "reason": reason,
-        "rejected_at": datetime.utcnow().isoformat()
+        "rejected_at": datetime.utcnow().isoformat(),
     }
 
 
 # ============================================================================
 # ADDITIONAL WORKFLOW ENDPOINTS
 # ============================================================================
+
 
 @router.put("/{expense_id}/request-receipt")
 async def request_receipt(
@@ -1796,12 +1988,13 @@ async def request_receipt(
     Permissions: Accountants, managers, admins
     """
     import json as _json
+
     org_id = request.headers.get("X-Organization-Id")
 
     if not org_id:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required"
+            detail="Organization context required",
         )
 
     expense = ensure_expense_access(expense_id, current_user, org_id, db)
@@ -1810,14 +2003,14 @@ async def request_receipt(
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
 
     can_request = (
-        user_org_role in ["owner", "admin", "manager"] or
-        current_user.role == UserRole.ADMIN
+        user_org_role in ["owner", "admin", "manager"]
+        or current_user.role == UserRole.ADMIN
     )
 
     if not can_request:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to request receipts"
+            detail="You do not have permission to request receipts",
         )
 
     # Parse optional JSON body — body may be absent or empty
@@ -1836,7 +2029,7 @@ async def request_receipt(
         "id": expense.id,
         "message": "Receipt request sent to expense owner",
         "requested_by": current_user.username,
-        "request_message": message
+        "request_message": message,
     }
 
 
@@ -1858,7 +2051,7 @@ async def flag_expense(
     if not org_id:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required"
+            detail="Organization context required",
         )
 
     expense = ensure_expense_access(expense_id, current_user, org_id, db)
@@ -1867,14 +2060,14 @@ async def flag_expense(
     user_org_role = get_user_organization_role(current_user.id, org_id, db)
 
     can_flag = (
-        user_org_role in ["owner", "admin", "manager"] or
-        current_user.role == UserRole.ADMIN
+        user_org_role in ["owner", "admin", "manager"]
+        or current_user.role == UserRole.ADMIN
     )
 
     if not can_flag:
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to flag expenses"
+            detail="You do not have permission to flag expenses",
         )
 
     note = data.get("note", "Flagged for admin review")
@@ -1886,13 +2079,14 @@ async def flag_expense(
         "id": expense.id,
         "message": "Expense flagged for admin review",
         "flagged_by": current_user.username,
-        "note": note
+        "note": note,
     }
 
 
 # ============================================================================
 # COMMENTS ENDPOINTS
 # ============================================================================
+
 
 @router.post("/{expense_id}/comments", status_code=http_status.HTTP_201_CREATED)
 async def add_expense_comment(
@@ -1979,13 +2173,15 @@ async def get_expense_comments(
     result = []
     for c in comments:
         author = user_map.get(c.user_id)
-        result.append({
-            "id": c.id,
-            "expense_id": c.expense_id,
-            "user_id": c.user_id,
-            "username": author.username if author else None,
-            "comment": c.comment,
-            "created_at": c.created_at.isoformat() if c.created_at else None,
-        })
+        result.append(
+            {
+                "id": c.id,
+                "expense_id": c.expense_id,
+                "user_id": c.user_id,
+                "username": author.username if author else None,
+                "comment": c.comment,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+            }
+        )
 
     return {"comments": result}

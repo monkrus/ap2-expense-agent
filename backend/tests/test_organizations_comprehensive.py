@@ -10,13 +10,20 @@ Tests all organization functionality:
 - Error messages
 - No default organizations
 """
+
 import uuid
 from datetime import datetime
 
 import pytest
 
 from src.auth import AuthService
-from src.models import User, Organization, OrganizationMember, OrganizationRole, UserRole
+from src.models import (
+    Organization,
+    OrganizationMember,
+    OrganizationRole,
+    User,
+    UserRole,
+)
 
 
 class TestOrganizationCreation:
@@ -30,13 +37,11 @@ class TestOrganizationCreation:
             "slug": f"org-creation-test-{unique_id}",
             "description": "A test organization",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
 
         response = client.post(
-            "/api/v1/organizations",
-            json=org_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org_data, headers=auth_headers
         )
 
         assert response.status_code == 201
@@ -51,13 +56,11 @@ class TestOrganizationCreation:
             "name": "Test",
             "slug": "ab",  # Too short
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
 
         response = client.post(
-            "/api/v1/organizations",
-            json=org_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org_data, headers=auth_headers
         )
 
         assert response.status_code == 400
@@ -76,13 +79,11 @@ class TestOrganizationCreation:
             "name": "Test Organization",
             "slug": "Test_Org!",  # Invalid characters
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
 
         response = client.post(
-            "/api/v1/organizations",
-            json=org_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org_data, headers=auth_headers
         )
 
         assert response.status_code == 422
@@ -94,12 +95,10 @@ class TestOrganizationCreation:
             "name": "First Org",
             "slug": "unique-slug",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         response1 = client.post(
-            "/api/v1/organizations",
-            json=org1_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org1_data, headers=auth_headers
         )
         assert response1.status_code == 201
 
@@ -108,12 +107,10 @@ class TestOrganizationCreation:
             "name": "Second Org",
             "slug": "unique-slug",  # Duplicate!
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         response2 = client.post(
-            "/api/v1/organizations",
-            json=org2_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org2_data, headers=auth_headers
         )
 
         assert response2.status_code == 400
@@ -130,12 +127,10 @@ class TestOrganizationCreation:
             "name": "Unique Company",
             "slug": "unique-company-1",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         response1 = client.post(
-            "/api/v1/organizations",
-            json=org1_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org1_data, headers=auth_headers
         )
         assert response1.status_code == 201
 
@@ -144,12 +139,10 @@ class TestOrganizationCreation:
             "name": "unique company",  # Same name, different case
             "slug": "unique-company-2",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         response2 = client.post(
-            "/api/v1/organizations",
-            json=org2_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org2_data, headers=auth_headers
         )
 
         assert response2.status_code == 400
@@ -162,7 +155,9 @@ class TestOrganizationCreation:
 class TestOrganizationLimits:
     """Test free tier organization limits"""
 
-    def test_free_tier_one_organization_limit(self, client, auth_headers, db_session, monkeypatch):
+    def test_free_tier_one_organization_limit(
+        self, client, auth_headers, db_session, monkeypatch
+    ):
         """Test that free tier users can only create 1 organization
 
         Note: Limits are bypassed when TESTING=true, so we temporarily disable it.
@@ -175,12 +170,10 @@ class TestOrganizationLimits:
             "name": "First Organization",
             "slug": "first-org",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         response1 = client.post(
-            "/api/v1/organizations",
-            json=org1_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org1_data, headers=auth_headers
         )
         assert response1.status_code == 201
 
@@ -189,12 +182,10 @@ class TestOrganizationLimits:
             "name": "Second Organization",
             "slug": "second-org",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         response2 = client.post(
-            "/api/v1/organizations",
-            json=org2_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org2_data, headers=auth_headers
         )
 
         assert response2.status_code == 402
@@ -219,20 +210,17 @@ class TestOrganizationDeletion:
             "name": "Delete Test Org",
             "slug": "delete-test",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         create_response = client.post(
-            "/api/v1/organizations",
-            json=org_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org_data, headers=auth_headers
         )
         assert create_response.status_code == 201
         org_id = create_response.json()["id"]
 
         # Delete organization
         delete_response = client.delete(
-            f"/api/v1/organizations/{org_id}",
-            headers=auth_headers
+            f"/api/v1/organizations/{org_id}", headers=auth_headers
         )
 
         assert delete_response.status_code == 204
@@ -249,33 +237,26 @@ class TestOrganizationDeletion:
             "name": "First Org",
             "slug": "reusable-slug",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         create1 = client.post(
-            "/api/v1/organizations",
-            json=org1_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org1_data, headers=auth_headers
         )
         assert create1.status_code == 201
         org1_id = create1.json()["id"]
 
         # Delete first org
-        client.delete(
-            f"/api/v1/organizations/{org1_id}",
-            headers=auth_headers
-        )
+        client.delete(f"/api/v1/organizations/{org1_id}", headers=auth_headers)
 
         # Create new org with same slug (should succeed)
         org2_data = {
             "name": "Second Org",
             "slug": "reusable-slug",  # Same slug
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         create2 = client.post(
-            "/api/v1/organizations",
-            json=org2_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org2_data, headers=auth_headers
         )
 
         assert create2.status_code == 201
@@ -292,25 +273,18 @@ class TestOrganizationEditing:
             "slug": "original-slug",
             "description": "Original description",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         create_response = client.post(
-            "/api/v1/organizations",
-            json=org_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org_data, headers=auth_headers
         )
         assert create_response.status_code == 201
         org_id = create_response.json()["id"]
 
         # Update organization
-        update_data = {
-            "name": "Updated Name",
-            "description": "Updated description"
-        }
+        update_data = {"name": "Updated Name", "description": "Updated description"}
         update_response = client.patch(
-            f"/api/v1/organizations/{org_id}",
-            json=update_data,
-            headers=auth_headers
+            f"/api/v1/organizations/{org_id}", json=update_data, headers=auth_headers
         )
 
         assert update_response.status_code == 200
@@ -323,7 +297,9 @@ class TestOrganizationEditing:
 class TestOrganizationLifecycle:
     """Test complete organization lifecycle flows"""
 
-    def test_create_delete_create_flow(self, client, auth_headers, db_session, monkeypatch):
+    def test_create_delete_create_flow(
+        self, client, auth_headers, db_session, monkeypatch
+    ):
         """Test: Create org → Delete org → Create new org
 
         Note: Limits are bypassed when TESTING=true, so we temporarily disable it.
@@ -336,12 +312,10 @@ class TestOrganizationLifecycle:
             "name": "First Org",
             "slug": "first-org",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         create1 = client.post(
-            "/api/v1/organizations",
-            json=org1_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org1_data, headers=auth_headers
         )
         assert create1.status_code == 201
         org1_id = create1.json()["id"]
@@ -351,19 +325,16 @@ class TestOrganizationLifecycle:
             "name": "Second Org",
             "slug": "second-org",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         limit_check = client.post(
-            "/api/v1/organizations",
-            json=org2_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org2_data, headers=auth_headers
         )
         assert limit_check.status_code == 402  # At limit
 
         # Step 3: Delete first organization
         delete_response = client.delete(
-            f"/api/v1/organizations/{org1_id}",
-            headers=auth_headers
+            f"/api/v1/organizations/{org1_id}", headers=auth_headers
         )
         assert delete_response.status_code == 204
 
@@ -372,12 +343,10 @@ class TestOrganizationLifecycle:
             "name": "Third Org",
             "slug": "third-org",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         create3 = client.post(
-            "/api/v1/organizations",
-            json=org3_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org3_data, headers=auth_headers
         )
         assert create3.status_code == 201
 
@@ -397,16 +366,20 @@ class TestNoDefaultOrganization:
             hashed_password=AuthService.hash_password("Password123!"),
             is_active=True,
             is_verified=True,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
         db_session.add(user)
         db_session.commit()
 
         # Check that no organizations exist for this user
-        org_count = db_session.query(Organization).join(OrganizationMember).filter(
-            OrganizationMember.user_id == user.id,
-            Organization.is_active == True
-        ).count()
+        org_count = (
+            db_session.query(Organization)
+            .join(OrganizationMember)
+            .filter(
+                OrganizationMember.user_id == user.id, Organization.is_active == True
+            )
+            .count()
+        )
 
         assert org_count == 0, "New user should start with 0 organizations"
 
@@ -416,10 +389,11 @@ class TestNoDefaultOrganization:
 
     def test_no_default_org_exists_globally(self, db_session):
         """Test that 'default-org' doesn't exist in database"""
-        default_org = db_session.query(Organization).filter(
-            Organization.slug == "default-org",
-            Organization.is_active == True
-        ).first()
+        default_org = (
+            db_session.query(Organization)
+            .filter(Organization.slug == "default-org", Organization.is_active == True)
+            .first()
+        )
 
         assert default_org is None, "No 'default-org' should exist"
 
@@ -429,17 +403,10 @@ class TestValidationErrorMessages:
 
     def test_slug_too_short_error_message(self, client, auth_headers):
         """Test that slug validation error is clear"""
-        org_data = {
-            "name": "Test",
-            "slug": "ab",
-            "currency": "USD",
-            "timezone": "UTC"
-        }
+        org_data = {"name": "Test", "slug": "ab", "currency": "USD", "timezone": "UTC"}
 
         response = client.post(
-            "/api/v1/organizations",
-            json=org_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org_data, headers=auth_headers
         )
 
         assert response.status_code == 400
@@ -460,7 +427,7 @@ class TestValidationErrorMessages:
             "name": "Great Company",
             "slug": "great-company-1",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         client.post("/api/v1/organizations", json=org1_data, headers=auth_headers)
 
@@ -469,12 +436,10 @@ class TestValidationErrorMessages:
             "name": "Great Company",
             "slug": "great-company-2",
             "currency": "USD",
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         response = client.post(
-            "/api/v1/organizations",
-            json=org2_data,
-            headers=auth_headers
+            "/api/v1/organizations", json=org2_data, headers=auth_headers
         )
 
         assert response.status_code == 400

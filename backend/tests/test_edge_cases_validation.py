@@ -33,9 +33,7 @@ class TestXSSPrevention:
     # EDGE-VAL-001: XSS prevention in expense description
     # ========================================================================
 
-    def test_EDGE_VAL_001_xss_in_expense_description(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_001_xss_in_expense_description(self, client, db_session):
         """
         Test ID: EDGE-VAL-001
         Priority: 🔴 CRITICAL
@@ -51,13 +49,10 @@ class TestXSSPrevention:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try to create expense with XSS payload
         xss_payload = "<script>alert('XSS')</script>"
@@ -68,11 +63,7 @@ class TestXSSPrevention:
             "vendor": "Test Vendor",
         }
 
-        response = client.post(
-            "/api/v1/expenses",
-            json=expense_data,
-            headers=headers
-        )
+        response = client.post("/api/v1/expenses", json=expense_data, headers=headers)
 
         # Should succeed (API accepts it but should sanitize on output)
         assert response.status_code == status.HTTP_201_CREATED
@@ -81,15 +72,16 @@ class TestXSSPrevention:
         # XSS payload should be stored as-is (sanitization happens on output)
         # or rejected if API does input sanitization
         # The key is that it doesn't execute when rendered
-        assert expense["description"] == xss_payload or "&lt;script&gt;" in expense["description"]
+        assert (
+            expense["description"] == xss_payload
+            or "&lt;script&gt;" in expense["description"]
+        )
 
     # ========================================================================
     # EDGE-VAL-002: XSS prevention in expense vendor field
     # ========================================================================
 
-    def test_EDGE_VAL_002_xss_in_expense_vendor(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_002_xss_in_expense_vendor(self, client, db_session):
         """
         Test ID: EDGE-VAL-002
         Priority: 🔴 CRITICAL
@@ -105,13 +97,10 @@ class TestXSSPrevention:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try XSS in vendor field
         xss_payloads = [
@@ -130,24 +119,20 @@ class TestXSSPrevention:
             }
 
             response = client.post(
-                "/api/v1/expenses",
-                json=expense_data,
-                headers=headers
+                "/api/v1/expenses", json=expense_data, headers=headers
             )
 
             # Should either succeed with sanitization or reject
             assert response.status_code in [
                 status.HTTP_201_CREATED,
-                status.HTTP_400_BAD_REQUEST
+                status.HTTP_400_BAD_REQUEST,
             ]
 
     # ========================================================================
     # EDGE-VAL-003: XSS prevention in organization name
     # ========================================================================
 
-    def test_EDGE_VAL_003_xss_in_organization_name(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_003_xss_in_organization_name(self, client, db_session):
         """
         Test ID: EDGE-VAL-003
         Priority: 🔴 CRITICAL
@@ -163,7 +148,7 @@ class TestXSSPrevention:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": user.username, "password": "TestPass123!"}
+            json={"username": user.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
@@ -173,14 +158,10 @@ class TestXSSPrevention:
         org_data = {
             "name": xss_payload,
             "slug": "test-xss-org",
-            "description": "Test org"
+            "description": "Test org",
         }
 
-        response = client.post(
-            "/api/v1/organizations",
-            json=org_data,
-            headers=headers
-        )
+        response = client.post("/api/v1/organizations", json=org_data, headers=headers)
 
         # Should either accept (React handles XSS on render) or reject
         if response.status_code == status.HTTP_201_CREATED:
@@ -192,7 +173,7 @@ class TestXSSPrevention:
             # Or validation rejects it (400 or 422 both acceptable)
             assert response.status_code in [
                 status.HTTP_400_BAD_REQUEST,
-                status.HTTP_422_UNPROCESSABLE_ENTITY
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
             ]
 
 
@@ -205,9 +186,7 @@ class TestSQLInjectionPrevention:
     # EDGE-VAL-004: SQL injection in expense filters
     # ========================================================================
 
-    def test_EDGE_VAL_004_sql_injection_in_expense_filters(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_004_sql_injection_in_expense_filters(self, client, db_session):
         """
         Test ID: EDGE-VAL-004
         Priority: 🔴 CRITICAL
@@ -223,13 +202,10 @@ class TestSQLInjectionPrevention:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try SQL injection payloads in query params
         sql_payloads = [
@@ -242,16 +218,13 @@ class TestSQLInjectionPrevention:
 
         for payload in sql_payloads:
             # Try in status filter
-            response = client.get(
-                f"/api/v1/expenses?status={payload}",
-                headers=headers
-            )
+            response = client.get(f"/api/v1/expenses?status={payload}", headers=headers)
 
             # Should either return empty results or validation error, not SQL error
             assert response.status_code in [
                 status.HTTP_200_OK,
                 status.HTTP_400_BAD_REQUEST,
-                status.HTTP_422_UNPROCESSABLE_ENTITY
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
             ]
 
             # Should not expose SQL errors
@@ -264,9 +237,7 @@ class TestSQLInjectionPrevention:
     # EDGE-VAL-005: SQL injection in organization lookup
     # ========================================================================
 
-    def test_EDGE_VAL_005_sql_injection_in_org_lookup(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_005_sql_injection_in_org_lookup(self, client, db_session):
         """
         Test ID: EDGE-VAL-005
         Priority: 🔴 CRITICAL
@@ -282,34 +253,28 @@ class TestSQLInjectionPrevention:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": user.username, "password": "TestPass123!"}
+            json={"username": user.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
         # Try SQL injection in slug
         sql_payload = "test-org' OR '1'='1"
-        org_data = {
-            "name": "Test Org",
-            "slug": sql_payload,
-            "description": "Test"
-        }
+        org_data = {"name": "Test Org", "slug": sql_payload, "description": "Test"}
 
-        response = client.post(
-            "/api/v1/organizations",
-            json=org_data,
-            headers=headers
-        )
+        response = client.post("/api/v1/organizations", json=org_data, headers=headers)
 
         # Should reject invalid slug format
         assert response.status_code in [
             status.HTTP_400_BAD_REQUEST,
-            status.HTTP_422_UNPROCESSABLE_ENTITY
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
         ]
         error = response.json()
         # Should be validation error, not SQL error
         error_msg = str(error).lower()
-        assert "slug" in error_msg or "invalid" in error_msg or "validation" in error_msg
+        assert (
+            "slug" in error_msg or "invalid" in error_msg or "validation" in error_msg
+        )
 
 
 @pytest.mark.critical
@@ -321,9 +286,7 @@ class TestInputValidation:
     # EDGE-VAL-006: Expense amount boundaries
     # ========================================================================
 
-    def test_EDGE_VAL_006_expense_amount_negative(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_006_expense_amount_negative(self, client, db_session):
         """
         Test ID: EDGE-VAL-006
         Priority: 🔴 CRITICAL
@@ -339,13 +302,10 @@ class TestInputValidation:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try negative amount
         expense_data = {
@@ -355,18 +315,12 @@ class TestInputValidation:
             "vendor": "Test",
         }
 
-        response = client.post(
-            "/api/v1/expenses",
-            json=expense_data,
-            headers=headers
-        )
+        response = client.post("/api/v1/expenses", json=expense_data, headers=headers)
 
         # Should reject
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_EDGE_VAL_007_expense_amount_zero(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_007_expense_amount_zero(self, client, db_session):
         """
         Test ID: EDGE-VAL-007
         Priority: 🟡 MEDIUM
@@ -382,13 +336,10 @@ class TestInputValidation:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try zero amount
         expense_data = {
@@ -398,18 +349,12 @@ class TestInputValidation:
             "vendor": "Test",
         }
 
-        response = client.post(
-            "/api/v1/expenses",
-            json=expense_data,
-            headers=headers
-        )
+        response = client.post("/api/v1/expenses", json=expense_data, headers=headers)
 
         # Should reject (expenses must be > 0)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_EDGE_VAL_008_expense_amount_very_large(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_008_expense_amount_very_large(self, client, db_session):
         """
         Test ID: EDGE-VAL-008
         Priority: 🟡 MEDIUM
@@ -425,13 +370,10 @@ class TestInputValidation:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try very large amount
         expense_data = {
@@ -441,26 +383,20 @@ class TestInputValidation:
             "vendor": "Test",
         }
 
-        response = client.post(
-            "/api/v1/expenses",
-            json=expense_data,
-            headers=headers
-        )
+        response = client.post("/api/v1/expenses", json=expense_data, headers=headers)
 
         # Should either accept (if within DB limits) or reject
         assert response.status_code in [
             status.HTTP_201_CREATED,
             status.HTTP_400_BAD_REQUEST,
-            status.HTTP_422_UNPROCESSABLE_ENTITY
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
         ]
 
     # ========================================================================
     # EDGE-VAL-009: String length validation
     # ========================================================================
 
-    def test_EDGE_VAL_009_expense_description_max_length(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_009_expense_description_max_length(self, client, db_session):
         """
         Test ID: EDGE-VAL-009
         Priority: 🟠 HIGH
@@ -476,13 +412,10 @@ class TestInputValidation:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try very long description (10,000 characters)
         long_description = "A" * 10000
@@ -493,11 +426,7 @@ class TestInputValidation:
             "vendor": "Test",
         }
 
-        response = client.post(
-            "/api/v1/expenses",
-            json=expense_data,
-            headers=headers
-        )
+        response = client.post("/api/v1/expenses", json=expense_data, headers=headers)
 
         # Should either truncate or reject
         if response.status_code == status.HTTP_201_CREATED:
@@ -508,12 +437,10 @@ class TestInputValidation:
             # Or validation rejects it
             assert response.status_code in [
                 status.HTTP_400_BAD_REQUEST,
-                status.HTTP_422_UNPROCESSABLE_ENTITY
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
             ]
 
-    def test_EDGE_VAL_010_organization_name_empty(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_010_organization_name_empty(self, client, db_session):
         """
         Test ID: EDGE-VAL-010
         Priority: 🔴 CRITICAL
@@ -529,23 +456,15 @@ class TestInputValidation:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": user.username, "password": "TestPass123!"}
+            json={"username": user.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
         # Try empty name
-        org_data = {
-            "name": "",
-            "slug": "test-org",
-            "description": "Test"
-        }
+        org_data = {"name": "", "slug": "test-org", "description": "Test"}
 
-        response = client.post(
-            "/api/v1/organizations",
-            json=org_data,
-            headers=headers
-        )
+        response = client.post("/api/v1/organizations", json=org_data, headers=headers)
 
         # Should reject
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -554,9 +473,7 @@ class TestInputValidation:
     # EDGE-VAL-011: Special character handling
     # ========================================================================
 
-    def test_EDGE_VAL_011_expense_unicode_characters(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_011_expense_unicode_characters(self, client, db_session):
         """
         Test ID: EDGE-VAL-011
         Priority: 🟡 MEDIUM
@@ -572,13 +489,10 @@ class TestInputValidation:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try unicode characters
         unicode_data = {
@@ -588,20 +502,14 @@ class TestInputValidation:
             "vendor": "レストラン",
         }
 
-        response = client.post(
-            "/api/v1/expenses",
-            json=unicode_data,
-            headers=headers
-        )
+        response = client.post("/api/v1/expenses", json=unicode_data, headers=headers)
 
         # Should accept unicode
         assert response.status_code == status.HTTP_201_CREATED
         expense = response.json()
         assert "Café" in expense["description"]
 
-    def test_EDGE_VAL_012_expense_null_category(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_012_expense_null_category(self, client, db_session):
         """
         Test ID: EDGE-VAL-012
         Priority: 🟠 HIGH
@@ -617,13 +525,10 @@ class TestInputValidation:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try without category
         expense_data = {
@@ -633,11 +538,7 @@ class TestInputValidation:
             # category missing
         }
 
-        response = client.post(
-            "/api/v1/expenses",
-            json=expense_data,
-            headers=headers
-        )
+        response = client.post("/api/v1/expenses", json=expense_data, headers=headers)
 
         # Should either default to UNCATEGORIZED or reject
         if response.status_code == status.HTTP_201_CREATED:
@@ -656,9 +557,7 @@ class TestCommandInjectionPrevention:
     # EDGE-VAL-013: Command injection in file operations
     # ========================================================================
 
-    def test_EDGE_VAL_013_command_injection_in_filename(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_013_command_injection_in_filename(self, client, db_session):
         """
         Test ID: EDGE-VAL-013
         Priority: 🔴 CRITICAL
@@ -675,23 +574,21 @@ class TestCommandInjectionPrevention:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "X-Organization-Id": org.id
-        }
+        headers = {"Authorization": f"Bearer {token}", "X-Organization-Id": org.id}
 
         # Try command injection in filename
         import io
+
         malicious_filename = "receipt.jpg; rm -rf /"
         receipt_file = io.BytesIO(b"fake image data")
 
         response = client.post(
             f"/api/v1/receipts/upload/{expense.id}",
             files={"file": (malicious_filename, receipt_file, "image/jpeg")},
-            headers=headers
+            headers=headers,
         )
 
         # Should either sanitize filename or reject
@@ -706,7 +603,7 @@ class TestCommandInjectionPrevention:
             # Or validation rejects it
             assert response.status_code in [
                 status.HTTP_400_BAD_REQUEST,
-                status.HTTP_422_UNPROCESSABLE_ENTITY
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
             ]
 
 
@@ -719,9 +616,7 @@ class TestHeaderInjection:
     # EDGE-VAL-014: Header injection in X-Organization-Id
     # ========================================================================
 
-    def test_EDGE_VAL_014_header_injection_newlines(
-        self, client, db_session
-    ):
+    def test_EDGE_VAL_014_header_injection_newlines(self, client, db_session):
         """
         Test ID: EDGE-VAL-014
         Priority: 🔴 CRITICAL
@@ -737,7 +632,7 @@ class TestHeaderInjection:
         # Login
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": employee.username, "password": "TestPass123!"}
+            json={"username": employee.username, "password": "TestPass123!"},
         )
         token = login_response.json()["access_token"]
 
@@ -745,13 +640,10 @@ class TestHeaderInjection:
         malicious_org_id = f"{org.id}\r\nX-Admin: true"
         headers = {
             "Authorization": f"Bearer {token}",
-            "X-Organization-Id": malicious_org_id
+            "X-Organization-Id": malicious_org_id,
         }
 
-        response = client.get(
-            "/api/v1/expenses",
-            headers=headers
-        )
+        response = client.get("/api/v1/expenses", headers=headers)
 
         # Should either reject or sanitize
         # Most frameworks automatically prevent CRLF injection

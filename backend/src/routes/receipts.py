@@ -90,19 +90,19 @@ def validate_file_content(file_content: bytes, filename: str) -> None:
     # Magic byte signatures for allowed file types
     MAGIC_BYTES = {
         # JPEG: FF D8 FF
-        b'\xff\xd8\xff': ('image/jpeg', ['.jpg', '.jpeg']),
+        b"\xff\xd8\xff": ("image/jpeg", [".jpg", ".jpeg"]),
         # PNG: 89 50 4E 47 0D 0A 1A 0A
-        b'\x89\x50\x4e\x47\x0d\x0a\x1a\x0a': ('image/png', ['.png']),
+        b"\x89\x50\x4e\x47\x0d\x0a\x1a\x0a": ("image/png", [".png"]),
         # GIF89a: 47 49 46 38 39 61
-        b'\x47\x49\x46\x38\x39\x61': ('image/gif', ['.gif']),
+        b"\x47\x49\x46\x38\x39\x61": ("image/gif", [".gif"]),
         # GIF87a: 47 49 46 38 37 61
-        b'\x47\x49\x46\x38\x37\x61': ('image/gif', ['.gif']),
+        b"\x47\x49\x46\x38\x37\x61": ("image/gif", [".gif"]),
         # PDF: 25 50 44 46
-        b'\x25\x50\x44\x46': ('application/pdf', ['.pdf']),
+        b"\x25\x50\x44\x46": ("application/pdf", [".pdf"]),
         # BMP: 42 4D
-        b'\x42\x4d': ('image/bmp', ['.bmp']),
+        b"\x42\x4d": ("image/bmp", [".bmp"]),
         # WEBP: RIFF....WEBP (check RIFF at start and WEBP at offset 8)
-        b'RIFF': ('image/webp', ['.webp']),  # Special handling needed
+        b"RIFF": ("image/webp", [".webp"]),  # Special handling needed
     }
 
     file_ext = Path(filename).suffix.lower()
@@ -112,8 +112,8 @@ def validate_file_content(file_content: bytes, filename: str) -> None:
     for magic, (mime_type, valid_exts) in MAGIC_BYTES.items():
         if file_content.startswith(magic):
             # Special handling for WEBP (must check both RIFF and WEBP)
-            if magic == b'RIFF':
-                if len(file_content) >= 12 and file_content[8:12] == b'WEBP':
+            if magic == b"RIFF":
+                if len(file_content) >= 12 and file_content[8:12] == b"WEBP":
                     detected_type = (mime_type, valid_exts)
                     break
             else:
@@ -123,7 +123,7 @@ def validate_file_content(file_content: bytes, filename: str) -> None:
     if not detected_type:
         raise HTTPException(
             status_code=400,
-            detail="File format not recognized. File may be corrupted or not a valid image/PDF."
+            detail="File format not recognized. File may be corrupted or not a valid image/PDF.",
         )
 
     mime_type, valid_exts = detected_type
@@ -133,15 +133,15 @@ def validate_file_content(file_content: bytes, filename: str) -> None:
         raise HTTPException(
             status_code=400,
             detail=f"File extension '{file_ext}' does not match actual file type '{mime_type}'. "
-                   f"Expected one of: {', '.join(valid_exts)}"
+            f"Expected one of: {', '.join(valid_exts)}",
         )
 
     # Additional validation for images
-    if mime_type.startswith('image/'):
+    if mime_type.startswith("image/"):
         validate_image_safety(file_content, mime_type)
 
     # Additional validation for PDFs
-    elif mime_type == 'application/pdf':
+    elif mime_type == "application/pdf":
         validate_pdf_safety(file_content)
 
 
@@ -154,8 +154,9 @@ def validate_image_safety(file_content: bytes, mime_type: str) -> None:
     - File structure integrity
     """
     try:
-        from PIL import Image
         import io
+
+        from PIL import Image
 
         # Try to load image
         try:
@@ -163,8 +164,7 @@ def validate_image_safety(file_content: bytes, mime_type: str) -> None:
             img.verify()  # Verify it's a valid image
         except Exception as e:
             raise HTTPException(
-                status_code=400,
-                detail=f"Invalid or corrupted image file: {str(e)}"
+                status_code=400, detail=f"Invalid or corrupted image file: {str(e)}"
             )
 
         # Re-open for dimension check (verify() closes the image)
@@ -180,14 +180,14 @@ def validate_image_safety(file_content: bytes, mime_type: str) -> None:
             raise HTTPException(
                 status_code=400,
                 detail=f"Image dimensions too large. Maximum: {MAX_WIDTH}x{MAX_HEIGHT}px. "
-                       f"Received: {width}x{height}px"
+                f"Received: {width}x{height}px",
             )
 
         if width * height > MAX_PIXELS:
             raise HTTPException(
                 status_code=400,
                 detail=f"Image has too many pixels. Maximum: {MAX_PIXELS:,} pixels. "
-                       f"Received: {width * height:,} pixels"
+                f"Received: {width * height:,} pixels",
             )
 
     except HTTPException:
@@ -198,8 +198,7 @@ def validate_image_safety(file_content: bytes, mime_type: str) -> None:
         pass
     except Exception as e:
         raise HTTPException(
-            status_code=400,
-            detail=f"Failed to validate image: {str(e)}"
+            status_code=400, detail=f"Failed to validate image: {str(e)}"
         )
 
 
@@ -213,19 +212,18 @@ def validate_pdf_safety(file_content: bytes) -> None:
     - File size limits
     """
     # Check for PDF trailer (well-formed PDF must have %%EOF at end)
-    if not file_content.rstrip().endswith(b'%%EOF'):
+    if not file_content.rstrip().endswith(b"%%EOF"):
         raise HTTPException(
-            status_code=400,
-            detail="Invalid PDF structure: missing EOF marker"
+            status_code=400, detail="Invalid PDF structure: missing EOF marker"
         )
 
     # Check for suspicious content that could be exploited
     suspicious_patterns = [
-        b'/JavaScript',
-        b'/JS',
-        b'/Launch',
-        b'/SubmitForm',
-        b'/ImportData',
+        b"/JavaScript",
+        b"/JS",
+        b"/Launch",
+        b"/SubmitForm",
+        b"/ImportData",
     ]
 
     content_lower = file_content.lower()
@@ -233,7 +231,7 @@ def validate_pdf_safety(file_content: bytes) -> None:
 
     for pattern in suspicious_patterns:
         if pattern.lower() in content_lower:
-            found_suspicious.append(pattern.decode('utf-8', errors='ignore'))
+            found_suspicious.append(pattern.decode("utf-8", errors="ignore"))
 
     if found_suspicious:
         logger.warning(f"PDF contains suspicious content: {found_suspicious}")
@@ -241,10 +239,9 @@ def validate_pdf_safety(file_content: bytes) -> None:
         # In production, you might want to strip these elements or reject the file
 
     # Basic structure validation
-    if b'%PDF-' not in file_content[:1024]:
+    if b"%PDF-" not in file_content[:1024]:
         raise HTTPException(
-            status_code=400,
-            detail="Invalid PDF: missing PDF header in first 1KB"
+            status_code=400, detail="Invalid PDF: missing PDF header in first 1KB"
         )
 
 
@@ -360,14 +357,11 @@ async def batch_upload_receipts(
         try:
             limit_enforcer = LimitEnforcer(db)
             limit_enforcer.check_ocr_limit(
-                membership.organization_id,
-                count=len(files),
-                raise_error=True
+                membership.organization_id, count=len(files), raise_error=True
             )
         except LimitExceededError as e:
             raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail=str(e)
+                status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(e)
             )
 
     results = []
@@ -505,6 +499,7 @@ class ReceiptExtractionData(BaseModel):
     @validator("vendor")
     def sanitize_vendor(cls, v):
         import html
+
         sanitized = html.escape(v)
         if len(sanitized) > 200:
             raise ValueError("Vendor name cannot exceed 200 characters")
@@ -513,6 +508,7 @@ class ReceiptExtractionData(BaseModel):
     @validator("description")
     def sanitize_description(cls, v):
         import html
+
         sanitized = html.escape(v)
         if len(sanitized) > 1000:
             raise ValueError("Description cannot exceed 1000 characters")
@@ -529,6 +525,7 @@ class ReceiptExtractionData(BaseModel):
     @validator("category")
     def validate_category(cls, v):
         from ..models import ExpenseCategory
+
         valid_categories = [e.value for e in ExpenseCategory]
         if v not in valid_categories:
             raise ValueError(f'Category must be one of: {", ".join(valid_categories)}')
@@ -619,7 +616,11 @@ async def create_expense_from_extraction(
 
         # Run auto-approval (same logic as manual expenses)
         try:
-            from ..services.auto_approval_service import evaluate_auto_approval, notify_admins_new_expense
+            from ..services.auto_approval_service import (
+                evaluate_auto_approval,
+                notify_admins_new_expense,
+            )
+
             approval_result = await evaluate_auto_approval(
                 db, expense, current_user, member.organization_id
             )
@@ -629,10 +630,14 @@ async def create_expense_from_extraction(
                 # Notify admins only for non-batch uploads; batch uses summary notification
                 is_batch = data.get("is_batch", False)
                 if not is_batch:
-                    notify_admins_new_expense(db, expense, current_user, member.organization_id)
+                    notify_admins_new_expense(
+                        db, expense, current_user, member.organization_id
+                    )
                 db.commit()
         except Exception as e:
-            logger.error(f"Auto-approval/notification failed for expense {expense.id}: {str(e)}")
+            logger.error(
+                f"Auto-approval/notification failed for expense {expense.id}: {str(e)}"
+            )
 
         return {
             "success": True,
@@ -642,7 +647,11 @@ async def create_expense_from_extraction(
                 "amount": float(expense.amount),
                 "category": expense.category,
                 "description": expense.description,
-                "status": (expense.status.value.lower() if hasattr(expense.status, 'value') else str(expense.status).lower()),
+                "status": (
+                    expense.status.value.lower()
+                    if hasattr(expense.status, "value")
+                    else str(expense.status).lower()
+                ),
                 "created_at": expense.created_at.isoformat(),
             },
             "receipt": {
@@ -752,7 +761,9 @@ async def delete_receipt(
         if file_path.exists():
             file_path.unlink()
     except Exception as e:
-        logger.warning(f"Failed to delete physical file {receipt.file_path}: {e}", exc_info=True)
+        logger.warning(
+            f"Failed to delete physical file {receipt.file_path}: {e}", exc_info=True
+        )
 
     # Delete database record
     db.delete(receipt)
@@ -806,4 +817,3 @@ async def download_receipt(
         filename=receipt.original_filename,
         media_type=receipt.content_type,
     )
-
