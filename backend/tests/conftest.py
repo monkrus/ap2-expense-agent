@@ -16,6 +16,7 @@ os.environ["TESTING"] = "true"
 import uuid
 from datetime import datetime, timedelta
 
+import src.models_billing  # noqa: F401, E402 — register BillingTier with Base.metadata
 from src.api import app
 from src.auth import AuthService
 from src.cache import cache
@@ -29,7 +30,6 @@ from src.models import (
     User,
     UserRole,
 )
-import src.models_billing  # noqa: F401 — register BillingTier with Base.metadata
 
 # Test database setup (in-memory SQLite)
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
