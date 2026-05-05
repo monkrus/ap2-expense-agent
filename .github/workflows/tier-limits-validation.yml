@@ -27,6 +27,21 @@ jobs:
         cd backend
         pip install -r requirements.txt
 
+    - name: Initialize database and seed billing tiers
+      run: |
+        cd backend
+        python -c "
+import src.models
+import src.models_billing
+from src.database import init_db
+init_db()
+from seed_billing_tiers import seed_billing_tiers
+seed_billing_tiers()
+"
+      env:
+        DATABASE_URL: sqlite:///./test.db
+        TESTING: "true"
+
     - name: Check tier limits files changed
       id: changed-files
       uses: tj-actions/changed-files@v46
@@ -212,6 +227,21 @@ jobs:
       run: |
         cd backend
         pip install -r requirements.txt
+
+    - name: Initialize database and seed billing tiers
+      run: |
+        cd backend
+        python -c "
+import src.models
+import src.models_billing
+from src.database import init_db
+init_db()
+from seed_billing_tiers import seed_billing_tiers
+seed_billing_tiers()
+"
+      env:
+        DATABASE_URL: sqlite:///./test.db
+        TESTING: "true"
 
     - name: Run baseline functionality validation
       run: |
