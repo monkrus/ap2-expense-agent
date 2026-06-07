@@ -12,7 +12,6 @@ from .config import settings
 from .database import get_db, init_db
 from .error_handlers import register_exception_handlers
 from .logging_config import RequestLogger, setup_logging
-from .marketplace_enforcement import MarketplaceEnforcementMiddleware
 from .models import User
 from .permissions import (
     Permission,
@@ -27,10 +26,10 @@ from .routes.ap2 import router as ap2_router
 from .routes.approval_policies import router as approval_policies_router
 from .routes.billing_org import router as billing_org_router
 from .routes.budgets import router as budgets_router
-from .routes.dlq_admin import router as dlq_admin_router
 from .routes.expenses import router as expenses_router
-from .routes.gcp_webhooks import router as gcp_webhooks_router
 from .routes.gdpr import router as gdpr_router
+from .routes.quickbooks import router as quickbooks_router
+from .routes.stripe_webhooks import router as stripe_webhooks_router
 from .routes.notifications import router as notifications_router
 from .routes.onboarding import router as onboarding_router
 from .routes.organizations import router as organizations_router
@@ -112,8 +111,6 @@ app.add_middleware(
 
 # Add tenant middleware for multi-tenancy support
 app.middleware("http")(tenant_middleware)
-# Enforce Marketplace entitlement state/limits
-app.add_middleware(MarketplaceEnforcementMiddleware)
 
 
 # Basic request metrics middleware
@@ -223,11 +220,12 @@ app.include_router(recurring_expenses_router)
 app.include_router(onboarding_router)
 app.include_router(gdpr_router)
 
-# Include GCP Marketplace webhooks
-app.include_router(gcp_webhooks_router)
+# Include QuickBooks integration
+app.include_router(quickbooks_router)
 
-# Include DLQ Admin endpoints
-app.include_router(dlq_admin_router)
+# Include Stripe subscription webhooks
+app.include_router(stripe_webhooks_router)
+
 
 
 # Prometheus metrics endpoint (for GKE scraping)

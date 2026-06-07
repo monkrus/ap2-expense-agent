@@ -5,7 +5,7 @@
 
 ## Introduction
 
-This Privacy Policy describes how AP2 Expense Management Agent ("we", "us", or "our") collects, uses, and shares information when you use our expense management application (the "Service") through Google Cloud Marketplace.
+This Privacy Policy describes how AP2 Expense Management Agent ("we", "us", or "our") collects, uses, and shares information when you use our expense management application (the "Service") available via the Intuit QuickBooks App Store and our website.
 
 By using the Service, you agree to the collection and use of information in accordance with this policy.
 
@@ -31,7 +31,8 @@ We automatically collect certain information when you use the Service:
 
 ### 3. Information from Third Parties
 
-- **Google Cloud**: Account information, billing data, and usage metrics
+- **QuickBooks Online**: Company information, chart of accounts, and vendors (when connected)
+- **Stripe**: Billing and subscription data
 - **Authentication Providers**: If you use SSO (Enterprise plan), we receive profile information
 
 ## How We Use Your Information
@@ -69,7 +70,7 @@ We use collected information for the following purposes:
 
 ### 5. Billing and Analytics
 
-- Process payments through Google Cloud Marketplace
+- Process payments through Stripe
 - Track usage metrics for billing purposes
 - Generate organization-level analytics
 - Monitor service performance
@@ -88,7 +89,9 @@ We do not sell your personal information. We share information only in the follo
 
 We share information with third-party service providers who assist us:
 
-- **Google Cloud Platform**: Hosting, database, storage, and billing
+- **Cloud Hosting**: Application hosting, database, and storage
+- **Stripe**: Payment processing and subscription billing
+- **Intuit QuickBooks**: Expense sync and accounting integration
 - **Monitoring Services**: Application performance and error tracking
 - **Email Services**: Transactional and support emails
 - **Customer Support Tools**: Help desk and ticketing systems
@@ -135,7 +138,7 @@ We implement appropriate technical and organizational measures to protect your i
 
 ### Data Storage
 
-- **Location**: Data is stored in Google Cloud Platform data centers
+- **Location**: Data is stored in secure cloud data centers
 - **Redundancy**: Multi-region backups for disaster recovery
 - **Isolation**: Tenant isolation for multi-tenant data
 

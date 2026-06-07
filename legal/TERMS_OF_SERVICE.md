@@ -18,7 +18,7 @@ AP2 Expense Management Agent is a cloud-based expense management application tha
 - Expense reporting and analytics
 - Multi-user organization management
 
-The Service is provided through Google Cloud Marketplace and hosted on Google Cloud Platform.
+The Service is available through the Intuit QuickBooks App Store and directly via our website, with billing managed through Stripe.
 
 ## 3. User Accounts
 
@@ -116,7 +116,7 @@ We offer the following plans:
 
 ### 5.2 Billing
 
-- Billing is processed through Google Cloud Marketplace
+- Billing is processed through Stripe
 - Charges are billed monthly in arrears
 - Usage-based charges are calculated hourly
 - Overage charges apply for exceeding plan limits
@@ -193,11 +193,15 @@ If you provide feedback or suggestions, we may use them without obligation or co
 
 ## 8. Third-Party Services
 
-### 8.1 Google Cloud Platform
+### 8.1 QuickBooks Integration
 
-The Service is hosted on Google Cloud Platform. You agree to Google's terms and policies.
+The Service integrates with Intuit QuickBooks Online. Your use of QuickBooks features is subject to Intuit's terms and policies.
 
-### 8.2 Integrations
+### 8.2 Payment Processing
+
+Subscription billing is handled by Stripe. Your use of payment features is subject to Stripe's terms.
+
+### 8.3 Integrations
 
 We may integrate with third-party services. Your use of integrations is subject to their terms.
 

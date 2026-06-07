@@ -21,7 +21,7 @@ import billingAPI from "../services/billingAPI";
 /**
  * Organization Setup Wizard
  *
- * Shown to new GCP Marketplace customers on first login.
+ * Shown to new customers on first login.
  * Guides them through:
  * 1. Welcome & Overview
  * 2. Company Profile
@@ -247,15 +247,10 @@ const OrganizationSetupWizard = ({ onComplete }) => {
         <p className="text-xl text-gray-600 mb-8">{organization.name}</p>
       )}
 
-      {subscription && subscription.gcp_entitlement_id && (
-        <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full mb-8">
-          <img
-            src="https://www.gstatic.com/images/branding/product/2x/gcp_48dp.png"
-            alt="GCP"
-            className="w-5 h-5"
-          />
+      {subscription && subscription.tier && subscription.tier !== "free" && (
+        <div className="inline-flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full mb-8">
           <span className="font-medium">
-            Powered by Google Cloud Marketplace
+            {subscription.tier_display_name || subscription.tier} Plan Active
           </span>
         </div>
       )}
@@ -335,7 +330,7 @@ const OrganizationSetupWizard = ({ onComplete }) => {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Cannot be changed (set by GCP Marketplace)
+            Organization name from your account
           </p>
         </div>
 

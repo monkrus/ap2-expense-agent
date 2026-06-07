@@ -419,7 +419,7 @@ db.query(OrganizationMember).filter(
 ## Next Steps
 
 After PostgreSQL migration:
-1. ✅ GCP Marketplace Integration Testing
+1. ✅ QuickBooks and Stripe Integration Testing
 2. ✅ Deploy to Cloud Run
 3. ✅ Configure production secrets
 4. ✅ Performance testing under load

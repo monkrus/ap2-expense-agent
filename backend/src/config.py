@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     google_cloud_project: Optional[str] = None
     google_cloud_location: str = "us-central1"
     google_genai_use_vertexai: bool = False
+    gcp_project_id: Optional[str] = None  # Used by KMS signing for AP2 mandates
 
     # Database
     # Default to SQLite for development, override with DATABASE_URL env var for production
@@ -61,30 +62,11 @@ class Settings(BaseSettings):
     ai_categorization_fee: float = 0.05  # Fee per AI categorization (over limit)
     ocr_scan_fee: float = 0.02  # Fee per OCR scan (over limit)
 
-    # Google Cloud Marketplace Configuration
-    gcp_project_id: Optional[str] = None  # GCP Project ID
-    gcp_provider_id: Optional[str] = (
-        None  # Provider ID for Consumer Procurement (defaults to project_id when unset)
-    )
-    gcp_service_account_path: Optional[str] = None  # Path to service account JSON file
-    gcp_webhook_secret: Optional[str] = None  # Webhook secret from GCP Marketplace
-    gcp_webhook_audience: Optional[str] = (
-        None  # Expected OIDC audience for Pub/Sub push
-    )
-    enable_gcp_marketplace: bool = False  # Enable/disable GCP Marketplace integration
-    gcp_usage_reporting_enabled: bool = True  # Enable hourly usage reporting to GCP
-    gcp_trial_period_days: int = 14  # Free trial length for Marketplace signups
-    gcp_grace_period_days: int = 7  # Grace after cancellation/suspension
-    gcp_metering_retry_max_attempts: int = 5  # Usage report retry attempts
-    gcp_metering_retry_backoff_seconds: int = 60  # Base backoff for retries
-    gcp_marketplace_sku_map: dict = Field(
-        default_factory=lambda: {
-            # Logical feature -> SKU/unit mapping (populate with real SKUs in env)
-            "expenses": {"unit": "expense", "sku": None},
-            "ai_categorizations": {"unit": "ai_categorization", "sku": None},
-            "ap2_transactions": {"unit": "ap2_transaction", "sku": None},
-        }
-    )
+    # QuickBooks Integration
+    quickbooks_client_id: Optional[str] = None
+    quickbooks_client_secret: Optional[str] = None
+    quickbooks_redirect_uri: Optional[str] = "http://localhost:8000/api/v1/quickbooks/callback"
+    quickbooks_environment: str = "sandbox"  # sandbox or production
 
     # Frontend URL (for emails and redirects)
     frontend_url: Optional[str] = "http://localhost:5173"
@@ -121,10 +103,6 @@ try:
                 raise ValueError("JWT_SECRET must be set in production/staging")
             if not self.database_url:
                 raise ValueError("DATABASE_URL must be set in production/staging")
-            if self.enable_gcp_marketplace and not self.gcp_webhook_audience:
-                raise ValueError(
-                    "GCP_WEBHOOK_AUDIENCE must be set when Marketplace integration is enabled"
-                )
             # Never allow dev KMS fallback in production/staging
             self.allow_dev_kms_fallback = False
 

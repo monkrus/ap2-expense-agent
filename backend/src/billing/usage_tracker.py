@@ -61,19 +61,19 @@ class UsageTracker:
             .first()
         )
 
-        if not org_subscription and settings.enable_gcp_marketplace:
+        if not org_subscription and settings.enable_billing:
             raise ValueError("Organization does not have an active subscription")
 
         usage_metric = UsageMetric(
             id=str(uuid.uuid4()),
             organization_id=organization_id,
-            account_id=org_subscription.gcp_account_id if org_subscription else None,
+            account_id=org_subscription.stripe_customer_id if org_subscription else None,
             metric_type=usage_type,
             metric_value=float(quantity),
             unit="count",
             period_start=datetime.utcnow(),
             period_end=datetime.utcnow(),
-            reported_to_gcp=False,
+            reported=False,
             additional_metadata=metadata,
         )
 

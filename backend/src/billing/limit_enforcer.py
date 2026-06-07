@@ -204,12 +204,12 @@ class LimitEnforcer:
         )
 
     def _require_subscription(self, limits: OrgLimits) -> None:
-        if settings.enable_gcp_marketplace and not limits.has_subscription:
+        if settings.enable_billing and not limits.has_subscription:
             raise LimitExceededError(
                 feature="Subscription",
                 limit=1,
                 current=0,
-                upgrade_message="Active Google Cloud Marketplace subscription required.",
+                upgrade_message="Active subscription required. Visit the pricing page to subscribe.",
             )
 
     def _default_limits(

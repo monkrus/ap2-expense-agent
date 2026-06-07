@@ -1,4 +1,4 @@
-"""Add usage tracking tables for GCP Marketplace metering
+"""Add usage tracking tables for billing metering
 
 Revision ID: usage_tracking_001
 Revises: aea3ed9130aa

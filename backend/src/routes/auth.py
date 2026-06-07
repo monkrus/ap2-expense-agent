@@ -734,7 +734,7 @@ async def setup_status(db: Session = Depends(get_db)):
 
     Returns needs_setup=True when the database has no users at all.
     The frontend calls this on every cold load to decide whether to show
-    the First-Time Setup screen (new deployment / fresh GCP Marketplace purchase)
+    the First-Time Setup screen (new deployment / fresh install)
     instead of the normal Login screen.
     """
     user_count = db.query(User).count()

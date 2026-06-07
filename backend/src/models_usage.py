@@ -1,5 +1,5 @@
 """
-Usage Tracking Models for GCP Marketplace Metering
+Usage Tracking Models for billing metering.
 """
 
 from datetime import datetime
@@ -128,7 +128,7 @@ class BillingEvent(Base):
 
 class UsageReportingLog(Base):
     """
-    Log of usage reports sent to GCP Marketplace
+    Log of usage reports sent for billing
 
     Tracks what we've reported to prevent duplicate reporting
     and enable retry logic for failed reports

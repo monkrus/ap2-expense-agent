@@ -65,7 +65,7 @@ const PRICING_TIERS = [
     highlights: ["Everything in Free", "200 AI categorizations", "100 AP2 transactions", "Email support"],
     icon: Users,
     color: "blue",
-    buttonText: "Subscribe in GCP",
+    buttonText: "Start Free Trial",
     monthlyPrice: 29,
     annualPrice: 24,
     features: {
@@ -104,7 +104,7 @@ const PRICING_TIERS = [
     icon: Building2,
     color: "indigo",
     popular: true,
-    buttonText: "Subscribe in GCP",
+    buttonText: "Start Free Trial",
     monthlyPrice: 99,
     annualPrice: 82,
     features: {
@@ -128,10 +128,7 @@ const PRICING_TIERS = [
   },
 ];
 
-// GCP Marketplace product page URL (where users can subscribe)
-const MARKETPLACE_PRODUCT_URL =
-  import.meta.env.VITE_GCP_MARKETPLACE_URL ||
-  "https://console.cloud.google.com/marketplace";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // Feature comparison data for the table
 const FEATURE_CATEGORIES = [
@@ -234,8 +231,29 @@ const PricingPlans = () => {
     }
 
     setProcessingTier(tierId);
-    window.open(MARKETPLACE_PRODUCT_URL, "_blank");
-    setProcessingTier(null);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/api/v1/stripe/checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          tier: tierId,
+          success_url: `${window.location.origin}/billing?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${window.location.origin}/pricing`,
+        }),
+      });
+      const data = await res.json();
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+      }
+    } catch (err) {
+      console.error("Failed to create checkout session:", err);
+    } finally {
+      setProcessingTier(null);
+    }
   };
 
   const getPrice = (tier) => {
@@ -267,8 +285,8 @@ const PricingPlans = () => {
             Choose Your Plan
           </h1>
           <p className="text-xl text-gray-600 mb-8">
-            Subscribe via Google Cloud Marketplace. Trials and billing are
-            managed in your GCP account.
+            Start with a 14-day free trial. Upgrade anytime to unlock AI
+            categorization, QuickBooks sync, and more.
           </p>
 
           {/* Billing Toggle */}
@@ -753,47 +771,47 @@ const FAQ_ITEMS = [
   {
     question: "How does the 14-day free trial work?",
     answer:
-      "Start any plan free for 14 days through Google Cloud Marketplace with full access to all features. No credit card required upfront. At the end of your trial, manage your subscription in Marketplace to continue.",
+      "Start any paid plan free for 14 days with full access to all features. No credit card required upfront. At the end of your trial, add a payment method to continue.",
   },
   {
     question: "What's the difference between the plans?",
     answer:
-      "Starter is perfect for small teams (up to 5 users) with basic needs. Professional is our most popular choice for growing businesses, offering unlimited expenses, advanced AI, and priority support. Enterprise provides unlimited everything plus dedicated support, SSO, and custom integrations.",
+      "Starter is perfect for small teams (up to 25 users) with AI categorization and basic integrations. Professional is our most popular choice for growing businesses, offering 2,000 expenses/month, advanced approval workflows, QuickBooks sync, and priority support.",
   },
   {
     question: "Can I upgrade or downgrade at any time?",
     answer:
-      "Yes. Plan changes are managed in Google Cloud Marketplace and apply per Marketplace billing rules.",
+      "Yes! You can change your plan anytime from the Billing Dashboard. Upgrades take effect immediately, and downgrades apply at the end of your current billing period.",
   },
   {
     question: "What payment methods do you accept?",
     answer:
-      "Billing is handled through Google Cloud Marketplace, so charges are billed to your Google Cloud billing account.",
+      "We accept all major credit and debit cards (Visa, Mastercard, American Express) via Stripe. All payments are processed securely.",
   },
   {
-    question: "How much can I save with annual billing?",
+    question: "Does it integrate with QuickBooks?",
     answer:
-      "Annual billing options are configured through the Marketplace listing. Contact sales or check the listing for current terms.",
+      "Yes! Connect your QuickBooks Online account and approved expenses sync automatically as purchases. Categories and vendors are mapped for seamless reconciliation.",
   },
   {
     question: "What happens if I exceed my plan limits?",
     answer:
-      "We'll notify you at 80% and 100% of your limits. You can upgrade anytime, or continue with small overage fees ($0.05 per AI categorization, $0.02 per OCR scan). Enterprise plans have unlimited usage.",
+      "We'll notify you at 80% and 100% of your limits. You can upgrade anytime, or continue with small overage fees ($0.05 per AI categorization, $0.02 per OCR scan).",
   },
   {
     question: "Is my data secure?",
     answer:
-      "Yes! We use bank-level 256-bit encryption, are SOC 2 Type II certified, and GDPR compliant. Enterprise plans include additional security features like SSO/SAML, audit logs, and data residency options.",
+      "Yes! We use bank-level 256-bit encryption, are SOC 2 Type II certified, and GDPR compliant. All AP2 transactions include cryptographic audit trails.",
   },
   {
     question: "Can I cancel my subscription?",
     answer:
-      "Cancel from Google Cloud Marketplace. Access continues until the end of your current billing period, per Marketplace terms.",
+      "Cancel anytime from the Billing Dashboard or Stripe Customer Portal. Access continues until the end of your current billing period.",
   },
   {
     question: "Do you offer discounts for nonprofits or startups?",
     answer:
-      "Yes! We offer 50% off for registered nonprofits and special startup pricing through our partnership programs. Contact our sales team to learn more about eligibility and apply.",
+      "Yes! We offer 50% off for registered nonprofits and special startup pricing through our partnership programs. Contact our sales team to learn more.",
   },
   {
     question: "How do I get help if I have questions?",

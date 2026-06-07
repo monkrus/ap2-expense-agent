@@ -178,10 +178,10 @@ def ensure_default_users_exist(db: Session) -> None:
     Ensures default users exist in the database.
     Called automatically on application startup.
 
-    SAFEGUARD for Google Cloud Marketplace:
+    SAFEGUARD for production:
     - In PRODUCTION or when DISABLE_DEFAULT_ADMIN=true, this does NOT create
-      the default admin user. This allows the first registered user (after
-      marketplace purchase) to become the admin.
+      the default admin user. This allows the first registered user to become
+      the admin.
     - In DEVELOPMENT/TESTING, it creates a default admin for convenience.
     """
     import os

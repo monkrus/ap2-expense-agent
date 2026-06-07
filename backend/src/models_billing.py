@@ -1,5 +1,5 @@
 """
-Billing and usage tracking models for Google Cloud Marketplace integration
+Billing and usage tracking models for subscription management and QuickBooks integration.
 """
 
 from datetime import datetime
@@ -29,7 +29,7 @@ class UsageMetric(Base):
 
     # Organization/Account identification
     organization_id = Column(String(255), nullable=False, index=True)
-    account_id = Column(String(255), nullable=True)  # GCP account ID from marketplace
+    account_id = Column(String(255), nullable=True)  # External account ID
 
     # Metric information
     metric_type = Column(
@@ -44,7 +44,7 @@ class UsageMetric(Base):
 
     # Reporting
     reported_at = Column(DateTime, nullable=True)
-    reported_to_gcp = Column(Boolean, default=False, nullable=False)
+    reported = Column(Boolean, default=False, nullable=False)
     report_response = Column(JSON, nullable=True)
 
     # Additional data
@@ -54,7 +54,7 @@ class UsageMetric(Base):
     # Indexes for efficient querying
     __table_args__ = (
         Index("idx_usage_org_period", "organization_id", "period_start", "period_end"),
-        Index("idx_usage_reported", "reported_to_gcp", "period_end"),
+        Index("idx_usage_reported", "reported", "period_end"),
     )
 
 
@@ -110,10 +110,12 @@ class OrganizationSubscription(Base):
     tier_id = Column(String(255), nullable=False)
     tier_name = Column(String(100), nullable=False)
 
-    # GCP Marketplace
-    gcp_account_id = Column(String(255), nullable=True, unique=True)
-    gcp_entitlement_id = Column(String(255), nullable=True)
-    marketplace_order_id = Column(String(255), nullable=True)
+    # Stripe Billing
+    stripe_customer_id = Column(String(255), nullable=True, unique=True)
+    stripe_subscription_id = Column(String(255), nullable=True, unique=True)
+
+    # QuickBooks Integration
+    quickbooks_realm_id = Column(String(255), nullable=True)  # QB Company ID
 
     # Status
     status = Column(
@@ -171,96 +173,24 @@ class BillingEvent(Base):
     event_metadata = Column(JSON, nullable=True)
 
 
-class MarketplaceAccount(Base):
-    """
-    Links a GCP Consumer Procurement account/consumer to an organization.
+class QuickBooksConnection(Base):
+    """Tracks QuickBooks OAuth2 connections per organization."""
 
-    Stores linkage state to support re-linking and account ownership checks.
-    """
-
-    __tablename__ = "marketplace_accounts"
+    __tablename__ = "quickbooks_connections"
 
     id = Column(String(255), primary_key=True)
-    organization_id = Column(String(255), nullable=False, index=True)
+    organization_id = Column(String(255), nullable=False, unique=True, index=True)
 
-    account_id = Column(String(255), nullable=False, unique=True, index=True)
-    consumer_id = Column(String(255), nullable=True, unique=True, index=True)
+    realm_id = Column(String(255), nullable=False)  # QuickBooks Company ID
+    access_token = Column(String(2000), nullable=False)
+    refresh_token = Column(String(2000), nullable=False)
+    token_expires_at = Column(DateTime, nullable=False)
 
-    status = Column(
-        String(50), nullable=False, default="linked"
-    )  # linked, pending, unlinked
-    linked_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(
-        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
-    )
+    # Sync state
+    last_sync_at = Column(DateTime, nullable=True)
+    sync_enabled = Column(Boolean, default=True, nullable=False)
 
-    account_metadata = Column(
-        JSON, nullable=True
-    )  # Renamed from 'metadata' (SQLAlchemy reserved)
-
-    __table_args__ = (Index("ix_marketplace_accounts_org", "organization_id"),)
-
-
-class MarketplaceEntitlement(Base):
-    """
-    Tracks Consumer Procurement entitlements and their lifecycle state.
-    """
-
-    __tablename__ = "marketplace_entitlements"
-
-    id = Column(String(255), primary_key=True)
-    entitlement_id = Column(String(255), nullable=False, unique=True, index=True)
-    account_id = Column(String(255), nullable=True, index=True)
-    consumer_id = Column(String(255), nullable=True, index=True)
-    organization_id = Column(String(255), nullable=False, index=True)
-
-    plan = Column(String(100), nullable=False)
-    state = Column(
-        String(50), nullable=False, default="ACTIVE"
-    )  # ACTIVE, CANCELLED, SUSPENDED, PENDING
-
-    current_period_end = Column(DateTime, nullable=True)
-    trial_start = Column(DateTime, nullable=True)
-    trial_end = Column(DateTime, nullable=True)
-    grace_start = Column(DateTime, nullable=True)
-    grace_end = Column(DateTime, nullable=True)
-    last_event_at = Column(DateTime, nullable=True)
-
-    entitlement_metadata = Column(
-        JSON, nullable=True
-    )  # Renamed from 'metadata' (SQLAlchemy reserved)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
-    )
-
-    __table_args__ = (
-        Index("ix_marketplace_entitlements_org", "organization_id"),
-        Index("ix_marketplace_entitlements_state", "state"),
-    )
-
-
-class MarketplaceWebhookEvent(Base):
-    """
-    Idempotency log for webhook/event handling to ensure at-least-once delivery safety.
-    """
-
-    __tablename__ = "marketplace_webhook_events"
-
-    id = Column(String(255), primary_key=True)  # requestId or generated uuid
-    handler = Column(String(100), nullable=False)
-    dedupe_key = Column(String(255), nullable=False)
-
-    status = Column(
-        String(50), nullable=False, default="pending"
-    )  # pending, success, failed
-    error_message = Column(String(1000), nullable=True)
-    payload = Column(JSON, nullable=True)
-
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    processed_at = Column(DateTime, nullable=True)
-
-    __table_args__ = (
-        UniqueConstraint("handler", "dedupe_key", name="uq_marketplace_event_dedupe"),
-        Index("ix_marketplace_webhook_handler_status", "handler", "status"),
     )

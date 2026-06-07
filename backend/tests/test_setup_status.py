@@ -1,6 +1,6 @@
 """
 Tests for GET /api/v1/auth/setup-status endpoint
-First-run detection for new deployments / GCP Marketplace purchases.
+First-run detection for new deployments.
 """
 
 

@@ -546,11 +546,11 @@ gcloud logging read "resource.type=cloud_run_revision \
 
 ## Next Steps
 
-1. ✅ Test with real GCP Marketplace subscription
+1. ✅ Configure Stripe billing and QuickBooks integration
 2. ✅ Load testing (use `locust` or `ab`)
 3. ✅ Security audit
 4. ✅ Performance tuning
 5. ✅ Beta customer onboarding
-6. ✅ Submit to GCP Marketplace
+6. ✅ Submit to QuickBooks App Store
 
 **Deployment complete! Your application is ready for production.** 🚀

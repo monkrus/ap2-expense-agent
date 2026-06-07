@@ -11,6 +11,7 @@ import GoogleCallback from "./pages/GoogleCallback";
 import BillingDashboard from "./pages/BillingDashboard";
 import PricingPlans from "./pages/PricingPlans";
 import InitialSetup from "./pages/InitialSetup";
+import QuickBooksIntegration from "./pages/QuickBooksIntegration";
 import OrganizationManagement from "./components/OrganizationManagement";
 import OrganizationSetupWizard from "./components/OrganizationSetupWizard";
 import AcceptInvitation from "./components/AcceptInvitation";
@@ -113,6 +114,21 @@ const AppContent = () => {
     );
   }
 
+  // QuickBooks integration page
+  if (
+    (currentPath === "/integrations" ||
+      currentPath === "/integrations/quickbooks" ||
+      window.location.pathname === "/integrations" ||
+      window.location.pathname === "/integrations/quickbooks") &&
+    isAuthenticated
+  ) {
+    return (
+      <ProtectedRoute>
+        <QuickBooksIntegration />
+      </ProtectedRoute>
+    );
+  }
+
   // Pricing / Plans page
   if (
     currentPath === "/pricing" ||
@@ -143,7 +159,7 @@ const AppContent = () => {
   }
 
   // --- First-time setup (no users in DB) ---
-  // Shown to every brand-new deployment or fresh GCP Marketplace purchase.
+  // Shown to every brand-new deployment or fresh install.
   if (needsSetup) {
     return (
       <InitialSetup

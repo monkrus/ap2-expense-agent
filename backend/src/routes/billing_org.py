@@ -164,8 +164,8 @@ def get_organization_subscription(
         "trial_end": subscription.trial_end,
         "limits": limits,
         "features": features,
-        "gcp_entitlement_id": subscription.gcp_entitlement_id,
-        "gcp_account_id": subscription.gcp_account_id,
+        "stripe_customer_id": subscription.stripe_customer_id,
+        "stripe_subscription_id": subscription.stripe_subscription_id,
         "organization_id": org_id,
     }
 
@@ -614,12 +614,6 @@ def upgrade_subscription(
     current_user: User = Depends(get_current_user),
 ):
     """Upgrade organization subscription to a new tier"""
-    if settings.enable_gcp_marketplace:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Subscriptions are managed via Google Cloud Marketplace.",
-        )
-
     # Get user's organization
     org_id = get_user_organization(db, current_user.id)
     if not org_id:
@@ -695,12 +689,6 @@ def create_organization_subscription(
 ):
     """Create a new subscription for the user's organization"""
     import uuid
-
-    if settings.enable_gcp_marketplace:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Subscriptions are managed via Google Cloud Marketplace.",
-        )
 
     tier = request.tier
     trial_days = request.trial_days

@@ -146,12 +146,6 @@ async def create_organization(
     logger.info(
         f"[CREATE_ORG] User {current_user.id} ({current_user.username}) attempting to create org: {org_data.name}"
     )
-    if settings.enable_gcp_marketplace:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Organizations are provisioned via Google Cloud Marketplace.",
-        )
-
     # Validate slug length (must be at least 3 characters)
     if len(org_data.slug) < 3:
         raise HTTPException(

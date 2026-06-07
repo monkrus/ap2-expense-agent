@@ -5,7 +5,7 @@ import { Shield, Building2, CheckCircle, Eye, EyeOff } from "lucide-react";
  * InitialSetup — First-Time Admin Account Creation
  *
  * Shown when the database has zero users (clean-slate deployment or fresh
- * Google Cloud Marketplace purchase).  The first user created here is
+ * install).  The first user created here is
  * automatically promoted to ADMIN by the backend.
  *
  * After successful creation the user is directed to Login.

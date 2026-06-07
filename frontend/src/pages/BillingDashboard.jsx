@@ -18,13 +18,7 @@ import { useToast } from "../hooks/useToast";
 import billingAPI from "../services/billingAPI";
 import organizationAPI from "../services/organizationAPI";
 
-// GCP Marketplace URLs
-const MARKETPLACE_PRODUCT_URL =
-  import.meta.env.VITE_GCP_MARKETPLACE_URL ||
-  "https://console.cloud.google.com/marketplace";
-
-const MARKETPLACE_SUBSCRIPTIONS_URL =
-  "https://console.cloud.google.com/marketplace/subscriptions";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 /**
  * Billing Dashboard
@@ -33,8 +27,7 @@ const MARKETPLACE_SUBSCRIPTIONS_URL =
  * - Current subscription tier
  * - Usage metrics with progress bars
  * - Estimated monthly bill
- * - Upgrade/downgrade options
- * - GCP Marketplace integration status
+ * - Upgrade/downgrade options via Stripe
  */
 const BillingDashboard = () => {
   const { user } = useAuth();
@@ -46,14 +39,28 @@ const BillingDashboard = () => {
   const [organization, setOrganization] = useState(null);
   const [tiers, setTiers] = useState([]);
 
-  // Determine correct marketplace URL based on subscription status
-  const getMarketplaceURL = () => {
-    if (subscription?.gcp_entitlement_id) {
-      // User has GCP subscription - send to subscriptions page
-      return MARKETPLACE_SUBSCRIPTIONS_URL;
+  // Open Stripe Customer Portal for managing billing
+  const openStripePortal = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/api/v1/stripe/portal`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          return_url: `${window.location.origin}/billing`,
+        }),
+      });
+      const data = await res.json();
+      if (data.portal_url) {
+        window.location.href = data.portal_url;
+      }
+    } catch (err) {
+      console.error("Failed to open billing portal:", err);
+      showError("Failed to open billing portal");
     }
-    // No subscription - send to product page to subscribe
-    return MARKETPLACE_PRODUCT_URL;
   };
 
   useEffect(() => {
@@ -148,8 +155,30 @@ const BillingDashboard = () => {
     }
   };
 
-  const handleUpgrade = (tierName) => {
-    window.open(getMarketplaceURL(), "_blank");
+  const handleUpgrade = async (tierName) => {
+    if (tierName === "free") return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/api/v1/stripe/checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          tier: tierName,
+          success_url: `${window.location.origin}/billing?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${window.location.origin}/billing`,
+        }),
+      });
+      const data = await res.json();
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+      }
+    } catch (err) {
+      console.error("Failed to create checkout:", err);
+      showError("Failed to start checkout");
+    }
   };
 
   const getUsagePercentage = (current, limit) => {
@@ -289,17 +318,17 @@ const BillingDashboard = () => {
               </div>
             </div>
 
-            {subscription?.gcp_entitlement_id && (
-              <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg">
-                <img
-                  src="https://www.gstatic.com/images/branding/product/2x/gcp_48dp.png"
-                  alt="GCP"
-                  className="w-5 h-5"
-                />
+            {subscription?.stripe_subscription_id && (
+              <button
+                onClick={openStripePortal}
+                className="flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors"
+              >
+                <CreditCard className="w-5 h-5" />
                 <span className="text-sm font-medium">
-                  Managed via GCP Marketplace
+                  Manage Billing
                 </span>
-              </div>
+                <ExternalLink className="w-3 h-3" />
+              </button>
             )}
           </div>
         </div>
@@ -367,15 +396,23 @@ const BillingDashboard = () => {
               )}
             </div>
 
-            <a
-              href={getMarketplaceURL()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
-            >
-              Manage in GCP
-              <ExternalLink className="w-4 h-4" />
-            </a>
+            {subscription?.stripe_subscription_id ? (
+              <button
+                onClick={openStripePortal}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
+              >
+                Manage Billing
+                <ExternalLink className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={() => window.location.href = "/pricing"}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
+              >
+                Upgrade Plan
+                <ExternalLink className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -541,21 +578,18 @@ const BillingDashboard = () => {
               </span>
             </div>
 
-            {subscription?.gcp_entitlement_id && (
+            {subscription?.stripe_subscription_id && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
                 <p className="text-sm text-blue-900">
-                  <strong>Note:</strong> This bill will be charged to your
-                  Google Cloud billing account. You can view detailed invoices
-                  in the{" "}
-                  <a
-                    href="https://console.cloud.google.com/billing"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <strong>Note:</strong> This bill is charged to your card on
+                  file. You can view invoices and update payment methods in the{" "}
+                  <button
+                    onClick={openStripePortal}
                     className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1"
                   >
-                    GCP Console
+                    Billing Portal
                     <ExternalLink className="w-3 h-3" />
-                  </a>
+                  </button>
                 </p>
               </div>
             )}
@@ -705,14 +739,12 @@ const BillingDashboard = () => {
                   Current Plan
                 </button>
               ) : (
-                <a
-                  href={getMarketplaceURL()}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => handleUpgrade("starter")}
                   className="block w-full py-3 bg-purple-600 text-white text-center rounded-lg font-semibold hover:bg-purple-700 transition-colors"
                 >
                   {subscription?.tier === "free" ? "Upgrade" : "Change Plan"}
-                </a>
+                </button>
               )}
               </div>
             </div>
@@ -792,30 +824,19 @@ const BillingDashboard = () => {
                   Current Plan
                 </button>
               ) : (
-                <a
-                  href={getMarketplaceURL()}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => handleUpgrade("professional")}
                   className="block w-full py-3 bg-purple-600 text-white text-center rounded-lg font-semibold hover:bg-purple-700 transition-colors"
                 >
                   Upgrade Now
-                </a>
+                </button>
               )}
               </div>
             </div>
           </div>
 
           <div className="mt-6 text-center text-sm text-gray-600">
-            All plans managed via{" "}
-            <a
-              href={getMarketplaceURL()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-purple-600 hover:text-purple-700 font-medium inline-flex items-center gap-1"
-            >
-              Google Cloud Marketplace
-              <ExternalLink className="w-3 h-3" />
-            </a>
+            Payments processed securely via Stripe. Cancel or change plans anytime.
           </div>
         </div>
 

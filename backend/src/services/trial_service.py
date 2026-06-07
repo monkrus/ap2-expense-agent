@@ -283,7 +283,7 @@ class TrialService:
                     f"<strong>{safe_org}</strong> expires in "
                     f"<strong>{days_remaining} day{plural}</strong>.</p>"
                     f"<p>To continue without interruption, please upgrade your "
-                    f"subscription via the Google Cloud Marketplace.</p>"
+                    f"subscription in your billing dashboard.</p>"
                     f"<p>Thank you,<br>The AP2 Expense Agent Team</p>"
                 )
                 text_body = (
@@ -291,7 +291,7 @@ class TrialService:
                     f"Your {safe_tier} trial for {safe_org} expires in "
                     f"{days_remaining} day{plural}.\n\n"
                     f"To continue without interruption, please upgrade your "
-                    f"subscription via the Google Cloud Marketplace.\n\n"
+                    f"subscription in your billing dashboard.\n\n"
                     f"Thank you,\nThe AP2 Expense Agent Team"
                 )
                 try:
