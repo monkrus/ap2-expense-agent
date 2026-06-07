@@ -4,7 +4,7 @@
 # Screenshot Capture Automation Helper
 # ============================================================================
 #
-# Purpose: Automate screenshot capture for GCP Marketplace submission
+# Purpose: Automate screenshot capture for Intuit App Store submission
 # Priority: HIGH
 # Usage: ./scripts/capture-screenshots.sh [--auto]
 #
@@ -256,7 +256,7 @@ verify_screenshot() {
 # Main Execution
 # ============================================================================
 
-print_header "GCP Marketplace Screenshot Capture Helper"
+print_header "Intuit App Store Screenshot Capture Helper"
 echo ""
 echo "This script will guide you through capturing all 8 required screenshots."
 echo "Each screenshot has specific requirements (1280x800 resolution, PNG format)."
@@ -301,7 +301,7 @@ echo "1. Review all screenshots in: $OUTPUT_DIR"
 echo "2. Verify image quality (clear text, good contrast)"
 echo "3. Check resolution: Should be 1280x800 (or 390x844 for mobile)"
 echo "4. Optimize file sizes: Use tools like TinyPNG or ImageOptim"
-echo "5. Upload to GCP Marketplace Console"
+echo "5. Upload to Intuit Developer Portal"
 echo ""
 echo "Screenshot checklist:"
 

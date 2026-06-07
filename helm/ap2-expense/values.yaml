@@ -173,7 +173,7 @@ backup:
   schedule: "0 3 * * *"  # Daily at 3 AM
   retention: 30  # days
 
-# Billing and metering (for Google Cloud Marketplace)
+# Billing and metering (Stripe subscriptions)
 billing:
   enabled: false
   reportingSecret: ""

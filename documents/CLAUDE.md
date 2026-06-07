@@ -5,7 +5,7 @@ This file provides context and best practices for Claude Code and subagents work
 ## Project Overview
 
 **Stack**: Python FastAPI (backend) + React (frontend) + SQLite/PostgreSQL
-**Architecture**: Multi-tenant SaaS with Google Cloud Marketplace integration
+**Architecture**: Multi-tenant SaaS with Stripe billing + QuickBooks App Store integration
 
 ### 🎯 **CORE VALUE PROPOSITION: AP2 Autonomous Agent**
 
@@ -36,7 +36,7 @@ This file provides context and best practices for Claude Code and subagents work
 2. Expense management - Submit, track, export
 3. Approval workflows - Manual approval for exceptions
 4. Organization management - Multi-tenant with RBAC
-5. Marketplace billing - Google Cloud integration
+5. Stripe billing + QuickBooks Online sync
 
 ---
 
@@ -97,7 +97,7 @@ python test_org_final.py
 # Full test suite with new user registration
 python test_organization_scenarios.py
 
-# Comprehensive security audit (Google Cloud Marketplace readiness)
+# Comprehensive security audit
 python security_audit_comprehensive.py
 ```
 
@@ -137,8 +137,8 @@ api.py                      # Main FastAPI application
 routes/
   ├── organizations.py      # Organization CRUD, invitations, members
   ├── auth.py              # Authentication endpoints
-  ├── billing_org.py       # Organization-level billing (Marketplace)
-  └── webhooks.py          # Marketplace/Stripe webhooks
+  ├── billing_org.py       # Organization-level billing
+  └── webhooks.py          # Stripe webhooks
 models.py                  # SQLAlchemy ORM models
 models_billing.py          # Billing-specific models
 billing/
@@ -346,7 +346,7 @@ Example (organizations.py:67-121):
 
 ---
 
-## Billing Tiers (Marketplace)
+## Billing Tiers (Stripe)
 
 **Current Pricing** (Finalized 2025-12-30):
 - **Free**: $0/month - 2 users, 30 expenses, 20 AP2 payments, 30 OCR scans
@@ -570,7 +570,7 @@ existing_slug = (
 
 **Files to be extra careful with**:
 - `backend/src/routes/organizations.py`
-- `backend/src/routes/billing_org.py       # Organization-level billing (Marketplace)
+- `backend/src/routes/billing_org.py       # Organization-level billing
 - `backend/src/tenant_context.py`
 
 ### 6. Before Committing Checklist ✓
@@ -780,7 +780,7 @@ Changes needed:
 - ✅ **Database Backup** (`scripts/backup-database.sh`): Automated Cloud SQL backup creation
 - ✅ **Rollback Procedure** (`scripts/rollback-deployment.sh`): Safe deployment rollback with health checks
 - ✅ **Smoke Tests** (`scripts/smoke-test.sh`): Post-deployment verification (13 tests)
-- ✅ **Screenshot Helper** (`scripts/capture-screenshots.sh`): Interactive guide for GCP Marketplace screenshots
+- ✅ **Screenshot Helper** (`scripts/capture-screenshots.sh`): Interactive guide for app store screenshots
 - ✅ **Demo Data Seeder** (`backend/seed_screenshot_data.py`): Generates realistic demo data
 - ✅ Updated **README.md**: Added automation scripts section and documentation links
 - ✅ Enhanced **CI/CD Pipeline**: Made linters blocking, enabled E2E tests
@@ -796,7 +796,7 @@ Changes needed:
 - ✅ Cleaned up 22 orphaned soft-deleted organizations
 - ✅ Conducted comprehensive security audit (30/30 tests passed)
 - ✅ Added input length validation (username, password limits)
-- ✅ Confirmed production-ready for Google Cloud Marketplace
+- ✅ Confirmed production-ready for deployment
 
 ---
 
@@ -821,7 +821,7 @@ python security_audit_comprehensive.py
 ### Security Test Results (Latest)
 
 **Date**: 2025-11-27
-**Status**: ✅ PRODUCTION READY FOR GCP MARKETPLACE
+**Status**: ✅ PRODUCTION READY
 **Score**: 97% (30/31 tests passed)
 
 **Security Audit**:
@@ -936,7 +936,7 @@ If you need clarification on:
 - **Testing**: Check `backend/tests/` for examples (30 test files)
 - **Security**: Review `documents/SECURITY.md` and run `python security_audit_comprehensive.py`
 - **Error Prevention**: See `documents/ADDITIONAL_SAFEGUARDS.md`
-- **Deployment**: Check `backend/GCP_MARKETPLACE_TESTING.md` and `backend/CLOUD_RUN_DEPLOYMENT.md`
+- **Deployment**: Check `backend/CLOUD_RUN_DEPLOYMENT.md` and `INTUIT_APP_STORE.md`
 - **Legal/Compliance**: See `legal/PRIVACY_POLICY.md` and `legal/TERMS_OF_SERVICE.md`
 
 **Key Principle**: AP2 autonomous agents are our competitive advantage. Intent Mandates enable instant auto-approval, not retroactive documentation.

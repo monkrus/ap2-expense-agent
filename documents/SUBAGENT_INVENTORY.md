@@ -40,12 +40,12 @@ This document captures the responsibilities and primary commands/validation area
 
 ## Integrations and Billing
 
-### ap2-marketplace-reviewer
-- Focus: AP2 protocol, Google Cloud Marketplace compliance, payment metadata, agent communication.
+### ap2-integration-reviewer
+- Focus: AP2 protocol, Stripe/QuickBooks integration compliance, payment metadata, agent communication.
 - Commands: Guidance based on code review; no direct CLI commands but targeted testing when adjusting payment flows.
 
 ### api-integration-tester
-- Focus: External APIs (Marketplace, AP2, Gemini, Stripe, email/webhooks), error handling, retries, webhook validation.
+- Focus: External APIs (AP2, Stripe, QuickBooks, email/webhooks), error handling, retries, webhook validation.
 - Commands: `pytest tests/test_integrations.py -v`, `pytest tests/test_webhooks.py -v`, `pytest backend/tests/test_stripe_processor.py -v`, `pytest tests/test_payments.py -v`, `pytest tests/test_gemini_ai.py -v`, `pytest tests/test_notifications.py -v`, plus manual log inspections and env var checks.
 
 ### billing-usage-auditor

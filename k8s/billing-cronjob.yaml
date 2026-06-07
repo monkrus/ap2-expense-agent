@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: ap2-expense-agent
     app.kubernetes.io/component: billing
 spec:
-  # Run every hour (Google Cloud Marketplace requires hourly reporting)
+  # Run every hour (usage tracking and tier limit enforcement)
   schedule: "0 * * * *"
 
   # Keep last 3 successful and 1 failed job

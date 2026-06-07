@@ -167,9 +167,9 @@ create_secret "stripe-webhook-secret" \
     "Stripe webhook signing secret" \
     "whsec_..."
 
-create_secret "gcp-webhook-secret" \
-    "GCP Marketplace webhook secret" \
-    "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+create_secret "quickbooks-client-secret" \
+    "QuickBooks OAuth client secret" \
+    "From Intuit Developer Portal > Your App > Keys & credentials"
 
 create_secret "smtp-password" \
     "SMTP password for sending emails" \
@@ -179,15 +179,15 @@ create_secret "sentry-dsn" \
     "Sentry DSN for error tracking (optional)" \
     "https://...@sentry.io/..."
 
-# Service account for GCP Marketplace
+# Service account for Cloud Run
 echo -e "${BLUE}Service Account Setup${NC}"
 echo ""
-echo "For GCP Marketplace integration, you need a service account JSON key."
+echo "For Cloud Run deployment, you need a service account JSON key."
 echo "Follow these steps:"
 echo ""
 echo "1. Create service account:"
-echo "   gcloud iam service-accounts create gcp-marketplace-sa \\"
-echo "     --display-name='GCP Marketplace Service Account' \\"
+echo "   gcloud iam service-accounts create ap2-expense-sa \\"
+echo "     --display-name='AP2 Expense Service Account' \\"
 echo "     --project=$PROJECT_ID"
 echo ""
 echo "2. Grant required permissions:"

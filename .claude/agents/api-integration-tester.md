@@ -1,6 +1,6 @@
 ---
 name: api-integration-tester
-description: Use this agent to test external API integrations including Google Cloud Marketplace and AP2 protocol. Validates API calls, error handling, webhooks, and integration compliance. Invoke after modifying integration code or troubleshooting API issues.
+description: Use this agent to test external API integrations including Stripe, QuickBooks Online, and AP2 protocol. Validates API calls, error handling, webhooks, and integration compliance. Invoke after modifying integration code or troubleshooting API issues.
 model: sonnet
 color: yellow
 ---
@@ -13,7 +13,7 @@ Ensure external API integrations are robust, compliant, and properly error-handl
 
 ## Integration Points to Test
 
-1. **Google Cloud Marketplace**
+1. **QuickBooks Online**
    - Subscription activation webhooks
    - Entitlement verification
    - Usage reporting/metering
@@ -222,7 +222,7 @@ Check for:
 - Idempotency keys used
 - Async operation handling
 
-## Google Cloud Marketplace Specific
+## QuickBooks Online Specific
 
 - Entitlement API usage
 - Subscription lifecycle handling

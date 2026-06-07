@@ -13,10 +13,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+psutil = pytest.importorskip("psutil", reason="psutil not installed")
+
 from src.monitoring import AlertManager
 from src.rate_limit import rate_limit_handler
-
-# psutil and prometheus_client are installed in the test environment
 
 
 pytestmark = pytest.mark.asyncio

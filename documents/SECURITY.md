@@ -480,7 +480,7 @@ We take security seriously. If you discover a vulnerability:
 - Payment Mandate: Complete audit trail ✅
 - Revocation: Three-tier revocation system ✅
 
-**Google Cloud Marketplace Approval:** Pending submission
+**Intuit App Store Approval:** Pending submission
 
 ---
 
@@ -505,14 +505,11 @@ We take security seriously. If you discover a vulnerability:
 
 ## Contact
 
-**Security Team:** security@your-domain.com
+**Security Team:** security@ap2expense.com
 
-**Emergency Contact:** +1 (555) 123-4567 (24/7)
-
-**PGP Fingerprint:** `XXXX XXXX XXXX XXXX XXXX`
+**Responsible Disclosure:** Please report vulnerabilities via GitHub Security Advisories on this repository, or email the security team directly.
 
 ---
 
-*Last Updated: November 10, 2025*
-*Document Version: 2.0*
-*Security Score: 96/100*
+*Last Updated: June 7, 2026*
+*Document Version: 3.0*

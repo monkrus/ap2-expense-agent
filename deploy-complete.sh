@@ -379,8 +379,7 @@ if [ "$DRY_RUN" = false ]; then
     echo "3. Configure Stripe webhooks:"
     echo "   Webhook URL: $BACKEND_URL/webhooks/stripe"
     echo ""
-    echo "4. Configure GCP Marketplace webhooks:"
-    echo "   Webhook URL: $BACKEND_URL/api/webhooks/gcp/procurement"
+    echo "4. Configure QuickBooks integration (see INTUIT_APP_STORE.md)"
     echo ""
     echo "5. Set up custom domain (optional):"
     echo "   gcloud run domain-mappings create --service ap2-expense-backend --domain api.yourdomain.com"
@@ -389,8 +388,7 @@ if [ "$DRY_RUN" = false ]; then
     echo ""
     echo "Documentation:"
     echo "  - Complete guide: CLOUD_RUN_DEPLOYMENT.md"
-    echo "  - GCP Marketplace: GCP_MARKETPLACE_TESTING.md"
-    echo "  - Full status: DEPLOYMENT_READINESS_REPORT.md"
+    echo "  - Intuit App Store: INTUIT_APP_STORE.md"
     echo ""
 fi
 

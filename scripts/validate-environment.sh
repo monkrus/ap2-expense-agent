@@ -147,11 +147,11 @@ check_var "GCP_STORAGE_BUCKET" false "" "Cloud Storage bucket for receipts"
 echo ""
 
 # ============================================================================
-# GCP Marketplace
+# Stripe & QuickBooks
 # ============================================================================
 
-print_header "GCP Marketplace"
-check_var "GCP_WEBHOOK_SECRET" false "" "GCP Marketplace webhook secret"
+print_header "Stripe & QuickBooks"
+check_var "STRIPE_SECRET_KEY" false "" "Stripe secret key"
 check_var "GCP_WEBHOOK_AUDIENCE" false "^https://" "GCP webhook audience URL"
 echo ""
 

@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: expenses
       POSTGRES_USER: ap2user
-      POSTGRES_PASSWORD: changeme
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
     ports:
       - "5432:5432"
     volumes:
@@ -22,9 +22,7 @@ services:
     build: ./backend
     container_name: ap2-backend
     environment:
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
-      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-demo-project}
-      DATABASE_URL: postgresql://ap2user:changeme@postgres:5432/expenses
+      DATABASE_URL: postgresql://ap2user:${POSTGRES_PASSWORD:-changeme}@postgres:5432/expenses
       CORS_ORIGINS: http://localhost:5173,http://localhost:3000
     ports:
       - "8000:8000"

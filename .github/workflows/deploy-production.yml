@@ -110,7 +110,7 @@ jobs:
       - name: Build frontend
         run: npm run build
         env:
-          VITE_API_URL: https://placeholder-backend-url/api/v1
+          VITE_API_URL: ${{ secrets.BACKEND_URL || 'http://localhost:8000' }}/api/v1
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -181,7 +181,6 @@ jobs:
         run: |
           sleep 10
           curl -f ${{ steps.backend-url.outputs.url }}/health || exit 1
-          curl -f ${{ steps.backend-url.outputs.url }}/api/webhooks/gcp/health || exit 1
 
     outputs:
       backend-url: ${{ steps.backend-url.outputs.url }}

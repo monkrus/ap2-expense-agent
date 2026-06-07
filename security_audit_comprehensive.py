@@ -1,6 +1,6 @@
 """
 Comprehensive Security Audit for AP2 Expense Management
-Google Cloud Marketplace Production Readiness Testing
+Production Readiness Testing
 
 This script tests:
 1. Authentication & Authorization Security
@@ -551,15 +551,15 @@ class SecurityTester:
             print(f"⚠ {len([w for w in self.warnings if w['severity'] == 'HIGH'])} high-severity issues should be addressed")
 
         if len(self.critical_issues) == 0 and len([w for w in self.warnings if w['severity'] == 'HIGH']) <= 2:
-            print("\n[ASSESSMENT] Application is READY for Google Cloud Marketplace")
+            print("\n[ASSESSMENT] Application is READY for production deployment")
         else:
-            print("\n[ASSESSMENT] Application REQUIRES FIXES before GCP Marketplace deployment")
+            print("\n[ASSESSMENT] Application REQUIRES FIXES before production deployment")
 
 def main():
     """Run comprehensive security audit"""
     print("="*80)
     print("  AP2 EXPENSE MANAGEMENT - COMPREHENSIVE SECURITY AUDIT")
-    print("  Google Cloud Marketplace Production Readiness Testing")
+    print("  Production Readiness Testing")
     print("="*80)
     print(f"\nStarting audit at: {datetime.now()}")
     print(f"Target: {BASE_URL}\n")

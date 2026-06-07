@@ -1,529 +1,238 @@
 # AP2 Expense Management Agent
 
 [![Production Ready](https://img.shields.io/badge/production-ready-brightgreen)](https://github.com/monkrus/ap2-expense-agent)
-[![Test Coverage](https://img.shields.io/badge/coverage-96.4%25-brightgreen)](backend/tests)
-[![Security](https://img.shields.io/badge/security-hardened-green)](SECURITY_REMEDIATION_REPORT.md)
-[![GCP Marketplace](https://img.shields.io/badge/GCP-marketplace%20ready-blue)](GCP_MARKETPLACE_TESTING.md)
+[![Test Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)](backend/tests)
+[![Security](https://img.shields.io/badge/security-hardened-green)](backend/SECURITY_REMEDIATION_REPORT.md)
+[![QuickBooks](https://img.shields.io/badge/QuickBooks-App%20Store-2CA01C)](https://developer.intuit.com/)
+[![Stripe](https://img.shields.io/badge/Stripe-billing-635BFF)](https://stripe.com)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-A production-ready, cloud-native expense management system with Google Cloud Marketplace integration, built on the AP2 protocol for seamless payment processing.
+AI-powered expense management with autonomous AP2 protocol approvals, QuickBooks Online sync, and Stripe subscription billing. Built for the Intuit App Store.
 
-## 🌟 Features
+## What Makes AP2 Different
 
-### Core Capabilities
-- **Multi-Tenant Architecture** - Complete organization management with role-based access control
-- **Expense Management** - Submit, approve, track, and export expenses with receipt attachments
-- **AP2 Protocol Integration** - Three-mandate payment flow (Intent → Cart → Payment)
-- **Automated Approvals** - Policy-based approval workflows and bulk operations
-- **Budget Management** - Track budgets, set alerts, and monitor spending
-- **Receipt OCR** - Automated receipt scanning and data extraction (AI-powered)
+Most expense tools still require manual manager approval for every receipt. AP2 uses **Intent Mandates** to auto-approve 60-70% of routine expenses instantly:
+
+1. Manager creates a rule: *"Auto-approve Amazon office supplies up to $200/month"*
+2. Employee submits a $45 Amazon receipt
+3. AP2 agent matches the mandate and approves in seconds - no human needed
+4. Exceptions route to manual review as usual
+
+Result: faster reimbursements, less manager overhead, full cryptographic audit trail.
+
+## Features
+
+### Core
+- **AP2 Autonomous Approvals** - Intent Mandate matching auto-approves routine expenses
+- **Expense Management** - Submit, approve, track, and export with receipt attachments
+- **QuickBooks Online Sync** - OAuth2 connect, expense sync, account/vendor mapping
+- **Budget Management** - Track budgets, set alerts, monitor spending
+- **Receipt OCR** - AI-powered receipt scanning and data extraction
 - **Export & Reporting** - CSV, Excel, and PDF exports with custom filtering
 
-### Enterprise Features
-- **GCP Marketplace Integration** - Native Google Cloud Marketplace billing
-- **Subscription Tiers** - STARTER, PROFESSIONAL, ENTERPRISE, ENTERPRISE_PLUS
-- **Usage-Based Billing** - Automatic overage tracking and metering
-- **Stripe Payment Processor (AP2)** - Optional Stripe-backed AP2 payments
+### Billing & Integration
+- **Stripe Subscription Billing** - Checkout, Customer Portal, webhook lifecycle
+- **Subscription Tiers** - Free, Starter ($29/mo), Professional ($79/mo)
+- **QuickBooks App Store** - Listed on the Intuit App Store for discovery
 - **2FA Authentication** - TOTP-based two-factor authentication
-- **Audit Logging** - Complete audit trail with hash chain verification
-- **OAuth Support** - Google OAuth integration
+- **Audit Logging** - Hash-chain verified audit trail (GDPR/SOC 2 ready)
+- **Multi-Tenant Architecture** - Organization isolation with RBAC
 
-### Technical Highlights
-- **96.4% Test Coverage** - 268 of 278 tests passing
-- **150+ API Endpoints** - Comprehensive REST API with OpenAPI/Swagger docs
-- **PostgreSQL Ready** - Production-grade database with migration scripts
-- **Cloud Run Native** - Containerized deployment with auto-scaling
-- **Security Hardened** - All critical vulnerabilities addressed
-- **CI/CD Pipeline** - Automated testing and deployment with GitHub Actions
+### Technical
+- **150+ API Endpoints** - REST API with OpenAPI/Swagger docs
+- **PostgreSQL + SQLite** - Postgres in production, SQLite for dev
+- **Cloud Run Deployment** - Containerized with auto-scaling
+- **CI/CD Pipeline** - GitHub Actions for testing and deployment
+- **Security Hardened** - Input validation, rate limiting, JWT auth
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### Option 1: One-Command Deployment (Recommended)
+### Local Development
 
 ```bash
-# Clone repository
+# Clone
 git clone https://github.com/monkrus/ap2-expense-agent.git
 cd ap2-expense-agent
 
-# Deploy to Google Cloud (requires gcloud CLI)
-./deploy-complete.sh --project YOUR_GCP_PROJECT_ID
-
-# ⏱️ Deployment time: ~70 minutes
-```
-
-### Option 2: Local Development
-
-```bash
-# Backend setup
+# Backend
 cd backend
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+cp ../.env.example .env     # Edit with your values
 uvicorn src.api:app --reload
 
-# Frontend setup (new terminal)
+# Frontend (new terminal)
 cd frontend
 npm install
 npm run dev
 
-# Access application
+# Access
 # Frontend: http://localhost:5173
-# Backend API: http://localhost:8000
+# Backend:  http://localhost:8000
 # API Docs: http://localhost:8000/docs
 ```
 
-### Option 3: Docker Compose
+### Docker Compose
 
 ```bash
+cp .env.example .env  # Edit with your values
 docker-compose up -d
+```
 
-# Services start on:
-# PostgreSQL: localhost:5432
-# Redis: localhost:6379
-# pgAdmin: localhost:5050 (optional)
+### Production Deployment (Cloud Run)
+
+```bash
+# Requires gcloud CLI configured
+./deploy-complete.sh --project YOUR_GCP_PROJECT_ID
 ```
 
 ---
 
-## 📋 Prerequisites
-
-### For Deployment
-- **Google Cloud Account** with billing enabled
-- **gcloud CLI** installed and configured
-- **Docker** installed (for container builds)
-- **Domain** (optional, for custom domains)
-
-### For Development
-- **Python 3.11+** for backend
-- **Node.js 18+** for frontend
-- **PostgreSQL 15** or SQLite for database
-- **Redis** (optional, for caching)
-
----
-
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Google Cloud                         │
-│  ┌────────────────┐  ┌────────────────┐  ┌──────────────┐  │
-│  │  Cloud Run     │  │  Cloud Run     │  │  Cloud SQL   │  │
-│  │  (Backend)     │  │  (Frontend)    │  │  PostgreSQL  │  │
-│  │  FastAPI       │  │  React/Vite    │  │              │  │
-│  └────────┬───────┘  └────────┬───────┘  └──────┬───────┘  │
-│           │                   │                  │          │
-│  ┌────────┴───────────────────┴──────────────────┴───────┐  │
-│  │            Secret Manager & Cloud Storage             │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                              │
-│  ┌────────────────┐  ┌──────────────────┐                   │
-│  │  Marketplace   │  │  Service Control │                   │
-│  │  Procurement   │  │  Usage Reporting │                   │
-│  └────────────────┘  └──────────────────┘                   │
-└─────────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-              ┌────────────────────────┐
-              │   AP2 Payments         │
-              └────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                    Google Cloud Run                       │
+│  ┌────────────────┐  ┌────────────────┐  ┌───────────┐  │
+│  │  Backend API   │  │  Frontend SPA  │  │ Cloud SQL │  │
+│  │  (FastAPI)     │  │  (React/Vite)  │  │ Postgres  │  │
+│  └───────┬────────┘  └────────────────┘  └─────┬─────┘  │
+│          │                                      │        │
+│          ├──── Secret Manager ──────────────────┘        │
+│          │                                               │
+└──────────┼───────────────────────────────────────────────┘
+           │
+    ┌──────┴──────────────────────────────────┐
+    │           External Services              │
+    │  ┌─────────┐ ┌────────────┐ ┌────────┐  │
+    │  │ Stripe  │ │ QuickBooks │ │ SMTP   │  │
+    │  │ Billing │ │ Online API │ │ Email  │  │
+    │  └─────────┘ └────────────┘ └────────┘  │
+    └─────────────────────────────────────────┘
 ```
 
 ### Tech Stack
 
-**Backend:**
-- FastAPI 0.121.1
-- SQLAlchemy 2.0.44
-- Pydantic 2.12.4
-- Alembic (migrations)
-- Python 3.11
-
-**Frontend:**
-- React 18.2.0
-- Vite 7.2.2
-- TailwindCSS 3.3.6
-- Axios
-- Lucide Icons
-
-**Infrastructure:**
-- Google Cloud Run
-- Cloud SQL PostgreSQL 15
-- Cloud Storage
-- Secret Manager
-- Cloud Build
-
-**Integrations:**
-- Stripe (AP2 payments)
-- Google Cloud Marketplace (billing)
-- Google OAuth (authentication)
-- SendGrid/SMTP (emails)
+**Backend:** FastAPI, SQLAlchemy 2.0, Pydantic 2, Alembic, Python 3.11
+**Frontend:** React 18, Vite, TailwindCSS, Axios, Lucide Icons
+**Infrastructure:** Cloud Run, Cloud SQL (Postgres 15), Secret Manager
+**Integrations:** Stripe (billing), QuickBooks Online (accounting sync), SendGrid (email)
 
 ---
 
-## 🤖 Automation Scripts
+## Deployment Scripts
 
-We provide comprehensive automation scripts for production deployment and operations:
-
-### Deployment & Operations
-
-| Script | Purpose | Usage |
-|--------|---------|-------|
-| [`scripts/deploy-production.sh`](scripts/deploy-production.sh) | End-to-end production deployment | `./scripts/deploy-production.sh v1.0.0` |
-| [`scripts/validate-environment.sh`](scripts/validate-environment.sh) | Validate environment variables | `./scripts/validate-environment.sh production` |
-| [`scripts/backup-database.sh`](scripts/backup-database.sh) | Create database backups | `./scripts/backup-database.sh` |
-| [`scripts/rollback-deployment.sh`](scripts/rollback-deployment.sh) | Safe deployment rollback | `./scripts/rollback-deployment.sh v0.9.0` |
-| [`scripts/smoke-test.sh`](scripts/smoke-test.sh) | Post-deployment verification | `./scripts/smoke-test.sh production` |
-
-### Marketplace Assets
-
-| Script | Purpose | Usage |
-|--------|---------|-------|
-| [`scripts/capture-screenshots.sh`](scripts/capture-screenshots.sh) | Screenshot capture guide | `./scripts/capture-screenshots.sh` |
-| [`backend/seed_screenshot_data.py`](backend/seed_screenshot_data.py) | Generate demo data | `python backend/seed_screenshot_data.py` |
-
-**Features:**
-- ✅ Automated environment validation
-- ✅ Pre-deployment database backups
-- ✅ Health checks and smoke tests
-- ✅ Gradual traffic rollout (25% → 50% → 75% → 100%)
-- ✅ Automatic rollback on failure
-- ✅ Slack and PagerDuty notifications
-- ✅ Comprehensive deployment reports
+| Script | Purpose |
+|--------|---------|
+| `deploy-complete.sh` | End-to-end Cloud Run deployment |
+| `scripts/deploy-production.sh` | Production deploy with gradual rollout |
+| `scripts/validate-environment.sh` | Pre-deploy environment validation |
+| `scripts/backup-database.sh` | Cloud SQL backup |
+| `scripts/rollback-deployment.sh` | Safe rollback |
+| `scripts/smoke-test.sh` | Post-deploy health checks |
 
 ---
 
-## 📖 Documentation
-
-| Document | Description | Lines |
-|----------|-------------|-------|
-| [DEPLOYMENT_QUICKSTART.md](DEPLOYMENT_QUICKSTART.md) | 70-minute fast-track deployment | 404 |
-| [DEPLOYMENT_READINESS_REPORT.md](DEPLOYMENT_READINESS_REPORT.md) | Complete project status & readiness | 609 |
-| [CLOUD_RUN_DEPLOYMENT.md](backend/CLOUD_RUN_DEPLOYMENT.md) | Comprehensive Cloud Run guide | 740 |
-| [GCP_MARKETPLACE_TESTING.md](backend/GCP_MARKETPLACE_TESTING.md) | Marketplace integration testing | 680 |
-| [POSTGRESQL_MIGRATION.md](backend/POSTGRESQL_MIGRATION.md) | PostgreSQL setup & migration | 550 |
-| [SECURITY_REMEDIATION_REPORT.md](backend/SECURITY_REMEDIATION_REPORT.md) | Security audit & fixes | 231 |
-| [GCP_INTEGRATION_TEST_RESULTS.md](backend/GCP_INTEGRATION_TEST_RESULTS.md) | Integration test results | 380 |
-| [MARKETPLACE_ASSET_CREATION_GUIDE.md](MARKETPLACE_ASSET_CREATION_GUIDE.md) | Screenshot & video guide | 9,000+ |
-| [PRODUCTION_ALERTING_SETUP.md](PRODUCTION_ALERTING_SETUP.md) | Monitoring & alerting setup | 7,000+ |
-| [PRE_LAUNCH_CHECKLIST.md](PRE_LAUNCH_CHECKLIST.md) | 150+ item deployment checklist | 10,000+ |
-| [CHANGELOG.md](CHANGELOG.md) | Project changelog | 650+ |
-
-**Total:** 30,000+ lines of comprehensive documentation
-
----
-
-## 🧪 Testing
-
-### Backend Tests
+## Testing
 
 ```bash
-cd backend
-source .venv/bin/activate
-pytest --cov=src --cov-report=html
+# Backend tests
+cd backend && pytest --cov=src --cov-report=html
 
-# Coverage: 96.4% (268/278 tests passing)
-```
-
-### Frontend Build
-
-```bash
-cd frontend
-npm run build
-
-# Build output: dist/ (1.6MB optimized)
-```
-
-### Integration Tests
-
-```bash
-cd backend
-python test_gcp_integration.py --test all
-
-# Tests: 5/8 passing (3 security checks working correctly)
+# Frontend build
+cd frontend && npm run build
 ```
 
 ---
 
-## 🔐 Security
+## Pricing
 
-### Security Posture
-- ✅ **4 of 5** vulnerabilities fixed (80% improvement)
-- ✅ JWT authentication with refresh tokens
-- ✅ 2FA support (TOTP)
-- ✅ Webhook signature verification
-- ✅ Input validation (Pydantic)
-- ✅ Rate limiting (slowapi)
-- ✅ CORS protection
-- ✅ SQL injection prevention (ORM)
+| Feature | Free | Starter ($29/mo) | Professional ($79/mo) |
+|---------|------|-------------------|----------------------|
+| Users | 2 | 5 | 25 |
+| Expenses/month | 30 | 50 | 500 |
+| AP2 Auto-Approvals | 20 | 100 | 1,000 |
+| OCR Scans | 30 | 50 | 200 |
+| QuickBooks Sync | - | Basic | Full |
+| Data Retention | 90 days | 1 year | 3 years |
 
-### Accepted Risks
-- **ecdsa 0.19.1** - Timing attack (low risk, no fix available)
-- **xlsx 0.18.5** - Prototype pollution (low risk, export-only usage)
-
-See [SECURITY_REMEDIATION_REPORT.md](backend/SECURITY_REMEDIATION_REPORT.md) for details.
+AP2 payment processing: 2.9% + $0.30 per transaction (standard Stripe fees).
+See [PRICING_STRUCTURE.md](documents/PRICING_STRUCTURE.md) for full details.
 
 ---
 
-## 💰 Pricing & Cost
+## API Overview
 
-### Subscription Tiers
+Interactive docs at `http://localhost:8000/docs` (Swagger UI).
 
-| Tier | Users | Expenses/Month | AI Categorizations | AP2 Transactions | Price |
-|------|-------|----------------|-------------------|------------------|-------|
-| **STARTER** | 5 | 50 | 100 | 10 | $29/mo |
-| **PROFESSIONAL** | 25 | Unlimited | 2,000 | 50 | $99/mo |
-| **ENTERPRISE** | 100 | Unlimited | Unlimited | Unlimited | $299/mo |
-| **ENTERPRISE_PLUS** | Unlimited | Unlimited | Unlimited | Unlimited | $999/mo |
+**Key endpoint groups:**
 
-### Infrastructure Costs (GCP)
+| Group | Prefix | Purpose |
+|-------|--------|---------|
+| Auth | `/api/v1/auth/*` | Register, login, 2FA, refresh |
+| Expenses | `/api/v1/expenses/*` | CRUD, approve, export |
+| AP2 | `/api/ap2/*` | Intent/Cart/Payment mandates |
+| Organizations | `/api/v1/organizations/*` | Org CRUD, invitations, members |
+| Stripe Billing | `/api/v1/stripe/*` | Checkout, Portal, webhooks |
+| QuickBooks | `/api/v1/quickbooks/*` | OAuth, sync, accounts, vendors |
+| Analytics | `/api/v1/analytics/*` | Variance, spending, forecasts |
+| Budgets | `/api/budgets/*` | Budget CRUD, health, evaluate |
 
-| Scenario | Monthly Cost | Use Case |
-|----------|--------------|----------|
-| Development | $26-51 | Testing environment |
-| Production (1k users) | $180-340 | Small business |
-| Production (10k users) | $802-1,402 | Enterprise |
-
-See [DEPLOYMENT_READINESS_REPORT.md](DEPLOYMENT_READINESS_REPORT.md) for detailed breakdown.
+**Total:** 150+ endpoints
 
 ---
 
-## 🛠️ API Documentation
+## Environment Variables
 
-### REST API
+Copy `.env.example` to `.env` and configure. Key variables:
 
-Access interactive API documentation:
-- **Swagger UI:** `https://your-backend-url/docs`
-- **ReDoc:** `https://your-backend-url/redoc`
-- **OpenAPI Spec:** `https://your-backend-url/openapi.json`
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes (prod) | PostgreSQL connection string |
+| `JWT_SECRET` | Yes | Secret key for JWT tokens |
+| `STRIPE_SECRET_KEY` | Yes (billing) | Stripe API secret key |
+| `STRIPE_WEBHOOK_SECRET` | Yes (billing) | Stripe webhook signing secret |
+| `QUICKBOOKS_CLIENT_ID` | Yes (QB) | Intuit OAuth2 client ID |
+| `QUICKBOOKS_CLIENT_SECRET` | Yes (QB) | Intuit OAuth2 client secret |
+| `SMTP_SERVER` | Yes (email) | SMTP host (e.g., smtp.sendgrid.net) |
+| `SMTP_USERNAME` | Yes (email) | SMTP username |
+| `SMTP_PASSWORD` | Yes (email) | SMTP password / API key |
 
-### Key Endpoints
-
-```
-Authentication:
-  POST   /api/v1/auth/register
-  POST   /api/v1/auth/login
-  POST   /api/v1/auth/refresh
-  POST   /api/v1/auth/2fa/setup
-
-Expenses:
-  POST   /api/v1/expenses
-  GET    /api/v1/expenses
-  PATCH  /api/v1/expenses/{id}
-  POST   /api/v1/expenses/approve
-  GET    /api/v1/expenses/export
-
-Organizations:
-  POST   /api/v1/organizations
-  GET    /api/v1/organizations
-  POST   /api/v1/organizations/{id}/invitations
-
-Subscriptions:
-  GET    /api/billing/subscription
-  POST   /api/billing/subscription
-  PUT    /api/billing/subscription/{id}/upgrade
-
-AP2 Protocol:
-  POST   /api/ap2/intent-mandate
-  POST   /api/ap2/cart-mandate
-  POST   /api/ap2/payment-mandate
-
-Webhooks:
-  POST   /webhooks/stripe
-  POST   /api/webhooks/gcp/procurement
-  POST   /api/webhooks/gcp/report-usage
-```
-
-**Total:** 150+ endpoints across 9 modules
+See [.env.example](.env.example) for the complete list.
 
 ---
 
-## 🚢 Deployment
+## Intuit App Store Listing
 
-### Automated Deployment
+This app is designed for listing on the [Intuit App Store](https://apps.intuit.com/). Requirements met:
 
-```bash
-# Complete deployment (recommended)
-./deploy-complete.sh --project YOUR_PROJECT_ID
+- OAuth2 connect/disconnect flow for QuickBooks Online
+- Intuit disconnect webhook handler (`POST /api/v1/quickbooks/webhook/disconnect`)
+- Expense sync to QuickBooks as Bills/Purchases
+- Account and vendor mapping
+- Privacy policy and terms of service at `/legal/`
+- HTTPS enforced in production
 
-# Selective deployment
-./deploy-to-cloudrun.sh --project YOUR_PROJECT_ID --skip-frontend
-
-# Configure secrets
-./scripts/setup-secrets.sh --project YOUR_PROJECT_ID --interactive
-```
-
-### GitHub Actions CI/CD
-
-Push to `main` branch triggers automatic deployment:
-- ✅ Backend tests
-- ✅ Frontend build
-- ✅ Security audits
-- ✅ Docker build & push
-- ✅ Cloud Run deployment
-- ✅ Health checks
-
-Manual deployment via GitHub UI:
-1. Go to Actions → Deploy to Production
-2. Click "Run workflow"
-3. Select options
-4. Click "Run workflow"
-
-### Environment Configuration
-
-```bash
-# Backend
-cp backend/.env.production.template backend/.env.production
-# Edit .env.production with your values
-
-# Frontend
-cp frontend/.env.production.template frontend/.env.production
-# Edit .env.production with your backend URL
-```
+See [INTUIT_APP_STORE.md](INTUIT_APP_STORE.md) for submission checklist and configuration.
 
 ---
 
-## 📊 Project Status
-
-### Health Metrics
-
-```
-Overall Health:       97.3% 🟢 EXCELLENT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Backend Tests:        96.4% 🟢 (268/278)
-Frontend Build:       100%  🟢 (1.6MB)
-Security:             87.5% 🟢 (2 accepted risks)
-Documentation:        100%  🟢 (4,000+ lines)
-Deployment Automation: 100% 🟢 (1,625 lines)
-GCP Integration:      100%  🟢 (Tested)
-API Endpoints:        100%  🟢 (150+)
-```
-
-### Recent Updates
-
-- ✅ Security vulnerabilities addressed (4 of 5 fixed)
-- ✅ GCP Marketplace integration tested
-- ✅ Complete deployment automation (1,625 lines)
-- ✅ CI/CD pipeline with GitHub Actions
-- ✅ Production environment templates
-- ✅ Comprehensive documentation (3,594 lines)
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our contributing guidelines:
+## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Setup
-
-```bash
-# Backend
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-pytest
-
-# Frontend
-cd frontend
-npm install
-npm run lint
-npm test
-```
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Run tests: `cd backend && pytest`
+4. Open a Pull Request
 
 ---
 
-## 📝 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **FastAPI** for the excellent Python web framework
-- **React** for the powerful frontend library
-- **Google Cloud** for reliable infrastructure
-- **Stripe** for payment processing
-- **Anthropic** for Claude Code assistance in development
+MIT - see [LICENSE](LICENSE).
 
 ---
 
-## 📞 Support
-
-- **Documentation:** [docs/](docs/)
-- **Issues:** [GitHub Issues](https://github.com/monkrus/ap2-expense-agent/issues)
-- **Email:** support@yourdomain.com
-- **Slack:** [Join our community](#)
-
----
-
-## 🗺️ Roadmap
-
-### Phase 1 (Current - Production Ready) ✅
-- [x] Core expense management
-- [x] Multi-tenant architecture
-- [x] AP2 protocol integration
-- [x] GCP Marketplace integration
-- [x] Marketplace billing
-- [x] Complete deployment automation
-
-### Phase 2 (Q1 2025)
-- [ ] Mobile app (React Native)
-- [x] Dashboard analytics with charts (COMPLETED - Jan 2026)
-- [ ] Batch expense processing
-- [ ] Email notifications
-- [ ] Multi-currency support
-
-### Phase 3 (Q2 2025)
-- [ ] AI-powered categorization
-- [ ] OCR receipt scanning
-- [ ] Integration with QuickBooks/Xero
-- [ ] Custom approval workflows
-- [ ] Advanced reporting
-
-### Phase 4 (Q3 2025)
-- [ ] Enterprise SSO (SAML)
-- [ ] Advanced security features
-- [ ] Compliance certifications (SOC 2)
-- [ ] White-label options
-- [ ] API marketplace
-
----
-
-## 📈 Performance
-
-- **Response Time:** <200ms (p95)
-- **Throughput:** 1,000+ RPS supported
-- **Availability:** 99.9% SLA (Cloud Run)
-- **Database:** Optimized with connection pooling
-- **Caching:** Redis-based caching layer
-- **CDN:** Cloud CDN for static assets
-
----
-
-## 🔗 Quick Links
-
-- [API Documentation](https://your-backend-url/docs)
-- [Deployment Guide](DEPLOYMENT_QUICKSTART.md)
-- [Architecture Overview](DEPLOYMENT_READINESS_REPORT.md)
-- [Security Report](backend/SECURITY_REMEDIATION_REPORT.md)
-- [Test Results](backend/GCP_INTEGRATION_TEST_RESULTS.md)
-- [Cost Calculator](DEPLOYMENT_READINESS_REPORT.md#-cost-estimates)
-
----
-
-<div align="center">
-
-**Built with ❤️ for efficient expense management**
-
-[Get Started](#-quick-start) • [View Docs](#-documentation) • [Deploy Now](#-deployment)
-
-</div>
+Built with FastAPI, React, Stripe, and QuickBooks Online API.

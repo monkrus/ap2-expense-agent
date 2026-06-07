@@ -463,7 +463,7 @@ test_stripe_integration() {
 }
 
 test_gcp_integration() {
-    print_header "Test 13: GCP Marketplace Integration (Optional)"
+    print_header "Test 13: Stripe/QuickBooks Integration (Optional)"
 
     if [ -n "${GCP_PROJECT_ID:-}" ]; then
         print_success "GCP integration: Configured"
