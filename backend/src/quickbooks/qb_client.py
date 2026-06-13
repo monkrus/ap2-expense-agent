@@ -5,6 +5,7 @@ Handles authorization, token exchange, refresh, and API calls
 to the Intuit QuickBooks Online Accounting API.
 """
 
+import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
@@ -14,6 +15,37 @@ import httpx
 from ..config import settings
 
 logger = logging.getLogger(__name__)
+
+# Intuit rate limit: 500 requests per minute per realm
+_QB_MAX_RETRIES = 3
+_QB_RETRY_BASE_DELAY = 1.0  # seconds
+
+
+class QuickBooksAPIError(Exception):
+    """Base exception for QuickBooks API errors."""
+
+    def __init__(self, message: str, status_code: int = 0, retryable: bool = False):
+        super().__init__(message)
+        self.status_code = status_code
+        self.retryable = retryable
+
+
+class QuickBooksAuthError(QuickBooksAPIError):
+    """Token revoked or invalid — re-authentication required."""
+
+    def __init__(self, message: str = "QuickBooks authentication failed"):
+        super().__init__(message, status_code=401, retryable=False)
+
+
+class QuickBooksRateLimitError(QuickBooksAPIError):
+    """Rate limit exceeded — should retry with backoff."""
+
+    def __init__(self, retry_after: float = 60.0):
+        super().__init__(
+            "QuickBooks rate limit exceeded", status_code=429, retryable=True
+        )
+        self.retry_after = retry_after
+
 
 # Intuit OAuth2 endpoints
 INTUIT_AUTH_BASE = {
@@ -110,19 +142,76 @@ class QuickBooksClient:
         access_token: str,
         json_data: Optional[Dict] = None,
     ) -> Dict[str, Any]:
-        """Make an authenticated API request to QuickBooks."""
+        """Make an authenticated API request to QuickBooks with retry and backoff."""
         url = f"{self.api_base}/company/{realm_id}/{endpoint}"
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Accept": "application/json",
             "Content-Type": "application/json",
         }
-        async with httpx.AsyncClient() as client:
-            resp = await client.request(
-                method, url, headers=headers, json=json_data
-            )
-            resp.raise_for_status()
-            return resp.json()
+
+        last_exc: Optional[Exception] = None
+        for attempt in range(_QB_MAX_RETRIES):
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    resp = await client.request(
+                        method, url, headers=headers, json=json_data
+                    )
+
+                if resp.status_code == 401:
+                    raise QuickBooksAuthError(
+                        "Access token invalid or revoked — reconnect QuickBooks"
+                    )
+                if resp.status_code == 429:
+                    retry_after = float(resp.headers.get("Retry-After", "60"))
+                    if attempt < _QB_MAX_RETRIES - 1:
+                        delay = min(retry_after, _QB_RETRY_BASE_DELAY * (2**attempt))
+                        logger.warning(
+                            f"QB rate limited, retrying in {delay:.1f}s (attempt {attempt + 1})"
+                        )
+                        await asyncio.sleep(delay)
+                        continue
+                    raise QuickBooksRateLimitError(retry_after)
+                if resp.status_code == 404:
+                    raise QuickBooksAPIError(
+                        f"QuickBooks resource not found: {endpoint}",
+                        status_code=404,
+                        retryable=False,
+                    )
+                if resp.status_code >= 500:
+                    if attempt < _QB_MAX_RETRIES - 1:
+                        delay = _QB_RETRY_BASE_DELAY * (2**attempt)
+                        logger.warning(
+                            f"QB server error {resp.status_code}, retrying in {delay:.1f}s"
+                        )
+                        await asyncio.sleep(delay)
+                        continue
+                    raise QuickBooksAPIError(
+                        f"QuickBooks server error: {resp.status_code}",
+                        status_code=resp.status_code,
+                        retryable=True,
+                    )
+
+                resp.raise_for_status()
+                return resp.json()
+
+            except (httpx.ConnectError, httpx.TimeoutException) as e:
+                last_exc = e
+                if attempt < _QB_MAX_RETRIES - 1:
+                    delay = _QB_RETRY_BASE_DELAY * (2**attempt)
+                    logger.warning(
+                        f"QB connection error, retrying in {delay:.1f}s: {e}"
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                raise QuickBooksAPIError(
+                    f"QuickBooks connection failed after {_QB_MAX_RETRIES} attempts: {e}",
+                    retryable=True,
+                ) from e
+
+        raise QuickBooksAPIError(
+            f"QuickBooks request failed after {_QB_MAX_RETRIES} retries"
+        ) from last_exc
 
     async def get_company_info(
         self, realm_id: str, access_token: str

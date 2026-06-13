@@ -43,7 +43,9 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_username: Optional[str] = None
     smtp_password: Optional[str] = None
-    smtp_from_email: Optional[str] = None  # From email address (set SMTP_FROM_EMAIL env var)
+    smtp_from_email: Optional[str] = (
+        None  # From email address (set SMTP_FROM_EMAIL env var)
+    )
     from_email: Optional[str] = None  # Alias for backwards compatibility
     notifications_enabled: bool = False  # Enable/disable email notifications
 
@@ -63,9 +65,13 @@ class Settings(BaseSettings):
     # QuickBooks Integration
     quickbooks_client_id: Optional[str] = None
     quickbooks_client_secret: Optional[str] = None
-    quickbooks_redirect_uri: Optional[str] = "http://localhost:8000/api/v1/quickbooks/callback"
+    quickbooks_redirect_uri: Optional[str] = (
+        "http://localhost:8000/api/v1/quickbooks/callback"
+    )
     quickbooks_environment: str = "sandbox"  # sandbox or production
-    quickbooks_webhook_verifier_token: Optional[str] = None  # Intuit webhook HMAC verification
+    quickbooks_webhook_verifier_token: Optional[str] = (
+        None  # Intuit webhook HMAC verification
+    )
 
     # Legal URLs (required for Intuit App Store)
     privacy_policy_url: str = "https://your-domain.com/privacy"

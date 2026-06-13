@@ -297,12 +297,23 @@ async def get_qb_vendors(
     access_token = await sync._ensure_fresh_token(connection)
 
     vendors = await qb_client.get_vendors(connection.realm_id, access_token)
-    return {
-        "vendors": [
-            {"id": v["Id"], "name": v["DisplayName"]}
-            for v in vendors
-        ]
-    }
+    return {"vendors": [{"id": v["Id"], "name": v["DisplayName"]} for v in vendors]}
+
+
+def _verify_intuit_signature(payload_body: bytes, signature: str) -> bool:
+    """Verify Intuit webhook HMAC-SHA256 signature."""
+    verifier_token = settings.quickbooks_webhook_verifier_token
+    if not verifier_token:
+        logger.warning(
+            "Intuit webhook verifier token not configured, skipping verification"
+        )
+        return True
+    expected = hmac.new(
+        verifier_token.encode("utf-8"),
+        payload_body,
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature)
 
 
 @router.post("/webhook/disconnect")
@@ -315,10 +326,21 @@ async def intuit_disconnect_webhook(
 
     When a user disconnects the app from Intuit's side (My Apps page),
     Intuit sends a POST with the realmId. We clean up stored tokens.
-    See: https://developer.intuit.com/app/developer/qbo/docs/develop/authentication-and-authorization/oauth-2.0
+    Validates the X-Intuit-Signature HMAC header before processing.
     """
+    payload_body = await request.body()
+    signature = request.headers.get("intuit-signature", "")
+
+    if settings.quickbooks_webhook_verifier_token and not _verify_intuit_signature(
+        payload_body, signature
+    ):
+        logger.warning("Intuit webhook signature verification failed")
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+
     try:
-        payload = await request.json()
+        import json
+
+        payload = json.loads(payload_body)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid payload")
 

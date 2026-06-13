@@ -67,7 +67,9 @@ class UsageTracker:
         usage_metric = UsageMetric(
             id=str(uuid.uuid4()),
             organization_id=organization_id,
-            account_id=org_subscription.stripe_customer_id if org_subscription else None,
+            account_id=(
+                org_subscription.stripe_customer_id if org_subscription else None
+            ),
             metric_type=usage_type,
             metric_value=float(quantity),
             unit="count",

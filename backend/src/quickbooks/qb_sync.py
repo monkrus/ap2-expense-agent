@@ -5,6 +5,7 @@ Syncs approved expenses from AP2 to QuickBooks Online as Purchase entries.
 Maps expense categories to QB accounts and vendors.
 """
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -13,8 +14,11 @@ from sqlalchemy.orm import Session
 
 from ..models import Expense
 from ..models_billing import QuickBooksConnection
-from .qb_client import QuickBooksClient
+from .qb_client import QuickBooksAPIError, QuickBooksAuthError, QuickBooksClient
 from .token_encryption import decrypt_token, encrypt_token
+
+# Throttle bulk sync to stay under Intuit's 500 req/min limit
+_SYNC_THROTTLE_DELAY = 0.15  # ~400 req/min max, well under 500
 
 logger = logging.getLogger(__name__)
 
@@ -50,17 +54,23 @@ class QuickBooksSync:
             .first()
         )
 
-    async def _ensure_fresh_token(
-        self, connection: QuickBooksConnection
-    ) -> str:
+    async def _ensure_fresh_token(self, connection: QuickBooksConnection) -> str:
         """Refresh the token if expired, return valid access token (decrypted)."""
         if connection.token_expires_at <= datetime.utcnow():
-            plain_refresh = decrypt_token(connection.refresh_token)
-            tokens = await self.client.refresh_tokens(plain_refresh)
-            connection.access_token = encrypt_token(tokens["access_token"])
-            connection.refresh_token = encrypt_token(tokens["refresh_token"])
-            connection.token_expires_at = tokens["token_expires_at"]
-            self.db.commit()
+            try:
+                plain_refresh = decrypt_token(connection.refresh_token)
+                tokens = await self.client.refresh_tokens(plain_refresh)
+                connection.access_token = encrypt_token(tokens["access_token"])
+                connection.refresh_token = encrypt_token(tokens["refresh_token"])
+                connection.token_expires_at = tokens["token_expires_at"]
+                self.db.commit()
+            except Exception as e:
+                logger.error(
+                    f"Token refresh failed for org {connection.organization_id}: {e}"
+                )
+                raise QuickBooksAuthError(
+                    "Token refresh failed — QuickBooks may need to be reconnected"
+                ) from e
         return decrypt_token(connection.access_token)
 
     async def sync_expense(
@@ -110,14 +120,28 @@ class QuickBooksSync:
             connection.last_sync_at = datetime.utcnow()
             self.db.commit()
             logger.info(f"Synced expense {expense.id} to QB as Purchase")
-            return {"synced": True, "qb_purchase_id": result.get("Purchase", {}).get("Id")}
+            return {
+                "synced": True,
+                "qb_purchase_id": result.get("Purchase", {}).get("Id"),
+            }
+        except QuickBooksAuthError as e:
+            logger.error(f"Auth error syncing expense {expense.id}: {e}")
+            return {"synced": False, "reason": "auth_error", "detail": str(e)}
+        except QuickBooksAPIError as e:
+            logger.error(
+                f"QB API error syncing expense {expense.id}: {e} (status={e.status_code})"
+            )
+            return {
+                "synced": False,
+                "reason": "api_error",
+                "retryable": e.retryable,
+                "detail": str(e),
+            }
         except Exception as e:
-            logger.error(f"Failed to sync expense {expense.id} to QB: {e}")
-            return {"synced": False, "reason": str(e)}
+            logger.error(f"Unexpected error syncing expense {expense.id} to QB: {e}")
+            return {"synced": False, "reason": "unexpected_error", "detail": str(e)}
 
-    async def sync_pending_expenses(
-        self, organization_id: str
-    ) -> List[Dict[str, Any]]:
+    async def sync_pending_expenses(self, organization_id: str) -> List[Dict[str, Any]]:
         """Sync all approved but un-synced expenses for an organization."""
         connection = self._get_connection(organization_id)
         if not connection:
@@ -134,9 +158,20 @@ class QuickBooksSync:
         )
 
         results = []
-        for expense in expenses:
+        for i, expense in enumerate(expenses):
             result = await self.sync_expense(expense, organization_id)
             results.append({"expense_id": expense.id, **result})
+
+            # Stop early if auth is broken — no point retrying the rest
+            if result.get("reason") == "auth_error":
+                logger.warning(
+                    "Auth error during bulk sync, aborting remaining expenses"
+                )
+                break
+
+            # Throttle requests to stay under Intuit's rate limit
+            if i < len(expenses) - 1:
+                await asyncio.sleep(_SYNC_THROTTLE_DELAY)
 
         return results
 
@@ -151,9 +186,7 @@ class QuickBooksSync:
             "realm_id": connection.realm_id,
             "sync_enabled": connection.sync_enabled,
             "last_sync_at": (
-                connection.last_sync_at.isoformat()
-                if connection.last_sync_at
-                else None
+                connection.last_sync_at.isoformat() if connection.last_sync_at else None
             ),
             "token_valid": connection.token_expires_at > datetime.utcnow(),
         }

@@ -227,7 +227,6 @@ app.include_router(quickbooks_router)
 app.include_router(stripe_webhooks_router)
 
 
-
 # Prometheus metrics endpoint (for GKE scraping)
 try:
     from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -273,6 +272,17 @@ async def startup_event():
         await scheduler.start()
     except Exception as e:
         print(f"[WARNING] Failed to start recurring expense scheduler: {e}")
+
+    # Start trial expiration background task
+    try:
+        import asyncio as _asyncio
+
+        from .billing.scheduled_tasks import trial_expiration_loop
+
+        _asyncio.create_task(trial_expiration_loop())
+        print("[STARTUP] Trial expiration background task scheduled")
+    except Exception as e:
+        print(f"[WARNING] Failed to start trial expiration task: {e}")
 
     print("[STARTUP] Registered routes:")
     for route in app.routes:
@@ -361,6 +371,15 @@ class ExpenseApproval(BaseModel):
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "AP2 Expense Management Agent"}
+
+
+@app.get("/api/legal")
+async def legal_urls():
+    """Return privacy policy and terms of service URLs for frontend consumption."""
+    return {
+        "privacy_policy_url": settings.privacy_policy_url,
+        "terms_of_service_url": settings.terms_of_service_url,
+    }
 
 
 # ============================================================================

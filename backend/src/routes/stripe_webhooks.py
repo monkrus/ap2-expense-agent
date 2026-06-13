@@ -54,7 +54,9 @@ def _get_org_for_user(db: Session, user_id: str):
     if not member:
         raise HTTPException(status_code=404, detail="User not part of any organization")
     if member.role not in ["owner", "admin"]:
-        raise HTTPException(status_code=403, detail="Only owners/admins can manage billing")
+        raise HTTPException(
+            status_code=403, detail="Only owners/admins can manage billing"
+        )
     return member.organization_id
 
 
@@ -80,7 +82,9 @@ async def create_checkout_session(
     if not tier:
         raise HTTPException(status_code=404, detail=f"Tier '{request.tier}' not found")
     if tier.base_price_monthly == 0:
-        raise HTTPException(status_code=400, detail="Free tier does not require checkout")
+        raise HTTPException(
+            status_code=400, detail="Free tier does not require checkout"
+        )
 
     # Get or create Stripe customer
     subscription = (
@@ -301,7 +305,7 @@ def _handle_subscription_deleted(db: Session, sub_data: dict):
 
 
 def _handle_payment_failed(db: Session, invoice_data: dict):
-    """Handle failed payment."""
+    """Handle failed payment — log event and notify org owner."""
     customer_id = invoice_data.get("customer")
     sub = (
         db.query(OrganizationSubscription)
@@ -324,3 +328,15 @@ def _handle_payment_failed(db: Session, invoice_data: dict):
     db.add(event)
     db.commit()
     logger.warning(f"Payment failed for org {sub.organization_id}")
+
+    # Send email notification to org owner
+    import asyncio
+
+    try:
+        from ..billing.scheduled_tasks import send_payment_failure_email
+
+        asyncio.create_task(
+            send_payment_failure_email(db, sub.organization_id, invoice_data)
+        )
+    except Exception as e:
+        logger.error(f"Failed to queue payment failure email: {e}")
