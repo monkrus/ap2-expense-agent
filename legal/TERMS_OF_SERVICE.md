@@ -394,11 +394,11 @@ Notices will be sent to the email address associated with your account.
 
 For questions about these Terms:
 
-**Email**: legal@ap2expense.com
-**Support**: support@ap2expense.com
+**Email**: legal@your-domain.com
+**Support**: support@your-domain.com
 **Address**: [Your company address]
 
-For legal notices: legal@ap2expense.com
+For legal notices: legal@your-domain.com
 
 ---
 

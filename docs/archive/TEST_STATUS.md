@@ -22,21 +22,21 @@
 
 #### 1. Admin User (Free Tier)
 - **Username**: `adminfree`
-- **Email**: sergeigodev@gmail.com
+- **Email**: admin@example.com
 - **Password**: `Passowrd123!`
 - **Role**: ADMIN
-- **User ID**: e6597efa-e7ba-42f8-a92c-bb492dd06c79
-- **Organization**: adminfree's Organization (fb6aa7bc-b707-4414-ba9b-83184566f625)
+- **User ID**: (auto-generated UUID)
+- **Organization**: adminfree's Organization (auto-generated UUID)
 - **Org Role**: OWNER
 - **Status**: ✅ Active & Verified
 
 #### 2. Regular User
 - **Username**: `user1`
-- **Email**: sergeisqa@gmail.com
+- **Email**: user1@example.com
 - **Password**: `Passowrd123!`
 - **Role**: USER
-- **User ID**: 0d880505-482f-460d-9d54-7d56fdf13d6b
-- **Organization**: user1's Organization (8a87f078-851b-4119-a519-653db9dae212)
+- **User ID**: (auto-generated UUID)
+- **Organization**: user1's Organization (auto-generated UUID)
 - **Org Role**: OWNER
 - **Status**: ✅ Active & Verified
 
@@ -58,7 +58,7 @@
 - ✅ Access token received
 - ✅ Token type: bearer
 - ✅ User info retrieved
-- ✅ Email verified: sergeigodev@gmail.com
+- ✅ Email verified: admin@example.com
 - ✅ Role verified: admin
 - ✅ Account active: True
 
@@ -67,7 +67,7 @@
 - ✅ Access token received
 - ✅ Token type: bearer
 - ✅ User info retrieved
-- ✅ Email verified: sergeisqa@gmail.com
+- ✅ Email verified: user1@example.com
 - ✅ Role verified: user
 - ✅ Account active: True
 

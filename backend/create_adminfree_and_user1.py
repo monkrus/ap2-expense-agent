@@ -31,7 +31,7 @@ else:
     user_admin = User(
         id=str(uuid.uuid4()),
         username="adminfree",
-        email="sergeigodev@gmail.com",
+        email="admin@example.com",
         hashed_password=AuthService.hash_password(password),
         full_name="Admin Free",
         role=UserRole.ADMIN,
@@ -42,7 +42,7 @@ else:
     db.commit()
 
     print(f"   ✅ User created: adminfree")
-    print(f"   Email: sergeigodev@gmail.com")
+    print(f"   Email: admin@example.com")
     print(f"   Role: ADMIN")
     print(f"   User ID: {user_admin.id}")
 
@@ -89,7 +89,7 @@ else:
     user_regular = User(
         id=str(uuid.uuid4()),
         username="user1",
-        email="sergeisqa@gmail.com",
+        email="user1@example.com",
         hashed_password=AuthService.hash_password(password),
         full_name="User One",
         role=UserRole.EMPLOYEE,
@@ -100,7 +100,7 @@ else:
     db.commit()
 
     print(f"   ✅ User created: user1")
-    print(f"   Email: sergeisqa@gmail.com")
+    print(f"   Email: user1@example.com")
     print(f"   Role: USER")
     print(f"   User ID: {user_regular.id}")
 
@@ -143,12 +143,12 @@ print(f"  Password: {password}")
 print()
 print("User 1 (Admin):")
 print(f"  Username: adminfree")
-print(f"  Email: sergeigodev@gmail.com")
+print(f"  Email: admin@example.com")
 print(f"  Role: ADMIN")
 print()
 print("User 2 (Regular User):")
 print(f"  Username: user1")
-print(f"  Email: sergeisqa@gmail.com")
+print(f"  Email: user1@example.com")
 print(f"  Role: USER")
 print()
 

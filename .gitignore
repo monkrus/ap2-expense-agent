@@ -83,6 +83,17 @@ marketplace/screenshots/*.jpg
 test-data/
 sample-data-*.json
 
+# Security reports (never commit)
+bandit_report*
+*_security_report*
+
+# OpenAPI generated dumps
+openapi_output.json
+openapi_tmp.json
+
+# Playwright reports (may contain tokens)
+frontend/playwright-report/
+
 # Sample receipts for testing
 sample_receipts/
 !sample_receipts/README.md

@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     revoked_token_retention_days: int = 7
 
     # JWT & Authentication
-    jwt_secret: str = "your-secret-key-change-in-production"
+    jwt_secret: str = "CHANGE-ME-set-JWT_SECRET-env-var"
     jwt_algorithm: str = "HS256"
     jwt_expiration_minutes: int = 60
     refresh_token_expiration_days: int = 30
@@ -43,10 +43,8 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_username: Optional[str] = None
     smtp_password: Optional[str] = None
-    smtp_from_email: Optional[str] = "noreply@ap2expense.com"  # From email address
-    from_email: Optional[str] = (
-        "noreply@ap2expense.com"  # Alias for backwards compatibility
-    )
+    smtp_from_email: Optional[str] = None  # From email address (set SMTP_FROM_EMAIL env var)
+    from_email: Optional[str] = None  # Alias for backwards compatibility
     notifications_enabled: bool = False  # Enable/disable email notifications
 
     # Stripe Payment Configuration
@@ -67,6 +65,11 @@ class Settings(BaseSettings):
     quickbooks_client_secret: Optional[str] = None
     quickbooks_redirect_uri: Optional[str] = "http://localhost:8000/api/v1/quickbooks/callback"
     quickbooks_environment: str = "sandbox"  # sandbox or production
+    quickbooks_webhook_verifier_token: Optional[str] = None  # Intuit webhook HMAC verification
+
+    # Legal URLs (required for Intuit App Store)
+    privacy_policy_url: str = "https://your-domain.com/privacy"
+    terms_of_service_url: str = "https://your-domain.com/terms"
 
     # Frontend URL (for emails and redirects)
     frontend_url: Optional[str] = "http://localhost:5173"

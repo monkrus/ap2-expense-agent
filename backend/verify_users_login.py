@@ -22,13 +22,13 @@ users = [
         "username": "adminfree",
         "password": "Passowrd123!",
         "expected_role": "admin",
-        "expected_email": "sergeigodev@gmail.com"
+        "expected_email": "admin@example.com"
     },
     {
         "username": "user1",
         "password": "Passowrd123!",
         "expected_role": "user",
-        "expected_email": "sergeisqa@gmail.com"
+        "expected_email": "user1@example.com"
     }
 ]
 

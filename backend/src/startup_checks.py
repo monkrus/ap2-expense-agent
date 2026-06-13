@@ -20,7 +20,7 @@ def validate_settings() -> None:
 
     errors = []
 
-    if settings.jwt_secret == "your-secret-key-change-in-production":
+    if settings.jwt_secret in ("your-secret-key-change-in-production", "CHANGE-ME-set-JWT_SECRET-env-var"):
         errors.append("JWT_SECRET is using the default placeholder value.")
 
     if settings.debug:

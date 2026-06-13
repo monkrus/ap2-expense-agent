@@ -177,7 +177,7 @@ Depending on your location, you may have the following rights:
 - Disable non-essential cookies in your browser
 - Clear cookies to reset preferences
 
-To exercise these rights, contact us at privacy@ap2expense.com.
+To exercise these rights, contact us at privacy@your-domain.com.
 
 ## Children's Privacy
 
@@ -208,7 +208,7 @@ If you are a California resident, you have additional rights under the Californi
 
 To exercise your CCPA rights:
 
-1. Email: privacy@ap2expense.com
+1. Email: privacy@your-domain.com
 2. Subject: "California Privacy Rights Request"
 3. Include: Your name, email, and organization
 4. Verification: We may verify your identity before processing
@@ -240,7 +240,7 @@ We process your information based on:
 
 ### Data Protection Officer
 
-For GDPR inquiries, contact our Data Protection Officer at dpo@ap2expense.com.
+For GDPR inquiries, contact our Data Protection Officer at dpo@your-domain.com.
 
 ## Changes to This Policy
 
@@ -257,12 +257,12 @@ Your continued use of the Service after changes constitutes acceptance of the up
 
 If you have questions about this Privacy Policy or our privacy practices:
 
-**Email**: privacy@ap2expense.com
-**Support**: support@ap2expense.com
+**Email**: privacy@your-domain.com
+**Support**: support@your-domain.com
 **Address**: [Your company address]
 
-For GDPR inquiries: dpo@ap2expense.com
-For California privacy requests: privacy@ap2expense.com
+For GDPR inquiries: dpo@your-domain.com
+For California privacy requests: privacy@your-domain.com
 
 ## Third-Party Links
 
@@ -270,7 +270,7 @@ The Service may contain links to third-party websites or services. We are not re
 
 ## Data Processing Agreement
 
-For customers who need a Data Processing Agreement (DPA) for GDPR or other compliance purposes, please contact legal@ap2expense.com.
+For customers who need a Data Processing Agreement (DPA) for GDPR or other compliance purposes, please contact legal@your-domain.com.
 
 ---
 

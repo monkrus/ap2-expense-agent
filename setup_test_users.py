@@ -72,8 +72,8 @@ def main():
 
     # Create test users
     users = [
-        ("user1", "sergeisqa@gmail.com", "Passowrd123!", "Test User 1"),
-        ("adminfree", "sergeigodev@gmail.com", "Passowrd123!", "Admin Free"),
+        ("user1", "user1@example.com", "Passowrd123!", "Test User 1"),
+        ("adminfree", "admin@example.com", "Passowrd123!", "Admin Free"),
         ("employee1", "employee1@test.com", "Password123!", "Employee One"),
         ("employee2", "employee2@test.com", "Password123!", "Employee Two"),
     ]

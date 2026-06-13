@@ -505,7 +505,7 @@ We take security seriously. If you discover a vulnerability:
 
 ## Contact
 
-**Security Team:** security@ap2expense.com
+**Security Team:** security@your-domain.com
 
 **Responsible Disclosure:** Please report vulnerabilities via GitHub Security Advisories on this repository, or email the security team directly.
 

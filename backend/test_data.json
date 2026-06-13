@@ -1,6 +1,6 @@
 {
-  "admin_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZTAyODFlMC00YmI4LTQ4MjUtYWE3Ni0wNzY3OGMzNDU1YjIiLCJ1c2VybmFtZSI6InRlc3RhZG1pbl8xNzY3OTI3NDA5Iiwicm9sZSI6InVzZXIiLCJleHAiOjE3Njc5MzEwMTAsImlhdCI6MTc2NzkyNzQxMCwidHlwZSI6ImFjY2VzcyJ9.6t2omClY_mwrw4vqcb9vwoX16bktjLRaMci_uOwINHU",
-  "admin_id": "2e0281e0-4bb8-4825-aa76-07678c3455b2",
+  "admin_token": "YOUR_JWT_TOKEN_HERE",
+  "admin_id": "YOUR_ADMIN_USER_ID",
   "org_id": null,
   "expense_id": null,
   "base_url": "http://127.0.0.1:8000",

@@ -6,7 +6,7 @@ services:
     container_name: ap2-postgres
     environment:
       POSTGRES_USER: ap2user
-      POSTGRES_PASSWORD: changeme
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: expenses
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.utf8"
     ports:
@@ -43,8 +43,8 @@ services:
     image: dpage/pgadmin4:latest
     container_name: ap2-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@ap2.local
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@localhost}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-changeme}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
       - "5050:80"

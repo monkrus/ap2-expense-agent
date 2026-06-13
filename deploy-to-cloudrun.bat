@@ -1,7 +1,7 @@
 @echo off
 echo ========================================
 echo Deploy AP2 Expense App to Google Cloud Run
-echo Domain: itestapp.com
+echo Domain: your-domain.com
 echo ========================================
 echo.
 
@@ -145,19 +145,19 @@ echo ========================================
 echo Step 5: Set up custom domain
 echo ========================================
 echo.
-echo To use your custom domain (itestapp.com), follow these steps:
+echo To use your custom domain (your-domain.com), follow these steps:
 echo.
 echo 1. Map custom domains to Cloud Run services:
 echo.
-echo    For BACKEND (api.itestapp.com):
-echo    gcloud run domain-mappings create --service ap2-expense-backend --domain api.itestapp.com --region us-central1
+echo    For BACKEND (api.your-domain.com):
+echo    gcloud run domain-mappings create --service ap2-expense-backend --domain api.your-domain.com --region us-central1
 echo.
-echo    For FRONTEND (itestapp.com):
-echo    gcloud run domain-mappings create --service ap2-expense-frontend --domain itestapp.com --region us-central1
+echo    For FRONTEND (your-domain.com):
+echo    gcloud run domain-mappings create --service ap2-expense-frontend --domain your-domain.com --region us-central1
 echo.
 echo 2. Cloud Run will provide DNS records. Configure them in Squarespace:
 echo.
-echo    Login to: https://account.squarespace.com/domains/managed/itestapp.com/dns/dns-settings
+echo    Login to: your domain registrar's DNS settings page
 echo.
 echo    Add the DNS records that Cloud Run provides (usually CNAME records)
 echo.

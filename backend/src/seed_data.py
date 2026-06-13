@@ -3,6 +3,7 @@ Database seeding with a default admin user.
 This user will ALWAYS be created if it doesn't exist.
 """
 
+import os
 import uuid
 from datetime import datetime
 
@@ -12,34 +13,36 @@ from .auth import AuthService
 from .models import Organization, OrganizationMember, OrganizationRole, User, UserRole
 
 # FIXED DEFAULT USERS - DO NOT MODIFY
+_DEFAULT_DEV_PASSWORD = os.environ.get("DEV_SEED_PASSWORD", "DevPass123!")
+
 DEFAULT_USERS = [
     {
         "username": "adminfree",
         "email": "adminfree@example.com",
         "full_name": "Admin Free",
         "role": UserRole.ADMIN,
-        "password": "Testme1!",
+        "password": _DEFAULT_DEV_PASSWORD,
     },
     {
         "username": "admintest",
         "email": "admintest@example.com",
         "full_name": "Admin Test",
         "role": UserRole.ADMIN,
-        "password": "Testme1!",
+        "password": _DEFAULT_DEV_PASSWORD,
     },
     {
         "username": "emptest",
         "email": "emptest@example.com",
         "full_name": "Employee Test",
         "role": UserRole.EMPLOYEE,
-        "password": "Testme1!",
+        "password": _DEFAULT_DEV_PASSWORD,
     },
     {
         "username": "managertest",
         "email": "managertest@example.com",
         "full_name": "Manager Test",
         "role": UserRole.MANAGER,
-        "password": "Testme1!",
+        "password": _DEFAULT_DEV_PASSWORD,
     },
 ]
 

@@ -104,7 +104,7 @@ check_prerequisites() {
                 fi
                 ;;
             staging)
-                API_BASE_URL=${API_BASE_URL:-https://staging-api.ap2expense.com}
+                API_BASE_URL=${API_BASE_URL:-https://staging-api.your-domain.com}
                 ;;
             development)
                 API_BASE_URL=${API_BASE_URL:-http://localhost:8000}
@@ -309,7 +309,7 @@ test_cors_headers() {
     print_header "Test 8: CORS Configuration"
 
     local cors_header=$(curl -sI -m $TIMEOUT \
-        -H "Origin: https://app.ap2expense.com" \
+        -H "Origin: https://app.your-domain.com" \
         "${API_BASE_URL}/health" \
         | grep -i "access-control-allow-origin" || echo "")
 

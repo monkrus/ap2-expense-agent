@@ -19,14 +19,14 @@ This manual test guide covers the AP2 (Agent Payments Protocol) automation featu
 
 #### Test User 1 (Employee)
 - **Username**: `user1`
-- **Email**: sergeisqa@gmail.com
+- **Email**: user1@example.com
 - **Password**: `Passowrd123!`
 - **Role**: USER/EMPLOYEE
 - **Tier**: Professional (500 AP2 transactions/month)
 
 #### Test User 2 (Admin)
 - **Username**: `adminfree`
-- **Email**: sergeigodev@gmail.com
+- **Email**: admin@example.com
 - **Password**: `Passowrd123!`
 - **Role**: ADMIN
 - **Tier**: Free (20 AP2 transactions/month)

@@ -9,14 +9,14 @@
 
 ### Admin User (Free Tier)
 - **Username**: `adminfree`
-- **Email**: sergeigodev@gmail.com
+- **Email**: admin@example.com
 - **Password**: `Passowrd123!`
 - **Role**: ADMIN
 - **Organization**: adminfree's Organization
 
 ### Regular User
 - **Username**: `user1`
-- **Email**: sergeisqa@gmail.com
+- **Email**: user1@example.com
 - **Password**: `Passowrd123!`
 - **Role**: USER
 - **Organization**: user1's Organization

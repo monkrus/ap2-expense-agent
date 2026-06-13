@@ -1,7 +1,7 @@
-import urllib.request, json
+import urllib.request, json, os
 
-TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYjhhM2Q5ZS1hNmViLTQyYjEtOTk2My0yMGZkNWZiMWRiYjMiLCJ1c2VybmFtZSI6ImFkbWluZnJlZSIsInJvbGUiOiJhZG1pbiIsImV4cCI6MTc3MTg5MTUwMywiaWF0IjoxNzcxODg3OTAzLCJ0eXBlIjoiYWNjZXNzIn0.zRDaa8tasODudOpHvOCEdG8xecQGMRhdmXTDmiQDSf8'
-ORG = 'ccd58bdd-5d7a-426d-8152-56583410a4ce'
+TOKEN = os.environ.get('AP2_TEST_TOKEN', 'YOUR_JWT_TOKEN_HERE')  # Get a token via POST /api/v1/auth/login
+ORG = os.environ.get('AP2_TEST_ORG', 'YOUR_ORG_ID_HERE')  # Your organization ID
 BASE = 'http://127.0.0.1:8000'
 
 def api(method, path, body=None):
