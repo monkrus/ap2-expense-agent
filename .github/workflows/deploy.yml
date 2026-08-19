@@ -24,7 +24,9 @@ jobs:
   deploy:
     name: Deploy Application
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && secrets.GCP_SA_KEY != ''
+    env:
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+    if: github.event_name == 'workflow_dispatch' && env.GCP_SA_KEY != ''
     environment: ${{ github.event.inputs.environment || 'staging' }}
 
     steps:
