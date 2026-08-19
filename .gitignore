@@ -13,6 +13,7 @@ dist/
 *.log
 .pytest_cache/
 .coverage
+.idea
 
 # Database files (should never be in git)
 *.db
