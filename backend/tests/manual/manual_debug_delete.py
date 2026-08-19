@@ -1,7 +1,8 @@
 """Debug organization deletion"""
 
-import requests
 import json
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 USERNAME = "orgtest_20251127_160348"

@@ -3,10 +3,11 @@ Test Complete Approval Flow - All 3 Tiers
 Demonstrates: AP2 Auto-Approval, Policy Auto-Approval, and Manual Approval
 """
 
-import requests
 import json
-import time
 import sys
+import time
+
+import requests
 
 # Fix encoding for Windows console
 if sys.platform == "win32":

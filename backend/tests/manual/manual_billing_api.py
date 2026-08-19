@@ -2,8 +2,9 @@
 Quick test to check what the billing API is returning
 """
 
-import requests
 import json
+
+import requests
 
 # Get your token from browser localStorage (open DevTools -> Console -> type: localStorage.getItem('access_token'))
 # Paste it here:

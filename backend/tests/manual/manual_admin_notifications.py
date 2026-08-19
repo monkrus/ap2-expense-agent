@@ -2,9 +2,10 @@
 Test script to verify admin notifications when employees submit expenses
 """
 
-import requests
 import json
 import time
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 

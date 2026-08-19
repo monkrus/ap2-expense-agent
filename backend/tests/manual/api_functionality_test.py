@@ -3,8 +3,9 @@ COMPREHENSIVE API FUNCTIONALITY TEST
 Tests all critical API endpoints and user flows via HTTP requests
 """
 
-import requests
 import time
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 

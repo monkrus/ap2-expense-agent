@@ -3,10 +3,11 @@ User Workflow Integration Tests
 Tests common user/admin/manager/accountant interactions end-to-end
 """
 
-import requests
-import time
 import json
+import time
 from datetime import datetime
+
+import requests
 
 # Configuration
 BASE_URL = "http://127.0.0.1:8000"

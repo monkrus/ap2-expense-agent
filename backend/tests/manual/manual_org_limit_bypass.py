@@ -8,8 +8,9 @@ Expected behavior: Backend should reject with 402 Payment Required after 1 org
 Actual behavior: ??? (testing)
 """
 
-import requests
 import time
+
+import requests
 
 # Configuration
 BASE_URL = "http://localhost:8000/api/v1"

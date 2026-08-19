@@ -3,10 +3,11 @@ Comprehensive QA Test for AP2 Activity Tab - Frontend & Backend
 Tests real API calls, data shapes, edge cases, and frontend/backend mismatches.
 """
 
-import requests
 import json
-import time
 import sys
+import time
+
+import requests
 
 BASE_URL = "http://127.0.0.1:8000"
 ISSUES = []

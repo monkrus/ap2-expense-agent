@@ -2,9 +2,10 @@
 Test AP2 Autonomous Purchase - Accept and Deny scenarios
 """
 
-import requests
 import json
 import sys
+
+import requests
 
 # Fix encoding for Windows console
 if sys.platform == "win32":

@@ -4,11 +4,12 @@ import sys
 
 sys.path.insert(0, r"C:\Users\robot\Desktop\ap2-expense-agent\backend")
 
+import json
+
 from src.database import SessionLocal
 from src.models import User
 from src.models_billing import BillingTier
 from src.routes.billing_org import get_organization_subscription, get_user_organization
-import json
 
 # Get a test user
 db = SessionLocal()

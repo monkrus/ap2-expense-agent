@@ -2,9 +2,10 @@
 Test AP2 Complete Flow to verify everything is working
 """
 
-import requests
 import json
 import sys
+
+import requests
 
 # Fix encoding for Windows console
 if sys.platform == "win32":

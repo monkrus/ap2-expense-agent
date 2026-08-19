@@ -7,9 +7,10 @@ import sys
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-import requests
 import json
 import time
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 

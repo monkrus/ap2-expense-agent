@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """AP2 Automation Test Suite"""
 
-import requests
 import json
 import sys
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 ORG_ID = "8551ddd7-4d90-4693-9d92-ee2065495e30"

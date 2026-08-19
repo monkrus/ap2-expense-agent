@@ -12,11 +12,12 @@ Example:
     python test_approval_workflow.py adminfree MyPass123! emp1 EmpPass123!
 """
 
-import requests
 import json
-import time
 import sys
+import time
 from datetime import datetime
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 

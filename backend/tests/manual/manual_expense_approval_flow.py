@@ -7,10 +7,11 @@ Test Expense Approval Workflow
 4. Employee receives approval notification
 """
 
-import requests
 import json
 import time
 from datetime import datetime
+
+import requests
 
 BASE_URL = "http://localhost:8000/api/v1"
 

@@ -3,9 +3,10 @@ Final Organization Test - Comprehensive validation test
 Creates fresh user to avoid database pollution
 """
 
-import requests
 import json
 import time
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 

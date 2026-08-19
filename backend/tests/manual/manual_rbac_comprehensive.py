@@ -12,8 +12,9 @@ This test suite validates:
 """
 
 import time
-import requests
 from typing import Dict, Optional
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 

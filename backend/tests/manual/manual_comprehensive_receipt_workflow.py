@@ -10,15 +10,16 @@ Tests the complete end-to-end workflow including:
 """
 
 import asyncio
+import io
 import os
 import sys
-import time
 import threading
+import time
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
+
 import requests
 from PIL import Image
-import io
 
 # Configuration
 API_BASE_URL = "http://localhost:8000/api/v1"

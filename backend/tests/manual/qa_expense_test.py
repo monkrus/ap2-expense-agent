@@ -1,4 +1,6 @@
-import urllib.request, json, os
+import json
+import os
+import urllib.request
 
 TOKEN = os.environ.get(
     "AP2_TEST_TOKEN", "YOUR_JWT_TOKEN_HERE"

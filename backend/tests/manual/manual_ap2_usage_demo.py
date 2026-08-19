@@ -3,12 +3,13 @@ Test AP2 Flow to demonstrate when mandates become "used"
 This script shows AP2 stats before and after payment execution
 """
 
-import requests
 import json
 import sys
 import time
-from datetime import datetime
 import uuid
+from datetime import datetime
+
+import requests
 
 # Fix encoding for Windows console
 if sys.platform == "win32":

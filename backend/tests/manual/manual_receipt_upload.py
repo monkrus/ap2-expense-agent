@@ -2,9 +2,10 @@
 Test script to upload sample receipts to expenses
 """
 
-import requests
 import os
 from pathlib import Path
+
+import requests
 
 BASE_URL = "http://localhost:8000/api/v1"
 SAMPLES_DIR = "sample_receipts"

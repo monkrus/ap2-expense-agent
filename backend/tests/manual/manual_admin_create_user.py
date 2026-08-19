@@ -3,14 +3,14 @@ Test Admin Create User Flow
 Verifies that when admin creates a user, they're automatically added to admin's org
 """
 
-import sys
 import os
+import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
 
 from src.database import SessionLocal
-from src.models import User, Organization, OrganizationMember
+from src.models import Organization, OrganizationMember, User
 
 # First, we need to find an admin user with an organization
 db = SessionLocal()

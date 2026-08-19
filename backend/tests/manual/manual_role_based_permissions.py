@@ -11,13 +11,14 @@ Usage:
     python test_role_based_permissions.py
 """
 
-import requests
 import json
+import sys
 import time
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
-from dataclasses import dataclass
-import sys
+
+import requests
 
 # ============================================================================
 # Configuration

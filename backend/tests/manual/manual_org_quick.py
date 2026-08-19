@@ -2,8 +2,9 @@
 Quick Organization Test - Uses existing test user to avoid rate limits
 """
 
-import requests
 import json
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 

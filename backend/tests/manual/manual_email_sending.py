@@ -124,8 +124,8 @@ def send_plain_text_email(to_email):
     print_info("Sending plain text test email...")
 
     import smtplib
-    from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
 
     host = os.getenv("SMTP_HOST")
     port = int(os.getenv("SMTP_PORT", 587))
@@ -182,8 +182,8 @@ def send_html_email(to_email):
     print_info("Sending HTML test email...")
 
     import smtplib
-    from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
 
     host = os.getenv("SMTP_HOST")
     port = int(os.getenv("SMTP_PORT", 587))
@@ -294,16 +294,16 @@ def send_template_test_email(to_email):
     try:
         # Import email service
         sys.path.insert(0, "backend/src")
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+
         from email_templates import (
+            generate_budget_alert_email,
             generate_expense_approved_email,
             generate_expense_rejected_email,
             generate_pending_approval_email,
-            generate_budget_alert_email,
         )
-
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
 
         host = os.getenv("SMTP_HOST")
         port = int(os.getenv("SMTP_PORT", 587))

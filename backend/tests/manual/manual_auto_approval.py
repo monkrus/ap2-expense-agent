@@ -2,9 +2,10 @@
 Test the core AP2 auto-approval feature
 """
 
-import requests
 import json
 from datetime import datetime, timedelta
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 

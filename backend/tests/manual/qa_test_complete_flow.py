@@ -3,9 +3,10 @@ QA Test: AP2 Complete Flow (One-time Authorization)
 Thorough testing of both happy paths and edge cases.
 """
 
-import requests
 import json
 import time
+
+import requests
 
 BASE = "http://127.0.0.1:8000"
 LOGIN_URL = f"{BASE}/api/v1/auth/login"

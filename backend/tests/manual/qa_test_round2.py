@@ -3,9 +3,10 @@ QA Test Round 2: Re-test edge cases that hit rate limiting in round 1
 Rate limit is 5/minute, so we add 65s delays between batches.
 """
 
-import requests
 import json
 import time
+
+import requests
 
 BASE = "http://127.0.0.1:8000"
 LOGIN_URL = f"{BASE}/api/v1/auth/login"

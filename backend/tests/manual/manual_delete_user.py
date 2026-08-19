@@ -7,8 +7,9 @@ Test User Deletion Functionality
 4. Verify user no longer exists
 """
 
-import requests
 import json
+
+import requests
 
 BASE_URL = "http://localhost:8000/api/v1"
 

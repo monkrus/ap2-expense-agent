@@ -3,11 +3,12 @@ Automated AP2 Automation Test Suite
 Tests all major AP2 features including Intent Mandates, auto-approval, and constraints
 """
 
-import requests
 import json
-from datetime import datetime, timedelta
 import time
-from typing import Dict, Any, Optional
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 

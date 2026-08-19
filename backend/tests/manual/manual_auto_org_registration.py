@@ -3,14 +3,14 @@ Test Auto-Organization Registration Flow
 Verifies that new users automatically get their own organization
 """
 
-import sys
 import os
+import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
 
 from src.database import SessionLocal
-from src.models import User, Organization, OrganizationMember
+from src.models import Organization, OrganizationMember, User
 
 # Create a unique test username
 test_username = f"testuser_{int(time.time())}"
