@@ -1,23 +1,25 @@
 """
 Test the core AP2 auto-approval feature
 """
+
 import requests
 import json
 from datetime import datetime, timedelta
 
 BASE_URL = "http://localhost:8000"
 
+
 def test_auto_approval():
-    print("="*70)
+    print("=" * 70)
     print("AP2 AUTO-APPROVAL FEATURE TEST")
-    print("="*70)
+    print("=" * 70)
     print()
 
     # Step 1: Login
     print("[1/4] Logging in...")
     login_response = requests.post(
         f"{BASE_URL}/api/v1/auth/login",
-        json={"username": "employee1", "password": "Password123!"}
+        json={"username": "employee1", "password": "Password123!"},
     )
 
     if login_response.status_code != 200:
@@ -28,10 +30,7 @@ def test_auto_approval():
     token = login_data["access_token"]
     org_id = login_data.get("user", {}).get("organization_id")
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
     if org_id:
         headers["X-Organization-Id"] = org_id
@@ -46,15 +45,13 @@ def test_auto_approval():
             "max_amount": 200.00,
             "monthly_limit": 1000.00,
             "category": "OFFICE_SUPPLIES",
-            "merchant": "Amazon"
+            "merchant": "Amazon",
         },
-        "expiration": (datetime.now() + timedelta(days=1)).isoformat()
+        "expiration": (datetime.now() + timedelta(days=1)).isoformat(),
     }
 
     mandate_response = requests.post(
-        f"{BASE_URL}/api/ap2/intent-mandate",
-        headers=headers,
-        json=mandate_payload
+        f"{BASE_URL}/api/ap2/intent-mandate", headers=headers, json=mandate_payload
     )
 
     if mandate_response.status_code != 200:
@@ -65,7 +62,9 @@ def test_auto_approval():
     mandate_data = mandate_response.json()
     mandate_id = mandate_data.get("intent_mandate_id")
     print(f"[PASS] Intent Mandate created: {mandate_id[:8]}...")
-    print(f"      Constraints: max_amount=$200, category=OFFICE_SUPPLIES, merchant=Amazon")
+    print(
+        f"      Constraints: max_amount=$200, category=OFFICE_SUPPLIES, merchant=Amazon"
+    )
     print()
 
     # Step 3: Submit matching expense
@@ -75,13 +74,11 @@ def test_auto_approval():
         "vendor": "Amazon",
         "category": "OFFICE_SUPPLIES",
         "description": "Test auto-approval - office supplies from Amazon",
-        "date": datetime.now().isoformat()
+        "date": datetime.now().isoformat(),
     }
 
     expense_response = requests.post(
-        f"{BASE_URL}/api/v1/expenses",
-        headers=headers,
-        json=expense_payload
+        f"{BASE_URL}/api/v1/expenses", headers=headers, json=expense_payload
     )
 
     print(f"Status: {expense_response.status_code}")
@@ -92,9 +89,9 @@ def test_auto_approval():
         expense_data = expense_response.json()
         print("[4/4] Checking auto-approval...")
         print()
-        print("="*70)
+        print("=" * 70)
         print("RESULTS")
-        print("="*70)
+        print("=" * 70)
         print(f"Expense ID: {expense_data.get('id', 'N/A')}")
         print(f"Status: {expense_data.get('status', 'N/A')}")
         print(f"Auto-Approved: {expense_data.get('auto_approved', 'N/A')}")
@@ -102,19 +99,24 @@ def test_auto_approval():
         print(f"Intent Mandate ID: {expense_data.get('intent_mandate_id', 'N/A')}")
         print()
 
-        if expense_data.get("status") == "APPROVED" and expense_data.get("auto_approved"):
+        if expense_data.get("status") == "APPROVED" and expense_data.get(
+            "auto_approved"
+        ):
             print("[SUCCESS] Auto-approval is WORKING!")
             print("The expense was automatically approved by the Intent Mandate.")
         else:
             print("[FAIL] Auto-approval did NOT work")
             print("Expected: status=APPROVED, auto_approved=true")
-            print(f"Got: status={expense_data.get('status')}, auto_approved={expense_data.get('auto_approved')}")
+            print(
+                f"Got: status={expense_data.get('status')}, auto_approved={expense_data.get('auto_approved')}"
+            )
     else:
         print("[FAIL] Expense submission failed")
         print(f"Status: {expense_response.status_code}")
 
     print()
-    print("="*70)
+    print("=" * 70)
+
 
 if __name__ == "__main__":
     test_auto_approval()

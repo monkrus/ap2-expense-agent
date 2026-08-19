@@ -3,10 +3,7 @@ import json
 
 url = "http://localhost:8000/api/v1/auth/login"
 
-payload = {
-    "username": "employee1",
-    "password": "Password123!"
-}
+payload = {"username": "employee1", "password": "Password123!"}
 
 print("Testing login...")
 print(f"URL: {url}")

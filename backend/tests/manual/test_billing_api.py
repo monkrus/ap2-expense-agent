@@ -1,6 +1,7 @@
 """
 Quick test to check what the billing API is returning
 """
+
 import requests
 import json
 
@@ -17,10 +18,7 @@ if not TOKEN:
     print("5. Run this script again and paste it\n")
     exit(1)
 
-headers = {
-    "Authorization": f"Bearer {TOKEN}",
-    "Content-Type": "application/json"
-}
+headers = {"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"}
 
 print("\n🔍 Testing Billing API Endpoints...\n")
 
@@ -29,7 +27,9 @@ print("=" * 60)
 print("1. Testing /api/billing/org/subscription")
 print("=" * 60)
 try:
-    response = requests.get("http://127.0.0.1:8000/api/billing/org/subscription", headers=headers)
+    response = requests.get(
+        "http://127.0.0.1:8000/api/billing/org/subscription", headers=headers
+    )
     print(f"Status Code: {response.status_code}")
 
     if response.status_code == 200:
@@ -52,7 +52,9 @@ print("\n" + "=" * 60)
 print("2. Testing /api/billing/org/usage/monthly")
 print("=" * 60)
 try:
-    response = requests.get("http://127.0.0.1:8000/api/billing/org/usage/monthly", headers=headers)
+    response = requests.get(
+        "http://127.0.0.1:8000/api/billing/org/usage/monthly", headers=headers
+    )
     print(f"Status Code: {response.status_code}")
 
     if response.status_code == 200:

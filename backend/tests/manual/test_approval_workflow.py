@@ -11,6 +11,7 @@ Usage:
 Example:
     python test_approval_workflow.py adminfree MyPass123! emp1 EmpPass123!
 """
+
 import requests
 import json
 import time
@@ -18,6 +19,7 @@ import sys
 from datetime import datetime
 
 BASE_URL = "http://localhost:8000"
+
 
 def test_approval_workflow(admin_username, admin_password, emp_username, emp_password):
     print("=" * 80)
@@ -29,7 +31,7 @@ def test_approval_workflow(admin_username, admin_password, emp_username, emp_pas
     print(f"[1] Logging in as admin: {admin_username}...")
     admin_login = requests.post(
         f"{BASE_URL}/api/v1/auth/login",
-        json={"username": admin_username, "password": admin_password}
+        json={"username": admin_username, "password": admin_password},
     )
 
     if admin_login.status_code != 200:
@@ -43,7 +45,9 @@ def test_approval_workflow(admin_username, admin_password, emp_username, emp_pas
     print()
 
     # Get admin's organization
-    orgs_response = requests.get(f"{BASE_URL}/api/v1/organizations", headers=admin_headers)
+    orgs_response = requests.get(
+        f"{BASE_URL}/api/v1/organizations", headers=admin_headers
+    )
     if orgs_response.status_code != 200:
         print("[X] Failed to get organizations")
         return False
@@ -65,7 +69,7 @@ def test_approval_workflow(admin_username, admin_password, emp_username, emp_pas
     print(f"[2] Logging in as employee: {emp_username}...")
     employee_login = requests.post(
         f"{BASE_URL}/api/v1/auth/login",
-        json={"username": emp_username, "password": emp_password}
+        json={"username": emp_username, "password": emp_password},
     )
 
     if employee_login.status_code != 200:
@@ -77,7 +81,7 @@ def test_approval_workflow(admin_username, admin_password, emp_username, emp_pas
     employee_user_id = employee_login.json()["user"]["id"]
     employee_headers = {
         "Authorization": f"Bearer {employee_token}",
-        "X-Organization-Id": org_id
+        "X-Organization-Id": org_id,
     }
     print(f"[+] Employee logged in successfully")
     print()
@@ -90,10 +94,7 @@ def test_approval_workflow(admin_username, admin_password, emp_username, emp_pas
         add_member = requests.post(
             f"{BASE_URL}/api/v1/organizations/{org_id}/members",
             headers=admin_headers,
-            json={
-                "user_id": employee_user_id,
-                "role": "member"
-            }
+            json={"user_id": employee_user_id, "role": "member"},
         )
 
         if add_member.status_code == 201:
@@ -117,13 +118,11 @@ def test_approval_workflow(admin_username, admin_password, emp_username, emp_pas
         "vendor": "Test Coffee Shop",
         "category": "Meals",
         "description": "Team lunch meeting - approval workflow test",
-        "date": datetime.now().strftime("%Y-%m-%d")
+        "date": datetime.now().strftime("%Y-%m-%d"),
     }
 
     submit_response = requests.post(
-        f"{BASE_URL}/api/v1/expenses",
-        headers=employee_headers,
-        json=expense_data
+        f"{BASE_URL}/api/v1/expenses", headers=employee_headers, json=expense_data
     )
 
     if submit_response.status_code != 201:
@@ -156,8 +155,7 @@ def test_approval_workflow(admin_username, admin_password, emp_username, emp_pas
     time.sleep(1)  # Brief pause to ensure database is updated
 
     pending_response = requests.get(
-        f"{BASE_URL}/api/v1/expenses?status=pending",
-        headers=admin_headers
+        f"{BASE_URL}/api/v1/expenses?status=pending", headers=admin_headers
     )
 
     if pending_response.status_code != 200:
@@ -194,8 +192,7 @@ def test_approval_workflow(admin_username, admin_password, emp_username, emp_pas
     print("[6] Admin approving expense...")
 
     approve_response = requests.put(
-        f"{BASE_URL}/api/v1/expenses/{expense_id}/approve",
-        headers=admin_headers
+        f"{BASE_URL}/api/v1/expenses/{expense_id}/approve", headers=admin_headers
     )
 
     if approve_response.status_code != 200:
@@ -215,8 +212,7 @@ def test_approval_workflow(admin_username, admin_password, emp_username, emp_pas
     print("[7] Verifying expense status change...")
 
     verify_response = requests.get(
-        f"{BASE_URL}/api/v1/expenses/{expense_id}",
-        headers=admin_headers
+        f"{BASE_URL}/api/v1/expenses/{expense_id}", headers=admin_headers
     )
 
     if verify_response.status_code != 200:
@@ -249,9 +245,13 @@ def test_approval_workflow(admin_username, admin_password, emp_username, emp_pas
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
-        print("Usage: python test_approval_workflow.py <admin_user> <admin_pass> <emp_user> <emp_pass>")
+        print(
+            "Usage: python test_approval_workflow.py <admin_user> <admin_pass> <emp_user> <emp_pass>"
+        )
         print("\nExample:")
-        print("  python test_approval_workflow.py adminfree MyPass123! emp1 EmpPass123!")
+        print(
+            "  python test_approval_workflow.py adminfree MyPass123! emp1 EmpPass123!"
+        )
         print("\nCurrent users in database:")
         print("  - adminfree (admin role)")
         print("  - emp1 (employee role)")
@@ -263,7 +263,9 @@ if __name__ == "__main__":
     emp_password = sys.argv[4]
 
     try:
-        success = test_approval_workflow(admin_username, admin_password, emp_username, emp_password)
+        success = test_approval_workflow(
+            admin_username, admin_password, emp_username, emp_password
+        )
         exit(0 if success else 1)
     except requests.exceptions.ConnectionError:
         print("\n[X] ERROR: Cannot connect to backend server")
@@ -272,5 +274,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n[X] ERROR: {str(e)}")
         import traceback
+
         traceback.print_exc()
         exit(1)

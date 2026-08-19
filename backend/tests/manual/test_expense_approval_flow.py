@@ -6,6 +6,7 @@ Test Expense Approval Workflow
 3. Admin approves expense
 4. Employee receives approval notification
 """
+
 import requests
 import json
 import time
@@ -13,34 +14,40 @@ from datetime import datetime
 
 BASE_URL = "http://localhost:8000/api/v1"
 
+
 # Colors for output
 class Color:
-    GREEN = '\033[92m'
-    RED = '\033[91m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    END = '\033[0m'
+    GREEN = "\033[92m"
+    RED = "\033[91m"
+    YELLOW = "\033[93m"
+    BLUE = "\033[94m"
+    END = "\033[0m"
+
 
 def print_step(step_num, message):
     print(f"\n{Color.BLUE}[STEP {step_num}]{Color.END} {message}")
     print("=" * 70)
 
+
 def print_success(message):
     print(f"{Color.GREEN}[SUCCESS]{Color.END} {message}")
+
 
 def print_error(message):
     print(f"{Color.RED}[ERROR]{Color.END} {message}")
 
+
 def print_info(message):
     print(f"{Color.YELLOW}[INFO]{Color.END} {message}")
+
 
 # Step 1: Login as Employee
 print_step(1, "Login as Employee (employee1)")
 
-employee_login = requests.post(f"{BASE_URL}/auth/login", json={
-    "username": "employee1",
-    "password": "TempPass123!"  # Update if different
-})
+employee_login = requests.post(
+    f"{BASE_URL}/auth/login",
+    json={"username": "employee1", "password": "TempPass123!"},  # Update if different
+)
 
 if employee_login.status_code != 200:
     print_error(f"Employee login failed: {employee_login.status_code}")
@@ -60,8 +67,7 @@ print_info(f"Email: {employee_data['user']['email']}")
 print_step(2, "Get Employee's Organization")
 
 org_list = requests.get(
-    f"{BASE_URL}/organizations",
-    headers={"Authorization": f"Bearer {employee_token}"}
+    f"{BASE_URL}/organizations", headers={"Authorization": f"Bearer {employee_token}"}
 )
 
 if org_list.status_code != 200:
@@ -88,7 +94,7 @@ expense_data = {
     "description": "Office supplies for Q1 - pens, paper, folders",
     "date": datetime.now().strftime("%Y-%m-%d"),
     "payment_method": "PERSONAL_CARD",
-    "currency": "USD"
+    "currency": "USD",
 }
 
 print_info(f"Expense Details:")
@@ -102,9 +108,9 @@ expense_response = requests.post(
     headers={
         "Authorization": f"Bearer {employee_token}",
         "X-Organization-Id": org_id,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     },
-    json=expense_data
+    json=expense_data,
 )
 
 if expense_response.status_code != 201:
@@ -123,10 +129,10 @@ print_info(f"Amount: ${expense['amount']}")
 # Step 4: Login as Admin
 print_step(4, "Login as Admin (adminfree)")
 
-admin_login = requests.post(f"{BASE_URL}/auth/login", json={
-    "username": "adminfree",
-    "password": "Admin123!"  # Update if different
-})
+admin_login = requests.post(
+    f"{BASE_URL}/auth/login",
+    json={"username": "adminfree", "password": "Admin123!"},  # Update if different
+)
 
 if admin_login.status_code != 200:
     print_error(f"Admin login failed: {admin_login.status_code}")
@@ -145,10 +151,7 @@ print_step(5, "Admin Views Pending Expenses")
 
 pending_expenses = requests.get(
     f"{BASE_URL}/expenses?status=PENDING",
-    headers={
-        "Authorization": f"Bearer {admin_token}",
-        "X-Organization-Id": org_id
-    }
+    headers={"Authorization": f"Bearer {admin_token}", "X-Organization-Id": org_id},
 )
 
 if pending_expenses.status_code != 200:
@@ -159,7 +162,7 @@ pending = pending_expenses.json()
 print_success(f"Found {len(pending)} pending expense(s)")
 
 # Find our expense
-our_expense = next((e for e in pending if e['id'] == expense_id), None)
+our_expense = next((e for e in pending if e["id"] == expense_id), None)
 if our_expense:
     print_info(f"Our expense is pending approval:")
     print(f"  ID: {our_expense['id']}")
@@ -172,10 +175,7 @@ print_step(6, "Admin Approves Expense")
 
 approve_response = requests.put(
     f"{BASE_URL}/expenses/{expense_id}/approve",
-    headers={
-        "Authorization": f"Bearer {admin_token}",
-        "X-Organization-Id": org_id
-    }
+    headers={"Authorization": f"Bearer {admin_token}", "X-Organization-Id": org_id},
 )
 
 if approve_response.status_code != 200:
@@ -196,10 +196,7 @@ print_step(7, "Employee Views Approved Expense")
 
 employee_expenses = requests.get(
     f"{BASE_URL}/expenses/{expense_id}",
-    headers={
-        "Authorization": f"Bearer {employee_token}",
-        "X-Organization-Id": org_id
-    }
+    headers={"Authorization": f"Bearer {employee_token}", "X-Organization-Id": org_id},
 )
 
 if employee_expenses.status_code != 200:
@@ -237,7 +234,7 @@ expense_data_2 = {
     "description": "Team dinner (too expensive)",
     "date": datetime.now().strftime("%Y-%m-%d"),
     "payment_method": "PERSONAL_CARD",
-    "currency": "USD"
+    "currency": "USD",
 }
 
 expense_response_2 = requests.post(
@@ -245,9 +242,9 @@ expense_response_2 = requests.post(
     headers={
         "Authorization": f"Bearer {employee_token}",
         "X-Organization-Id": org_id,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     },
-    json=expense_data_2
+    json=expense_data_2,
 )
 
 if expense_response_2.status_code == 201:
@@ -262,16 +259,18 @@ if expense_response_2.status_code == 201:
         headers={
             "Authorization": f"Bearer {admin_token}",
             "X-Organization-Id": org_id,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         },
-        json={"reason": "Amount exceeds policy limit for meals"}
+        json={"reason": "Amount exceeds policy limit for meals"},
     )
 
     if reject_response.status_code == 200:
         rejected_expense = reject_response.json()
         print_success("Second expense rejected successfully!")
         print_info(f"Status: {rejected_expense['status']}")
-        print_info(f"Rejection reason: {rejected_expense.get('rejection_reason', 'N/A')}")
+        print_info(
+            f"Rejection reason: {rejected_expense.get('rejection_reason', 'N/A')}"
+        )
     else:
         print_error(f"Failed to reject expense: {reject_response.status_code}")
 else:

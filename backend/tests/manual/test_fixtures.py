@@ -25,15 +25,25 @@ API_PREFIX = "/api/v1"
 # Test users (reuse existing test users)
 TEST_USERS = {
     "employee": {"username": "emptest", "password": "Emptest123!", "role": "EMPLOYEE"},
-    "employee2": {"username": "emptest2", "password": "Emptest2123!", "role": "EMPLOYEE"},
+    "employee2": {
+        "username": "emptest2",
+        "password": "Emptest2123!",
+        "role": "EMPLOYEE",
+    },
     "manager": {"username": "testuser", "password": "TestUser123!", "role": "MANAGER"},
-    "accountant": {"username": "employee2", "password": "Employee2123!", "role": "ACCOUNTANT"},
+    "accountant": {
+        "username": "employee2",
+        "password": "Employee2123!",
+        "role": "ACCOUNTANT",
+    },
     "admin": {"username": "admintest", "password": "AdminTest123!", "role": "ADMIN"},
 }
+
 
 @dataclass
 class UserFixture:
     """User authentication fixture"""
+
     username: str
     password: str
     role: str
@@ -68,7 +78,7 @@ class TestFixtures:
             user = UserFixture(
                 username=user_info["username"],
                 password=user_info["password"],
-                role=user_info["role"]
+                role=user_info["role"],
             )
 
             success = self._login_user(user)
@@ -96,7 +106,7 @@ class TestFixtures:
                 response = requests.post(
                     f"{self.api_base}/auth/login",
                     json={"username": user.username, "password": user.password},
-                    timeout=10
+                    timeout=10,
                 )
 
                 if response.status_code == 200:
@@ -134,7 +144,7 @@ class TestFixtures:
             response = requests.get(
                 f"{self.api_base}/organizations",
                 headers={"Authorization": f"Bearer {admin.token}"},
-                timeout=10
+                timeout=10,
             )
 
             if response.status_code == 200:
@@ -184,6 +194,7 @@ class TestFixtures:
 # Singleton instance for shared use across tests
 _fixtures_instance = None
 
+
 def get_fixtures() -> TestFixtures:
     """Get or create the global fixtures instance"""
     global _fixtures_instance
@@ -193,13 +204,7 @@ def get_fixtures() -> TestFixtures:
 
 
 # Valid expense categories (from backend validation)
-VALID_CATEGORIES = [
-    "TRAVEL",
-    "MEALS",
-    "SOFTWARE",
-    "OFFICE_SUPPLIES",
-    "OTHER"
-]
+VALID_CATEGORIES = ["TRAVEL", "MEALS", "SOFTWARE", "OFFICE_SUPPLIES", "OTHER"]
 
 
 def create_expense_data(**overrides) -> dict:
@@ -222,7 +227,7 @@ def create_expense_data(**overrides) -> dict:
         "vendor": "Test Vendor",
         "category": "OTHER",
         "description": "Test expense",
-        "date": datetime.now().strftime("%Y-%m-%d")
+        "date": datetime.now().strftime("%Y-%m-%d"),
     }
 
     defaults.update(overrides)
@@ -236,29 +241,34 @@ TIER_LIMITS = {
         "monthly_expenses": 20,
         "max_orgs": 1,
         "max_users": 1,
-        "features": ["basic_expenses", "simple_reports"]
+        "features": ["basic_expenses", "simple_reports"],
     },
     "STARTER": {
         "daily_expenses": 50,
         "monthly_expenses": 200,
         "max_orgs": 3,
         "max_users": 5,
-        "features": ["basic_expenses", "simple_reports", "receipt_upload", "approval_workflow"]
+        "features": [
+            "basic_expenses",
+            "simple_reports",
+            "receipt_upload",
+            "approval_workflow",
+        ],
     },
     "PROFESSIONAL": {
         "daily_expenses": "unlimited",
         "monthly_expenses": "unlimited",
         "max_orgs": 10,
         "max_users": 25,
-        "features": ["all_features"]
+        "features": ["all_features"],
     },
     "ENTERPRISE": {
         "daily_expenses": "unlimited",
         "monthly_expenses": "unlimited",
         "max_orgs": 25,
         "max_users": 100,
-        "features": ["all_features", "priority_support", "custom_integrations"]
-    }
+        "features": ["all_features", "priority_support", "custom_integrations"],
+    },
 }
 
 

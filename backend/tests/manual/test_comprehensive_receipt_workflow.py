@@ -34,11 +34,7 @@ USERS = {
 }
 
 # Test results tracking
-test_results = {
-    "passed": [],
-    "failed": [],
-    "warnings": []
-}
+test_results = {"passed": [], "failed": [], "warnings": []}
 
 
 class TestSession:
@@ -55,7 +51,7 @@ class TestSession:
         """Login and get access token"""
         response = requests.post(
             f"{API_BASE_URL}/auth/login",
-            json={"username": self.username, "password": self.password}
+            json={"username": self.username, "password": self.password},
         )
         if response.status_code == 200:
             data = response.json()
@@ -84,7 +80,7 @@ class TestSession:
         """Get request headers with auth and org context"""
         return {
             "Authorization": f"Bearer {self.token}",
-            "X-Organization-Id": self.org_id
+            "X-Organization-Id": self.org_id,
         }
 
 
@@ -95,7 +91,7 @@ def create_test_receipt(filename: str, size_mb: float = 0.05, format: str = "png
 
     # Create a simple image (quality affects file size)
     width, height = 800, 1200
-    img = Image.new('RGB', (width, height), color='white')
+    img = Image.new("RGB", (width, height), color="white")
 
     filepath = TEMP_TEST_DIR / filename
 
@@ -109,7 +105,7 @@ def create_test_receipt(filename: str, size_mb: float = 0.05, format: str = "png
         img.save(filepath, "PDF")
     else:
         # Invalid format for testing
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             f.write("This is not an image file")
 
     return filepath
@@ -119,7 +115,7 @@ def create_oversized_receipt(filename: str, size_mb: float = 12):
     """Create an oversized receipt (>10MB)"""
     # Create a large high-resolution image
     width, height = 4000, 6000
-    img = Image.new('RGB', (width, height), color='white')
+    img = Image.new("RGB", (width, height), color="white")
 
     filepath = TEMP_TEST_DIR / filename
     img.save(filepath, "PNG")
@@ -128,8 +124,8 @@ def create_oversized_receipt(filename: str, size_mb: float = 12):
     file_size_mb = os.path.getsize(filepath) / (1024 * 1024)
     if file_size_mb < 10:
         # Make it bigger by adding more data
-        with open(filepath, 'ab') as f:
-            f.write(b'0' * (11 * 1024 * 1024))
+        with open(filepath, "ab") as f:
+            f.write(b"0" * (11 * 1024 * 1024))
 
     return filepath
 
@@ -146,13 +142,11 @@ def test_batch_upload(session: TestSession, num_receipts: int, test_name: str):
         "vendor": f"Test Vendor {test_name}",
         "category": "OFFICE_SUPPLIES",
         "description": f"Batch upload test - {num_receipts} receipts",
-        "date": "2026-01-04T12:00:00"
+        "date": "2026-01-04T12:00:00",
     }
 
     response = requests.post(
-        f"{API_BASE_URL}/expenses",
-        headers=session.get_headers(),
-        json=expense_data
+        f"{API_BASE_URL}/expenses", headers=session.get_headers(), json=expense_data
     )
 
     if response.status_code != 201:
@@ -176,12 +170,12 @@ def test_batch_upload(session: TestSession, num_receipts: int, test_name: str):
         else:
             receipt_path = create_test_receipt(f"batch_{test_name}_{i}.png")
 
-        with open(receipt_path, 'rb') as f:
-            files = {'file': (receipt_path.name, f, 'image/png')}
+        with open(receipt_path, "rb") as f:
+            files = {"file": (receipt_path.name, f, "image/png")}
             response = requests.post(
                 f"{API_BASE_URL}/receipts/upload/{expense_id}",
                 headers=session.get_headers(),
-                files=files
+                files=files,
             )
 
         if response.status_code in [200, 201]:
@@ -194,7 +188,9 @@ def test_batch_upload(session: TestSession, num_receipts: int, test_name: str):
     print(f"\nResults: {successful_uploads} successful, {failed_uploads} failed")
 
     if successful_uploads > 0:
-        test_results["passed"].append(f"{test_name}: {successful_uploads}/{num_receipts} uploads")
+        test_results["passed"].append(
+            f"{test_name}: {successful_uploads}/{num_receipts} uploads"
+        )
     if failed_uploads > 0:
         test_results["failed"].append(f"{test_name}: {failed_uploads} failed uploads")
 
@@ -213,13 +209,11 @@ def test_invalid_formats(session: TestSession):
         "vendor": "Invalid Format Test",
         "category": "OTHER",
         "description": "Testing invalid file formats",
-        "date": "2026-01-04T12:00:00"
+        "date": "2026-01-04T12:00:00",
     }
 
     response = requests.post(
-        f"{API_BASE_URL}/expenses",
-        headers=session.get_headers(),
-        json=expense_data
+        f"{API_BASE_URL}/expenses", headers=session.get_headers(), json=expense_data
     )
 
     if response.status_code != 201:
@@ -239,19 +233,21 @@ def test_invalid_formats(session: TestSession):
     for filename, content_type in invalid_formats:
         filepath = create_test_receipt(filename, format="invalid")
 
-        with open(filepath, 'rb') as f:
-            files = {'file': (filename, f, content_type)}
+        with open(filepath, "rb") as f:
+            files = {"file": (filename, f, content_type)}
             response = requests.post(
                 f"{API_BASE_URL}/receipts/upload/{expense_id}",
                 headers=session.get_headers(),
-                files=files
+                files=files,
             )
 
         if response.status_code == 400:
             print(f"  [PASS] Correctly rejected {filename}")
             test_results["passed"].append(f"Invalid format rejected: {filename}")
         else:
-            print(f"  [FAIL] Incorrectly accepted {filename} (status: {response.status_code})")
+            print(
+                f"  [FAIL] Incorrectly accepted {filename} (status: {response.status_code})"
+            )
             test_results["failed"].append(f"Invalid format accepted: {filename}")
 
 
@@ -267,13 +263,11 @@ def test_oversized_files(session: TestSession):
         "vendor": "Oversized File Test",
         "category": "OTHER",
         "description": "Testing oversized files",
-        "date": "2026-01-04T12:00:00"
+        "date": "2026-01-04T12:00:00",
     }
 
     response = requests.post(
-        f"{API_BASE_URL}/expenses",
-        headers=session.get_headers(),
-        json=expense_data
+        f"{API_BASE_URL}/expenses", headers=session.get_headers(), json=expense_data
     )
 
     if response.status_code != 201:
@@ -287,19 +281,21 @@ def test_oversized_files(session: TestSession):
     file_size_mb = os.path.getsize(oversized_file) / (1024 * 1024)
     print(f"  Created test file: {file_size_mb:.2f}MB")
 
-    with open(oversized_file, 'rb') as f:
-        files = {'file': (oversized_file.name, f, 'image/png')}
+    with open(oversized_file, "rb") as f:
+        files = {"file": (oversized_file.name, f, "image/png")}
         response = requests.post(
             f"{API_BASE_URL}/receipts/upload/{expense_id}",
             headers=session.get_headers(),
-            files=files
+            files=files,
         )
 
     if response.status_code == 400 and "too large" in response.text.lower():
         print(f"  [PASS] Correctly rejected oversized file")
         test_results["passed"].append("Oversized file rejected")
     else:
-        print(f"  [FAIL] Incorrectly accepted oversized file (status: {response.status_code})")
+        print(
+            f"  [FAIL] Incorrectly accepted oversized file (status: {response.status_code})"
+        )
         test_results["failed"].append("Oversized file accepted")
 
 
@@ -332,7 +328,9 @@ def test_concurrent_uploads():
     threads = []
 
     for session, name in [(emp1, "adminfree"), (emp2, "employee2")]:
-        thread = threading.Thread(target=lambda s=session, n=name: results.append(upload_batch(s, n)))
+        thread = threading.Thread(
+            target=lambda s=session, n=name: results.append(upload_batch(s, n))
+        )
         threads.append(thread)
         thread.start()
 
@@ -360,13 +358,13 @@ def test_approval_workflow(admin_session: TestSession, employee_session: TestSes
         "vendor": "Approval Test Vendor",
         "category": "MEALS",
         "description": "Testing approval workflow",
-        "date": "2026-01-04T12:00:00"
+        "date": "2026-01-04T12:00:00",
     }
 
     response = requests.post(
         f"{API_BASE_URL}/expenses",
         headers=employee_session.get_headers(),
-        json=expense_data
+        json=expense_data,
     )
 
     if response.status_code != 201:
@@ -379,12 +377,12 @@ def test_approval_workflow(admin_session: TestSession, employee_session: TestSes
 
     # Upload a receipt
     sample_file = next(TEST_RECEIPTS_DIR.glob("*.png"))
-    with open(sample_file, 'rb') as f:
-        files = {'file': (sample_file.name, f, 'image/png')}
+    with open(sample_file, "rb") as f:
+        files = {"file": (sample_file.name, f, "image/png")}
         response = requests.post(
             f"{API_BASE_URL}/receipts/upload/{expense_id}",
             headers=employee_session.get_headers(),
-            files=files
+            files=files,
         )
 
     if response.status_code in [200, 201]:
@@ -392,8 +390,7 @@ def test_approval_workflow(admin_session: TestSession, employee_session: TestSes
 
     # Check expense status (should be PENDING)
     response = requests.get(
-        f"{API_BASE_URL}/expenses/{expense_id}",
-        headers=employee_session.get_headers()
+        f"{API_BASE_URL}/expenses/{expense_id}", headers=employee_session.get_headers()
     )
 
     if response.status_code == 200:
@@ -407,21 +404,23 @@ def test_approval_workflow(admin_session: TestSession, employee_session: TestSes
     # Test: Employee tries to approve own expense (should fail)
     response = requests.put(
         f"{API_BASE_URL}/expenses/{expense_id}/approve",
-        headers=employee_session.get_headers()
+        headers=employee_session.get_headers(),
     )
 
     if response.status_code == 403:
         print(f"[PASS] Employee correctly prevented from self-approving")
         test_results["passed"].append("Approval workflow: Self-approval blocked")
     else:
-        print(f"[FAIL] Employee was able to self-approve (status: {response.status_code})")
+        print(
+            f"[FAIL] Employee was able to self-approve (status: {response.status_code})"
+        )
         test_results["failed"].append("Approval workflow: Self-approval not blocked")
 
     # Test: Withdraw expense
     withdraw_expense_id = expense_id
     response = requests.delete(
         f"{API_BASE_URL}/expenses/{withdraw_expense_id}",
-        headers=employee_session.get_headers()
+        headers=employee_session.get_headers(),
     )
 
     if response.status_code in [200, 204]:
@@ -431,7 +430,7 @@ def test_approval_workflow(admin_session: TestSession, employee_session: TestSes
         # Verify status is WITHDRAWN
         response = requests.get(
             f"{API_BASE_URL}/expenses/{withdraw_expense_id}",
-            headers=employee_session.get_headers()
+            headers=employee_session.get_headers(),
         )
         if response.status_code == 200:
             expense = response.json()
@@ -442,14 +441,14 @@ def test_approval_workflow(admin_session: TestSession, employee_session: TestSes
     response = requests.post(
         f"{API_BASE_URL}/expenses",
         headers=employee_session.get_headers(),
-        json=expense_data
+        json=expense_data,
     )
     expense_id = response.json()["id"]
 
     # Admin approves expense
     response = requests.put(
         f"{API_BASE_URL}/expenses/{expense_id}/approve",
-        headers=admin_session.get_headers()
+        headers=admin_session.get_headers(),
     )
 
     if response.status_code == 200:
@@ -458,8 +457,7 @@ def test_approval_workflow(admin_session: TestSession, employee_session: TestSes
 
         # Verify status is APPROVED
         response = requests.get(
-            f"{API_BASE_URL}/expenses/{expense_id}",
-            headers=admin_session.get_headers()
+            f"{API_BASE_URL}/expenses/{expense_id}", headers=admin_session.get_headers()
         )
         if response.status_code == 200:
             expense = response.json()
@@ -472,7 +470,7 @@ def test_approval_workflow(admin_session: TestSession, employee_session: TestSes
     response = requests.post(
         f"{API_BASE_URL}/expenses",
         headers=employee_session.get_headers(),
-        json=expense_data
+        json=expense_data,
     )
     expense_id = response.json()["id"]
 
@@ -480,7 +478,7 @@ def test_approval_workflow(admin_session: TestSession, employee_session: TestSes
     response = requests.put(
         f"{API_BASE_URL}/expenses/{expense_id}/reject",
         headers=admin_session.get_headers(),
-        json={"reason": "Missing required documentation"}
+        json={"reason": "Missing required documentation"},
     )
 
     if response.status_code == 200:
@@ -489,8 +487,7 @@ def test_approval_workflow(admin_session: TestSession, employee_session: TestSes
 
         # Verify status is REJECTED
         response = requests.get(
-            f"{API_BASE_URL}/expenses/{expense_id}",
-            headers=admin_session.get_headers()
+            f"{API_BASE_URL}/expenses/{expense_id}", headers=admin_session.get_headers()
         )
         if response.status_code == 200:
             expense = response.json()
@@ -644,16 +641,20 @@ def print_test_summary():
             print(f"  • {warning}")
 
     total_tests = len(test_results["passed"]) + len(test_results["failed"])
-    pass_rate = (len(test_results["passed"]) / total_tests * 100) if total_tests > 0 else 0
+    pass_rate = (
+        (len(test_results["passed"]) / total_tests * 100) if total_tests > 0 else 0
+    )
 
-    print(f"\nOverall: {len(test_results['passed'])}/{total_tests} tests passed ({pass_rate:.1f}%)")
+    print(
+        f"\nOverall: {len(test_results['passed'])}/{total_tests} tests passed ({pass_rate:.1f}%)"
+    )
 
 
 def main():
     """Run all tests"""
-    print("="*60)
+    print("=" * 60)
     print("COMPREHENSIVE RECEIPT/EXPENSE WORKFLOW TEST")
-    print("="*60)
+    print("=" * 60)
 
     # Login sessions
     print("\nLogging in users...")
@@ -690,6 +691,7 @@ def main():
     except Exception as e:
         print(f"\n[FAIL] Test suite error: {e}")
         import traceback
+
         traceback.print_exc()
 
     finally:

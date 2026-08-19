@@ -6,6 +6,7 @@ Test User Deletion Functionality
 3. Delete the user as admin
 4. Verify user no longer exists
 """
+
 import requests
 import json
 
@@ -17,10 +18,9 @@ print("=" * 70)
 
 # Step 1: Login as admin
 print("\n[1] Login as Admin (adminfree)")
-admin_login = requests.post(f"{BASE_URL}/auth/login", json={
-    "username": "adminfree",
-    "password": "Admin123!"
-})
+admin_login = requests.post(
+    f"{BASE_URL}/auth/login", json={"username": "adminfree", "password": "Admin123!"}
+)
 
 if admin_login.status_code != 200:
     print(f"[ERROR] Admin login failed: {admin_login.status_code}")
@@ -33,8 +33,7 @@ print(f"[OK] Logged in as: {admin_data['user']['username']}")
 
 # Get organization ID
 org_response = requests.get(
-    f"{BASE_URL}/organizations",
-    headers={"Authorization": f"Bearer {admin_token}"}
+    f"{BASE_URL}/organizations", headers={"Authorization": f"Bearer {admin_token}"}
 )
 
 if org_response.status_code != 200:
@@ -57,7 +56,7 @@ test_user_data = {
     "username": "testdelete",
     "full_name": "Test Delete User",
     "password": "TempPass123!",
-    "role": "employee"
+    "role": "employee",
 }
 
 create_response = requests.post(
@@ -65,9 +64,9 @@ create_response = requests.post(
     headers={
         "Authorization": f"Bearer {admin_token}",
         "X-Organization-Id": org_id,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     },
-    json=test_user_data
+    json=test_user_data,
 )
 
 if create_response.status_code != 200:
@@ -88,7 +87,7 @@ print("\n[3] Verifying user exists...")
 
 verify_response = requests.get(
     f"{BASE_URL}/admin/users/{test_user_id}",
-    headers={"Authorization": f"Bearer {admin_token}"}
+    headers={"Authorization": f"Bearer {admin_token}"},
 )
 
 if verify_response.status_code != 200:
@@ -105,7 +104,7 @@ print("\n[4] Deleting test user...")
 
 delete_response = requests.delete(
     f"{BASE_URL}/admin/users/{test_user_id}",
-    headers={"Authorization": f"Bearer {admin_token}"}
+    headers={"Authorization": f"Bearer {admin_token}"},
 )
 
 if delete_response.status_code != 200:
@@ -121,14 +120,14 @@ print("\n[5] Verifying user was deleted...")
 
 verify_deleted = requests.get(
     f"{BASE_URL}/admin/users/{test_user_id}",
-    headers={"Authorization": f"Bearer {admin_token}"}
+    headers={"Authorization": f"Bearer {admin_token}"},
 )
 
 if verify_deleted.status_code == 404:
     print(f"[OK] User successfully deleted (404 Not Found)")
 elif verify_deleted.status_code == 200:
     deleted_user = verify_deleted.json()
-    if not deleted_user.get('is_active'):
+    if not deleted_user.get("is_active"):
         print(f"[OK] User soft-deleted (is_active=False)")
     else:
         print(f"[WARN] User still exists and is active!")

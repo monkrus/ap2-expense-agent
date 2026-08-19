@@ -2,10 +2,12 @@
 Test Auto-Organization Registration Flow
 Verifies that new users automatically get their own organization
 """
+
 import sys
 import os
 import time
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
 
 from src.database import SessionLocal
 from src.models import User, Organization, OrganizationMember
@@ -27,13 +29,12 @@ register_payload = {
     "email": test_email,
     "password": "Test123!",
     "full_name": "Test User Auto Org",
-    "role": "employee"
+    "role": "employee",
 }
 
 try:
     response = requests.post(
-        "http://localhost:8000/api/v1/auth/register",
-        json=register_payload
+        "http://localhost:8000/api/v1/auth/register", json=register_payload
     )
 
     if response.status_code == 201:
@@ -62,19 +63,24 @@ try:
         sys.exit(1)
 
     # Check organization membership
-    membership = db.query(OrganizationMember).filter(
-        OrganizationMember.user_id == user.id,
-        OrganizationMember.is_active == True
-    ).first()
+    membership = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.user_id == user.id, OrganizationMember.is_active == True
+        )
+        .first()
+    )
 
     if not membership:
         print(f"[FAIL] No organization membership found for user!")
         print(f"   User ID: {user.id}")
         sys.exit(1)
 
-    org = db.query(Organization).filter(
-        Organization.id == membership.organization_id
-    ).first()
+    org = (
+        db.query(Organization)
+        .filter(Organization.id == membership.organization_id)
+        .first()
+    )
 
     if not org:
         print(f"[FAIL] Organization not found!")
@@ -90,14 +96,10 @@ try:
     # Step 3: Verify user can login and access organization context
     print("\n[STEP 3] Testing login and organization context...")
 
-    login_payload = {
-        "username": test_username,
-        "password": "Test123!"
-    }
+    login_payload = {"username": test_username, "password": "Test123!"}
 
     login_response = requests.post(
-        "http://localhost:8000/api/v1/auth/login",
-        json=login_payload
+        "http://localhost:8000/api/v1/auth/login", json=login_payload
     )
 
     if login_response.status_code != 200:
@@ -106,7 +108,7 @@ try:
         sys.exit(1)
 
     login_data = login_response.json()
-    access_token = login_data['access_token']
+    access_token = login_data["access_token"]
     print(f"[OK] Login successful!")
 
     # Step 4: Try to fetch expenses (should work without org context error)
@@ -114,12 +116,12 @@ try:
 
     expense_headers = {
         "Authorization": f"Bearer {access_token}",
-        "X-Organization-Id": org.id
+        "X-Organization-Id": org.id,
     }
 
     expense_response = requests.get(
         f"http://localhost:8000/api/v1/expenses/report?user_id={user.id}",
-        headers=expense_headers
+        headers=expense_headers,
     )
 
     if expense_response.status_code == 200:
@@ -137,7 +139,7 @@ try:
 
     orgs_response = requests.get(
         "http://localhost:8000/api/v1/organizations",
-        headers={"Authorization": f"Bearer {access_token}"}
+        headers={"Authorization": f"Bearer {access_token}"},
     )
 
     if orgs_response.status_code == 200:

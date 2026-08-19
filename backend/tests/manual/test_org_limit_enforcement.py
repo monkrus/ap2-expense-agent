@@ -1,6 +1,7 @@
 """
 Test organization limit enforcement for free tier user
 """
+
 import requests
 import json
 
@@ -16,11 +17,7 @@ print("=" * 60)
 # Step 1: Login as adminfree
 print("\n[1] Logging in as adminfree...")
 login_response = requests.post(
-    f"{BASE_URL}/api/v1/auth/login",
-    json={
-        "username": USERNAME,
-        "password": PASSWORD
-    }
+    f"{BASE_URL}/api/v1/auth/login", json={"username": USERNAME, "password": PASSWORD}
 )
 
 if login_response.status_code != 200:
@@ -34,10 +31,7 @@ print("[OK] Login successful")
 
 # Step 2: List current organizations
 print("\n[2] Listing current organizations...")
-list_response = requests.get(
-    f"{BASE_URL}/api/v1/organizations",
-    headers=headers
-)
+list_response = requests.get(f"{BASE_URL}/api/v1/organizations", headers=headers)
 
 if list_response.status_code == 200:
     orgs = list_response.json()
@@ -58,8 +52,8 @@ create_response = requests.post(
     json={
         "name": "Test Org 4",
         "slug": "test-org-4",
-        "description": "This should be blocked by tier limits"
-    }
+        "description": "This should be blocked by tier limits",
+    },
 )
 
 print(f"\n[RESULT] Status Code: {create_response.status_code}")
@@ -70,17 +64,25 @@ if create_response.status_code == 402:
     print("\nError details:")
     print(f"   Error: {error_detail.get('detail', {}).get('error', 'N/A')}")
     print(f"   Feature: {error_detail.get('detail', {}).get('feature', 'N/A')}")
-    print(f"   Current tier: {error_detail.get('detail', {}).get('current_tier', 'N/A')}")
+    print(
+        f"   Current tier: {error_detail.get('detail', {}).get('current_tier', 'N/A')}"
+    )
     print(f"   Limit: {error_detail.get('detail', {}).get('current_limit', 'N/A')}")
-    print(f"   Current count: {error_detail.get('detail', {}).get('current_count', 'N/A')}")
+    print(
+        f"   Current count: {error_detail.get('detail', {}).get('current_count', 'N/A')}"
+    )
     print(f"   Message: {error_detail.get('detail', {}).get('message', 'N/A')}")
-    print(f"   Upgrade message: {error_detail.get('detail', {}).get('upgrade_message', 'N/A')}")
+    print(
+        f"   Upgrade message: {error_detail.get('detail', {}).get('upgrade_message', 'N/A')}"
+    )
 
-    upgrade_options = error_detail.get('detail', {}).get('upgrade_options', [])
+    upgrade_options = error_detail.get("detail", {}).get("upgrade_options", [])
     if upgrade_options:
         print("\n   Upgrade options:")
         for option in upgrade_options:
-            print(f"      - {option.get('tier')}: {option.get('price')} ({option.get('organizations')} orgs, {option.get('users')} users)")
+            print(
+                f"      - {option.get('tier')}: {option.get('price')} ({option.get('organizations')} orgs, {option.get('users')} users)"
+            )
 
 elif create_response.status_code == 201:
     print("[FAIL] ✗ Organization was created (should have been blocked!)")
@@ -93,10 +95,7 @@ else:
 
 # Step 4: Verify organization count is still 1
 print("\n[4] Verifying organization count...")
-verify_response = requests.get(
-    f"{BASE_URL}/api/v1/organizations",
-    headers=headers
-)
+verify_response = requests.get(f"{BASE_URL}/api/v1/organizations", headers=headers)
 
 if verify_response.status_code == 200:
     final_orgs = verify_response.json()

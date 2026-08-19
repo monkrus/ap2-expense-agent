@@ -41,16 +41,17 @@ API_PREFIX = "/api/v1"
 VALID_CATEGORIES = ["TRAVEL", "MEALS", "SOFTWARE", "OFFICE_SUPPLIES", "OTHER"]
 
 TEST_USERS = {
-    "admintest": "AdminTest123!",   # ADMIN
-    "testuser": "TestUser123!",     # MANAGER
-    "employee2": "Employee2123!",   # ACCOUNTANT
-    "emptest": "Emptest123!",       # EMPLOYEE
-    "emptest2": "Emptest2123!",     # EMPLOYEE
+    "admintest": "AdminTest123!",  # ADMIN
+    "testuser": "TestUser123!",  # MANAGER
+    "employee2": "Employee2123!",  # ACCOUNTANT
+    "emptest": "Emptest123!",  # EMPLOYEE
+    "emptest2": "Emptest2123!",  # EMPLOYEE
 }
 
 # ============================================================================
 # Data Structures
 # ============================================================================
+
 
 @dataclass
 class TestUser:
@@ -62,6 +63,7 @@ class TestUser:
     email: Optional[str] = None
     expenses: List[str] = field(default_factory=list)  # Track created expenses
 
+
 @dataclass
 class TestResult:
     scenario: str
@@ -70,6 +72,7 @@ class TestResult:
     message: str
     duration: float = 0.0
     details: Optional[dict] = None
+
 
 @dataclass
 class Expense:
@@ -82,9 +85,11 @@ class Expense:
     status: str
     description: str
 
+
 # ============================================================================
 # API Client
 # ============================================================================
+
 
 class APIClient:
     def __init__(self, base_url: str):
@@ -96,7 +101,7 @@ class APIClient:
             response = self.session.post(
                 f"{self.base_url}{API_PREFIX}/auth/login",
                 json={"username": username, "password": password},
-                timeout=10
+                timeout=10,
             )
             if response.status_code == 200:
                 return True, response.json()
@@ -104,33 +109,57 @@ class APIClient:
         except Exception as e:
             return False, {"error": str(e)}
 
-    def get(self, endpoint: str, token: str, org_id: Optional[str] = None) -> requests.Response:
+    def get(
+        self, endpoint: str, token: str, org_id: Optional[str] = None
+    ) -> requests.Response:
         headers = {"Authorization": f"Bearer {token}"}
         if org_id:
             headers["X-Organization-Id"] = org_id
-        return self.session.get(f"{self.base_url}{API_PREFIX}{endpoint}", headers=headers, timeout=10)
+        return self.session.get(
+            f"{self.base_url}{API_PREFIX}{endpoint}", headers=headers, timeout=10
+        )
 
-    def post(self, endpoint: str, token: str, data: dict, org_id: Optional[str] = None) -> requests.Response:
+    def post(
+        self, endpoint: str, token: str, data: dict, org_id: Optional[str] = None
+    ) -> requests.Response:
         headers = {"Authorization": f"Bearer {token}"}
         if org_id:
             headers["X-Organization-Id"] = org_id
-        return self.session.post(f"{self.base_url}{API_PREFIX}{endpoint}", headers=headers, json=data, timeout=10)
+        return self.session.post(
+            f"{self.base_url}{API_PREFIX}{endpoint}",
+            headers=headers,
+            json=data,
+            timeout=10,
+        )
 
-    def put(self, endpoint: str, token: str, data: dict, org_id: Optional[str] = None) -> requests.Response:
+    def put(
+        self, endpoint: str, token: str, data: dict, org_id: Optional[str] = None
+    ) -> requests.Response:
         headers = {"Authorization": f"Bearer {token}"}
         if org_id:
             headers["X-Organization-Id"] = org_id
-        return self.session.put(f"{self.base_url}{API_PREFIX}{endpoint}", headers=headers, json=data, timeout=10)
+        return self.session.put(
+            f"{self.base_url}{API_PREFIX}{endpoint}",
+            headers=headers,
+            json=data,
+            timeout=10,
+        )
 
-    def delete(self, endpoint: str, token: str, org_id: Optional[str] = None) -> requests.Response:
+    def delete(
+        self, endpoint: str, token: str, org_id: Optional[str] = None
+    ) -> requests.Response:
         headers = {"Authorization": f"Bearer {token}"}
         if org_id:
             headers["X-Organization-Id"] = org_id
-        return self.session.delete(f"{self.base_url}{API_PREFIX}{endpoint}", headers=headers, timeout=10)
+        return self.session.delete(
+            f"{self.base_url}{API_PREFIX}{endpoint}", headers=headers, timeout=10
+        )
+
 
 # ============================================================================
 # Comprehensive Workflow Test Runner
 # ============================================================================
+
 
 class ComprehensiveWorkflowTester:
     def __init__(self):
@@ -141,12 +170,26 @@ class ComprehensiveWorkflowTester:
         self.test_expenses: Dict[str, List[Expense]] = {}  # username -> expenses
 
     def log(self, message: str, level: str = "INFO"):
-        colors = {"INFO": "\033[94m", "SUCCESS": "\033[92m", "WARNING": "\033[93m", "ERROR": "\033[91m", "RESET": "\033[0m"}
+        colors = {
+            "INFO": "\033[94m",
+            "SUCCESS": "\033[92m",
+            "WARNING": "\033[93m",
+            "ERROR": "\033[91m",
+            "RESET": "\033[0m",
+        }
         timestamp = datetime.now().strftime("%H:%M:%S")
         color = colors.get(level, colors["INFO"])
         print(f"{color}[{timestamp}] [{level}]{colors['RESET']} {message}")
 
-    def add_result(self, scenario: str, test_name: str, passed: bool, message: str, duration: float = 0.0, details: dict = None):
+    def add_result(
+        self,
+        scenario: str,
+        test_name: str,
+        passed: bool,
+        message: str,
+        duration: float = 0.0,
+        details: dict = None,
+    ):
         result = TestResult(scenario, test_name, passed, message, duration, details)
         self.results.append(result)
         status = "PASS" if passed else "FAIL"
@@ -172,7 +215,7 @@ class ComprehensiveWorkflowTester:
                 token=data.get("access_token"),
                 user_id=data.get("user", {}).get("id"),
                 role=data.get("user", {}).get("role"),
-                email=data.get("user", {}).get("email")
+                email=data.get("user", {}).get("email"),
             )
             self.users[username] = user
             self.log(f"OK {username} (Role: {user.role})", "SUCCESS")
@@ -199,7 +242,9 @@ class ComprehensiveWorkflowTester:
 
         org = orgs[0]
         self.org_id = org.get("id")
-        self.log(f"Using organization: {org.get('name')} (ID: {self.org_id})\n", "SUCCESS")
+        self.log(
+            f"Using organization: {org.get('name')} (ID: {self.org_id})\n", "SUCCESS"
+        )
         return True
 
     # ========================================================================
@@ -231,18 +276,28 @@ class ComprehensiveWorkflowTester:
             "vendor": "Delta Airlines",
             "category": "TRAVEL",
             "description": "Flight to client meeting in NYC",
-            "date": datetime.now().isoformat()
+            "date": datetime.now().isoformat(),
         }
 
         response = self.client.post("/expenses", emp1.token, expense1_data, self.org_id)
         if response.status_code in [200, 201]:
             expense1 = response.json()
             expense1_id = expense1.get("expense", {}).get("id") or expense1.get("id")
-            self.add_result(scenario, "Employee1 Submit Travel", True,
-                          f"Created ${expense1_data['amount']} travel expense", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee1 Submit Travel",
+                True,
+                f"Created ${expense1_data['amount']} travel expense",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "Employee1 Submit Travel", False,
-                          f"Failed: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee1 Submit Travel",
+                False,
+                f"Failed: {response.status_code}",
+                time.time() - start,
+            )
             return
 
         # Step 2: Employee 2 submits meal expense
@@ -252,18 +307,28 @@ class ComprehensiveWorkflowTester:
             "vendor": "Ruth's Chris Steakhouse",
             "category": "MEALS",
             "description": "Dinner with prospective client",
-            "date": datetime.now().isoformat()
+            "date": datetime.now().isoformat(),
         }
 
         response = self.client.post("/expenses", emp2.token, expense2_data, self.org_id)
         if response.status_code in [200, 201]:
             expense2 = response.json()
             expense2_id = expense2.get("expense", {}).get("id") or expense2.get("id")
-            self.add_result(scenario, "Employee2 Submit Meal", True,
-                          f"Created ${expense2_data['amount']} meal expense", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee2 Submit Meal",
+                True,
+                f"Created ${expense2_data['amount']} meal expense",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "Employee2 Submit Meal", False,
-                          f"Failed: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee2 Submit Meal",
+                False,
+                f"Failed: {response.status_code}",
+                time.time() - start,
+            )
             return
 
         # Step 3: Admin views all pending expenses
@@ -272,37 +337,71 @@ class ComprehensiveWorkflowTester:
         if response.status_code == 200:
             expenses = response.json()
             pending_count = sum(1 for e in expenses if e.get("status") == "PENDING")
-            self.add_result(scenario, "Admin View All Expenses", True,
-                          f"Viewed {len(expenses)} expenses ({pending_count} pending)", time.time() - start)
+            self.add_result(
+                scenario,
+                "Admin View All Expenses",
+                True,
+                f"Viewed {len(expenses)} expenses ({pending_count} pending)",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "Admin View All Expenses", False,
-                          f"Failed to view expenses", time.time() - start)
+            self.add_result(
+                scenario,
+                "Admin View All Expenses",
+                False,
+                f"Failed to view expenses",
+                time.time() - start,
+            )
 
         # Step 4: Admin approves expense 1
         start = time.time()
-        response = self.client.put(f"/expenses/{expense1_id}/approve", admin.token, {}, self.org_id)
+        response = self.client.put(
+            f"/expenses/{expense1_id}/approve", admin.token, {}, self.org_id
+        )
         passed = response.status_code in [200, 201]
-        self.add_result(scenario, "Admin Approve Expense1", passed,
-                      f"Approval status: {response.status_code}", time.time() - start)
+        self.add_result(
+            scenario,
+            "Admin Approve Expense1",
+            passed,
+            f"Approval status: {response.status_code}",
+            time.time() - start,
+        )
 
         # Step 5: Admin rejects expense 2
         start = time.time()
         reject_data = {"reason": "Meal cost exceeds policy limit of $75"}
-        response = self.client.put(f"/expenses/{expense2_id}/reject", admin.token, reject_data, self.org_id)
+        response = self.client.put(
+            f"/expenses/{expense2_id}/reject", admin.token, reject_data, self.org_id
+        )
         passed = response.status_code in [200, 201, 404]  # Endpoint might not exist
-        self.add_result(scenario, "Admin Reject Expense2", passed,
-                      f"Rejection status: {response.status_code}", time.time() - start)
+        self.add_result(
+            scenario,
+            "Admin Reject Expense2",
+            passed,
+            f"Rejection status: {response.status_code}",
+            time.time() - start,
+        )
 
         # Step 6: Employee 1 checks their approved expense
         start = time.time()
         response = self.client.get(f"/expenses/{expense1_id}", emp1.token, self.org_id)
         if response.status_code == 200:
             status = response.json().get("status")
-            self.add_result(scenario, "Employee1 Check Status", True,
-                          f"Expense status: {status}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee1 Check Status",
+                True,
+                f"Expense status: {status}",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "Employee1 Check Status", False,
-                          f"Cannot view expense", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee1 Check Status",
+                False,
+                f"Cannot view expense",
+                time.time() - start,
+            )
 
         print()
 
@@ -334,18 +433,28 @@ class ComprehensiveWorkflowTester:
             "vendor": "GitHub",
             "category": "SOFTWARE",
             "description": "GitHub Pro monthly subscription",
-            "date": datetime.now().isoformat()
+            "date": datetime.now().isoformat(),
         }
 
         response = self.client.post("/expenses", emp1.token, expense1_data, self.org_id)
         if response.status_code in [200, 201]:
             expense1 = response.json()
             expense1_id = expense1.get("expense", {}).get("id") or expense1.get("id")
-            self.add_result(scenario, "Employee1 Small Expense", True,
-                          f"Created ${expense1_data['amount']} software expense", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee1 Small Expense",
+                True,
+                f"Created ${expense1_data['amount']} software expense",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "Employee1 Small Expense", False,
-                          f"Failed: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee1 Small Expense",
+                False,
+                f"Failed: {response.status_code}",
+                time.time() - start,
+            )
             expense1_id = None
 
         # Step 2: Employee 2 submits large travel expense
@@ -355,18 +464,28 @@ class ComprehensiveWorkflowTester:
             "vendor": "Marriott Hotels",
             "category": "TRAVEL",
             "description": "5-night stay for annual conference",
-            "date": datetime.now().isoformat()
+            "date": datetime.now().isoformat(),
         }
 
         response = self.client.post("/expenses", emp2.token, expense2_data, self.org_id)
         if response.status_code in [200, 201]:
             expense2 = response.json()
             expense2_id = expense2.get("expense", {}).get("id") or expense2.get("id")
-            self.add_result(scenario, "Employee2 Large Expense", True,
-                          f"Created ${expense2_data['amount']} travel expense", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee2 Large Expense",
+                True,
+                f"Created ${expense2_data['amount']} travel expense",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "Employee2 Large Expense", False,
-                          f"Failed: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee2 Large Expense",
+                False,
+                f"Failed: {response.status_code}",
+                time.time() - start,
+            )
             expense2_id = None
 
         # Step 3: Manager views team expenses
@@ -374,28 +493,52 @@ class ComprehensiveWorkflowTester:
         response = self.client.get("/expenses", manager.token, self.org_id)
         if response.status_code == 200:
             team_expenses = response.json()
-            self.add_result(scenario, "Manager View Team Expenses", True,
-                          f"Viewed {len(team_expenses)} team expenses", time.time() - start)
+            self.add_result(
+                scenario,
+                "Manager View Team Expenses",
+                True,
+                f"Viewed {len(team_expenses)} team expenses",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "Manager View Team Expenses", False,
-                          f"Cannot view team expenses", time.time() - start)
+            self.add_result(
+                scenario,
+                "Manager View Team Expenses",
+                False,
+                f"Cannot view team expenses",
+                time.time() - start,
+            )
 
         # Step 4: Manager approves small expense
         if expense1_id:
             start = time.time()
-            response = self.client.put(f"/expenses/{expense1_id}/approve", manager.token, {}, self.org_id)
+            response = self.client.put(
+                f"/expenses/{expense1_id}/approve", manager.token, {}, self.org_id
+            )
             passed = response.status_code in [200, 201]
-            self.add_result(scenario, "Manager Approve Small", passed,
-                          f"Approved small expense: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Manager Approve Small",
+                passed,
+                f"Approved small expense: {response.status_code}",
+                time.time() - start,
+            )
 
         # Step 5: Manager flags large expense for admin review
         if expense2_id:
             start = time.time()
             flag_data = {"note": "Requires admin approval - exceeds manager limit"}
-            response = self.client.put(f"/expenses/{expense2_id}/flag", manager.token, flag_data, self.org_id)
+            response = self.client.put(
+                f"/expenses/{expense2_id}/flag", manager.token, flag_data, self.org_id
+            )
             passed = response.status_code in [200, 201, 404]  # Endpoint might not exist
-            self.add_result(scenario, "Manager Flag for Admin", passed,
-                          f"Flagged for escalation: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Manager Flag for Admin",
+                passed,
+                f"Flagged for escalation: {response.status_code}",
+                time.time() - start,
+            )
 
         print()
 
@@ -428,18 +571,28 @@ class ComprehensiveWorkflowTester:
             "vendor": "Office Max",
             "category": "OFFICE_SUPPLIES",
             "description": "Printer paper and ink cartridges",
-            "date": datetime.now().isoformat()
+            "date": datetime.now().isoformat(),
         }
 
         response = self.client.post("/expenses", emp1.token, expense1_data, self.org_id)
         if response.status_code in [200, 201]:
             expense1 = response.json()
             expense1_id = expense1.get("expense", {}).get("id") or expense1.get("id")
-            self.add_result(scenario, "Employee1 No Receipt", True,
-                          f"Submitted ${expense1_data['amount']} without receipt", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee1 No Receipt",
+                True,
+                f"Submitted ${expense1_data['amount']} without receipt",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "Employee1 No Receipt", False,
-                          f"Failed: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee1 No Receipt",
+                False,
+                f"Failed: {response.status_code}",
+                time.time() - start,
+            )
             expense1_id = None
 
         # Step 2: Employee 2 submits expense with receipt
@@ -450,18 +603,28 @@ class ComprehensiveWorkflowTester:
             "category": "OFFICE_SUPPLIES",
             "description": "Desk chair and monitor stand",
             "date": datetime.now().isoformat(),
-            "receipt_url": "https://example.com/receipt123.pdf"
+            "receipt_url": "https://example.com/receipt123.pdf",
         }
 
         response = self.client.post("/expenses", emp2.token, expense2_data, self.org_id)
         if response.status_code in [200, 201]:
             expense2 = response.json()
             expense2_id = expense2.get("expense", {}).get("id") or expense2.get("id")
-            self.add_result(scenario, "Employee2 With Receipt", True,
-                          f"Submitted ${expense2_data['amount']} with receipt", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee2 With Receipt",
+                True,
+                f"Submitted ${expense2_data['amount']} with receipt",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "Employee2 With Receipt", False,
-                          f"Failed: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee2 With Receipt",
+                False,
+                f"Failed: {response.status_code}",
+                time.time() - start,
+            )
             expense2_id = None
 
         # Step 3: Accountant views all expenses for audit
@@ -469,39 +632,72 @@ class ComprehensiveWorkflowTester:
         response = self.client.get("/expenses", accountant.token, self.org_id)
         if response.status_code == 200:
             all_expenses = response.json()
-            self.add_result(scenario, "Accountant View All", True,
-                          f"Auditing {len(all_expenses)} expenses", time.time() - start)
+            self.add_result(
+                scenario,
+                "Accountant View All",
+                True,
+                f"Auditing {len(all_expenses)} expenses",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "Accountant View All", False,
-                          f"Cannot view expenses for audit", time.time() - start)
+            self.add_result(
+                scenario,
+                "Accountant View All",
+                False,
+                f"Cannot view expenses for audit",
+                time.time() - start,
+            )
 
         # Step 4: Accountant requests receipt from Employee 1
         if expense1_id:
             start = time.time()
             request_data = {"message": "Please upload receipt for compliance"}
-            response = self.client.put(f"/expenses/{expense1_id}/request-receipt",
-                                      accountant.token, request_data, self.org_id)
+            response = self.client.put(
+                f"/expenses/{expense1_id}/request-receipt",
+                accountant.token,
+                request_data,
+                self.org_id,
+            )
             passed = response.status_code in [200, 201, 404]
-            self.add_result(scenario, "Accountant Request Receipt", passed,
-                          f"Receipt request: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Accountant Request Receipt",
+                passed,
+                f"Receipt request: {response.status_code}",
+                time.time() - start,
+            )
 
         # Step 5: Accountant generates expense report
         start = time.time()
         report_params = {
             "start_date": (datetime.now() - timedelta(days=30)).isoformat(),
-            "end_date": datetime.now().isoformat()
+            "end_date": datetime.now().isoformat(),
         }
-        response = self.client.post("/reports/expenses", accountant.token, report_params, self.org_id)
+        response = self.client.post(
+            "/reports/expenses", accountant.token, report_params, self.org_id
+        )
         passed = response.status_code in [200, 201, 404]
-        self.add_result(scenario, "Accountant Generate Report", passed,
-                      f"Report generation: {response.status_code}", time.time() - start)
+        self.add_result(
+            scenario,
+            "Accountant Generate Report",
+            passed,
+            f"Report generation: {response.status_code}",
+            time.time() - start,
+        )
 
         # Step 6: Accountant exports expenses for tax filing
         start = time.time()
-        response = self.client.get("/expenses/export?format=csv", accountant.token, self.org_id)
+        response = self.client.get(
+            "/expenses/export?format=csv", accountant.token, self.org_id
+        )
         passed = response.status_code in [200, 404]
-        self.add_result(scenario, "Accountant Export CSV", passed,
-                      f"Export status: {response.status_code}", time.time() - start)
+        self.add_result(
+            scenario,
+            "Accountant Export CSV",
+            passed,
+            f"Export status: {response.status_code}",
+            time.time() - start,
+        )
 
         print()
 
@@ -520,7 +716,10 @@ class ComprehensiveWorkflowTester:
         """
         scenario = "4_WAY_INTERACTION"
         self.log("\n" + "=" * 100, "INFO")
-        self.log("SCENARIO: COMPLEX 4-WAY INTERACTION (ADMIN + MANAGER + ACCOUNTANT + EMPLOYEE)", "INFO")
+        self.log(
+            "SCENARIO: COMPLEX 4-WAY INTERACTION (ADMIN + MANAGER + ACCOUNTANT + EMPLOYEE)",
+            "INFO",
+        )
         self.log("=" * 100, "INFO")
 
         employee = self.users.get("emptest")
@@ -535,75 +734,154 @@ class ComprehensiveWorkflowTester:
             "vendor": "Apple Store",
             "category": "SOFTWARE",
             "description": "MacBook Pro charger and USB-C adapter",
-            "date": datetime.now().isoformat()
+            "date": datetime.now().isoformat(),
         }
 
-        response = self.client.post("/expenses", employee.token, expense_data, self.org_id)
+        response = self.client.post(
+            "/expenses", employee.token, expense_data, self.org_id
+        )
         if response.status_code in [200, 201]:
             expense = response.json()
             expense_id = expense.get("expense", {}).get("id") or expense.get("id")
-            self.add_result(scenario, "1. Employee Submit", True,
-                          f"Created ${expense_data['amount']} expense", time.time() - start)
+            self.add_result(
+                scenario,
+                "1. Employee Submit",
+                True,
+                f"Created ${expense_data['amount']} expense",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "1. Employee Submit", False,
-                          f"Failed: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "1. Employee Submit",
+                False,
+                f"Failed: {response.status_code}",
+                time.time() - start,
+            )
             return
 
         # Step 2: Manager receives notification and reviews
         start = time.time()
-        response = self.client.get(f"/expenses/{expense_id}", manager.token, self.org_id)
+        response = self.client.get(
+            f"/expenses/{expense_id}", manager.token, self.org_id
+        )
         if response.status_code == 200:
-            self.add_result(scenario, "2. Manager Review", True,
-                          "Manager accessed expense for review", time.time() - start)
+            self.add_result(
+                scenario,
+                "2. Manager Review",
+                True,
+                "Manager accessed expense for review",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "2. Manager Review", False,
-                          f"Manager cannot access: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "2. Manager Review",
+                False,
+                f"Manager cannot access: {response.status_code}",
+                time.time() - start,
+            )
 
         # Step 3: Manager adds approval note and forwards
         start = time.time()
-        note_data = {"note": "Approved - equipment necessary for remote work", "forward_to": "accountant"}
-        response = self.client.put(f"/expenses/{expense_id}/manager-approve",
-                                  manager.token, note_data, self.org_id)
+        note_data = {
+            "note": "Approved - equipment necessary for remote work",
+            "forward_to": "accountant",
+        }
+        response = self.client.put(
+            f"/expenses/{expense_id}/manager-approve",
+            manager.token,
+            note_data,
+            self.org_id,
+        )
         passed = response.status_code in [200, 201, 404]
-        self.add_result(scenario, "3. Manager Forward", passed,
-                      f"Forward to accountant: {response.status_code}", time.time() - start)
+        self.add_result(
+            scenario,
+            "3. Manager Forward",
+            passed,
+            f"Forward to accountant: {response.status_code}",
+            time.time() - start,
+        )
 
         # Step 4: Accountant verifies compliance
         start = time.time()
-        response = self.client.get(f"/expenses/{expense_id}", accountant.token, self.org_id)
+        response = self.client.get(
+            f"/expenses/{expense_id}", accountant.token, self.org_id
+        )
         if response.status_code == 200:
-            self.add_result(scenario, "4. Accountant Verify", True,
-                          "Accountant reviewing for compliance", time.time() - start)
+            self.add_result(
+                scenario,
+                "4. Accountant Verify",
+                True,
+                "Accountant reviewing for compliance",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "4. Accountant Verify", False,
-                          f"Accountant cannot access: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "4. Accountant Verify",
+                False,
+                f"Accountant cannot access: {response.status_code}",
+                time.time() - start,
+            )
 
         # Step 5: Accountant marks as compliant
         start = time.time()
-        compliance_data = {"compliant": True, "note": "Expense within policy, receipt attached"}
-        response = self.client.put(f"/expenses/{expense_id}/mark-compliant",
-                                  accountant.token, compliance_data, self.org_id)
+        compliance_data = {
+            "compliant": True,
+            "note": "Expense within policy, receipt attached",
+        }
+        response = self.client.put(
+            f"/expenses/{expense_id}/mark-compliant",
+            accountant.token,
+            compliance_data,
+            self.org_id,
+        )
         passed = response.status_code in [200, 201, 404]
-        self.add_result(scenario, "5. Accountant Mark Compliant", passed,
-                      f"Compliance marking: {response.status_code}", time.time() - start)
+        self.add_result(
+            scenario,
+            "5. Accountant Mark Compliant",
+            passed,
+            f"Compliance marking: {response.status_code}",
+            time.time() - start,
+        )
 
         # Step 6: Admin makes final approval
         start = time.time()
-        response = self.client.put(f"/expenses/{expense_id}/approve", admin.token, {}, self.org_id)
+        response = self.client.put(
+            f"/expenses/{expense_id}/approve", admin.token, {}, self.org_id
+        )
         passed = response.status_code in [200, 201]
-        self.add_result(scenario, "6. Admin Final Approval", passed,
-                      f"Final approval: {response.status_code}", time.time() - start)
+        self.add_result(
+            scenario,
+            "6. Admin Final Approval",
+            passed,
+            f"Final approval: {response.status_code}",
+            time.time() - start,
+        )
 
         # Step 7: Employee checks final status
         start = time.time()
-        response = self.client.get(f"/expenses/{expense_id}", employee.token, self.org_id)
+        response = self.client.get(
+            f"/expenses/{expense_id}", employee.token, self.org_id
+        )
         if response.status_code == 200:
             final_status = response.json().get("status")
-            self.add_result(scenario, "7. Employee Check Status", True,
-                          f"Final status: {final_status}", time.time() - start)
+            self.add_result(
+                scenario,
+                "7. Employee Check Status",
+                True,
+                f"Final status: {final_status}",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "7. Employee Check Status", False,
-                          "Cannot check final status", time.time() - start)
+            self.add_result(
+                scenario,
+                "7. Employee Check Status",
+                False,
+                "Cannot check final status",
+                time.time() - start,
+            )
 
         print()
 
@@ -636,15 +914,19 @@ class ComprehensiveWorkflowTester:
             "vendor": "Test Vendor",
             "category": "OTHER",
             "description": "Test expense for race condition",
-            "date": datetime.now().isoformat()
+            "date": datetime.now().isoformat(),
         }
 
-        response = self.client.post("/expenses", employee.token, expense_data, self.org_id)
+        response = self.client.post(
+            "/expenses", employee.token, expense_data, self.org_id
+        )
         if response.status_code not in [200, 201]:
             self.log("Could not create test expense", "ERROR")
             return
 
-        expense_id = response.json().get("expense", {}).get("id") or response.json().get("id")
+        expense_id = response.json().get("expense", {}).get(
+            "id"
+        ) or response.json().get("id")
 
         # Test 1: Concurrent approval attempts (manager and admin)
         start = time.time()
@@ -653,12 +935,14 @@ class ComprehensiveWorkflowTester:
         results = {"manager": None, "admin": None}
 
         def manager_approve():
-            results["manager"] = self.client.put(f"/expenses/{expense_id}/approve",
-                                                manager.token, {}, self.org_id)
+            results["manager"] = self.client.put(
+                f"/expenses/{expense_id}/approve", manager.token, {}, self.org_id
+            )
 
         def admin_approve():
-            results["admin"] = self.client.put(f"/expenses/{expense_id}/approve",
-                                              admin.token, {}, self.org_id)
+            results["admin"] = self.client.put(
+                f"/expenses/{expense_id}/approve", admin.token, {}, self.org_id
+            )
 
         t1 = threading.Thread(target=manager_approve)
         t2 = threading.Thread(target=admin_approve)
@@ -672,27 +956,48 @@ class ComprehensiveWorkflowTester:
         admin_status = results["admin"].status_code if results["admin"] else None
 
         # One should succeed, one might fail due to race condition
-        passed = (manager_status in [200, 201] or admin_status in [200, 201])
-        self.add_result(scenario, "Concurrent Approvals", passed,
-                      f"Manager: {manager_status}, Admin: {admin_status}", time.time() - start)
+        passed = manager_status in [200, 201] or admin_status in [200, 201]
+        self.add_result(
+            scenario,
+            "Concurrent Approvals",
+            passed,
+            f"Manager: {manager_status}, Admin: {admin_status}",
+            time.time() - start,
+        )
 
         # Test 2: Employee tries to modify expense after submission
         start = time.time()
         update_data = {"amount": 500.00}  # Try to increase amount
-        response = self.client.put(f"/expenses/{expense_id}", employee.token, update_data, self.org_id)
+        response = self.client.put(
+            f"/expenses/{expense_id}", employee.token, update_data, self.org_id
+        )
         # Should fail if expense already in approval workflow
         passed = True  # Document behavior
-        self.add_result(scenario, "Employee Modify After Submit", passed,
-                      f"Modify after submission: {response.status_code}", time.time() - start)
+        self.add_result(
+            scenario,
+            "Employee Modify After Submit",
+            passed,
+            f"Modify after submission: {response.status_code}",
+            time.time() - start,
+        )
 
         # Test 3: Double approval attempt
         start = time.time()
-        response1 = self.client.put(f"/expenses/{expense_id}/approve", admin.token, {}, self.org_id)
-        response2 = self.client.put(f"/expenses/{expense_id}/approve", admin.token, {}, self.org_id)
+        response1 = self.client.put(
+            f"/expenses/{expense_id}/approve", admin.token, {}, self.org_id
+        )
+        response2 = self.client.put(
+            f"/expenses/{expense_id}/approve", admin.token, {}, self.org_id
+        )
         # Second should be idempotent or return error
         passed = response2.status_code in [200, 201, 400, 409]
-        self.add_result(scenario, "Double Approval", passed,
-                      f"First: {response1.status_code}, Second: {response2.status_code}", time.time() - start)
+        self.add_result(
+            scenario,
+            "Double Approval",
+            passed,
+            f"First: {response1.status_code}, Second: {response2.status_code}",
+            time.time() - start,
+        )
 
         print()
 
@@ -726,53 +1031,103 @@ class ComprehensiveWorkflowTester:
             "category": "OFFICE_SUPPLIES",
             "description": "Wireless mouse and keyboard",
             "date": datetime.now().isoformat(),
-            "receipt_url": "https://example.com/receipt.pdf"
+            "receipt_url": "https://example.com/receipt.pdf",
         }
 
-        response = self.client.post("/expenses", employee.token, expense_data, self.org_id)
+        response = self.client.post(
+            "/expenses", employee.token, expense_data, self.org_id
+        )
         if response.status_code in [200, 201]:
             expense = response.json()
             expense_id = expense.get("expense", {}).get("id") or expense.get("id")
-            self.add_result(scenario, "Employee Submit Complete", True,
-                          f"Submitted with receipt: ${expense_data['amount']}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee Submit Complete",
+                True,
+                f"Submitted with receipt: ${expense_data['amount']}",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "Employee Submit Complete", False,
-                          f"Failed: {response.status_code}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee Submit Complete",
+                False,
+                f"Failed: {response.status_code}",
+                time.time() - start,
+            )
             return
 
         # Step 2: Manager reviews promptly
         start = time.time()
-        response = self.client.get(f"/expenses/{expense_id}", manager.token, self.org_id)
+        response = self.client.get(
+            f"/expenses/{expense_id}", manager.token, self.org_id
+        )
         passed = response.status_code == 200
-        self.add_result(scenario, "Manager Prompt Review", passed,
-                      "Manager reviewed within SLA", time.time() - start)
+        self.add_result(
+            scenario,
+            "Manager Prompt Review",
+            passed,
+            "Manager reviewed within SLA",
+            time.time() - start,
+        )
 
         # Step 3: Manager approves
         start = time.time()
-        response = self.client.put(f"/expenses/{expense_id}/approve", manager.token, {}, self.org_id)
+        response = self.client.put(
+            f"/expenses/{expense_id}/approve", manager.token, {}, self.org_id
+        )
         passed = response.status_code in [200, 201]
-        self.add_result(scenario, "Manager Approve", passed,
-                      f"Approval status: {response.status_code}", time.time() - start)
+        self.add_result(
+            scenario,
+            "Manager Approve",
+            passed,
+            f"Approval status: {response.status_code}",
+            time.time() - start,
+        )
 
         # Step 4: Accountant processes for payment
         start = time.time()
-        payment_data = {"payment_method": "direct_deposit", "expected_date": (datetime.now() + timedelta(days=3)).isoformat()}
-        response = self.client.put(f"/expenses/{expense_id}/process-payment",
-                                  accountant.token, payment_data, self.org_id)
+        payment_data = {
+            "payment_method": "direct_deposit",
+            "expected_date": (datetime.now() + timedelta(days=3)).isoformat(),
+        }
+        response = self.client.put(
+            f"/expenses/{expense_id}/process-payment",
+            accountant.token,
+            payment_data,
+            self.org_id,
+        )
         passed = response.status_code in [200, 201, 404]
-        self.add_result(scenario, "Accountant Process Payment", passed,
-                      f"Payment processing: {response.status_code}", time.time() - start)
+        self.add_result(
+            scenario,
+            "Accountant Process Payment",
+            passed,
+            f"Payment processing: {response.status_code}",
+            time.time() - start,
+        )
 
         # Step 5: Employee verifies reimbursement status
         start = time.time()
-        response = self.client.get(f"/expenses/{expense_id}", employee.token, self.org_id)
+        response = self.client.get(
+            f"/expenses/{expense_id}", employee.token, self.org_id
+        )
         if response.status_code == 200:
             status = response.json().get("status")
-            self.add_result(scenario, "Employee Verify Reimbursement", True,
-                          f"Reimbursement status: {status}", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee Verify Reimbursement",
+                True,
+                f"Reimbursement status: {status}",
+                time.time() - start,
+            )
         else:
-            self.add_result(scenario, "Employee Verify Reimbursement", False,
-                          "Cannot verify status", time.time() - start)
+            self.add_result(
+                scenario,
+                "Employee Verify Reimbursement",
+                False,
+                "Cannot verify status",
+                time.time() - start,
+            )
 
         print()
 
@@ -804,7 +1159,7 @@ class ComprehensiveWorkflowTester:
             "vendor": "Test",
             "category": "OTHER",
             "description": "Security test expense",
-            "date": datetime.now().isoformat()
+            "date": datetime.now().isoformat(),
         }
 
         response = self.client.post("/expenses", emp1.token, expense_data, self.org_id)
@@ -812,48 +1167,96 @@ class ComprehensiveWorkflowTester:
             self.log("Could not create test expense", "ERROR")
             return
 
-        expense_id = response.json().get("expense", {}).get("id") or response.json().get("id")
+        expense_id = response.json().get("expense", {}).get(
+            "id"
+        ) or response.json().get("id")
 
         # Test 1: Employee 2 tries to view Employee 1's expense
         start = time.time()
         response = self.client.get(f"/expenses/{expense_id}", emp2.token, self.org_id)
         passed = response.status_code >= 400  # Should be forbidden
-        self.add_result(scenario, "Cross-Employee View", passed,
-                      f"Prevented unauthorized view" if passed else f"WARNING: Allowed view ({response.status_code})",
-                      time.time() - start)
+        self.add_result(
+            scenario,
+            "Cross-Employee View",
+            passed,
+            (
+                f"Prevented unauthorized view"
+                if passed
+                else f"WARNING: Allowed view ({response.status_code})"
+            ),
+            time.time() - start,
+        )
 
         # Test 2: Employee 2 tries to modify Employee 1's expense
         start = time.time()
-        response = self.client.put(f"/expenses/{expense_id}", emp2.token, {"amount": 200.00}, self.org_id)
+        response = self.client.put(
+            f"/expenses/{expense_id}", emp2.token, {"amount": 200.00}, self.org_id
+        )
         passed = response.status_code >= 400
-        self.add_result(scenario, "Cross-Employee Modify", passed,
-                      f"Prevented unauthorized modify" if passed else f"WARNING: Allowed modify ({response.status_code})",
-                      time.time() - start)
+        self.add_result(
+            scenario,
+            "Cross-Employee Modify",
+            passed,
+            (
+                f"Prevented unauthorized modify"
+                if passed
+                else f"WARNING: Allowed modify ({response.status_code})"
+            ),
+            time.time() - start,
+        )
 
         # Test 3: Employee 2 tries to delete Employee 1's expense
         start = time.time()
-        response = self.client.delete(f"/expenses/{expense_id}", emp2.token, self.org_id)
+        response = self.client.delete(
+            f"/expenses/{expense_id}", emp2.token, self.org_id
+        )
         passed = response.status_code >= 400
-        self.add_result(scenario, "Cross-Employee Delete", passed,
-                      f"Prevented unauthorized delete" if passed else f"WARNING: Allowed delete ({response.status_code})",
-                      time.time() - start)
+        self.add_result(
+            scenario,
+            "Cross-Employee Delete",
+            passed,
+            (
+                f"Prevented unauthorized delete"
+                if passed
+                else f"WARNING: Allowed delete ({response.status_code})"
+            ),
+            time.time() - start,
+        )
 
         # Test 4: Employee tries to approve own expense
         start = time.time()
-        response = self.client.put(f"/expenses/{expense_id}/approve", emp1.token, {}, self.org_id)
+        response = self.client.put(
+            f"/expenses/{expense_id}/approve", emp1.token, {}, self.org_id
+        )
         passed = response.status_code >= 400
-        self.add_result(scenario, "Self-Approval Attempt", passed,
-                      f"Prevented self-approval" if passed else f"WARNING: Allowed self-approval ({response.status_code})",
-                      time.time() - start)
+        self.add_result(
+            scenario,
+            "Self-Approval Attempt",
+            passed,
+            (
+                f"Prevented self-approval"
+                if passed
+                else f"WARNING: Allowed self-approval ({response.status_code})"
+            ),
+            time.time() - start,
+        )
 
         # Test 5: Employee tries to access different organization
         start = time.time()
         fake_org_id = "00000000-0000-0000-0000-000000000000"
         response = self.client.get("/expenses", emp1.token, fake_org_id)
         passed = response.status_code >= 400
-        self.add_result(scenario, "Cross-Org Access", passed,
-                      f"Prevented cross-org access" if passed else f"CRITICAL: Allowed cross-org ({response.status_code})",
-                      time.time() - start)
+        self.add_result(
+            scenario,
+            "Cross-Org Access",
+            passed,
+            (
+                f"Prevented cross-org access"
+                if passed
+                else f"CRITICAL: Allowed cross-org ({response.status_code})"
+            ),
+            time.time() - start,
+        )
 
         print()
 
@@ -875,42 +1278,65 @@ class ComprehensiveWorkflowTester:
         by_scenario = {}
         for result in self.results:
             if result.scenario not in by_scenario:
-                by_scenario[result.scenario] = {"passed": 0, "failed": 0, "duration": 0.0}
+                by_scenario[result.scenario] = {
+                    "passed": 0,
+                    "failed": 0,
+                    "duration": 0.0,
+                }
             if result.passed:
                 by_scenario[result.scenario]["passed"] += 1
             else:
                 by_scenario[result.scenario]["failed"] += 1
             by_scenario[result.scenario]["duration"] += result.duration
 
-        print(f"\n{'Scenario':<35} {'Passed':<10} {'Failed':<10} {'Total':<10} {'Pass %':<10} {'Time (s)':<10}")
+        print(
+            f"\n{'Scenario':<35} {'Passed':<10} {'Failed':<10} {'Total':<10} {'Pass %':<10} {'Time (s)':<10}"
+        )
         print("-" * 105)
 
         for scenario, stats in sorted(by_scenario.items()):
             scenario_total = stats["passed"] + stats["failed"]
-            scenario_pass_rate = (stats["passed"] / scenario_total * 100) if scenario_total > 0 else 0
-            print(f"{scenario:<35} {stats['passed']:<10} {stats['failed']:<10} {scenario_total:<10} {scenario_pass_rate:>6.1f}%    {stats['duration']:>8.2f}s")
+            scenario_pass_rate = (
+                (stats["passed"] / scenario_total * 100) if scenario_total > 0 else 0
+            )
+            print(
+                f"{scenario:<35} {stats['passed']:<10} {stats['failed']:<10} {scenario_total:<10} {scenario_pass_rate:>6.1f}%    {stats['duration']:>8.2f}s"
+            )
 
         print("-" * 105)
-        print(f"{'TOTAL':<35} {passed:<10} {failed:<10} {total:<10} {pass_rate:>6.1f}%\n")
+        print(
+            f"{'TOTAL':<35} {passed:<10} {failed:<10} {total:<10} {pass_rate:>6.1f}%\n"
+        )
 
         # Show failures
         if failed > 0:
             self.log("FAILED TESTS:", "ERROR")
             for result in self.results:
                 if not result.passed:
-                    print(f"  X [{result.scenario}] {result.test_name}: {result.message}")
+                    print(
+                        f"  X [{result.scenario}] {result.test_name}: {result.message}"
+                    )
 
         print()
 
         # Overall assessment
         if pass_rate >= 95:
-            self.log(f"EXCELLENT: {pass_rate:.1f}% pass rate - Production ready!", "SUCCESS")
+            self.log(
+                f"EXCELLENT: {pass_rate:.1f}% pass rate - Production ready!", "SUCCESS"
+            )
         elif pass_rate >= 85:
-            self.log(f"GOOD: {pass_rate:.1f}% pass rate - Minor issues to address", "SUCCESS")
+            self.log(
+                f"GOOD: {pass_rate:.1f}% pass rate - Minor issues to address", "SUCCESS"
+            )
         elif pass_rate >= 70:
-            self.log(f"FAIR: {pass_rate:.1f}% pass rate - Several issues need fixing", "WARNING")
+            self.log(
+                f"FAIR: {pass_rate:.1f}% pass rate - Several issues need fixing",
+                "WARNING",
+            )
         else:
-            self.log(f"POOR: {pass_rate:.1f}% pass rate - Critical issues found", "ERROR")
+            self.log(
+                f"POOR: {pass_rate:.1f}% pass rate - Critical issues found", "ERROR"
+            )
 
         print()
 
@@ -952,9 +1378,11 @@ class ComprehensiveWorkflowTester:
 
         return True
 
+
 # ============================================================================
 # MAIN ENTRY POINT
 # ============================================================================
+
 
 def main():
     print("\n")
@@ -969,8 +1397,10 @@ def main():
     except Exception as e:
         print(f"\n\nFatal error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

@@ -18,23 +18,28 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 
 # Colors
-GREEN = '\033[92m'
-RED = '\033[91m'
-YELLOW = '\033[93m'
-BLUE = '\033[94m'
-RESET = '\033[0m'
+GREEN = "\033[92m"
+RED = "\033[91m"
+YELLOW = "\033[93m"
+BLUE = "\033[94m"
+RESET = "\033[0m"
+
 
 def print_success(msg):
     print(f"{GREEN}✓{RESET} {msg}")
 
+
 def print_error(msg):
     print(f"{RED}✗{RESET} {msg}")
+
 
 def print_info(msg):
     print(f"{BLUE}ℹ{RESET} {msg}")
 
+
 def print_warning(msg):
     print(f"{YELLOW}⚠{RESET} {msg}")
+
 
 def test_connection(db_url):
     """Test database connection"""
@@ -49,6 +54,7 @@ def test_connection(db_url):
     except Exception as e:
         print_error(f"Connection failed: {e}")
         return None
+
 
 def check_existing_tables(engine):
     """Check if tables already exist"""
@@ -65,6 +71,7 @@ def check_existing_tables(engine):
         print_info("No existing tables found (clean database)")
         return []
 
+
 def get_alembic_version(engine):
     """Get current alembic version"""
     try:
@@ -77,6 +84,7 @@ def get_alembic_version(engine):
         return None
     return None
 
+
 def run_migration(db_url):
     """Run alembic migration"""
     print_info("Running Alembic migration...")
@@ -86,13 +94,14 @@ def run_migration(db_url):
     os.environ["DATABASE_URL"] = db_url
 
     import subprocess
+
     try:
         result = subprocess.run(
             ["alembic", "upgrade", "head"],
             cwd="backend",
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=60,
         )
 
         if result.returncode == 0:
@@ -110,6 +119,7 @@ def run_migration(db_url):
         print_error(f"Migration error: {e}")
         return False
 
+
 def verify_tables(engine):
     """Verify all expected tables exist"""
     print_info("Verifying database schema...")
@@ -119,19 +129,19 @@ def verify_tables(engine):
 
     # Expected tables from our schema
     expected_tables = {
-        'users',
-        'organizations',
-        'organization_members',
-        'expenses',
-        'receipts',
-        'budgets',
-        'approval_policies',  # NEW TABLE
-        'sessions',
-        'subscriptions',
-        'usage_records',
-        'notifications',
-        'audit_logs',
-        'alembic_version',
+        "users",
+        "organizations",
+        "organization_members",
+        "expenses",
+        "receipts",
+        "budgets",
+        "approval_policies",  # NEW TABLE
+        "sessions",
+        "subscriptions",
+        "usage_records",
+        "notifications",
+        "audit_logs",
+        "alembic_version",
     }
 
     missing = expected_tables - tables
@@ -147,38 +157,39 @@ def verify_tables(engine):
     print_success(f"All {len(expected_tables)} expected tables found")
     return True
 
+
 def verify_approval_policy_table(engine):
     """Verify approval_policies table structure"""
     print_info("Verifying approval_policies table structure...")
 
     inspector = inspect(engine)
 
-    if 'approval_policies' not in inspector.get_table_names():
+    if "approval_policies" not in inspector.get_table_names():
         print_error("approval_policies table not found!")
         return False
 
-    columns = {col['name']: col for col in inspector.get_columns('approval_policies')}
+    columns = {col["name"]: col for col in inspector.get_columns("approval_policies")}
 
     # Expected columns
     expected_columns = [
-        'id',
-        'organization_id',
-        'name',
-        'description',
-        'priority',
-        'is_active',
-        'auto_approve',
-        'require_receipt',
-        'notify_on_auto_approve',
-        'conditions',
-        'max_amount_per_expense',
-        'daily_limit_per_user',
-        'monthly_limit_per_user',
-        'yearly_limit_per_user',
-        'created_at',
-        'updated_at',
-        'created_by',
-        'updated_by',
+        "id",
+        "organization_id",
+        "name",
+        "description",
+        "priority",
+        "is_active",
+        "auto_approve",
+        "require_receipt",
+        "notify_on_auto_approve",
+        "conditions",
+        "max_amount_per_expense",
+        "daily_limit_per_user",
+        "monthly_limit_per_user",
+        "yearly_limit_per_user",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
     ]
 
     missing = set(expected_columns) - set(columns.keys())
@@ -193,17 +204,17 @@ def verify_approval_policy_table(engine):
     print_info("Checking column types...")
 
     checks = [
-        ('id', 'VARCHAR'),
-        ('organization_id', 'VARCHAR'),
-        ('conditions', 'JSON'),
-        ('max_amount_per_expense', 'NUMERIC'),
-        ('daily_limit_per_user', 'NUMERIC'),
+        ("id", "VARCHAR"),
+        ("organization_id", "VARCHAR"),
+        ("conditions", "JSON"),
+        ("max_amount_per_expense", "NUMERIC"),
+        ("daily_limit_per_user", "NUMERIC"),
     ]
 
     for col_name, expected_type in checks:
         col = columns.get(col_name)
         if col:
-            actual_type = str(col['type']).upper()
+            actual_type = str(col["type"]).upper()
             if expected_type in actual_type:
                 print_success(f"  {col_name}: {actual_type} ✓")
             else:
@@ -211,30 +222,32 @@ def verify_approval_policy_table(engine):
 
     return True
 
+
 def verify_expense_columns(engine):
     """Verify new columns added to expenses table"""
     print_info("Verifying new expense columns...")
 
     inspector = inspect(engine)
 
-    if 'expenses' not in inspector.get_table_names():
+    if "expenses" not in inspector.get_table_names():
         print_error("expenses table not found!")
         return False
 
-    columns = {col['name']: col for col in inspector.get_columns('expenses')}
+    columns = {col["name"]: col for col in inspector.get_columns("expenses")}
 
     # New columns added by migration
-    new_columns = ['auto_approved', 'approval_policy_id']
+    new_columns = ["auto_approved", "approval_policy_id"]
 
     for col_name in new_columns:
         if col_name in columns:
-            col_type = str(columns[col_name]['type'])
+            col_type = str(columns[col_name]["type"])
             print_success(f"  {col_name}: {col_type} ✓")
         else:
             print_error(f"  Missing column: {col_name}")
             return False
 
     return True
+
 
 def test_rollback(db_url):
     """Test migration rollback"""
@@ -243,13 +256,14 @@ def test_rollback(db_url):
     print_warning("This will downgrade the database by 1 revision")
     response = input("Continue? (yes/no): ")
 
-    if response.lower() != 'yes':
+    if response.lower() != "yes":
         print_info("Skipped rollback test")
         return True
 
     os.environ["DATABASE_URL"] = db_url
 
     import subprocess
+
     try:
         # Downgrade
         print_info("Running: alembic downgrade -1")
@@ -258,7 +272,7 @@ def test_rollback(db_url):
             cwd="backend",
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=60,
         )
 
         if result.returncode != 0:
@@ -273,7 +287,7 @@ def test_rollback(db_url):
         inspector = inspect(engine)
         tables = inspector.get_table_names()
 
-        if 'approval_policies' in tables:
+        if "approval_policies" in tables:
             print_error("approval_policies table still exists after rollback!")
             return False
 
@@ -286,7 +300,7 @@ def test_rollback(db_url):
             cwd="backend",
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=60,
         )
 
         if result.returncode != 0:
@@ -300,6 +314,7 @@ def test_rollback(db_url):
         print_error(f"Rollback test error: {e}")
         return False
 
+
 def test_data_integrity(engine):
     """Test data operations"""
     print_info("Testing data operations...")
@@ -310,19 +325,20 @@ def test_data_integrity(engine):
     try:
         # Test insert
         from datetime import datetime
+
         test_data = {
-            'id': 'test_policy_123',
-            'organization_id': 'test_org_123',
-            'name': 'Test Policy',
-            'priority': 100,
-            'is_active': True,
-            'auto_approve': True,
-            'require_receipt': False,
-            'notify_on_auto_approve': True,
-            'conditions': {'categories': ['MEALS']},
-            'max_amount_per_expense': 50.00,
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow(),
+            "id": "test_policy_123",
+            "organization_id": "test_org_123",
+            "name": "Test Policy",
+            "priority": 100,
+            "is_active": True,
+            "auto_approve": True,
+            "require_receipt": False,
+            "notify_on_auto_approve": True,
+            "conditions": {"categories": ["MEALS"]},
+            "max_amount_per_expense": 50.00,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
         }
 
         session.execute(
@@ -336,7 +352,7 @@ def test_data_integrity(engine):
                  :require_receipt, :notify_on_auto_approve, :conditions::jsonb,
                  :max_amount_per_expense, :created_at, :updated_at)
             """),
-            test_data
+            test_data,
         )
         session.commit()
         print_success("Test insert successful")
@@ -344,7 +360,7 @@ def test_data_integrity(engine):
         # Test select
         result = session.execute(
             text("SELECT * FROM approval_policies WHERE id = :id"),
-            {'id': 'test_policy_123'}
+            {"id": "test_policy_123"},
         )
         row = result.fetchone()
 
@@ -357,7 +373,7 @@ def test_data_integrity(engine):
         # Test delete
         session.execute(
             text("DELETE FROM approval_policies WHERE id = :id"),
-            {'id': 'test_policy_123'}
+            {"id": "test_policy_123"},
         )
         session.commit()
         print_success("Test delete successful")
@@ -371,17 +387,16 @@ def test_data_integrity(engine):
     finally:
         session.close()
 
+
 def main():
-    parser = argparse.ArgumentParser(description='Test PostgreSQL migration')
+    parser = argparse.ArgumentParser(description="Test PostgreSQL migration")
     parser.add_argument(
-        '--db-url',
-        help='Database URL (postgresql://user:pass@host/dbname)',
-        default=os.getenv('DATABASE_URL')
+        "--db-url",
+        help="Database URL (postgresql://user:pass@host/dbname)",
+        default=os.getenv("DATABASE_URL"),
     )
     parser.add_argument(
-        '--skip-rollback',
-        action='store_true',
-        help='Skip rollback test'
+        "--skip-rollback", action="store_true", help="Skip rollback test"
     )
 
     args = parser.parse_args()
@@ -391,14 +406,14 @@ def main():
         print_error("Use --db-url or set DATABASE_URL environment variable")
         sys.exit(1)
 
-    if 'postgresql' not in args.db_url:
+    if "postgresql" not in args.db_url:
         print_error("This script is for PostgreSQL testing only")
         print_error(f"Got: {args.db_url}")
         sys.exit(1)
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("POSTGRESQL MIGRATION TEST")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     # Test connection
     engine = test_connection(args.db_url)
@@ -442,9 +457,9 @@ def main():
             print_warning("Rollback test failed (non-critical)")
 
     # Summary
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("MIGRATION TEST SUMMARY")
-    print("="*70)
+    print("=" * 70)
     print_success("✓ Database connection")
     print_success("✓ Migration execution")
     print_success("✓ Schema verification")
@@ -456,6 +471,7 @@ def main():
 
     print(f"\n{GREEN}All tests PASSED!{RESET}")
     print(f"{GREEN}PostgreSQL migration is production-ready.{RESET}\n")
+
 
 if __name__ == "__main__":
     main()

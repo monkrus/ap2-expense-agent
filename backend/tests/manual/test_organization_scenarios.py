@@ -9,11 +9,13 @@ from datetime import datetime
 
 BASE_URL = "http://localhost:8000"
 
+
 def print_section(title):
     """Print a formatted section header"""
     print("\n" + "=" * 80)
     print(f"  {title}")
     print("=" * 80)
+
 
 def print_result(test_name, response, expected_status=None):
     """Print formatted test result"""
@@ -31,6 +33,7 @@ def print_result(test_name, response, expected_status=None):
 
     return response
 
+
 def register_user(username, email, password):
     """Register a new test user"""
     response = requests.post(
@@ -39,19 +42,17 @@ def register_user(username, email, password):
             "username": username,
             "email": email,
             "password": password,
-            "full_name": f"Test User {username}"
-        }
+            "full_name": f"Test User {username}",
+        },
     )
     return response
+
 
 def login_user(username, password):
     """Login and get access token"""
     response = requests.post(
         f"{BASE_URL}/api/v1/auth/login",
-        json={
-            "username": username,
-            "password": password
-        }
+        json={"username": username, "password": password},
     )
     print(f"   Login status: {response.status_code}")
     if response.status_code != 200:
@@ -60,42 +61,42 @@ def login_user(username, password):
         return response.json()["access_token"]
     return None
 
+
 def get_organizations(token):
     """Get list of user's organizations"""
     response = requests.get(
-        f"{BASE_URL}/api/v1/organizations",
-        headers={"Authorization": f"Bearer {token}"}
+        f"{BASE_URL}/api/v1/organizations", headers={"Authorization": f"Bearer {token}"}
     )
     return response
+
 
 def create_organization(token, name, slug):
     """Create a new organization"""
     response = requests.post(
         f"{BASE_URL}/api/v1/organizations",
         headers={"Authorization": f"Bearer {token}"},
-        json={
-            "name": name,
-            "slug": slug,
-            "description": f"Test organization {slug}"
-        }
+        json={"name": name, "slug": slug, "description": f"Test organization {slug}"},
     )
     return response
+
 
 def delete_organization(token, org_id):
     """Delete an organization"""
     response = requests.delete(
         f"{BASE_URL}/api/v1/organizations/{org_id}",
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {token}"},
     )
     return response
+
 
 def get_user_subscription(token):
     """Get user's subscription info"""
     response = requests.get(
         f"{BASE_URL}/api/billing/subscription",
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {token}"},
     )
     return response
+
 
 def main():
     """Run all organization test scenarios"""
@@ -177,7 +178,9 @@ def main():
     print_result("Create Duplicate Name", response, 400)
 
     # Step 8.6: Try with case-insensitive duplicate name (should also fail)
-    print_section("Step 8.6: Create Organization with Case-Insensitive Duplicate Name (Should Fail)")
+    print_section(
+        "Step 8.6: Create Organization with Case-Insensitive Duplicate Name (Should Fail)"
+    )
     response = create_organization(token, "TEST ORG 1", "test-org-1-another-slug")
     print_result("Create Case-Insensitive Duplicate", response, 400)
 
@@ -196,7 +199,9 @@ def main():
         print(f"   Current org count: {len(orgs_after_delete)}")
 
         # Step 11: Create organization again after deletion (should succeed)
-        print_section("Step 11: Create Organization Again After Deletion (Should Succeed)")
+        print_section(
+            "Step 11: Create Organization Again After Deletion (Should Succeed)"
+        )
         response = create_organization(token, "Test Org 3", "test-org-3")
         print_result("Create After Deletion", response, 201)
 
@@ -229,10 +234,12 @@ def main():
     print(f"\nTest user created: {username}")
     print(f"Test user email: {email}")
 
+
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
         print(f"\n[FAIL] Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()

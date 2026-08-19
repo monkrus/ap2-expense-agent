@@ -14,6 +14,7 @@ import time
 # Configuration
 BASE_URL = "http://localhost:8000/api/v1"
 
+
 def test_organization_limit_bypass():
     """Test if free tier users can bypass organization limit"""
 
@@ -29,7 +30,7 @@ def test_organization_limit_bypass():
         "email": f"{username}@test.com",
         "password": "TestPass123!",
         "full_name": "Limit Test User",
-        "role": "employee"
+        "role": "employee",
     }
 
     try:
@@ -47,10 +48,7 @@ def test_organization_limit_bypass():
 
     # Step 2: Login
     print("\n[Step 2] Logging in...")
-    login_data = {
-        "username": username,
-        "password": "TestPass123!"
-    }
+    login_data = {"username": username, "password": "TestPass123!"}
 
     try:
         response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
@@ -78,14 +76,12 @@ def test_organization_limit_bypass():
         "slug": f"test-org-1-{int(time.time())}",
         "description": "First test organization",
         "currency": "USD",
-        "timezone": "UTC"
+        "timezone": "UTC",
     }
 
     try:
         response = requests.post(
-            f"{BASE_URL}/organizations",
-            json=org1_data,
-            headers=headers
+            f"{BASE_URL}/organizations", json=org1_data, headers=headers
         )
         if response.status_code == 201:
             print(f"[OK] First organization created successfully")
@@ -107,14 +103,12 @@ def test_organization_limit_bypass():
         "slug": f"test-org-2-{int(time.time())}",
         "description": "Second test organization - should fail for free tier",
         "currency": "USD",
-        "timezone": "UTC"
+        "timezone": "UTC",
     }
 
     try:
         response = requests.post(
-            f"{BASE_URL}/organizations",
-            json=org2_data,
-            headers=headers
+            f"{BASE_URL}/organizations", json=org2_data, headers=headers
         )
 
         print(f"  Status Code: {response.status_code}")
@@ -158,18 +152,18 @@ def test_organization_limit_bypass():
         "slug": f"test-org-3-{int(time.time())}",
         "description": "Third test organization",
         "currency": "USD",
-        "timezone": "UTC"
+        "timezone": "UTC",
     }
 
     try:
         response = requests.post(
-            f"{BASE_URL}/organizations",
-            json=org3_data,
-            headers=headers
+            f"{BASE_URL}/organizations", json=org3_data, headers=headers
         )
 
         if response.status_code == 201:
-            print(f"[WARNING] Third organization also created! Status: {response.status_code}")
+            print(
+                f"[WARNING] Third organization also created! Status: {response.status_code}"
+            )
             print("  Vulnerability allows unlimited organizations for free tier")
         else:
             print(f"  Third org blocked: {response.status_code}")

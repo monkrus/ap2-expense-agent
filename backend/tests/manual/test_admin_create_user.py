@@ -2,10 +2,12 @@
 Test Admin Create User Flow
 Verifies that when admin creates a user, they're automatically added to admin's org
 """
+
 import sys
 import os
 import time
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
 
 from src.database import SessionLocal
 from src.models import User, Organization, OrganizationMember
@@ -19,22 +21,29 @@ print("=" * 70)
 
 # Find an admin with an organization
 print("\n[STEP 1] Finding an admin user with an organization...")
-admins = db.query(User).filter(User.role == 'admin', User.is_active == True).all()
+admins = db.query(User).filter(User.role == "admin", User.is_active == True).all()
 
 admin_with_org = None
 admin_org = None
 
 for admin in admins:
-    membership = db.query(OrganizationMember).filter(
-        OrganizationMember.user_id == admin.id,
-        OrganizationMember.is_active == True
-    ).first()
+    membership = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.user_id == admin.id, OrganizationMember.is_active == True
+        )
+        .first()
+    )
 
     if membership:
-        org = db.query(Organization).filter(
-            Organization.id == membership.organization_id,
-            Organization.is_active == True
-        ).first()
+        org = (
+            db.query(Organization)
+            .filter(
+                Organization.id == membership.organization_id,
+                Organization.is_active == True,
+            )
+            .first()
+        )
 
         if org:
             admin_with_org = admin
@@ -69,23 +78,23 @@ print(f"  3. User can immediately login and access features")
 
 # Step 4: Verify the logic is in place
 print("\n[STEP 4] Verifying code changes...")
-with open('src/routes/admin.py', 'r') as f:
+with open("src/routes/admin.py", "r") as f:
     admin_code = f.read()
-    if 'Auto-add user to admin' in admin_code:
+    if "Auto-add user to admin" in admin_code:
         print("[OK] Auto-add logic found in admin.py")
     else:
         print("[FAIL] Auto-add logic NOT found in admin.py")
         db.close()
         sys.exit(1)
 
-    if 'X-Organization-Id' in admin_code:
+    if "X-Organization-Id" in admin_code:
         print("[OK] Organization context check found")
     else:
         print("[FAIL] Organization context check NOT found")
         db.close()
         sys.exit(1)
 
-    if 'OrganizationMember' in admin_code:
+    if "OrganizationMember" in admin_code:
         print("[OK] OrganizationMember import found")
     else:
         print("[FAIL] OrganizationMember import NOT found")

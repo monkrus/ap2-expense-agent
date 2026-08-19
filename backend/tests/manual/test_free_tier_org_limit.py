@@ -3,6 +3,7 @@ Test free tier organization limit enforcement
 - Should allow creating 1 organization
 - Should block creating a 2nd organization
 """
+
 import requests
 import json
 
@@ -18,8 +19,7 @@ print("=" * 70)
 # Step 1: Login
 print("\n[1] Logging in as adminfree...")
 login_response = requests.post(
-    f"{BASE_URL}/api/v1/auth/login",
-    json={"username": USERNAME, "password": PASSWORD}
+    f"{BASE_URL}/api/v1/auth/login", json={"username": USERNAME, "password": PASSWORD}
 )
 
 if login_response.status_code != 200:
@@ -54,8 +54,8 @@ create1_response = requests.post(
     json={
         "name": "My First Org",
         "slug": "my-first-org",
-        "description": "Testing free tier limit"
-    }
+        "description": "Testing free tier limit",
+    },
 )
 
 print(f"    Status: {create1_response.status_code}")
@@ -64,7 +64,7 @@ if create1_response.status_code == 201:
     print("[PASS] First organization created successfully")
     org1 = create1_response.json()
     print(f"       Created: {org1['name']} (ID: {org1['id']})")
-    org1_id = org1['id']
+    org1_id = org1["id"]
 elif create1_response.status_code == 402:
     print("[FAIL] First organization was blocked (should be allowed!)")
     print(f"       Response: {create1_response.json()}")
@@ -93,15 +93,15 @@ create2_response = requests.post(
     json={
         "name": "My Second Org",
         "slug": "my-second-org",
-        "description": "This should be blocked"
-    }
+        "description": "This should be blocked",
+    },
 )
 
 print(f"    Status: {create2_response.status_code}")
 
 if create2_response.status_code == 402:
     print("[PASS] Second organization blocked with 402 Payment Required")
-    error_detail = create2_response.json()['detail']
+    error_detail = create2_response.json()["detail"]
     print(f"\n    Error details:")
     print(f"       Error: {error_detail.get('error')}")
     print(f"       Feature: {error_detail.get('feature')}")
@@ -111,11 +111,13 @@ if create2_response.status_code == 402:
     print(f"       Message: {error_detail.get('message')}")
     print(f"       Upgrade: {error_detail.get('upgrade_message')}")
 
-    upgrade_options = error_detail.get('upgrade_options', [])
+    upgrade_options = error_detail.get("upgrade_options", [])
     if upgrade_options:
         print(f"\n    Upgrade options:")
         for opt in upgrade_options:
-            print(f"       - {opt['tier']}: {opt['price']} ({opt['organizations']} orgs, {opt['users']} users)")
+            print(
+                f"       - {opt['tier']}: {opt['price']} ({opt['organizations']} orgs, {opt['users']} users)"
+            )
 
 elif create2_response.status_code == 201:
     print("[FAIL] Second organization was created (should be blocked!)")
@@ -146,6 +148,8 @@ else:
     if len(final_orgs) > 1:
         print(f"         - User has {len(final_orgs)} organizations (should be 1)")
     if create2_response.status_code != 402:
-        print(f"         - Second org returned {create2_response.status_code} (should be 402)")
+        print(
+            f"         - Second org returned {create2_response.status_code} (should be 402)"
+        )
 
 print("=" * 70)

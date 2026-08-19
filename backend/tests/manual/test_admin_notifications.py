@@ -1,11 +1,13 @@
 """
 Test script to verify admin notifications when employees submit expenses
 """
+
 import requests
 import json
 import time
 
 BASE_URL = "http://localhost:8000"
+
 
 def test_admin_notifications():
     print("=" * 60)
@@ -17,7 +19,7 @@ def test_admin_notifications():
     admin_login = requests.post(
         f"{BASE_URL}/api/v1/auth/login",
         json={"username": "admin1", "password": "Admin123!"},
-        headers={"Content-Type": "application/json"}
+        headers={"Content-Type": "application/json"},
     )
 
     if admin_login.status_code != 200:
@@ -28,13 +30,15 @@ def test_admin_notifications():
     admin_data = admin_login.json()
     admin_token = admin_data.get("access_token")
     admin_user = admin_data.get("user")
-    print(f"[OK] Admin logged in: {admin_user.get('username')} (ID: {admin_user.get('id')})")
+    print(
+        f"[OK] Admin logged in: {admin_user.get('username')} (ID: {admin_user.get('id')})"
+    )
 
     # Get admin's organization
     admin_org_id = None
     orgs_response = requests.get(
         f"{BASE_URL}/api/v1/organizations",
-        headers={"Authorization": f"Bearer {admin_token}"}
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
     if orgs_response.status_code == 200:
         orgs = orgs_response.json()
@@ -50,7 +54,7 @@ def test_admin_notifications():
     print("\n[2] Checking admin notifications BEFORE expense submission...")
     notif_before = requests.get(
         f"{BASE_URL}/api/notifications",
-        headers={"Authorization": f"Bearer {admin_token}"}
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
 
     if notif_before.status_code != 200:
@@ -66,7 +70,7 @@ def test_admin_notifications():
     employee_login = requests.post(
         f"{BASE_URL}/api/v1/auth/login",
         json={"username": "emp1", "password": "Emp123!"},
-        headers={"Content-Type": "application/json"}
+        headers={"Content-Type": "application/json"},
     )
 
     if employee_login.status_code != 200:
@@ -77,7 +81,9 @@ def test_admin_notifications():
     employee_data = employee_login.json()
     employee_token = employee_data.get("access_token")
     employee_user = employee_data.get("user")
-    print(f"[OK] Employee logged in: {employee_user.get('username')} (ID: {employee_user.get('id')})")
+    print(
+        f"[OK] Employee logged in: {employee_user.get('username')} (ID: {employee_user.get('id')})"
+    )
 
     # Step 3: Submit expense as employee
     print("\n[4] Submitting expense as employee...")
@@ -87,7 +93,7 @@ def test_admin_notifications():
         "vendor": "Test Vendor for Notification",
         "category": "MEALS",
         "description": "Testing admin notification system",
-        "date": time.strftime("%Y-%m-%d")
+        "date": time.strftime("%Y-%m-%d"),
     }
 
     submit_response = requests.post(
@@ -95,9 +101,9 @@ def test_admin_notifications():
         headers={
             "Authorization": f"Bearer {employee_token}",
             "X-Organization-Id": admin_org_id,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         },
-        json=expense_data
+        json=expense_data,
     )
 
     if submit_response.status_code != 201:
@@ -106,7 +112,9 @@ def test_admin_notifications():
         return False
 
     expense = submit_response.json()
-    print(f"[OK] Expense submitted: ID={expense.get('id')}, Amount=${expense.get('amount')}, Status={expense.get('status')}")
+    print(
+        f"[OK] Expense submitted: ID={expense.get('id')}, Amount=${expense.get('amount')}, Status={expense.get('status')}"
+    )
 
     # Step 4: Check admin notifications AFTER expense submission
     print("\n[5] Checking admin notifications AFTER expense submission...")
@@ -114,7 +122,7 @@ def test_admin_notifications():
 
     notif_after = requests.get(
         f"{BASE_URL}/api/notifications",
-        headers={"Authorization": f"Bearer {admin_token}"}
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
 
     if notif_after.status_code != 200:
@@ -131,7 +139,9 @@ def test_admin_notifications():
     print("\n[6] Verifying notification details...")
 
     if unread_after <= unread_before:
-        print(f"[FAIL] No new notifications received! Before: {unread_before}, After: {unread_after}")
+        print(
+            f"[FAIL] No new notifications received! Before: {unread_before}, After: {unread_after}"
+        )
         return False
 
     # Find the most recent notification
@@ -148,7 +158,9 @@ def test_admin_notifications():
         # Verify it's the correct notification
         if latest_notif.get("notification_type") == "expense_submitted":
             if latest_notif.get("expense_id") == expense.get("id"):
-                print(f"\n[SUCCESS] Admin received notification for the submitted expense!")
+                print(
+                    f"\n[SUCCESS] Admin received notification for the submitted expense!"
+                )
                 return True
             else:
                 print(f"\n[WARN] Notification received but expense_id doesn't match")
@@ -161,6 +173,7 @@ def test_admin_notifications():
     else:
         print(f"[FAIL] No notifications found in response")
         return False
+
 
 if __name__ == "__main__":
     print("\nPREREQUISITES:")

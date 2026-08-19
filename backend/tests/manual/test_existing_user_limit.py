@@ -7,6 +7,7 @@ import requests
 
 BASE_URL = "http://localhost:8000/api/v1"
 
+
 def test_with_existing_user():
     print("=" * 70)
     print("Testing organization limit with existing user 'adminfree'")
@@ -14,10 +15,7 @@ def test_with_existing_user():
 
     # Login with existing user
     print("\n[Step 1] Logging in as 'adminfree'...")
-    login_data = {
-        "username": "adminfree",
-        "password": "1"
-    }
+    login_data = {"username": "adminfree", "password": "1"}
 
     response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
     if response.status_code != 200:
@@ -44,18 +42,17 @@ def test_with_existing_user():
     # Try to create another organization
     print("\n[Step 3] Attempting to create a new organization...")
     import time
+
     org_data = {
         "name": f"Test New Org {int(time.time())}",
         "slug": f"test-new-org-{int(time.time())}",
         "description": "Testing organization limit enforcement",
         "currency": "USD",
-        "timezone": "UTC"
+        "timezone": "UTC",
     }
 
     response = requests.post(
-        f"{BASE_URL}/organizations",
-        json=org_data,
-        headers=headers
+        f"{BASE_URL}/organizations", json=org_data, headers=headers
     )
 
     print(f"  Status Code: {response.status_code}")

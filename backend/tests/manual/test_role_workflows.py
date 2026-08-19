@@ -87,7 +87,9 @@ class TestContext:
             Logger.success(f"  OK Logged in as {role}")
             return True
         else:
-            Logger.error(f"  FAIL Login failed: {response.status_code} - {response.text[:100]}")
+            Logger.error(
+                f"  FAIL Login failed: {response.status_code} - {response.text[:100]}"
+            )
             return False
 
     def headers(self, role: str) -> Dict[str, str]:
@@ -113,7 +115,9 @@ class TestContext:
             orgs = response.json()
             if orgs and len(orgs) > 0:
                 self.org_id = orgs[0]["id"]
-                Logger.success(f"  OK Using organization: {orgs[0]['name']} ({self.org_id})")
+                Logger.success(
+                    f"  OK Using organization: {orgs[0]['name']} ({self.org_id})"
+                )
                 return True
 
         Logger.error("  FAIL No organization found")
@@ -146,9 +150,7 @@ class WorkflowTest:
     def print_summary(self, workflow_name: str):
         """Print test summary"""
         total = self.results["passed"] + self.results["failed"]
-        pass_rate = (
-            (self.results["passed"] / total * 100) if total > 0 else 0
-        )
+        pass_rate = (self.results["passed"] / total * 100) if total > 0 else 0
 
         print("\n" + "=" * 80)
         Logger.info(f"{workflow_name} - Summary")
@@ -220,7 +222,9 @@ class EmployeeWorkflow(WorkflowTest):
             )
             # Expect 200 or 404 (if receipt upload endpoint not implemented)
             if response.status_code in [200, 404]:
-                Logger.success(f"  PASS Receipt endpoint exists: {response.status_code}")
+                Logger.success(
+                    f"  PASS Receipt endpoint exists: {response.status_code}"
+                )
                 self.results["passed"] += 1
             else:
                 Logger.error(f"  FAIL Unexpected status: {response.status_code}")
@@ -356,9 +360,7 @@ class ManagerWorkflow(WorkflowTest):
         if self.assert_status(response, 200, "View team summary"):
             expenses = response.json()
             total = sum(float(e.get("amount", 0)) for e in expenses)
-            Logger.info(
-                f"   Team total: ${total:.2f} across {len(expenses)} expenses"
-            )
+            Logger.info(f"   Team total: ${total:.2f} across {len(expenses)} expenses")
 
         self.print_summary("MANAGER WORKFLOW")
 
@@ -418,9 +420,7 @@ class AccountantWorkflow(WorkflowTest):
                 )
                 self.results["passed"] += 1
             else:
-                Logger.error(
-                    f"  FAIL Receipt request failed: {response.status_code}"
-                )
+                Logger.error(f"  FAIL Receipt request failed: {response.status_code}")
                 self.results["failed"] += 1
 
         # Step 4: Export to CSV
@@ -632,9 +632,7 @@ def main():
 
     print("-" * 60)
     grand_total = total_passed + total_failed
-    overall_pass_rate = (
-        (total_passed / grand_total * 100) if grand_total > 0 else 0
-    )
+    overall_pass_rate = (total_passed / grand_total * 100) if grand_total > 0 else 0
 
     print(
         f"{'TOTAL':<15} {total_passed:<10} {total_failed:<10} {grand_total:<10} {overall_pass_rate:>6.1f}%"
@@ -651,7 +649,9 @@ def main():
     elif overall_pass_rate >= 60:
         Logger.warning(f"\n! ACCEPTABLE: {overall_pass_rate:.1f}% pass rate")
     else:
-        Logger.error(f"\nFAIL POOR: {overall_pass_rate:.1f}% pass rate - Critical issues")
+        Logger.error(
+            f"\nFAIL POOR: {overall_pass_rate:.1f}% pass rate - Critical issues"
+        )
 
 
 if __name__ == "__main__":

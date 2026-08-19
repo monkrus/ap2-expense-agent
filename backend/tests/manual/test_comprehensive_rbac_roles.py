@@ -23,12 +23,7 @@ TEST_ORGS = {}
 TEST_TOKENS = {}
 
 # Test Results Tracker
-test_results = {
-    "total": 0,
-    "passed": 0,
-    "failed": 0,
-    "errors": []
-}
+test_results = {"total": 0, "passed": 0, "failed": 0, "errors": []}
 
 
 def log_test(test_name, passed, message=""):
@@ -52,8 +47,8 @@ def register_user(username, password, full_name, email):
                 "username": username,
                 "password": password,
                 "full_name": full_name,
-                "email": email
-            }
+                "email": email,
+            },
         )
         if response.status_code == 201:
             return response.json()
@@ -62,7 +57,9 @@ def register_user(username, password, full_name, email):
             time.sleep(60)
             return register_user(username, password, full_name, email)
         else:
-            print(f"[ERROR] Failed to register {username}: {response.status_code} - {response.text}")
+            print(
+                f"[ERROR] Failed to register {username}: {response.status_code} - {response.text}"
+            )
             return None
     except Exception as e:
         print(f"[ERROR] Exception registering {username}: {e}")
@@ -74,7 +71,7 @@ def login_user(username, password):
     try:
         response = requests.post(
             f"{BASE_URL}/api/v1/auth/login",
-            json={"username": username, "password": password}
+            json={"username": username, "password": password},
         )
         if response.status_code == 200:
             data = response.json()
@@ -98,13 +95,15 @@ def create_organization(token, name, slug, description="Test organization"):
                 "slug": slug,
                 "description": description,
                 "currency": "USD",
-                "timezone": "UTC"
-            }
+                "timezone": "UTC",
+            },
         )
         if response.status_code == 201:
             return response.json()
         else:
-            print(f"[ERROR] Failed to create org {name}: {response.status_code} - {response.text}")
+            print(
+                f"[ERROR] Failed to create org {name}: {response.status_code} - {response.text}"
+            )
             return None
     except Exception as e:
         print(f"[ERROR] Exception creating org: {e}")
@@ -117,7 +116,7 @@ def invite_member(token, org_id, email, role="member"):
         response = requests.post(
             f"{BASE_URL}/api/v1/organizations/{org_id}/members/invite",
             headers={"Authorization": f"Bearer {token}"},
-            json={"email": email, "role": role}
+            json={"email": email, "role": role},
         )
         return response.status_code in [200, 201]
     except Exception as e:
@@ -130,7 +129,7 @@ def accept_invitation(token, invitation_id):
     try:
         response = requests.post(
             f"{BASE_URL}/api/v1/organizations/invitations/{invitation_id}/accept",
-            headers={"Authorization": f"Bearer {token}"}
+            headers={"Authorization": f"Bearer {token}"},
         )
         return response.status_code == 200
     except Exception as e:
@@ -143,17 +142,14 @@ def create_expense(token, org_id, amount, vendor, category, description):
     try:
         response = requests.post(
             f"{BASE_URL}/api/v1/expenses",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "X-Organization-Id": org_id
-            },
+            headers={"Authorization": f"Bearer {token}", "X-Organization-Id": org_id},
             json={
                 "amount": amount,
                 "vendor": vendor,
                 "category": category,
                 "description": description,
-                "date": datetime.now().isoformat()
-            }
+                "date": datetime.now().isoformat(),
+            },
         )
         if response.status_code == 201:
             return response.json()
@@ -169,10 +165,7 @@ def list_expenses(token, org_id):
     try:
         response = requests.get(
             f"{BASE_URL}/api/v1/expenses",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "X-Organization-Id": org_id
-            }
+            headers={"Authorization": f"Bearer {token}", "X-Organization-Id": org_id},
         )
         if response.status_code == 200:
             return response.json()
@@ -188,10 +181,7 @@ def approve_expense(token, org_id, expense_id):
     try:
         response = requests.put(
             f"{BASE_URL}/api/v1/expenses/{expense_id}/approve",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "X-Organization-Id": org_id
-            }
+            headers={"Authorization": f"Bearer {token}", "X-Organization-Id": org_id},
         )
         return response.status_code == 200
     except Exception as e:
@@ -204,11 +194,8 @@ def reject_expense(token, org_id, expense_id, reason="Test rejection"):
     try:
         response = requests.put(
             f"{BASE_URL}/api/v1/expenses/{expense_id}/reject",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "X-Organization-Id": org_id
-            },
-            json={"reason": reason}
+            headers={"Authorization": f"Bearer {token}", "X-Organization-Id": org_id},
+            json={"reason": reason},
         )
         return response.status_code == 200
     except Exception as e:
@@ -221,10 +208,7 @@ def delete_expense(token, org_id, expense_id):
     try:
         response = requests.delete(
             f"{BASE_URL}/api/v1/expenses/{expense_id}",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "X-Organization-Id": org_id
-            }
+            headers={"Authorization": f"Bearer {token}", "X-Organization-Id": org_id},
         )
         return response.status_code == 200
     except Exception as e:
@@ -236,16 +220,15 @@ def create_approval_policy(token, org_id, policy_data):
     try:
         response = requests.post(
             f"{BASE_URL}/api/v1/approval-policies",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "X-Organization-Id": org_id
-            },
-            json=policy_data
+            headers={"Authorization": f"Bearer {token}", "X-Organization-Id": org_id},
+            json=policy_data,
         )
         if response.status_code == 201:
             return response.json()
         else:
-            print(f"[ERROR] Failed to create policy: {response.status_code} - {response.text}")
+            print(
+                f"[ERROR] Failed to create policy: {response.status_code} - {response.text}"
+            )
             return None
     except Exception as e:
         print(f"[ERROR] Exception creating policy: {e}")
@@ -256,11 +239,12 @@ def create_approval_policy(token, org_id, policy_data):
 # TEST 1: Setup Test Users and Organizations
 # ============================================================================
 
+
 def test_setup():
     """Create test users with different roles"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 1: Setup Test Users and Organizations")
-    print("="*80)
+    print("=" * 80)
 
     timestamp = int(time.time())
 
@@ -283,7 +267,7 @@ def test_setup():
                 "username": username,
                 "password": password,
                 "email": email,
-                "user_data": user
+                "user_data": user,
             }
 
             # Login to get token
@@ -305,7 +289,7 @@ def test_setup():
             TEST_TOKENS["admin"],
             "Test Organization",
             org_slug,
-            "Organization for comprehensive RBAC testing"
+            "Organization for comprehensive RBAC testing",
         )
         if org:
             TEST_ORGS["main"] = org
@@ -320,11 +304,12 @@ def test_setup():
 # TEST 2: Organization Role Assignment
 # ============================================================================
 
+
 def test_organization_roles():
     """Test organization-level role assignment"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 2: Organization Role Assignment")
-    print("="*80)
+    print("=" * 80)
 
     if "main" not in TEST_ORGS:
         log_test("Org Roles - Setup", False, "No test organization found")
@@ -344,11 +329,12 @@ def test_organization_roles():
 # TEST 3: Expense Visibility by Role (Global)
 # ============================================================================
 
+
 def test_expense_visibility_global_roles():
     """Test that each global role sees appropriate expenses"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 3: Expense Visibility by Global Role")
-    print("="*80)
+    print("=" * 80)
 
     if "main" not in TEST_ORGS:
         log_test("Visibility - Setup", False, "No test organization found")
@@ -365,21 +351,31 @@ def test_expense_visibility_global_roles():
             50.00,
             "Test Vendor",
             "MEALS",
-            "Test expense for visibility"
+            "Test expense for visibility",
         )
         if expense:
             expense_id = expense["id"]
-            log_test("Visibility - Employee creates expense", True, f"Expense ID: {expense_id}")
+            log_test(
+                "Visibility - Employee creates expense",
+                True,
+                f"Expense ID: {expense_id}",
+            )
 
             # Test visibility for each role
             for role, token in TEST_TOKENS.items():
                 expenses = list_expenses(token, org_id)
-                can_see = any(e["id"] == expense_id for e in expenses) if expenses else False
+                can_see = (
+                    any(e["id"] == expense_id for e in expenses) if expenses else False
+                )
 
                 if role in ["admin"]:
-                    log_test(f"Visibility - {role.title()} can see all expenses", can_see)
+                    log_test(
+                        f"Visibility - {role.title()} can see all expenses", can_see
+                    )
                 elif role == "employee":
-                    log_test(f"Visibility - {role.title()} can see own expenses", can_see)
+                    log_test(
+                        f"Visibility - {role.title()} can see own expenses", can_see
+                    )
                 else:
                     # Manager and accountant should also be able to see expenses
                     log_test(f"Visibility - {role.title()} visibility", can_see)
@@ -391,11 +387,12 @@ def test_expense_visibility_global_roles():
 # TEST 4: Approval Permissions by Role
 # ============================================================================
 
+
 def test_approval_permissions():
     """Test approval/rejection permissions for each role"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 4: Approval Permissions by Role")
-    print("="*80)
+    print("=" * 80)
 
     if "main" not in TEST_ORGS:
         log_test("Approval - Setup", False, "No test organization found")
@@ -417,7 +414,7 @@ def test_approval_permissions():
             75.00 + i * 10,
             f"Vendor {i}",
             "OFFICE_SUPPLIES",
-            f"Test expense {i} for approval testing"
+            f"Test expense {i} for approval testing",
         )
         if expense:
             test_expenses.append(expense["id"])
@@ -426,7 +423,11 @@ def test_approval_permissions():
         log_test("Approval - Create test expenses", False, "Failed to create expenses")
         return
 
-    log_test("Approval - Create test expenses", True, f"Created {len(test_expenses)} expenses")
+    log_test(
+        "Approval - Create test expenses",
+        True,
+        f"Created {len(test_expenses)} expenses",
+    )
 
     # Test: Employee cannot approve own expense
     can_self_approve = approve_expense(employee_token, org_id, test_expenses[0])
@@ -452,11 +453,12 @@ def test_approval_permissions():
 # TEST 5: Deletion Permissions by Role
 # ============================================================================
 
+
 def test_deletion_permissions():
     """Test deletion permissions for each role"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 5: Deletion Permissions by Role")
-    print("="*80)
+    print("=" * 80)
 
     if "main" not in TEST_ORGS:
         log_test("Deletion - Setup", False, "No test organization found")
@@ -477,7 +479,7 @@ def test_deletion_permissions():
         25.00,
         "Delete Test Vendor",
         "OTHER",
-        "Expense for deletion testing"
+        "Expense for deletion testing",
     )
     if expense:
         expense_id = expense["id"]
@@ -493,23 +495,26 @@ def test_deletion_permissions():
             30.00,
             "Accountant Test",
             "OTHER",
-            "Test accountant deletion"
+            "Test accountant deletion",
         )
         if expense:
             expense_id = expense["id"]
             can_delete = delete_expense(accountant_token, org_id, expense_id)
-            log_test("Deletion - Accountant cannot delete (audit protection)", not can_delete)
+            log_test(
+                "Deletion - Accountant cannot delete (audit protection)", not can_delete
+            )
 
 
 # ============================================================================
 # TEST 6: Auto-Approval Policy Testing
 # ============================================================================
 
+
 def test_auto_approval_policies():
     """Test automatic approval based on preset conditions"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 6: Auto-Approval Policy Testing")
-    print("="*80)
+    print("=" * 80)
 
     if "main" not in TEST_ORGS:
         log_test("Auto-Approval - Setup", False, "No test organization found")
@@ -530,16 +535,17 @@ def test_auto_approval_policies():
         "is_active": True,
         "auto_approve": True,
         "require_receipt": False,
-        "conditions": {
-            "categories": ["MEALS"],
-            "max_amount": 50.00
-        },
-        "max_amount_per_expense": 50.00
+        "conditions": {"categories": ["MEALS"], "max_amount": 50.00},
+        "max_amount_per_expense": 50.00,
     }
 
     policy = create_approval_policy(admin_token, org_id, policy_data)
     if policy:
-        log_test("Auto-Approval - Create policy", True, f"Policy ID: {policy.get('id', 'N/A')}")
+        log_test(
+            "Auto-Approval - Create policy",
+            True,
+            f"Policy ID: {policy.get('id', 'N/A')}",
+        )
 
         # Test: Submit expense that matches policy
         employee_token = TEST_TOKENS.get("employee")
@@ -550,7 +556,7 @@ def test_auto_approval_policies():
                 35.00,
                 "Starbucks",
                 "MEALS",
-                "Coffee meeting - should auto-approve"
+                "Coffee meeting - should auto-approve",
             )
             if expense:
                 # Check if auto-approved
@@ -559,10 +565,14 @@ def test_auto_approval_policies():
                 log_test(
                     "Auto-Approval - Small meal auto-approved",
                     is_auto_approved or status == "APPROVED",
-                    f"Status: {status}"
+                    f"Status: {status}",
                 )
             else:
-                log_test("Auto-Approval - Submit qualifying expense", False, "Failed to create")
+                log_test(
+                    "Auto-Approval - Submit qualifying expense",
+                    False,
+                    "Failed to create",
+                )
 
             # Test: Submit expense that exceeds policy limit
             expense2 = create_expense(
@@ -571,7 +581,7 @@ def test_auto_approval_policies():
                 75.00,
                 "Fancy Restaurant",
                 "MEALS",
-                "Expensive meal - should require manual approval"
+                "Expensive meal - should require manual approval",
             )
             if expense2:
                 is_auto_approved = expense2.get("auto_approved", False)
@@ -579,7 +589,7 @@ def test_auto_approval_policies():
                 log_test(
                     "Auto-Approval - Large meal needs manual approval",
                     not is_auto_approved and status == "PENDING",
-                    f"Status: {status}"
+                    f"Status: {status}",
                 )
     else:
         log_test("Auto-Approval - Create policy", False, "Failed to create policy")
@@ -589,11 +599,12 @@ def test_auto_approval_policies():
 # TEST 7: Concurrent Expense Submissions
 # ============================================================================
 
+
 def test_concurrent_submissions():
     """Test multiple users submitting expenses simultaneously"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 7: Concurrent Expense Submissions")
-    print("="*80)
+    print("=" * 80)
 
     if "main" not in TEST_ORGS:
         log_test("Concurrent - Setup", False, "No test organization found")
@@ -614,7 +625,7 @@ def test_concurrent_submissions():
             10.00 + index,
             f"Concurrent Vendor {index}",
             "OFFICE_SUPPLIES",
-            f"Concurrent test expense {index}"
+            f"Concurrent test expense {index}",
         )
 
     start_time = time.time()
@@ -629,17 +640,19 @@ def test_concurrent_submissions():
     log_test(
         "Concurrent - Submit 10 expenses",
         successful >= 8,  # Allow some failures due to rate limiting
-        f"{successful}/10 succeeded in {duration:.2f}s"
+        f"{successful}/10 succeeded in {duration:.2f}s",
     )
 
     # Verify all expenses were created correctly
     time.sleep(2)  # Wait for DB to settle
     all_expenses = list_expenses(employee_token, org_id)
-    concurrent_expenses = [e for e in all_expenses if "Concurrent" in e.get("vendor", "")]
+    concurrent_expenses = [
+        e for e in all_expenses if "Concurrent" in e.get("vendor", "")
+    ]
     log_test(
         "Concurrent - Verify data integrity",
         len(concurrent_expenses) >= 8,
-        f"Found {len(concurrent_expenses)} concurrent expenses in DB"
+        f"Found {len(concurrent_expenses)} concurrent expenses in DB",
     )
 
 
@@ -647,11 +660,12 @@ def test_concurrent_submissions():
 # TEST 8: AP2 Protocol Integration
 # ============================================================================
 
+
 def test_ap2_protocol_integration():
     """Verify AP2 protocol is integrated throughout the app"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 8: AP2 Protocol Integration")
-    print("="*80)
+    print("=" * 80)
 
     employee_token = TEST_TOKENS.get("employee")
     if not employee_token:
@@ -667,16 +681,22 @@ def test_ap2_protocol_integration():
                 "constraints": {
                     "max_amount": 1000.00,
                     "categories": ["OFFICE_SUPPLIES", "SOFTWARE"],
-                    "approval_required": True
+                    "approval_required": True,
                 },
-                "expiration_hours": 24
-            }
+                "expiration_hours": 24,
+            },
         )
         if response.status_code == 200:
             intent_mandate = response.json()
-            log_test("AP2 - Create Intent Mandate", True, f"ID: {intent_mandate.get('intent_mandate_id', 'N/A')}")
+            log_test(
+                "AP2 - Create Intent Mandate",
+                True,
+                f"ID: {intent_mandate.get('intent_mandate_id', 'N/A')}",
+            )
         else:
-            log_test("AP2 - Create Intent Mandate", False, f"Status: {response.status_code}")
+            log_test(
+                "AP2 - Create Intent Mandate", False, f"Status: {response.status_code}"
+            )
     except Exception as e:
         log_test("AP2 - Create Intent Mandate", False, f"Exception: {e}")
 
@@ -684,13 +704,16 @@ def test_ap2_protocol_integration():
     ap2_endpoints = [
         "/api/ap2/intent-mandate",
         "/api/ap2/cart-mandate",
-        "/api/ap2/payment-mandate"
+        "/api/ap2/payment-mandate",
     ]
 
     for endpoint in ap2_endpoints:
         try:
             response = requests.options(f"{BASE_URL}{endpoint}")
-            exists = response.status_code in [200, 405]  # 405 = Method not allowed but endpoint exists
+            exists = response.status_code in [
+                200,
+                405,
+            ]  # 405 = Method not allowed but endpoint exists
             log_test(f"AP2 - Endpoint exists: {endpoint}", exists)
         except:
             log_test(f"AP2 - Endpoint exists: {endpoint}", False)
@@ -700,11 +723,12 @@ def test_ap2_protocol_integration():
 # TEST 9: Cross-Organization Isolation
 # ============================================================================
 
+
 def test_cross_organization_isolation():
     """Verify users cannot access expenses from other organizations"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 9: Cross-Organization Isolation")
-    print("="*80)
+    print("=" * 80)
 
     admin_token = TEST_TOKENS.get("admin")
     if not admin_token:
@@ -717,7 +741,7 @@ def test_cross_organization_isolation():
         admin_token,
         "Second Organization",
         f"test-org-2-{timestamp}",
-        "Second org for isolation testing"
+        "Second org for isolation testing",
     )
 
     if not org2:
@@ -738,7 +762,7 @@ def test_cross_organization_isolation():
             60.00,
             "Org1 Vendor",
             "OTHER",
-            "Expense in organization 1"
+            "Expense in organization 1",
         )
 
         if expense_org1:
@@ -750,25 +774,34 @@ def test_cross_organization_isolation():
                     f"{BASE_URL}/api/v1/expenses/{expense_id}",
                     headers={
                         "Authorization": f"Bearer {admin_token}",
-                        "X-Organization-Id": org2_id
-                    }
+                        "X-Organization-Id": org2_id,
+                    },
                 )
                 # Should get 403 or 404
                 blocked = response.status_code in [403, 404]
-                log_test("Isolation - Cannot access cross-org expense", blocked, f"Status: {response.status_code}")
+                log_test(
+                    "Isolation - Cannot access cross-org expense",
+                    blocked,
+                    f"Status: {response.status_code}",
+                )
             except Exception as e:
-                log_test("Isolation - Cannot access cross-org expense", False, f"Exception: {e}")
+                log_test(
+                    "Isolation - Cannot access cross-org expense",
+                    False,
+                    f"Exception: {e}",
+                )
 
 
 # ============================================================================
 # MAIN TEST RUNNER
 # ============================================================================
 
+
 def run_all_tests():
     """Run all comprehensive tests"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("COMPREHENSIVE RBAC & AP2 TEST SUITE")
-    print("="*80)
+    print("=" * 80)
     print(f"Backend URL: {BASE_URL}")
     print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
@@ -805,22 +838,27 @@ def run_all_tests():
     except Exception as e:
         print(f"\n\n[ERROR] Test suite failed with exception: {e}")
         import traceback
+
         traceback.print_exc()
 
     # Print final results
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST RESULTS SUMMARY")
-    print("="*80)
+    print("=" * 80)
     print(f"Total Tests: {test_results['total']}")
     print(f"Passed: {test_results['passed']}")
     print(f"Failed: {test_results['failed']}")
 
-    if test_results['failed'] > 0:
+    if test_results["failed"] > 0:
         print("\nFailed Tests:")
-        for error in test_results['errors']:
+        for error in test_results["errors"]:
             print(f"  - {error}")
 
-    pass_rate = (test_results['passed'] / test_results['total'] * 100) if test_results['total'] > 0 else 0
+    pass_rate = (
+        (test_results["passed"] / test_results["total"] * 100)
+        if test_results["total"] > 0
+        else 0
+    )
     print(f"\nPass Rate: {pass_rate:.1f}%")
 
     if pass_rate >= 90:
@@ -832,7 +870,7 @@ def run_all_tests():
     else:
         print("\n[CRITICAL] Major failures detected")
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     return test_results
 
 
@@ -840,7 +878,7 @@ if __name__ == "__main__":
     results = run_all_tests()
 
     # Exit with error code if tests failed
-    if results['failed'] > 0:
+    if results["failed"] > 0:
         exit(1)
     else:
         exit(0)

@@ -2,10 +2,12 @@
 Comprehensive Security Testing for Cross-Organization Access
 Tests all 7 fixed admin endpoints with multiple scenarios
 """
+
 import requests
 import json
 
 BASE_URL = "http://localhost:8000"
+
 
 def print_result(test_name, expected, actual, passed):
     status = "[PASS]" if passed else "[FAIL]"
@@ -15,6 +17,7 @@ def print_result(test_name, expected, actual, passed):
         print(f"   ** TEST FAILED **")
     print()
     return passed
+
 
 def main():
     print("=" * 70)
@@ -26,24 +29,27 @@ def main():
 
     # Login as admin
     print("[1] Logging in as admin...")
-    response = requests.post(f'{BASE_URL}/api/v1/auth/login',
-                            json={'username': 'admintest', 'password': 'AdminTest123!'})
+    response = requests.post(
+        f"{BASE_URL}/api/v1/auth/login",
+        json={"username": "admintest", "password": "AdminTest123!"},
+    )
     if response.status_code != 200:
         print(f"[ERROR] Login failed: {response.status_code}")
         return
 
-    token = response.json()['access_token']
-    user_id = response.json().get('user', {}).get('id')
+    token = response.json()["access_token"]
+    user_id = response.json().get("user", {}).get("id")
     print(f"   Login successful (User ID: {user_id})")
     print()
 
     # Get admin's organizations
     print("[2] Getting admin's organizations...")
-    response = requests.get(f'{BASE_URL}/api/v1/organizations',
-                           headers={'Authorization': f'Bearer {token}'})
+    response = requests.get(
+        f"{BASE_URL}/api/v1/organizations", headers={"Authorization": f"Bearer {token}"}
+    )
 
     orgs = response.json() if response.status_code == 200 else []
-    valid_org_id = orgs[0]['id'] if orgs else None
+    valid_org_id = orgs[0]["id"] if orgs else None
 
     if valid_org_id:
         print(f"   Admin belongs to organization: {valid_org_id}")
@@ -53,10 +59,10 @@ def main():
 
     # Define all endpoints to test
     endpoints = [
-        ('GET', '/api/v1/admin/expenses', 'Get all expenses'),
-        ('GET', '/api/v1/admin/expenses/archived', 'Get archived expenses'),
-        ('DELETE', '/api/v1/admin/expenses-pending/clear', 'Clear pending expenses'),
-        ('POST', '/api/v1/admin/expenses/archive-all', 'Archive all expenses'),
+        ("GET", "/api/v1/admin/expenses", "Get all expenses"),
+        ("GET", "/api/v1/admin/expenses/archived", "Get archived expenses"),
+        ("DELETE", "/api/v1/admin/expenses-pending/clear", "Clear pending expenses"),
+        ("POST", "/api/v1/admin/expenses/archive-all", "Archive all expenses"),
     ]
 
     print("=" * 70)
@@ -66,21 +72,21 @@ def main():
 
     scenario1_passed = 0
     for method, endpoint, description in endpoints:
-        headers = {'Authorization': f'Bearer {token}'}
+        headers = {"Authorization": f"Bearer {token}"}
         # No X-Organization-Id header
 
-        if method == 'GET':
-            resp = requests.get(f'{BASE_URL}{endpoint}', headers=headers)
-        elif method == 'POST':
-            resp = requests.post(f'{BASE_URL}{endpoint}', headers=headers, json={})
-        elif method == 'DELETE':
-            resp = requests.delete(f'{BASE_URL}{endpoint}', headers=headers)
+        if method == "GET":
+            resp = requests.get(f"{BASE_URL}{endpoint}", headers=headers)
+        elif method == "POST":
+            resp = requests.post(f"{BASE_URL}{endpoint}", headers=headers, json={})
+        elif method == "DELETE":
+            resp = requests.delete(f"{BASE_URL}{endpoint}", headers=headers)
 
         passed = print_result(
             f"{method} {endpoint}",
             "400 Bad Request",
             f"{resp.status_code} {resp.reason}",
-            resp.status_code == 400
+            resp.status_code == 400,
         )
 
         if passed:
@@ -101,22 +107,22 @@ def main():
     scenario2_passed = 0
     for method, endpoint, description in endpoints:
         headers = {
-            'Authorization': f'Bearer {token}',
-            'X-Organization-Id': 'fake-org-id-12345'
+            "Authorization": f"Bearer {token}",
+            "X-Organization-Id": "fake-org-id-12345",
         }
 
-        if method == 'GET':
-            resp = requests.get(f'{BASE_URL}{endpoint}', headers=headers)
-        elif method == 'POST':
-            resp = requests.post(f'{BASE_URL}{endpoint}', headers=headers, json={})
-        elif method == 'DELETE':
-            resp = requests.delete(f'{BASE_URL}{endpoint}', headers=headers)
+        if method == "GET":
+            resp = requests.get(f"{BASE_URL}{endpoint}", headers=headers)
+        elif method == "POST":
+            resp = requests.post(f"{BASE_URL}{endpoint}", headers=headers, json={})
+        elif method == "DELETE":
+            resp = requests.delete(f"{BASE_URL}{endpoint}", headers=headers)
 
         passed = print_result(
             f"{method} {endpoint}",
             "403 Forbidden",
             f"{resp.status_code} {resp.reason}",
-            resp.status_code == 403
+            resp.status_code == 403,
         )
 
         if passed:
@@ -138,22 +144,22 @@ def main():
         scenario3_passed = 0
         for method, endpoint, description in endpoints:
             headers = {
-                'Authorization': f'Bearer {token}',
-                'X-Organization-Id': valid_org_id
+                "Authorization": f"Bearer {token}",
+                "X-Organization-Id": valid_org_id,
             }
 
-            if method == 'GET':
-                resp = requests.get(f'{BASE_URL}{endpoint}', headers=headers)
-            elif method == 'POST':
-                resp = requests.post(f'{BASE_URL}{endpoint}', headers=headers, json={})
-            elif method == 'DELETE':
-                resp = requests.delete(f'{BASE_URL}{endpoint}', headers=headers)
+            if method == "GET":
+                resp = requests.get(f"{BASE_URL}{endpoint}", headers=headers)
+            elif method == "POST":
+                resp = requests.post(f"{BASE_URL}{endpoint}", headers=headers, json={})
+            elif method == "DELETE":
+                resp = requests.delete(f"{BASE_URL}{endpoint}", headers=headers)
 
             passed = print_result(
                 f"{method} {endpoint}",
                 "200 OK",
                 f"{resp.status_code} {resp.reason}",
-                resp.status_code == 200
+                resp.status_code == 200,
             )
 
             if passed:
@@ -172,19 +178,27 @@ def main():
     print()
 
     individual_endpoints = [
-        ('POST', '/api/v1/admin/expenses/test-id-123/archive', 'Archive single expense'),
-        ('POST', '/api/v1/admin/expenses/test-id-123/unarchive', 'Unarchive single expense'),
-        ('POST', '/api/v1/admin/expenses/unarchive-all', 'Unarchive all expenses'),
+        (
+            "POST",
+            "/api/v1/admin/expenses/test-id-123/archive",
+            "Archive single expense",
+        ),
+        (
+            "POST",
+            "/api/v1/admin/expenses/test-id-123/unarchive",
+            "Unarchive single expense",
+        ),
+        ("POST", "/api/v1/admin/expenses/unarchive-all", "Unarchive all expenses"),
     ]
 
     scenario4_passed = 0
     for method, endpoint, description in individual_endpoints:
         headers = {
-            'Authorization': f'Bearer {token}',
-            'X-Organization-Id': 'fake-org-id-12345'
+            "Authorization": f"Bearer {token}",
+            "X-Organization-Id": "fake-org-id-12345",
         }
 
-        resp = requests.post(f'{BASE_URL}{endpoint}', headers=headers, json={})
+        resp = requests.post(f"{BASE_URL}{endpoint}", headers=headers, json={})
 
         # Note: These might return 404 if expense doesn't exist, which is also acceptable
         expected_codes = [403, 404]
@@ -194,7 +208,7 @@ def main():
             f"{method} {endpoint}",
             "403 or 404",
             f"{resp.status_code} {resp.reason}",
-            passed
+            passed,
         )
 
         if passed:
@@ -235,6 +249,7 @@ def main():
 
     print()
     print("=" * 70)
+
 
 if __name__ == "__main__":
     main()

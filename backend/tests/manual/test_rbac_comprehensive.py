@@ -20,18 +20,20 @@ BASE_URL = "http://localhost:8000"
 
 class Colors:
     """ANSI color codes for terminal output"""
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
+
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
 
 
 class TestResult:
     """Track test results"""
+
     def __init__(self):
         self.passed = 0
         self.failed = 0
@@ -62,7 +64,9 @@ class TestResult:
             for i, vuln in enumerate(self.vulnerabilities, 1):
                 print(f"{Colors.FAIL}{i}. {vuln}{Colors.ENDC}")
         else:
-            print(f"\n{Colors.OKGREEN}{Colors.BOLD}✓ NO VULNERABILITIES FOUND{Colors.ENDC}")
+            print(
+                f"\n{Colors.OKGREEN}{Colors.BOLD}✓ NO VULNERABILITIES FOUND{Colors.ENDC}"
+            )
 
         print(f"{Colors.BOLD}{'=' * 70}{Colors.ENDC}\n")
 
@@ -74,7 +78,9 @@ class RBACTester:
         self.results = TestResult()
         self.cleanup_items = []
 
-    def register_user(self, username: str, email: str, password: str = "SecurePass123!") -> Optional[Dict]:
+    def register_user(
+        self, username: str, email: str, password: str = "SecurePass123!"
+    ) -> Optional[Dict]:
         """Register a new user"""
         try:
             response = requests.post(
@@ -83,8 +89,8 @@ class RBACTester:
                     "username": username,
                     "email": email,
                     "password": password,
-                    "full_name": username.replace("_", " ").title()
-                }
+                    "full_name": username.replace("_", " ").title(),
+                },
             )
             if response.status_code == 201:
                 return response.json()
@@ -98,7 +104,7 @@ class RBACTester:
         try:
             response = requests.post(
                 f"{BASE_URL}/api/v1/auth/login",
-                json={"username": username, "password": password}
+                json={"username": username, "password": password},
             )
             if response.status_code == 200:
                 return response.json()["access_token"]
@@ -116,8 +122,8 @@ class RBACTester:
                 json={
                     "name": name,
                     "slug": slug,
-                    "description": f"Test organization {slug}"
-                }
+                    "description": f"Test organization {slug}",
+                },
             )
             if response.status_code == 201:
                 org = response.json()
@@ -128,13 +134,15 @@ class RBACTester:
             print(f"{Colors.WARNING}Org creation error: {e}{Colors.ENDC}")
             return None
 
-    def invite_member(self, token: str, org_id: str, email: str, role: str = "member") -> Optional[Dict]:
+    def invite_member(
+        self, token: str, org_id: str, email: str, role: str = "member"
+    ) -> Optional[Dict]:
         """Invite a member to organization"""
         try:
             response = requests.post(
                 f"{BASE_URL}/api/v1/organizations/{org_id}/invitations",
                 headers={"Authorization": f"Bearer {token}"},
-                json={"email": email, "role": role}
+                json={"email": email, "role": role},
             )
             if response.status_code == 201:
                 return response.json()
@@ -148,7 +156,7 @@ class RBACTester:
         try:
             response = requests.post(
                 f"{BASE_URL}/api/v1/organizations/invitations/{invitation_token}/accept",
-                headers={"Authorization": f"Bearer {token}"}
+                headers={"Authorization": f"Bearer {token}"},
             )
             return response.status_code == 200
         except Exception as e:
@@ -160,7 +168,7 @@ class RBACTester:
         try:
             response = requests.get(
                 f"{BASE_URL}/api/v1/organizations/{org_id}/members",
-                headers={"Authorization": f"Bearer {token}"}
+                headers={"Authorization": f"Bearer {token}"},
             )
             if response.status_code == 200:
                 return response.json()
@@ -169,13 +177,15 @@ class RBACTester:
             print(f"{Colors.WARNING}Get members error: {e}{Colors.ENDC}")
             return None
 
-    def update_member_role(self, token: str, org_id: str, member_id: str, new_role: str) -> tuple:
+    def update_member_role(
+        self, token: str, org_id: str, member_id: str, new_role: str
+    ) -> tuple:
         """Update a member's role - returns (success, status_code)"""
         try:
             response = requests.patch(
                 f"{BASE_URL}/api/v1/organizations/{org_id}/members/{member_id}/role",
                 headers={"Authorization": f"Bearer {token}"},
-                json={"role": new_role}
+                json={"role": new_role},
             )
             return (response.status_code == 200, response.status_code)
         except Exception as e:
@@ -187,28 +197,30 @@ class RBACTester:
         try:
             response = requests.delete(
                 f"{BASE_URL}/api/v1/organizations/{org_id}/members/{member_id}",
-                headers={"Authorization": f"Bearer {token}"}
+                headers={"Authorization": f"Bearer {token}"},
             )
             return (response.status_code == 204, response.status_code)
         except Exception as e:
             print(f"{Colors.WARNING}Remove member error: {e}{Colors.ENDC}")
             return (False, 0)
 
-    def create_expense(self, token: str, org_id: str, amount: float, vendor: str) -> Optional[Dict]:
+    def create_expense(
+        self, token: str, org_id: str, amount: float, vendor: str
+    ) -> Optional[Dict]:
         """Create an expense"""
         try:
             response = requests.post(
                 f"{BASE_URL}/api/v1/expenses",
                 headers={
                     "Authorization": f"Bearer {token}",
-                    "X-Organization-Id": org_id
+                    "X-Organization-Id": org_id,
                 },
                 json={
                     "amount": amount,
                     "vendor": vendor,
                     "category": "OTHER",
-                    "description": "Test expense"
-                }
+                    "description": "Test expense",
+                },
             )
             if response.status_code == 201:
                 return response.json()
@@ -224,8 +236,8 @@ class RBACTester:
                 f"{BASE_URL}/api/v1/expenses",
                 headers={
                     "Authorization": f"Bearer {token}",
-                    "X-Organization-Id": org_id
-                }
+                    "X-Organization-Id": org_id,
+                },
             )
             if response.status_code == 200:
                 return response.json()
@@ -240,11 +252,17 @@ class RBACTester:
 
     def test_privilege_escalation_member_to_owner(self):
         """TEST 1: Can a MEMBER promote themselves to OWNER?"""
-        print(f"\n{Colors.OKCYAN}[TEST 1] Privilege Escalation: Member → Owner{Colors.ENDC}")
+        print(
+            f"\n{Colors.OKCYAN}[TEST 1] Privilege Escalation: Member → Owner{Colors.ENDC}"
+        )
 
         # Setup
-        owner = self.register_user(f"owner_{int(time.time())}", f"owner_{int(time.time())}@test.com")
-        member = self.register_user(f"member_{int(time.time())}", f"member_{int(time.time())}@test.com")
+        owner = self.register_user(
+            f"owner_{int(time.time())}", f"owner_{int(time.time())}@test.com"
+        )
+        member = self.register_user(
+            f"member_{int(time.time())}", f"member_{int(time.time())}@test.com"
+        )
 
         if not owner or not member:
             self.results.add_fail("TEST 1", "Failed to create test users")
@@ -253,29 +271,39 @@ class RBACTester:
         owner_token = self.login(owner["username"])
         member_token = self.login(member["username"])
 
-        org = self.create_organization(owner_token, "Test Org 1", f"testorg1-{int(time.time())}")
+        org = self.create_organization(
+            owner_token, "Test Org 1", f"testorg1-{int(time.time())}"
+        )
         if not org:
             self.results.add_fail("TEST 1", "Failed to create organization")
             return
 
         # Invite member
-        invitation = self.invite_member(owner_token, org["id"], member["email"], "member")
+        invitation = self.invite_member(
+            owner_token, org["id"], member["email"], "member"
+        )
         if invitation:
             self.accept_invitation(member_token, invitation["token"])
 
         # Get member's membership ID
         members = self.get_members(owner_token, org["id"])
-        member_membership = next((m for m in members if m["email"] == member["email"]), None)
+        member_membership = next(
+            (m for m in members if m["email"] == member["email"]), None
+        )
 
         if not member_membership:
             self.results.add_fail("TEST 1", "Member not found in organization")
             return
 
         # ATTACK: Member tries to promote themselves to owner
-        success, status = self.update_member_role(member_token, org["id"], member_membership["id"], "owner")
+        success, status = self.update_member_role(
+            member_token, org["id"], member_membership["id"], "owner"
+        )
 
         if success:
-            self.results.add_fail("TEST 1", "VULNERABILITY: Member can self-promote to OWNER!")
+            self.results.add_fail(
+                "TEST 1", "VULNERABILITY: Member can self-promote to OWNER!"
+            )
         else:
             if status == 403:
                 self.results.add_pass("TEST 1: Member cannot self-promote to OWNER")
@@ -284,12 +312,20 @@ class RBACTester:
 
     def test_admin_cannot_create_owners(self):
         """TEST 2: Can an ADMIN promote someone to OWNER?"""
-        print(f"\n{Colors.OKCYAN}[TEST 2] Admin Privilege Escalation: Admin promoting to Owner{Colors.ENDC}")
+        print(
+            f"\n{Colors.OKCYAN}[TEST 2] Admin Privilege Escalation: Admin promoting to Owner{Colors.ENDC}"
+        )
 
         # Setup: Owner, Admin, Member
-        owner = self.register_user(f"owner_{int(time.time())}", f"owner_{int(time.time())}@test.com")
-        admin = self.register_user(f"admin_{int(time.time())}", f"admin_{int(time.time())}@test.com")
-        member = self.register_user(f"member_{int(time.time())}", f"member_{int(time.time())}@test.com")
+        owner = self.register_user(
+            f"owner_{int(time.time())}", f"owner_{int(time.time())}@test.com"
+        )
+        admin = self.register_user(
+            f"admin_{int(time.time())}", f"admin_{int(time.time())}@test.com"
+        )
+        member = self.register_user(
+            f"member_{int(time.time())}", f"member_{int(time.time())}@test.com"
+        )
 
         if not all([owner, admin, member]):
             self.results.add_fail("TEST 2", "Failed to create test users")
@@ -299,7 +335,9 @@ class RBACTester:
         admin_token = self.login(admin["username"])
         member_token = self.login(member["username"])
 
-        org = self.create_organization(owner_token, "Test Org 2", f"testorg2-{int(time.time())}")
+        org = self.create_organization(
+            owner_token, "Test Org 2", f"testorg2-{int(time.time())}"
+        )
         if not org:
             self.results.add_fail("TEST 2", "Failed to create organization")
             return
@@ -310,7 +348,9 @@ class RBACTester:
             self.accept_invitation(admin_token, admin_inv["token"])
 
         # Add member
-        member_inv = self.invite_member(owner_token, org["id"], member["email"], "member")
+        member_inv = self.invite_member(
+            owner_token, org["id"], member["email"], "member"
+        )
         if member_inv:
             self.accept_invitation(member_token, member_inv["token"])
 
@@ -318,17 +358,23 @@ class RBACTester:
 
         # Get member's membership ID
         members = self.get_members(owner_token, org["id"])
-        member_membership = next((m for m in members if m["email"] == member["email"]), None)
+        member_membership = next(
+            (m for m in members if m["email"] == member["email"]), None
+        )
 
         if not member_membership:
             self.results.add_fail("TEST 2", "Member not found")
             return
 
         # ATTACK: Admin tries to promote member to owner
-        success, status = self.update_member_role(admin_token, org["id"], member_membership["id"], "owner")
+        success, status = self.update_member_role(
+            admin_token, org["id"], member_membership["id"], "owner"
+        )
 
         if success:
-            self.results.add_fail("TEST 2", "VULNERABILITY: ADMIN can promote members to OWNER!")
+            self.results.add_fail(
+                "TEST 2", "VULNERABILITY: ADMIN can promote members to OWNER!"
+            )
         else:
             if status in [403, 400]:
                 self.results.add_pass("TEST 2: ADMIN cannot promote to OWNER")
@@ -340,8 +386,12 @@ class RBACTester:
         print(f"\n{Colors.OKCYAN}[TEST 3] Cross-Organization Data Access{Colors.ENDC}")
 
         # Setup two separate organizations
-        owner_a = self.register_user(f"ownera_{int(time.time())}", f"ownera_{int(time.time())}@test.com")
-        owner_b = self.register_user(f"ownerb_{int(time.time())}", f"ownerb_{int(time.time())}@test.com")
+        owner_a = self.register_user(
+            f"ownera_{int(time.time())}", f"ownera_{int(time.time())}@test.com"
+        )
+        owner_b = self.register_user(
+            f"ownerb_{int(time.time())}", f"ownerb_{int(time.time())}@test.com"
+        )
 
         if not owner_a or not owner_b:
             self.results.add_fail("TEST 3", "Failed to create test users")
@@ -371,7 +421,9 @@ class RBACTester:
             # Access denied - good!
             self.results.add_pass("TEST 3: Cannot access other org's data")
         elif len(expenses_from_a) > 0:
-            self.results.add_fail("TEST 3", "VULNERABILITY: Can access expenses from other organization!")
+            self.results.add_fail(
+                "TEST 3", "VULNERABILITY: Can access expenses from other organization!"
+            )
         else:
             self.results.add_pass("TEST 3: Empty result but no error (acceptable)")
 
@@ -379,13 +431,17 @@ class RBACTester:
         """TEST 4: Can the last owner be removed/demoted?"""
         print(f"\n{Colors.OKCYAN}[TEST 4] Last Owner Protection{Colors.ENDC}")
 
-        owner = self.register_user(f"owner_{int(time.time())}", f"owner_{int(time.time())}@test.com")
+        owner = self.register_user(
+            f"owner_{int(time.time())}", f"owner_{int(time.time())}@test.com"
+        )
         if not owner:
             self.results.add_fail("TEST 4", "Failed to create test user")
             return
 
         owner_token = self.login(owner["username"])
-        org = self.create_organization(owner_token, "Test Org 4", f"testorg4-{int(time.time())}")
+        org = self.create_organization(
+            owner_token, "Test Org 4", f"testorg4-{int(time.time())}"
+        )
 
         if not org:
             self.results.add_fail("TEST 4", "Failed to create organization")
@@ -400,7 +456,9 @@ class RBACTester:
             return
 
         # ATTACK: Try to demote the last (and only) owner
-        success, status = self.update_member_role(owner_token, org["id"], owner_membership["id"], "admin")
+        success, status = self.update_member_role(
+            owner_token, org["id"], owner_membership["id"], "admin"
+        )
 
         if success:
             # Check if there's still an owner
@@ -408,9 +466,14 @@ class RBACTester:
             owner_exists = any(m["role"] == "owner" for m in updated_members)
 
             if not owner_exists:
-                self.results.add_fail("TEST 4", "VULNERABILITY: Last owner can be demoted, org is orphaned!")
+                self.results.add_fail(
+                    "TEST 4",
+                    "VULNERABILITY: Last owner can be demoted, org is orphaned!",
+                )
             else:
-                self.results.add_pass("TEST 4: Owner demotion handled (likely created new owner)")
+                self.results.add_pass(
+                    "TEST 4: Owner demotion handled (likely created new owner)"
+                )
         else:
             if status in [400, 403]:
                 self.results.add_pass("TEST 4: Cannot demote last owner")
@@ -421,8 +484,12 @@ class RBACTester:
         """TEST 5: Can an invitation be accepted twice?"""
         print(f"\n{Colors.OKCYAN}[TEST 5] Invitation Token Reuse{Colors.ENDC}")
 
-        owner = self.register_user(f"owner_{int(time.time())}", f"owner_{int(time.time())}@test.com")
-        member = self.register_user(f"member_{int(time.time())}", f"member_{int(time.time())}@test.com")
+        owner = self.register_user(
+            f"owner_{int(time.time())}", f"owner_{int(time.time())}@test.com"
+        )
+        member = self.register_user(
+            f"member_{int(time.time())}", f"member_{int(time.time())}@test.com"
+        )
 
         if not owner or not member:
             self.results.add_fail("TEST 5", "Failed to create test users")
@@ -431,12 +498,16 @@ class RBACTester:
         owner_token = self.login(owner["username"])
         member_token = self.login(member["username"])
 
-        org = self.create_organization(owner_token, "Test Org 5", f"testorg5-{int(time.time())}")
+        org = self.create_organization(
+            owner_token, "Test Org 5", f"testorg5-{int(time.time())}"
+        )
         if not org:
             self.results.add_fail("TEST 5", "Failed to create organization")
             return
 
-        invitation = self.invite_member(owner_token, org["id"], member["email"], "member")
+        invitation = self.invite_member(
+            owner_token, org["id"], member["email"], "member"
+        )
         if not invitation:
             self.results.add_fail("TEST 5", "Failed to create invitation")
             return
@@ -452,7 +523,9 @@ class RBACTester:
         second_accept = self.accept_invitation(member_token, invitation["token"])
 
         if second_accept:
-            self.results.add_fail("TEST 5", "VULNERABILITY: Invitation can be accepted multiple times!")
+            self.results.add_fail(
+                "TEST 5", "VULNERABILITY: Invitation can be accepted multiple times!"
+            )
         else:
             self.results.add_pass("TEST 5: Invitation cannot be reused")
 
@@ -460,9 +533,15 @@ class RBACTester:
         """TEST 6: Can one ADMIN remove another ADMIN?"""
         print(f"\n{Colors.OKCYAN}[TEST 6] Admin vs Admin Conflicts{Colors.ENDC}")
 
-        owner = self.register_user(f"owner_{int(time.time())}", f"owner_{int(time.time())}@test.com")
-        admin1 = self.register_user(f"admin1_{int(time.time())}", f"admin1_{int(time.time())}@test.com")
-        admin2 = self.register_user(f"admin2_{int(time.time())}", f"admin2_{int(time.time())}@test.com")
+        owner = self.register_user(
+            f"owner_{int(time.time())}", f"owner_{int(time.time())}@test.com"
+        )
+        admin1 = self.register_user(
+            f"admin1_{int(time.time())}", f"admin1_{int(time.time())}@test.com"
+        )
+        admin2 = self.register_user(
+            f"admin2_{int(time.time())}", f"admin2_{int(time.time())}@test.com"
+        )
 
         if not all([owner, admin1, admin2]):
             self.results.add_fail("TEST 6", "Failed to create test users")
@@ -472,14 +551,20 @@ class RBACTester:
         admin1_token = self.login(admin1["username"])
         admin2_token = self.login(admin2["username"])
 
-        org = self.create_organization(owner_token, "Test Org 6", f"testorg6-{int(time.time())}")
+        org = self.create_organization(
+            owner_token, "Test Org 6", f"testorg6-{int(time.time())}"
+        )
         if not org:
             self.results.add_fail("TEST 6", "Failed to create organization")
             return
 
         # Add both admins
-        admin1_inv = self.invite_member(owner_token, org["id"], admin1["email"], "admin")
-        admin2_inv = self.invite_member(owner_token, org["id"], admin2["email"], "admin")
+        admin1_inv = self.invite_member(
+            owner_token, org["id"], admin1["email"], "admin"
+        )
+        admin2_inv = self.invite_member(
+            owner_token, org["id"], admin2["email"], "admin"
+        )
 
         if admin1_inv:
             self.accept_invitation(admin1_token, admin1_inv["token"])
@@ -490,14 +575,18 @@ class RBACTester:
 
         # Get admin2's membership
         members = self.get_members(owner_token, org["id"])
-        admin2_membership = next((m for m in members if m["email"] == admin2["email"]), None)
+        admin2_membership = next(
+            (m for m in members if m["email"] == admin2["email"]), None
+        )
 
         if not admin2_membership:
             self.results.add_fail("TEST 6", "Admin2 membership not found")
             return
 
         # ATTACK: Admin1 tries to remove Admin2
-        success, status = self.remove_member(admin1_token, org["id"], admin2_membership["id"])
+        success, status = self.remove_member(
+            admin1_token, org["id"], admin2_membership["id"]
+        )
 
         if success:
             # This might be acceptable behavior, but note it
@@ -512,9 +601,15 @@ class RBACTester:
         """TEST 7: Can a MEMBER invite new users?"""
         print(f"\n{Colors.OKCYAN}[TEST 7] Member Invitation Permissions{Colors.ENDC}")
 
-        owner = self.register_user(f"owner_{int(time.time())}", f"owner_{int(time.time())}@test.com")
-        member = self.register_user(f"member_{int(time.time())}", f"member_{int(time.time())}@test.com")
-        invitee = self.register_user(f"invitee_{int(time.time())}", f"invitee_{int(time.time())}@test.com")
+        owner = self.register_user(
+            f"owner_{int(time.time())}", f"owner_{int(time.time())}@test.com"
+        )
+        member = self.register_user(
+            f"member_{int(time.time())}", f"member_{int(time.time())}@test.com"
+        )
+        invitee = self.register_user(
+            f"invitee_{int(time.time())}", f"invitee_{int(time.time())}@test.com"
+        )
 
         if not all([owner, member, invitee]):
             self.results.add_fail("TEST 7", "Failed to create test users")
@@ -523,18 +618,24 @@ class RBACTester:
         owner_token = self.login(owner["username"])
         member_token = self.login(member["username"])
 
-        org = self.create_organization(owner_token, "Test Org 7", f"testorg7-{int(time.time())}")
+        org = self.create_organization(
+            owner_token, "Test Org 7", f"testorg7-{int(time.time())}"
+        )
         if not org:
             self.results.add_fail("TEST 7", "Failed to create organization")
             return
 
         # Add member
-        member_inv = self.invite_member(owner_token, org["id"], member["email"], "member")
+        member_inv = self.invite_member(
+            owner_token, org["id"], member["email"], "member"
+        )
         if member_inv:
             self.accept_invitation(member_token, member_inv["token"])
 
         # ATTACK: Member tries to invite someone
-        invitation = self.invite_member(member_token, org["id"], invitee["email"], "member")
+        invitation = self.invite_member(
+            member_token, org["id"], invitee["email"], "member"
+        )
 
         if invitation:
             self.results.add_fail("TEST 7", "VULNERABILITY: MEMBER can invite users!")
@@ -543,10 +644,16 @@ class RBACTester:
 
     def test_expense_cross_org_header_manipulation(self):
         """TEST 8: Can user manipulate X-Organization-Id header?"""
-        print(f"\n{Colors.OKCYAN}[TEST 8] X-Organization-Id Header Manipulation{Colors.ENDC}")
+        print(
+            f"\n{Colors.OKCYAN}[TEST 8] X-Organization-Id Header Manipulation{Colors.ENDC}"
+        )
 
-        owner_a = self.register_user(f"ownera_{int(time.time())}", f"ownera_{int(time.time())}@test.com")
-        owner_b = self.register_user(f"ownerb_{int(time.time())}", f"ownerb_{int(time.time())}@test.com")
+        owner_a = self.register_user(
+            f"ownera_{int(time.time())}", f"ownera_{int(time.time())}@test.com"
+        )
+        owner_b = self.register_user(
+            f"ownerb_{int(time.time())}", f"ownerb_{int(time.time())}@test.com"
+        )
 
         if not owner_a or not owner_b:
             self.results.add_fail("TEST 8", "Failed to create test users")
@@ -566,16 +673,25 @@ class RBACTester:
         expense = self.create_expense(token_a, org_b["id"], 500.00, "Malicious Vendor")
 
         if expense:
-            self.results.add_fail("TEST 8", "VULNERABILITY: Can create expenses in other orgs via header manipulation!")
+            self.results.add_fail(
+                "TEST 8",
+                "VULNERABILITY: Can create expenses in other orgs via header manipulation!",
+            )
         else:
             self.results.add_pass("TEST 8: Cannot create expenses in unauthorized org")
 
     def test_owner_self_demotion_with_other_owners(self):
         """TEST 9: Can owner demote themselves when other owners exist?"""
-        print(f"\n{Colors.OKCYAN}[TEST 9] Owner Self-Demotion (multiple owners){Colors.ENDC}")
+        print(
+            f"\n{Colors.OKCYAN}[TEST 9] Owner Self-Demotion (multiple owners){Colors.ENDC}"
+        )
 
-        owner1 = self.register_user(f"owner1_{int(time.time())}", f"owner1_{int(time.time())}@test.com")
-        owner2 = self.register_user(f"owner2_{int(time.time())}", f"owner2_{int(time.time())}@test.com")
+        owner1 = self.register_user(
+            f"owner1_{int(time.time())}", f"owner1_{int(time.time())}@test.com"
+        )
+        owner2 = self.register_user(
+            f"owner2_{int(time.time())}", f"owner2_{int(time.time())}@test.com"
+        )
 
         if not owner1 or not owner2:
             self.results.add_fail("TEST 9", "Failed to create test users")
@@ -584,7 +700,9 @@ class RBACTester:
         token1 = self.login(owner1["username"])
         token2 = self.login(owner2["username"])
 
-        org = self.create_organization(token1, "Test Org 9", f"testorg9-{int(time.time())}")
+        org = self.create_organization(
+            token1, "Test Org 9", f"testorg9-{int(time.time())}"
+        )
         if not org:
             self.results.add_fail("TEST 9", "Failed to create organization")
             return
@@ -596,22 +714,30 @@ class RBACTester:
 
             # Promote to owner
             members = self.get_members(token1, org["id"])
-            owner2_membership = next((m for m in members if m["email"] == owner2["email"]), None)
+            owner2_membership = next(
+                (m for m in members if m["email"] == owner2["email"]), None
+            )
             if owner2_membership:
-                self.update_member_role(token1, org["id"], owner2_membership["id"], "owner")
+                self.update_member_role(
+                    token1, org["id"], owner2_membership["id"], "owner"
+                )
 
         time.sleep(0.5)
 
         # Get owner1's membership
         members = self.get_members(token1, org["id"])
-        owner1_membership = next((m for m in members if m["email"] == owner1["email"]), None)
+        owner1_membership = next(
+            (m for m in members if m["email"] == owner1["email"]), None
+        )
 
         if not owner1_membership:
             self.results.add_fail("TEST 9", "Owner1 membership not found")
             return
 
         # Owner1 tries to demote themselves to admin
-        success, status = self.update_member_role(token1, org["id"], owner1_membership["id"], "admin")
+        success, status = self.update_member_role(
+            token1, org["id"], owner1_membership["id"], "admin"
+        )
 
         # This should be allowed since another owner exists
         if success or status == 400:
@@ -620,7 +746,9 @@ class RBACTester:
             owner_count = sum(1 for m in members_after if m["role"] == "owner")
 
             if owner_count >= 1:
-                self.results.add_pass("TEST 9: Owner can demote self when others exist (or prevented)")
+                self.results.add_pass(
+                    "TEST 9: Owner can demote self when others exist (or prevented)"
+                )
             else:
                 self.results.add_fail("TEST 9", "Organization left without owners!")
         else:
@@ -628,11 +756,15 @@ class RBACTester:
 
     def test_global_role_isolation(self):
         """TEST 10: Does global UserRole.ACCOUNTANT leak data across orgs?"""
-        print(f"\n{Colors.OKCYAN}[TEST 10] Global Role vs Org Role Isolation{Colors.ENDC}")
+        print(
+            f"\n{Colors.OKCYAN}[TEST 10] Global Role vs Org Role Isolation{Colors.ENDC}"
+        )
 
         # This test requires backend support for creating users with specific global roles
         # For now, we'll note this as a manual test requirement
-        self.results.add_pass("TEST 10: Manual verification required - check expense.py:79-84")
+        self.results.add_pass(
+            "TEST 10: Manual verification required - check expense.py:79-84"
+        )
 
     # ========================================================================
     # MAIN TEST RUNNER
@@ -641,7 +773,9 @@ class RBACTester:
     def run_all_tests(self):
         """Run all security tests"""
         print(f"\n{Colors.BOLD}{Colors.HEADER}{'=' * 70}{Colors.ENDC}")
-        print(f"{Colors.BOLD}{Colors.HEADER}RBAC COMPREHENSIVE SECURITY TEST SUITE{Colors.ENDC}")
+        print(
+            f"{Colors.BOLD}{Colors.HEADER}RBAC COMPREHENSIVE SECURITY TEST SUITE{Colors.ENDC}"
+        )
         print(f"{Colors.BOLD}{Colors.HEADER}{'=' * 70}{Colors.ENDC}\n")
 
         print(f"{Colors.BOLD}Testing for:{Colors.ENDC}")

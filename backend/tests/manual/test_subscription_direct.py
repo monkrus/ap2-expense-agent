@@ -1,6 +1,8 @@
 """Direct test of subscription endpoint - bypasses browser cache"""
+
 import sys
-sys.path.insert(0, r'C:\Users\robot\Desktop\ap2-expense-agent\backend')
+
+sys.path.insert(0, r"C:\Users\robot\Desktop\ap2-expense-agent\backend")
 
 from src.database import SessionLocal
 from src.models import User
@@ -35,7 +37,11 @@ print(f"\n" + "=" * 60)
 print("Checking Free tier in database:")
 free_tier = db.query(BillingTier).filter(BillingTier.tier_name == "free").first()
 if free_tier:
-    limits = json.loads(free_tier.limits) if isinstance(free_tier.limits, str) else free_tier.limits
+    limits = (
+        json.loads(free_tier.limits)
+        if isinstance(free_tier.limits, str)
+        else free_tier.limits
+    )
     print(f"Free tier exists: {free_tier.display_name}")
     print(f"Limits: {json.dumps(limits, indent=2)}")
 else:
