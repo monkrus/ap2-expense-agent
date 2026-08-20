@@ -53,7 +53,7 @@ jobs:
       - name: Run Flake8 (linting)
         working-directory: backend
         run: flake8 src/ tests/ --max-line-length=120 --extend-ignore=E203,W503,F401,F841,E712,E722,F541,W293,E402,E231,F811,E501,E711
-        continue-on-error: true
+        continue-on-error: false
 
   lint-frontend:
     name: Lint Frontend (TypeScript/JavaScript)
@@ -75,12 +75,12 @@ jobs:
       - name: Run ESLint
         working-directory: frontend
         run: npm run lint
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Run Prettier check
         working-directory: frontend
         run: npx prettier --check "src/**/*.{js,jsx,ts,tsx,json,css,md}"
-        continue-on-error: true
+        continue-on-error: false
 
   # ============================================================================
   # SECURITY - SAST (Static Application Security Testing)
@@ -105,7 +105,7 @@ jobs:
         run: |
           bandit -r src/ -f json -o bandit-report.json || true
           bandit -r src/ -ll
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Upload Bandit report
         uses: actions/upload-artifact@v4
@@ -131,9 +131,8 @@ jobs:
 
       - name: Run ESLint security plugin
         working-directory: frontend
-        run: |
-          npx eslint src/ || true
-        continue-on-error: true
+        run: npx eslint src/
+        continue-on-error: false
 
   # ============================================================================
   # SECURITY - Dependency Scanning
@@ -158,7 +157,7 @@ jobs:
         run: |
           pip-audit --requirement requirements.txt --format json --output pip-audit-report.json || true
           pip-audit --requirement requirements.txt
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Upload pip-audit report
         uses: actions/upload-artifact@v4
@@ -183,7 +182,7 @@ jobs:
         run: |
           npm audit --json > npm-audit-report.json || true
           npm audit
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Upload npm audit report
         uses: actions/upload-artifact@v4
@@ -210,7 +209,7 @@ jobs:
           config-path: .gitleaks.toml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
+        continue-on-error: false
 
   # ============================================================================
   # UNIT TESTS - Backend
@@ -265,9 +264,8 @@ jobs:
 
       - name: Check coverage threshold
         working-directory: backend
-        run: |
-          coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }} || echo "Coverage below threshold"
-        continue-on-error: true
+        run: coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }}
+        continue-on-error: false
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -309,9 +307,9 @@ jobs:
       - name: Run tests (when implemented)
         working-directory: frontend
         run: |
-          # npm test -- --coverage --watchAll=false || echo "Frontend tests not yet implemented"
+          # npm test -- --coverage --watchAll=false
           echo "Frontend unit tests to be implemented"
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Build frontend
         working-directory: frontend
@@ -370,7 +368,7 @@ jobs:
       - name: Run Playwright E2E tests
         working-directory: frontend
         run: npx playwright test --project=chromium
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
@@ -421,7 +419,7 @@ jobs:
         run: |
           # k6 run tests/performance/load-test.js
           echo "k6 performance tests to be implemented"
-        continue-on-error: true
+        continue-on-error: false
 
   # ============================================================================
   # BUILD - Docker Images
@@ -450,7 +448,7 @@ jobs:
         run: |
           # docker build -t ap2-expense-frontend:${{ github.sha }} frontend/
           echo "Frontend Dockerfile to be created"
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Scan images with Trivy
         uses: aquasecurity/trivy-action@master
@@ -458,7 +456,7 @@ jobs:
           image-ref: ap2-expense-backend:${{ github.sha }}
           format: 'sarif'
           output: 'trivy-results.sarif'
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Upload Trivy results to GitHub Security
         if: always() && hashFiles('trivy-results.sarif') != ''
@@ -489,13 +487,13 @@ jobs:
         run: |
           # helm lint helm/ap2-expense/
           echo "Helm charts to be created"
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Validate Kubernetes manifests (when they exist)
         run: |
           # helm template helm/ap2-expense/ | kubectl apply --dry-run=server -f -
           echo "Kubernetes manifests to be created"
-        continue-on-error: true
+        continue-on-error: false
 
   # ============================================================================
   # INFRASTRUCTURE - Terraform Validation
@@ -514,13 +512,13 @@ jobs:
         run: |
           # terraform fmt -check -recursive infrastructure/
           echo "Terraform code to be created"
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Terraform Validate (when terraform exists)
         run: |
           # cd infrastructure/ && terraform init -backend=false && terraform validate
           echo "Terraform code to be created"
-        continue-on-error: true
+        continue-on-error: false
 
   # ============================================================================
   # STATUS CHECK - Overall Result
@@ -533,10 +531,17 @@ jobs:
       - lint-backend
       - lint-frontend
       - security-sast-python
+      - security-sast-javascript
       - security-dependencies-python
       - security-dependencies-npm
+      - security-secrets
       - test-backend
       - test-frontend
+      - test-e2e
+      - test-performance
+      - build-images
+      - validate-helm
+      - validate-terraform
     if: always()
     steps:
       - name: Check job statuses
@@ -544,12 +549,22 @@ jobs:
           echo "Lint Backend: ${{ needs.lint-backend.result }}"
           echo "Lint Frontend: ${{ needs.lint-frontend.result }}"
           echo "SAST Python: ${{ needs.security-sast-python.result }}"
+          echo "SAST JavaScript: ${{ needs.security-sast-javascript.result }}"
           echo "Dependencies Python: ${{ needs.security-dependencies-python.result }}"
           echo "Dependencies npm: ${{ needs.security-dependencies-npm.result }}"
+          echo "Secrets Detection: ${{ needs.security-secrets.result }}"
           echo "Test Backend: ${{ needs.test-backend.result }}"
           echo "Test Frontend: ${{ needs.test-frontend.result }}"
+          echo "Test E2E: ${{ needs.test-e2e.result }}"
+          echo "Test Performance: ${{ needs.test-performance.result }}"
+          echo "Build Images: ${{ needs.build-images.result }}"
+          echo "Validate Helm: ${{ needs.validate-helm.result }}"
+          echo "Validate Terraform: ${{ needs.validate-terraform.result }}"
 
-      - name: Fail if critical jobs failed
+      - name: Fail if any job failed or was cancelled
         if: |
-          needs.test-backend.result == 'failure'
-        run: exit 1
+          contains(needs.*.result, 'failure') ||
+          contains(needs.*.result, 'cancelled')
+        run: |
+          echo "One or more required CI checks failed or were cancelled."
+          exit 1
