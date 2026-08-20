@@ -46,7 +46,10 @@ print_step(1, "Login as Employee (employee1)")
 
 emp_resp = requests.post(
     f"{BASE_URL}/auth/login",
-    json={"username": "employee1", "password": os.getenv("TEST_EMPLOYEE_PASSWORD", "TempPass123!")},
+    json={
+        "username": "employee1",
+        "password": os.getenv("TEST_EMPLOYEE_PASSWORD", "TempPass123!"),
+    },
 )
 
 if emp_resp.status_code != 200:
@@ -123,7 +126,10 @@ print_step(4, "Login as Admin (adminfree)")
 
 admin_resp = requests.post(
     f"{BASE_URL}/auth/login",
-    json={"username": "adminfree", "password": os.getenv("TEST_ADMIN_PASSWORD", "Admin123!")},
+    json={
+        "username": "adminfree",
+        "password": os.getenv("TEST_ADMIN_PASSWORD", "Admin123!"),
+    },
 )
 
 if admin_resp.status_code != 200:
