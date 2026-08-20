@@ -1033,7 +1033,9 @@ const EmployeeDashboard = () => {
                           {autoApprovalPreview.remaining_monthly != null && (
                             <span className="text-green-600 ml-1">
                               ($
-                              {autoApprovalPreview.remaining_monthly.toFixed(2)}{" "}
+                              {autoApprovalPreview.remaining_monthly.toFixed(
+                                2,
+                              )}{" "}
                               remaining this month)
                             </span>
                           )}
