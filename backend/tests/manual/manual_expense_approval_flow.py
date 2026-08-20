@@ -7,13 +7,14 @@ Test Expense Approval Workflow
 4. Employee receives approval notification
 """
 
-import json
-import time
+import os
 from datetime import datetime
 
 import requests
 
-BASE_URL = "http://localhost:8000/api/v1"
+BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
+EMPLOYEE_PASSWORD = os.getenv("TEST_EMPLOYEE_PASSWORD", "TempPass123!")
+ADMIN_PASSWORD = os.getenv("TEST_ADMIN_PASSWORD", "Admin123!")
 
 
 # Colors for output
@@ -47,22 +48,20 @@ print_step(1, "Login as Employee (employee1)")
 
 employee_login = requests.post(
     f"{BASE_URL}/auth/login",
-    json={"username": "employee1", "password": "TempPass123!"},  # Update if different
+    json={"username": "employee1", "password": EMPLOYEE_PASSWORD},
 )
 
 if employee_login.status_code != 200:
-    print_error(f"Employee login failed: {employee_login.status_code}")
-    print(f"Response: {employee_login.text}")
-    print("\nPlease check the employee password or create a new employee user")
+    print_error(f"Employee login failed with status code: {employee_login.status_code}")
+    print_info("Please check the employee credentials in the system.")
     exit(1)
 
 employee_data = employee_login.json()
-employee_token = employee_data["access_token"]
-employee_user_id = employee_data["user"]["id"]
+employee_token = employee_data.get("access_token")
+employee_user_id = employee_data.get("user", {}).get("id")
 
-print_success(f"Logged in as: {employee_data['user']['username']}")
+print_success(f"Logged in as: {employee_data.get('user', {}).get('username')}")
 print_info(f"User ID: {employee_user_id}")
-print_info(f"Email: {employee_data['user']['email']}")
 
 # Step 2: Get Organization ID
 print_step(2, "Get Employee's Organization")
@@ -98,7 +97,7 @@ expense_data = {
     "currency": "USD",
 }
 
-print_info(f"Expense Details:")
+print_info("Expense Details:")
 print(f"  Amount: ${expense_data['amount']}")
 print(f"  Vendor: {expense_data['vendor']}")
 print(f"  Category: {expense_data['category']}")
@@ -116,7 +115,6 @@ expense_response = requests.post(
 
 if expense_response.status_code != 201:
     print_error(f"Failed to create expense: {expense_response.status_code}")
-    print(f"Response: {expense_response.text}")
     exit(1)
 
 expense = expense_response.json()
@@ -132,20 +130,19 @@ print_step(4, "Login as Admin (adminfree)")
 
 admin_login = requests.post(
     f"{BASE_URL}/auth/login",
-    json={"username": "adminfree", "password": "Admin123!"},  # Update if different
+    json={"username": "adminfree", "password": ADMIN_PASSWORD},
 )
 
 if admin_login.status_code != 200:
-    print_error(f"Admin login failed: {admin_login.status_code}")
-    print(f"Response: {admin_login.text}")
-    print("\nPlease check the admin password")
+    print_error(f"Admin login failed with status code: {admin_login.status_code}")
+    print_info("Please check the admin credentials in the system.")
     exit(1)
 
 admin_data = admin_login.json()
-admin_token = admin_data["access_token"]
+admin_token = admin_data.get("access_token")
 
-print_success(f"Logged in as: {admin_data['user']['username']}")
-print_info(f"Role: {admin_data['user']['role']}")
+print_success(f"Logged in as: {admin_data.get('user', {}).get('username')}")
+print_info(f"Role: {admin_data.get('user', {}).get('role')}")
 
 # Step 5: Admin Views Pending Expenses
 print_step(5, "Admin Views Pending Expenses")
@@ -165,7 +162,7 @@ print_success(f"Found {len(pending)} pending expense(s)")
 # Find our expense
 our_expense = next((e for e in pending if e["id"] == expense_id), None)
 if our_expense:
-    print_info(f"Our expense is pending approval:")
+    print_info("Our expense is pending approval:")
     print(f"  ID: {our_expense['id']}")
     print(f"  Amount: ${our_expense['amount']}")
     print(f"  Vendor: {our_expense['vendor']}")
@@ -181,7 +178,6 @@ approve_response = requests.put(
 
 if approve_response.status_code != 200:
     print_error(f"Failed to approve expense: {approve_response.status_code}")
-    print(f"Response: {approve_response.text}")
     exit(1)
 
 approved_expense = approve_response.json()
@@ -216,11 +212,11 @@ print(f"{Color.GREEN}WORKFLOW TEST COMPLETED SUCCESSFULLY!{Color.END}")
 print("=" * 70)
 print("\nWorkflow Summary:")
 print(f"1. Employee 'employee1' submitted expense for ${expense_data['amount']}")
-print(f"2. Expense was created with status: PENDING")
-print(f"3. Admin 'adminfree' viewed pending expenses")
-print(f"4. Admin approved the expense")
-print(f"5. Expense status changed to: APPROVED")
-print(f"6. Employee can now see the approved expense")
+print("2. Expense was created with status: PENDING")
+print("3. Admin 'adminfree' viewed pending expenses")
+print("4. Admin approved the expense")
+print("5. Expense status changed to: APPROVED")
+print("6. Employee can now see the approved expense")
 print("\n" + "=" * 70)
 
 # Test Rejection Flow (Optional)
