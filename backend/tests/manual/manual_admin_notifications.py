@@ -31,9 +31,7 @@ def test_admin_notifications():
     admin_data = admin_login.json()
     admin_token = admin_data.get("access_token")
     admin_user = admin_data.get("user")
-    print(
-        f"[OK] Admin logged in: {admin_user.get('username')} (ID: {admin_user.get('id')})"
-    )
+    print("[OK] Admin logged in successfully")
 
     # Get admin's organization
     admin_org_id = None
@@ -82,9 +80,7 @@ def test_admin_notifications():
     employee_data = employee_login.json()
     employee_token = employee_data.get("access_token")
     employee_user = employee_data.get("user")
-    print(
-        f"[OK] Employee logged in: {employee_user.get('username')} (ID: {employee_user.get('id')})"
-    )
+    print("[OK] Employee logged in successfully")
 
     # Step 3: Submit expense as employee
     print("\n[4] Submitting expense as employee...")
@@ -148,7 +144,7 @@ def test_admin_notifications():
     # Find the most recent notification
     if notifications:
         latest_notif = notifications[0]  # Notifications are ordered by created_at desc
-        print(f"\nLatest Notification:")
+        print("\nLatest Notification:")
         print(f"   Type: {latest_notif.get('notification_type')}")
         print(f"   Title: {latest_notif.get('title')}")
         print(f"   Message: {latest_notif.get('message')}")
@@ -160,19 +156,19 @@ def test_admin_notifications():
         if latest_notif.get("notification_type") == "expense_submitted":
             if latest_notif.get("expense_id") == expense.get("id"):
                 print(
-                    f"\n[SUCCESS] Admin received notification for the submitted expense!"
+                    "\n[SUCCESS] Admin received notification for the submitted expense!"
                 )
                 return True
             else:
-                print(f"\n[WARN] Notification received but expense_id doesn't match")
+                print("\n[WARN] Notification received but expense_id doesn't match")
                 print(f"   Expected: {expense.get('id')}")
                 print(f"   Got: {latest_notif.get('expense_id')}")
                 return False
         else:
-            print(f"\n[WARN] Notification received but type is not 'expense_submitted'")
+            print("\n[WARN] Notification received but type is not 'expense_submitted'")
             return False
     else:
-        print(f"[FAIL] No notifications found in response")
+        print("[FAIL] No notifications found in response")
         return False
 
 
