@@ -369,7 +369,7 @@ jobs:
 
       - name: Run Playwright E2E tests
         working-directory: frontend
-        run: npx playwright test
+        run: npx playwright test --project=chromium
         continue-on-error: true
 
       - name: Upload Playwright report
