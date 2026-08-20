@@ -13,8 +13,6 @@ from datetime import datetime
 import requests
 
 BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
-EMPLOYEE_PASSWORD = os.getenv("TEST_EMPLOYEE_PASSWORD", "TempPass123!")
-ADMIN_PASSWORD = os.getenv("TEST_ADMIN_PASSWORD", "Admin123!")
 
 
 # Colors for output
@@ -46,22 +44,17 @@ def print_info(message):
 # Step 1: Login as Employee
 print_step(1, "Login as Employee (employee1)")
 
-employee_login = requests.post(
+emp_resp = requests.post(
     f"{BASE_URL}/auth/login",
-    json={"username": "employee1", "password": EMPLOYEE_PASSWORD},
+    json={"username": "employee1", "password": os.getenv("TEST_EMPLOYEE_PASSWORD", "TempPass123!")},
 )
 
-if employee_login.status_code != 200:
-    print_error(f"Employee login failed with status code: {employee_login.status_code}")
-    print_info("Please check the employee credentials in the system.")
+if emp_resp.status_code != 200:
+    print_error(f"Employee login failed with status code: {emp_resp.status_code}")
     exit(1)
 
-employee_data = employee_login.json()
-employee_token = employee_data.get("access_token")
-employee_user_id = employee_data.get("user", {}).get("id")
-
-print_success(f"Logged in as: {employee_data.get('user', {}).get('username')}")
-print_info(f"User ID: {employee_user_id}")
+employee_token = emp_resp.json().get("access_token")
+print_success("Logged in successfully as employee1")
 
 # Step 2: Get Organization ID
 print_step(2, "Get Employee's Organization")
@@ -128,21 +121,17 @@ print_info(f"Amount: ${expense['amount']}")
 # Step 4: Login as Admin
 print_step(4, "Login as Admin (adminfree)")
 
-admin_login = requests.post(
+admin_resp = requests.post(
     f"{BASE_URL}/auth/login",
-    json={"username": "adminfree", "password": ADMIN_PASSWORD},
+    json={"username": "adminfree", "password": os.getenv("TEST_ADMIN_PASSWORD", "Admin123!")},
 )
 
-if admin_login.status_code != 200:
-    print_error(f"Admin login failed with status code: {admin_login.status_code}")
-    print_info("Please check the admin credentials in the system.")
+if admin_resp.status_code != 200:
+    print_error(f"Admin login failed with status code: {admin_resp.status_code}")
     exit(1)
 
-admin_data = admin_login.json()
-admin_token = admin_data.get("access_token")
-
-print_success(f"Logged in as: {admin_data.get('user', {}).get('username')}")
-print_info(f"Role: {admin_data.get('user', {}).get('role')}")
+admin_token = admin_resp.json().get("access_token")
+print_success("Logged in successfully as adminfree")
 
 # Step 5: Admin Views Pending Expenses
 print_step(5, "Admin Views Pending Expenses")
@@ -166,7 +155,6 @@ if our_expense:
     print(f"  ID: {our_expense['id']}")
     print(f"  Amount: ${our_expense['amount']}")
     print(f"  Vendor: {our_expense['vendor']}")
-    print(f"  Submitted by: {our_expense.get('user', {}).get('username', 'Unknown')}")
 
 # Step 6: Admin Approves Expense
 print_step(6, "Admin Approves Expense")
@@ -185,8 +173,6 @@ approved_expense = approve_response.json()
 print_success("Expense approved successfully!")
 print_info(f"Expense ID: {approved_expense['id']}")
 print_info(f"Status: {approved_expense['status']}")
-print_info(f"Approved by: {approved_expense.get('approved_by', 'N/A')}")
-print_info(f"Approved at: {approved_expense.get('approved_at', 'N/A')}")
 
 # Step 7: Employee Views Approved Expense
 print_step(7, "Employee Views Approved Expense")
