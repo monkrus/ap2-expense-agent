@@ -348,7 +348,7 @@ async def batch_upload_receipts(
     membership = (
         db.query(OrganizationMember)
         .filter(OrganizationMember.user_id == current_user.id)
-        .filter(OrganizationMember.is_active == True)
+        .filter(OrganizationMember.is_active == True)  # noqa: E712
         .first()
     )
 
@@ -361,7 +361,7 @@ async def batch_upload_receipts(
             )
         except LimitExceededError as e:
             raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(e)
+                status_code=http_status.HTTP_402_PAYMENT_REQUIRED, detail=str(e)
             )
 
     results = []
@@ -481,7 +481,7 @@ async def batch_upload_receipts(
             try:
                 if Path(temp_file).exists():
                     Path(temp_file).unlink()
-            except:
+            except Exception:
                 pass
 
         raise HTTPException(status_code=500, detail=f"Batch upload failed: {str(e)}")
@@ -570,7 +570,7 @@ async def create_expense_from_extraction(
             db.query(OrganizationMember)
             .filter(
                 OrganizationMember.user_id == current_user.id,
-                OrganizationMember.is_active == True,
+                OrganizationMember.is_active == True,  # noqa: E712
             )
             .first()
         )
@@ -628,7 +628,7 @@ async def create_expense_from_extraction(
                 db.commit()
             else:
                 # Notify admins only for non-batch uploads; batch uses summary notification
-                is_batch = data.get("is_batch", False)
+                is_batch = getattr(data, "is_batch", False)
                 if not is_batch:
                     notify_admins_new_expense(
                         db, expense, current_user, member.organization_id
