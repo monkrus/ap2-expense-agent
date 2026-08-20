@@ -32,17 +32,23 @@ const InitialSetup = ({ onComplete }) => {
     if (!form.full_name.trim()) return "Full name is required.";
     if (!form.username.trim()) return "Username is required.";
     if (!form.email.trim()) return "Email is required.";
-    if (form.password.length < 8) return "Password must be at least 8 characters.";
-    if (!/[A-Z]/.test(form.password)) return "Password must contain an uppercase letter.";
+    if (form.password.length < 8)
+      return "Password must be at least 8 characters.";
+    if (!/[A-Z]/.test(form.password))
+      return "Password must contain an uppercase letter.";
     if (!/[0-9]/.test(form.password)) return "Password must contain a number.";
-    if (form.password !== form.confirm_password) return "Passwords do not match.";
+    if (form.password !== form.confirm_password)
+      return "Passwords do not match.";
     return null;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationError = validate();
-    if (validationError) { setError(validationError); return; }
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -66,7 +72,8 @@ const InitialSetup = ({ onComplete }) => {
           const data = await res.json();
           errorMessage = data.detail || errorMessage;
         } catch {
-          if (res.status >= 500) errorMessage = "Server error. Please try again later.";
+          if (res.status >= 500)
+            errorMessage = "Server error. Please try again later.";
         }
         setError(errorMessage);
         return;
@@ -87,9 +94,12 @@ const InitialSetup = ({ onComplete }) => {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Admin account created!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Admin account created!
+          </h2>
           <p className="text-gray-600 mb-8">
-            You can now log in with your credentials and start configuring your organisation.
+            You can now log in with your credentials and start configuring your
+            organisation.
           </p>
           <button
             onClick={onComplete}
@@ -112,15 +122,17 @@ const InitialSetup = ({ onComplete }) => {
               <Shield className="w-7 h-7" />
             </div>
             <div>
-              <p className="text-sm font-medium text-indigo-200">AP2 Expense Agent</p>
+              <p className="text-sm font-medium text-indigo-200">
+                AP2 Expense Agent
+              </p>
               <h1 className="text-xl font-bold">First-Time Setup</h1>
             </div>
           </div>
           <div className="flex items-start gap-2 bg-white/10 rounded-xl p-3 text-sm">
             <Building2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-indigo-200" />
             <p className="text-indigo-100">
-              No accounts exist yet. Create the initial admin account to get started.
-              The first user is always granted full admin privileges.
+              No accounts exist yet. Create the initial admin account to get
+              started. The first user is always granted full admin privileges.
             </p>
           </div>
         </div>
@@ -128,7 +140,9 @@ const InitialSetup = ({ onComplete }) => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-8 py-8 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Full Name
+            </label>
             <input
               name="full_name"
               value={form.full_name}
@@ -141,7 +155,9 @@ const InitialSetup = ({ onComplete }) => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
               <input
                 name="username"
                 value={form.username}
@@ -152,7 +168,9 @@ const InitialSetup = ({ onComplete }) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
               <input
                 name="email"
                 type="email"
@@ -166,7 +184,9 @@ const InitialSetup = ({ onComplete }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
             <div className="relative">
               <input
                 name="password"
@@ -182,13 +202,19 @@ const InitialSetup = ({ onComplete }) => {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Confirm Password
+            </label>
             <input
               name="confirm_password"
               type={showPassword ? "text" : "password"}
@@ -215,7 +241,8 @@ const InitialSetup = ({ onComplete }) => {
           </button>
 
           <p className="text-xs text-center text-gray-400">
-            This screen only appears on a clean deployment. Subsequent users are added by the admin.
+            This screen only appears on a clean deployment. Subsequent users are
+            added by the admin.
           </p>
         </form>
       </div>

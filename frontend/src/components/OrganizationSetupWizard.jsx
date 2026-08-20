@@ -512,7 +512,8 @@ const OrganizationSetupWizard = ({ onComplete }) => {
           {csvFile && (
             <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-sm text-green-700">
-                ✓ Loaded {csvFile.name} — {parsedEmails.length} emails found (roles parsed per row)
+                ✓ Loaded {csvFile.name} — {parsedEmails.length} emails found
+                (roles parsed per row)
               </p>
             </div>
           )}
@@ -555,11 +556,14 @@ const OrganizationSetupWizard = ({ onComplete }) => {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           >
             <option value="employee">Employee — Can submit expenses</option>
-            <option value="manager">Manager — Can approve department expenses</option>
+            <option value="manager">
+              Manager — Can approve department expenses
+            </option>
             <option value="admin">Admin — Full access</option>
           </select>
           <p className="text-xs text-gray-500 mt-1">
-            CSV entries use their own role column; this applies to manually entered emails
+            CSV entries use their own role column; this applies to manually
+            entered emails
           </p>
         </div>
 

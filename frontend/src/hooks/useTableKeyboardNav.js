@@ -47,14 +47,16 @@ export const useTableKeyboardNav = ({
           const nextIndex = Math.min(index + 1, rowCount - 1);
           setSelectedIndex(nextIndex);
           // Focus next row
-          const nextRow = event.currentTarget.parentElement.children[nextIndex + 1]; // +1 for header
+          const nextRow =
+            event.currentTarget.parentElement.children[nextIndex + 1]; // +1 for header
           if (nextRow) nextRow.focus();
         } else if (key === "ArrowUp") {
           event.preventDefault();
           const prevIndex = Math.max(index - 1, 0);
           setSelectedIndex(prevIndex);
           // Focus previous row
-          const prevRow = event.currentTarget.parentElement.children[prevIndex + 1]; // +1 for header
+          const prevRow =
+            event.currentTarget.parentElement.children[prevIndex + 1]; // +1 for header
           if (prevRow) prevRow.focus();
         }
       }
@@ -83,7 +85,7 @@ export const useTableKeyboardNav = ({
         }
       }
     },
-    [rowCount, onRowActivate, enableArrowKeys, enableHomeEnd, enableEnterSpace]
+    [rowCount, onRowActivate, enableArrowKeys, enableHomeEnd, enableEnterSpace],
   );
 
   const getRowProps = useCallback(
@@ -100,7 +102,7 @@ export const useTableKeyboardNav = ({
         cursor: "pointer",
       },
     }),
-    [selectedIndex, handleKeyDown]
+    [selectedIndex, handleKeyDown],
   );
 
   return {

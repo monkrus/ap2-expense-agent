@@ -4,7 +4,11 @@
  * Centralized error handling and response processing for API calls.
  */
 
-import { API_BASE_URL, REQUIRED_HEADERS, HTTP_STATUS } from "../config/constants";
+import {
+  API_BASE_URL,
+  REQUIRED_HEADERS,
+  HTTP_STATUS,
+} from "../config/constants";
 
 /**
  * Extract user data from API response (handles both nested and flat structures)
@@ -68,9 +72,7 @@ export function extractErrorMessage(error) {
  */
 export function isMissingHeaderError(error) {
   return (
-    error &&
-    error.error === "MISSING_REQUIRED_HEADER" &&
-    error.required_header
+    error && error.error === "MISSING_REQUIRED_HEADER" && error.required_header
   );
 }
 
@@ -151,7 +153,7 @@ export async function apiRequest(endpoint, options = {}) {
 
       if (isMissingHeaderError(data)) {
         throw new Error(
-          `Missing required header: ${data.required_header}. ${data.detail || ""}`
+          `Missing required header: ${data.required_header}. ${data.detail || ""}`,
         );
       }
 
@@ -175,7 +177,10 @@ export async function apiRequest(endpoint, options = {}) {
     if (error instanceof Error) {
       throw error;
     }
-    throw new Error("Network error. Please check your connection and try again.", { cause: error });
+    throw new Error(
+      "Network error. Please check your connection and try again.",
+      { cause: error },
+    );
   }
 }
 

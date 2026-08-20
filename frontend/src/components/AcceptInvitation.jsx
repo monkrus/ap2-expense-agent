@@ -139,13 +139,19 @@ const AcceptInvitation = ({ token }) => {
         } catch (err) {
           // "already a member" means acceptance worked — treat as success
           const msg = (err.message || "").toLowerCase();
-          if (msg.includes("already a member") || msg.includes("already used")) {
+          if (
+            msg.includes("already a member") ||
+            msg.includes("already used")
+          ) {
             setStatus("success");
             success("Account created and invitation accepted!");
           } else {
             setStatus("error");
             setErrorMessage(err.message || "Failed to accept invitation");
-            showError(err.message || "Account created but failed to accept invitation. Please try the link again.");
+            showError(
+              err.message ||
+                "Account created but failed to accept invitation. Please try the link again.",
+            );
           }
         }
         setLoading(false);
@@ -183,7 +189,10 @@ const AcceptInvitation = ({ token }) => {
           success("Invitation accepted!");
         } catch (err) {
           const msg = (err.message || "").toLowerCase();
-          if (msg.includes("already a member") || msg.includes("already used")) {
+          if (
+            msg.includes("already a member") ||
+            msg.includes("already used")
+          ) {
             setStatus("success");
             success("Invitation accepted!");
           } else {
@@ -245,13 +254,18 @@ const AcceptInvitation = ({ token }) => {
           </div>
           <div className="space-y-3">
             <button
-              onClick={() => { setStatus("idle"); handleAccept(); }}
+              onClick={() => {
+                setStatus("idle");
+                handleAccept();
+              }}
               className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             >
               Try Again
             </button>
             <button
-              onClick={() => { window.location.href = "/"; }}
+              onClick={() => {
+                window.location.href = "/";
+              }}
               className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Go to Dashboard
@@ -323,7 +337,9 @@ const AcceptInvitation = ({ token }) => {
               )}
             </button>
             <button
-              onClick={() => { window.location.href = "/"; }}
+              onClick={() => {
+                window.location.href = "/";
+              }}
               disabled={loading}
               className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
@@ -356,7 +372,10 @@ const AcceptInvitation = ({ token }) => {
         {/* Tab switcher */}
         <div className="flex rounded-lg bg-gray-100 p-1 mb-6">
           <button
-            onClick={() => { setAuthMode("register"); setFormError(""); }}
+            onClick={() => {
+              setAuthMode("register");
+              setFormError("");
+            }}
             className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
               authMode === "register"
                 ? "bg-white text-indigo-600 shadow-sm"
@@ -367,7 +386,10 @@ const AcceptInvitation = ({ token }) => {
             New Account
           </button>
           <button
-            onClick={() => { setAuthMode("login"); setFormError(""); }}
+            onClick={() => {
+              setAuthMode("login");
+              setFormError("");
+            }}
             className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
               authMode === "login"
                 ? "bg-white text-indigo-600 shadow-sm"
@@ -389,13 +411,17 @@ const AcceptInvitation = ({ token }) => {
         {authMode === "register" ? (
           <form onSubmit={handleRegisterAndAccept} className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                   placeholder="Your email"
                   required
@@ -405,13 +431,17 @@ const AcceptInvitation = ({ token }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                   placeholder="Choose a username"
                   required
@@ -421,13 +451,17 @@ const AcceptInvitation = ({ token }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name (Optional)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name (Optional)
+              </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, full_name: e.target.value })
+                  }
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                   placeholder="Your full name"
                   disabled={loading}
@@ -436,7 +470,9 @@ const AcceptInvitation = ({ token }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -457,25 +493,44 @@ const AcceptInvitation = ({ token }) => {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
               <div className="mt-1.5 grid grid-cols-2 gap-1">
-                <PasswordRequirement met={passwordValidation.minLength}>8+ characters</PasswordRequirement>
-                <PasswordRequirement met={passwordValidation.hasUpper}>Uppercase</PasswordRequirement>
-                <PasswordRequirement met={passwordValidation.hasLower}>Lowercase</PasswordRequirement>
-                <PasswordRequirement met={passwordValidation.hasDigit}>Number</PasswordRequirement>
+                <PasswordRequirement met={passwordValidation.minLength}>
+                  8+ characters
+                </PasswordRequirement>
+                <PasswordRequirement met={passwordValidation.hasUpper}>
+                  Uppercase
+                </PasswordRequirement>
+                <PasswordRequirement met={passwordValidation.hasLower}>
+                  Lowercase
+                </PasswordRequirement>
+                <PasswordRequirement met={passwordValidation.hasDigit}>
+                  Number
+                </PasswordRequirement>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      confirmPassword: e.target.value,
+                    })
+                  }
                   className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                   placeholder="Confirm password"
                   required
@@ -487,7 +542,11 @@ const AcceptInvitation = ({ token }) => {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   tabIndex={-1}
                 >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
             </div>
@@ -513,13 +572,17 @@ const AcceptInvitation = ({ token }) => {
         ) : (
           <form onSubmit={handleLoginAndAccept} className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username or Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Username or Email
+              </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                   placeholder="Username or email"
                   required
@@ -529,13 +592,17 @@ const AcceptInvitation = ({ token }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
                   className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                   placeholder="Your password"
                   required
@@ -547,7 +614,11 @@ const AcceptInvitation = ({ token }) => {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
             </div>

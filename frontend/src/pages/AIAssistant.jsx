@@ -43,7 +43,7 @@ const AIAssistant = () => {
   const [showCreateMandate, setShowCreateMandate] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(
-    () => !localStorage.getItem(AP2Onboarding.STORAGE_KEY)
+    () => !localStorage.getItem(AP2Onboarding.STORAGE_KEY),
   );
 
   // Fetch AP2 stats and mandates
@@ -75,7 +75,7 @@ const AIAssistant = () => {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("access_token")}`,
           },
-        }
+        },
       );
       if (mandatesResponse.ok) {
         const mandatesData = await mandatesResponse.json();
@@ -93,8 +93,9 @@ const AIAssistant = () => {
   };
 
   // Use stats endpoint for accurate count (not limited by mandate list size)
-  const activeMandatesCount = stats?.intent_mandates?.active
-    ?? mandates.filter((m) => m.type === "intent" && m.status === "active").length;
+  const activeMandatesCount =
+    stats?.intent_mandates?.active ??
+    mandates.filter((m) => m.type === "intent" && m.status === "active").length;
 
   // Calculate total processed amount
   const totalProcessed = stats?.total_amount_processed || 0;
@@ -103,8 +104,12 @@ const AIAssistant = () => {
   const completedPayments = stats?.payment_mandates?.completed || 0;
 
   // Success rate
-  const totalPayments = completedPayments + (stats?.payment_mandates?.failed || 0);
-  const successRate = totalPayments > 0 ? Math.round((completedPayments / totalPayments) * 100) : 0;
+  const totalPayments =
+    completedPayments + (stats?.payment_mandates?.failed || 0);
+  const successRate =
+    totalPayments > 0
+      ? Math.round((completedPayments / totalPayments) * 100)
+      : 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -130,7 +135,9 @@ const AIAssistant = () => {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm">Active Authorizations</p>
+                  <p className="text-purple-100 text-sm">
+                    Active Authorizations
+                  </p>
                   <p className="text-2xl font-bold mt-1">
                     {activeMandatesCount}
                   </p>
@@ -159,9 +166,7 @@ const AIAssistant = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-sm">Completed Payments</p>
-                  <p className="text-2xl font-bold mt-1">
-                    {completedPayments}
-                  </p>
+                  <p className="text-2xl font-bold mt-1">{completedPayments}</p>
                 </div>
                 <CheckCircle className="w-8 h-8 text-green-300" />
               </div>
@@ -320,7 +325,9 @@ const AIAssistant = () => {
             {activeView === "analytics" && <AnalyticsView />}
 
             {/* One-time Authorization - Admin Only */}
-            {activeView === "flow" && isAdmin && <AP2CompleteFlow mandates={mandates} onRefresh={fetchData} />}
+            {activeView === "flow" && isAdmin && (
+              <AP2CompleteFlow mandates={mandates} onRefresh={fetchData} />
+            )}
           </>
         )}
       </div>
@@ -353,11 +360,21 @@ const OverviewView = ({ mandates, stats, isAdmin }) => {
 
   // Employee-specific overview
   if (!isAdmin) {
-    return <EmployeeOverview activeIntentMandates={activeIntentMandates} recentActivity={recentActivity} />;
+    return (
+      <EmployeeOverview
+        activeIntentMandates={activeIntentMandates}
+        recentActivity={recentActivity}
+      />
+    );
   }
 
   // Admin overview
-  return <AdminOverview activeIntentMandates={activeIntentMandates} recentActivity={recentActivity} />;
+  return (
+    <AdminOverview
+      activeIntentMandates={activeIntentMandates}
+      recentActivity={recentActivity}
+    />
+  );
 };
 
 const AdminOverview = ({ activeIntentMandates, recentActivity }) => {
@@ -389,7 +406,7 @@ const AdminOverview = ({ activeIntentMandates, recentActivity }) => {
     }
   };
 
-  const pendingRequests = ruleRequests.filter(r => r.status === "pending");
+  const pendingRequests = ruleRequests.filter((r) => r.status === "pending");
 
   return (
     <div className="space-y-6">
@@ -403,20 +420,31 @@ const AdminOverview = ({ activeIntentMandates, recentActivity }) => {
             </h3>
           </div>
           <p className="text-sm text-purple-700 mb-4">
-            Employees have requested auto-approval rules. Review them in your notification bell.
+            Employees have requested auto-approval rules. Review them in your
+            notification bell.
           </p>
           <div className="space-y-3">
             {pendingRequests.map((req) => (
-              <div key={req.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-purple-200">
+              <div
+                key={req.id}
+                className="flex items-center justify-between p-3 bg-white rounded-lg border border-purple-200"
+              >
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    {req.requester_name || req.requester_email} requested:
-                    {" "}
-                    {[req.category?.replace(/_/g, " "), req.vendor, req.max_amount ? `$${req.max_amount}` : null].filter(Boolean).join(", ") || "General rule"}
+                    {req.requester_name || req.requester_email} requested:{" "}
+                    {[
+                      req.category?.replace(/_/g, " "),
+                      req.vendor,
+                      req.max_amount ? `$${req.max_amount}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(", ") || "General rule"}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">{req.reason}</p>
                 </div>
-                <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">Pending</span>
+                <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                  Pending
+                </span>
               </div>
             ))}
           </div>
@@ -429,14 +457,15 @@ const AdminOverview = ({ activeIntentMandates, recentActivity }) => {
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-4">
               <Sparkles className="w-6 h-6" />
-              <h2 className="text-2xl font-bold">
-                Welcome to AP2 Automation
-              </h2>
+              <h2 className="text-2xl font-bold">Welcome to AP2 Automation</h2>
             </div>
             <p className="text-purple-100 mb-6 max-w-2xl">
-              <strong>AP2 handles approval</strong>, not submission. Create <strong>Reusable Authorizations</strong> to auto-approve
-              expenses matching your rules (e.g. "approve software under $500"), or use <strong>One-time Authorizations</strong> for
-              quick single purchases. To automate expense <em>creation</em>, use the Recurring tab instead.
+              <strong>AP2 handles approval</strong>, not submission. Create{" "}
+              <strong>Reusable Authorizations</strong> to auto-approve expenses
+              matching your rules (e.g. "approve software under $500"), or use{" "}
+              <strong>One-time Authorizations</strong> for quick single
+              purchases. To automate expense <em>creation</em>, use the
+              Recurring tab instead.
             </p>
           </div>
           <div className="hidden lg:block">
@@ -501,7 +530,10 @@ const AdminOverview = ({ activeIntentMandates, recentActivity }) => {
           ) : (
             <div className="px-6 py-12 text-center text-gray-500">
               <Activity className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p>No activity yet. Create a Reusable Authorization to enable automatic expense approvals!</p>
+              <p>
+                No activity yet. Create a Reusable Authorization to enable
+                automatic expense approvals!
+              </p>
             </div>
           )}
         </div>
@@ -511,19 +543,27 @@ const AdminOverview = ({ activeIntentMandates, recentActivity }) => {
       {!loadingRequests && ruleRequests.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Rule Request History</h3>
-            <span className="text-sm text-gray-500">{ruleRequests.length} total</span>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Rule Request History
+            </h3>
+            <span className="text-sm text-gray-500">
+              {ruleRequests.length} total
+            </span>
           </div>
           <div className="divide-y divide-gray-100">
             {ruleRequests.map((req) => (
               <div key={req.id} className="px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                      req.status === "approved" ? "bg-green-100 text-green-800" :
-                      req.status === "denied" ? "bg-red-100 text-red-800" :
-                      "bg-yellow-100 text-yellow-800"
-                    }`}>
+                    <span
+                      className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                        req.status === "approved"
+                          ? "bg-green-100 text-green-800"
+                          : req.status === "denied"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
                       {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
                     </span>
                     <div>
@@ -531,17 +571,29 @@ const AdminOverview = ({ activeIntentMandates, recentActivity }) => {
                         {req.requester_name || req.requester_email}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {[req.category?.replace(/_/g, " "), req.vendor, req.max_amount ? `$${req.max_amount}` : null].filter(Boolean).join(", ") || "General"}
-                        {" - "}{req.reason}
+                        {[
+                          req.category?.replace(/_/g, " "),
+                          req.vendor,
+                          req.max_amount ? `$${req.max_amount}` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(", ") || "General"}
+                        {" - "}
+                        {req.reason}
                       </p>
                     </div>
                   </div>
                   <span className="text-xs text-gray-400">
-                    {new Date(req.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    {new Date(req.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
                   </span>
                 </div>
                 {req.admin_note && (
-                  <p className="text-xs text-gray-600 mt-2 ml-16 bg-gray-50 rounded px-2 py-1">Note: {req.admin_note}</p>
+                  <p className="text-xs text-gray-600 mt-2 ml-16 bg-gray-50 rounded px-2 py-1">
+                    Note: {req.admin_note}
+                  </p>
                 )}
               </div>
             ))}
@@ -610,7 +662,9 @@ const MandateListItem = ({ mandate }) => {
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-1">
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${style.bg} ${style.text}`}
+              >
                 <StatusIcon className="w-3 h-3 mr-1" />
                 {mandate.status}
               </span>
@@ -632,7 +686,9 @@ const MandateListItem = ({ mandate }) => {
       {/* Expanded details */}
       {expanded && (
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">Constraints</h4>
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">
+            Constraints
+          </h4>
           <div className="grid grid-cols-2 gap-4 text-sm">
             {mandate.merchant && (
               <div>
@@ -649,13 +705,17 @@ const MandateListItem = ({ mandate }) => {
             {mandate.max_amount && (
               <div>
                 <span className="text-gray-600">Max Amount:</span>
-                <p className="font-medium text-gray-900">${mandate.max_amount.toFixed(2)}</p>
+                <p className="font-medium text-gray-900">
+                  ${mandate.max_amount.toFixed(2)}
+                </p>
               </div>
             )}
             {mandate.monthly_limit && (
               <div>
                 <span className="text-gray-600">Monthly Limit:</span>
-                <p className="font-medium text-gray-900">${mandate.monthly_limit.toFixed(2)}</p>
+                <p className="font-medium text-gray-900">
+                  ${mandate.monthly_limit.toFixed(2)}
+                </p>
               </div>
             )}
             <div>
@@ -754,9 +814,7 @@ const ActivityItem = ({ mandate }) => {
               </span>
             )}
             {mandate.merchant && (
-              <span className="ml-2 text-gray-500">
-                @ {mandate.merchant}
-              </span>
+              <span className="ml-2 text-gray-500">@ {mandate.merchant}</span>
             )}
           </p>
           <p className="text-sm text-gray-500">
@@ -805,12 +863,15 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
     try {
       const token = localStorage.getItem("access_token");
       const orgId = localStorage.getItem("current_organization_id");
-      const response = await fetch("/api/v1/approval-policies?active_only=true", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "X-Organization-Id": orgId,
+      const response = await fetch(
+        "/api/v1/approval-policies?active_only=true",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "X-Organization-Id": orgId,
+          },
         },
-      });
+      );
       if (response.ok) {
         const data = await response.json();
         setPolicies(data);
@@ -897,8 +958,12 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
         }),
       });
       if (response.ok) {
-        showSuccess(`Rule created for ${suggestion.vendor}! Similar expenses will now auto-approve.`);
-        setSuggestions((prev) => prev.filter((s) => s.vendor !== suggestion.vendor));
+        showSuccess(
+          `Rule created for ${suggestion.vendor}! Similar expenses will now auto-approve.`,
+        );
+        setSuggestions((prev) =>
+          prev.filter((s) => s.vendor !== suggestion.vendor),
+        );
       } else {
         const errorData = await response.json().catch(() => ({}));
         showError(errorData.detail || "Failed to create rule");
@@ -915,7 +980,9 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
     const conditions = policy.conditions || {};
 
     if (conditions.categories && conditions.categories.length > 0) {
-      parts.push(conditions.categories.map(c => c.replace(/_/g, " ")).join(", "));
+      parts.push(
+        conditions.categories.map((c) => c.replace(/_/g, " ")).join(", "),
+      );
     } else {
       parts.push("Any category");
     }
@@ -937,11 +1004,14 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <div className="flex items-center space-x-3 mb-6">
           <Sparkles className="w-6 h-6 text-purple-600" />
-          <h2 className="text-2xl font-bold text-gray-900">How AP2 Works For You</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            How AP2 Works For You
+          </h2>
         </div>
         <p className="text-gray-600 mb-8">
-          When you submit an expense, AP2 checks it against approval rules set by your admin.
-          If it matches a rule, it's approved instantly — no waiting for manual review.
+          When you submit an expense, AP2 checks it against approval rules set
+          by your admin. If it matches a rule, it's approved instantly — no
+          waiting for manual review.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -950,28 +1020,36 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
               <span className="text-blue-700 font-bold">1</span>
             </div>
             <h4 className="font-semibold text-blue-900 mb-1">You Submit</h4>
-            <p className="text-sm text-blue-700">Submit an expense manually or via Recurring</p>
+            <p className="text-sm text-blue-700">
+              Submit an expense manually or via Recurring
+            </p>
           </div>
           <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 text-center">
             <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <span className="text-purple-700 font-bold">2</span>
             </div>
             <h4 className="font-semibold text-purple-900 mb-1">AP2 Checks</h4>
-            <p className="text-sm text-purple-700">Expense is checked against admin approval rules</p>
+            <p className="text-sm text-purple-700">
+              Expense is checked against admin approval rules
+            </p>
           </div>
           <div className="bg-green-50 border border-green-200 rounded-xl p-5 text-center">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <span className="text-green-700 font-bold">3a</span>
             </div>
             <h4 className="font-semibold text-green-900 mb-1">Auto-Approved</h4>
-            <p className="text-sm text-green-700">Matches a rule? Approved instantly</p>
+            <p className="text-sm text-green-700">
+              Matches a rule? Approved instantly
+            </p>
           </div>
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 text-center">
             <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <span className="text-amber-700 font-bold">3b</span>
             </div>
             <h4 className="font-semibold text-amber-900 mb-1">Manual Review</h4>
-            <p className="text-sm text-amber-700">No matching rule? Sent to admin for review</p>
+            <p className="text-sm text-amber-700">
+              No matching rule? Sent to admin for review
+            </p>
           </div>
         </div>
       </div>
@@ -980,10 +1058,13 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center space-x-3 mb-4">
           <Shield className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-semibold text-gray-900">What Gets Auto-Approved</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            What Gets Auto-Approved
+          </h3>
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          These are the active rules your admin has set up. Expenses matching these rules are approved instantly.
+          These are the active rules your admin has set up. Expenses matching
+          these rules are approved instantly.
         </p>
 
         {loadingPolicies ? (
@@ -994,16 +1075,25 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
           <div className="space-y-3">
             {/* Approval Policies */}
             {policies.map((policy) => (
-              <div key={policy.id} className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+              <div
+                key={policy.id}
+                className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200"
+              >
                 <div>
                   <p className="font-medium text-green-900">{policy.name}</p>
-                  <p className="text-sm text-green-700 mt-1">{formatPolicyDescription(policy)}</p>
+                  <p className="text-sm text-green-700 mt-1">
+                    {formatPolicyDescription(policy)}
+                  </p>
                   {policy.description && (
-                    <p className="text-xs text-green-600 mt-1">{policy.description}</p>
+                    <p className="text-xs text-green-600 mt-1">
+                      {policy.description}
+                    </p>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">Policy</span>
+                  <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
+                    Policy
+                  </span>
                   <CheckCircle className="w-5 h-5 text-green-600" />
                 </div>
               </div>
@@ -1011,17 +1101,24 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
 
             {/* AP2 Intent Mandates */}
             {activeIntentMandates.map((mandate) => (
-              <div key={mandate.id} className="flex items-center justify-between p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <div
+                key={mandate.id}
+                className="flex items-center justify-between p-4 bg-purple-50 rounded-lg border border-purple-200"
+              >
                 <div>
                   <p className="font-medium text-purple-900">
                     {mandate.merchant || mandate.category || "General"} expenses
                   </p>
                   {mandate.max_amount && (
-                    <p className="text-sm text-purple-700 mt-1">Up to ${mandate.max_amount.toFixed(2)}</p>
+                    <p className="text-sm text-purple-700 mt-1">
+                      Up to ${mandate.max_amount.toFixed(2)}
+                    </p>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded">AP2 Mandate</span>
+                  <span className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded">
+                    AP2 Mandate
+                  </span>
                   <CheckCircle className="w-5 h-5 text-purple-600" />
                 </div>
               </div>
@@ -1030,8 +1127,12 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
         ) : (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
             <Clock className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No auto-approval rules set up yet.</p>
-            <p className="text-xs text-gray-400 mt-1">Ask your admin to create rules, or use the "Request a Rule" tab.</p>
+            <p className="text-sm text-gray-500">
+              No auto-approval rules set up yet.
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Ask your admin to create rules, or use the "Request a Rule" tab.
+            </p>
           </div>
         )}
       </div>
@@ -1040,7 +1141,9 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center space-x-3 mb-4">
           <BarChart3 className="w-5 h-5 text-indigo-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Your Approval Breakdown</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Your Approval Breakdown
+          </h3>
         </div>
 
         {loadingStats ? (
@@ -1052,20 +1155,30 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-green-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-green-700">{approvalStats.auto_approved}</p>
+                <p className="text-2xl font-bold text-green-700">
+                  {approvalStats.auto_approved}
+                </p>
                 <p className="text-xs text-green-600 mt-1">Auto-Approved</p>
               </div>
               <div className="bg-blue-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-blue-700">{approvalStats.manually_approved}</p>
+                <p className="text-2xl font-bold text-blue-700">
+                  {approvalStats.manually_approved}
+                </p>
                 <p className="text-xs text-blue-600 mt-1">Manually Approved</p>
               </div>
               <div className="bg-yellow-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-yellow-700">{approvalStats.pending}</p>
+                <p className="text-2xl font-bold text-yellow-700">
+                  {approvalStats.pending}
+                </p>
                 <p className="text-xs text-yellow-600 mt-1">Pending Review</p>
               </div>
               <div className="bg-purple-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-purple-700">{approvalStats.auto_rate_percent}%</p>
-                <p className="text-xs text-purple-600 mt-1">Auto-Approval Rate</p>
+                <p className="text-2xl font-bold text-purple-700">
+                  {approvalStats.auto_rate_percent}%
+                </p>
+                <p className="text-xs text-purple-600 mt-1">
+                  Auto-Approval Rate
+                </p>
               </div>
             </div>
 
@@ -1074,7 +1187,10 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
               <div className="mb-4">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
                   <span>Auto-approved vs Manual</span>
-                  <span>{approvalStats.auto_approved} of {approvalStats.total_expenses} total</span>
+                  <span>
+                    {approvalStats.auto_approved} of{" "}
+                    {approvalStats.total_expenses} total
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3 flex overflow-hidden">
                   <div
@@ -1083,17 +1199,30 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
                   />
                   <div
                     className="bg-blue-500 h-full transition-all"
-                    style={{ width: `${approvalStats.total_expenses > 0 ? (approvalStats.manually_approved / approvalStats.total_expenses * 100) : 0}%` }}
+                    style={{
+                      width: `${approvalStats.total_expenses > 0 ? (approvalStats.manually_approved / approvalStats.total_expenses) * 100 : 0}%`,
+                    }}
                   />
                   <div
                     className="bg-yellow-400 h-full transition-all"
-                    style={{ width: `${approvalStats.total_expenses > 0 ? (approvalStats.pending / approvalStats.total_expenses * 100) : 0}%` }}
+                    style={{
+                      width: `${approvalStats.total_expenses > 0 ? (approvalStats.pending / approvalStats.total_expenses) * 100 : 0}%`,
+                    }}
                   />
                 </div>
                 <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Auto</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Manual</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"></span> Pending</span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>{" "}
+                    Auto
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>{" "}
+                    Manual
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-yellow-400"></span>{" "}
+                    Pending
+                  </span>
                 </div>
               </div>
             )}
@@ -1107,14 +1236,21 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
                     ~{approvalStats.time_saved_minutes} minutes saved
                   </p>
                   <p className="text-sm text-indigo-700">
-                    AP2 auto-approved ${approvalStats.auto_approved_amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} worth of expenses without manual review
+                    AP2 auto-approved $
+                    {approvalStats.auto_approved_amount.toLocaleString(
+                      "en-US",
+                      { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                    )}{" "}
+                    worth of expenses without manual review
                   </p>
                 </div>
               </div>
             )}
           </div>
         ) : (
-          <p className="text-gray-500 text-sm text-center py-4">No expense data yet.</p>
+          <p className="text-gray-500 text-sm text-center py-4">
+            No expense data yet.
+          </p>
         )}
       </div>
 
@@ -1123,24 +1259,39 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
         <div className="bg-white rounded-xl shadow-sm border border-purple-200 p-6">
           <div className="flex items-center space-x-3 mb-2">
             <Sparkles className="w-5 h-5 text-purple-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Suggested Auto-Approval Rules</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Suggested Auto-Approval Rules
+            </h3>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Based on your expense history, these rules could save you time by auto-approving recurring expenses.
+            Based on your expense history, these rules could save you time by
+            auto-approving recurring expenses.
           </p>
           <div className="space-y-3">
             {suggestions.map((s) => (
-              <div key={`${s.vendor}-${s.category}`} className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <div
+                key={`${s.vendor}-${s.category}`}
+                className="p-4 bg-purple-50 rounded-lg border border-purple-200"
+              >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <p className="font-medium text-purple-900">
                       {s.vendor} - {s.category.replace(/_/g, " ")}
                     </p>
-                    <p className="text-sm text-purple-700 mt-1">{s.explanation}</p>
+                    <p className="text-sm text-purple-700 mt-1">
+                      {s.explanation}
+                    </p>
                     <div className="flex gap-4 mt-2 text-xs text-purple-600">
-                      <span>Max: ${s.suggested_constraints.max_amount.toFixed(2)}</span>
-                      <span>Monthly: ${s.suggested_constraints.monthly_limit.toFixed(2)}</span>
-                      <span>~{s.estimated_time_saved_minutes_per_month} min/mo saved</span>
+                      <span>
+                        Max: ${s.suggested_constraints.max_amount.toFixed(2)}
+                      </span>
+                      <span>
+                        Monthly: $
+                        {s.suggested_constraints.monthly_limit.toFixed(2)}
+                      </span>
+                      <span>
+                        ~{s.estimated_time_saved_minutes_per_month} min/mo saved
+                      </span>
                     </div>
                   </div>
                   <button
@@ -1148,7 +1299,9 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
                     disabled={creatingSuggestion === s.vendor}
                     className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 flex-shrink-0"
                   >
-                    {creatingSuggestion === s.vendor ? "Creating..." : "Create Rule"}
+                    {creatingSuggestion === s.vendor
+                      ? "Creating..."
+                      : "Create Rule"}
                   </button>
                 </div>
               </div>
@@ -1162,30 +1315,50 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center space-x-3 mb-4">
             <FileText className="w-5 h-5 text-orange-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Your Rule Requests</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Your Rule Requests
+            </h3>
           </div>
           <div className="space-y-3">
             {ruleRequests.map((req) => (
-              <div key={req.id} className={`p-4 rounded-lg border ${
-                req.status === "approved" ? "bg-green-50 border-green-200" :
-                req.status === "denied" ? "bg-red-50 border-red-200" :
-                "bg-yellow-50 border-yellow-200"
-              }`}>
+              <div
+                key={req.id}
+                className={`p-4 rounded-lg border ${
+                  req.status === "approved"
+                    ? "bg-green-50 border-green-200"
+                    : req.status === "denied"
+                      ? "bg-red-50 border-red-200"
+                      : "bg-yellow-50 border-yellow-200"
+                }`}
+              >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                      req.status === "approved" ? "bg-green-100 text-green-800" :
-                      req.status === "denied" ? "bg-red-100 text-red-800" :
-                      "bg-yellow-100 text-yellow-800"
-                    }`}>
+                    <span
+                      className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                        req.status === "approved"
+                          ? "bg-green-100 text-green-800"
+                          : req.status === "denied"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
                       {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
                     </span>
                     <span className="text-sm font-medium text-gray-900">
-                      {[req.category?.replace(/_/g, " "), req.vendor, req.max_amount ? `$${req.max_amount}` : null].filter(Boolean).join(" - ") || "General"}
+                      {[
+                        req.category?.replace(/_/g, " "),
+                        req.vendor,
+                        req.max_amount ? `$${req.max_amount}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" - ") || "General"}
                     </span>
                   </div>
                   <span className="text-xs text-gray-500">
-                    {new Date(req.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    {new Date(req.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600">{req.reason}</p>
@@ -1195,7 +1368,9 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
                   </p>
                 )}
                 {req.status === "approved" && req.reviewer_name && (
-                  <p className="text-xs text-green-700 mt-1">Approved by {req.reviewer_name}</p>
+                  <p className="text-xs text-green-700 mt-1">
+                    Approved by {req.reviewer_name}
+                  </p>
                 )}
               </div>
             ))}
@@ -1206,7 +1381,9 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
       {/* Recent Activity */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Recent AP2 Activity</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Recent AP2 Activity
+          </h3>
         </div>
         <div className="divide-y divide-gray-200">
           {recentActivity.length > 0 ? (
@@ -1227,7 +1404,6 @@ const EmployeeOverview = ({ activeIntentMandates, recentActivity }) => {
     </div>
   );
 };
-
 
 // Check Expense View - pre-check if expense would be auto-approved
 const CheckExpenseView = () => {
@@ -1297,10 +1473,13 @@ const CheckExpenseView = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <div className="flex items-center space-x-3 mb-2">
           <Search className="w-6 h-6 text-purple-600" />
-          <h2 className="text-2xl font-bold text-gray-900">Check Before You Submit</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Check Before You Submit
+          </h2>
         </div>
         <p className="text-gray-600 mb-8">
-          Enter expense details below to see if it would be auto-approved or require manual review.
+          Enter expense details below to see if it would be auto-approved or
+          require manual review.
         </p>
 
         <form onSubmit={handleCheck} className="space-y-5">
@@ -1316,7 +1495,9 @@ const CheckExpenseView = () => {
                   step="0.01"
                   min="0.01"
                   value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, amount: e.target.value })
+                  }
                   placeholder="0.00"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   required
@@ -1325,25 +1506,35 @@ const CheckExpenseView = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, category: e.target.value })
+                }
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
                 {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Vendor</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Vendor
+            </label>
             <input
               type="text"
               value={formData.vendor}
-              onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, vendor: e.target.value })
+              }
               placeholder="e.g., AWS, Uber, Staples (optional)"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
@@ -1354,10 +1545,14 @@ const CheckExpenseView = () => {
               type="checkbox"
               id="has_receipt"
               checked={formData.has_receipt}
-              onChange={(e) => setFormData({ ...formData, has_receipt: e.target.checked })}
+              onChange={(e) =>
+                setFormData({ ...formData, has_receipt: e.target.checked })
+              }
               className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
             />
-            <label htmlFor="has_receipt" className="text-sm text-gray-700">I have a receipt</label>
+            <label htmlFor="has_receipt" className="text-sm text-gray-700">
+              I have a receipt
+            </label>
           </div>
 
           <button
@@ -1378,22 +1573,30 @@ const CheckExpenseView = () => {
 
         {/* Result */}
         {result && !result.error && (
-          <div className={`mt-6 p-5 rounded-xl border-2 ${
-            result.would_auto_approve
-              ? "bg-green-50 border-green-300"
-              : "bg-amber-50 border-amber-300"
-          }`}>
+          <div
+            className={`mt-6 p-5 rounded-xl border-2 ${
+              result.would_auto_approve
+                ? "bg-green-50 border-green-300"
+                : "bg-amber-50 border-amber-300"
+            }`}
+          >
             <div className="flex items-center gap-3 mb-2">
               {result.would_auto_approve ? (
                 <CheckCircle className="w-6 h-6 text-green-600" />
               ) : (
                 <Clock className="w-6 h-6 text-amber-600" />
               )}
-              <h4 className={`text-lg font-bold ${result.would_auto_approve ? "text-green-900" : "text-amber-900"}`}>
-                {result.would_auto_approve ? "Would Be Auto-Approved!" : "Would Need Manual Review"}
+              <h4
+                className={`text-lg font-bold ${result.would_auto_approve ? "text-green-900" : "text-amber-900"}`}
+              >
+                {result.would_auto_approve
+                  ? "Would Be Auto-Approved!"
+                  : "Would Need Manual Review"}
               </h4>
             </div>
-            <p className={`text-sm ${result.would_auto_approve ? "text-green-700" : "text-amber-700"}`}>
+            <p
+              className={`text-sm ${result.would_auto_approve ? "text-green-700" : "text-amber-700"}`}
+            >
               {result.reason}
             </p>
             {result.matching_policy && (
@@ -1405,13 +1608,21 @@ const CheckExpenseView = () => {
               <div className="mt-3 text-xs text-gray-600">
                 <p className="font-medium mb-1">Remaining limits:</p>
                 {result.remaining_limits.per_expense_remaining != null && (
-                  <p>Per expense: ${result.remaining_limits.per_expense_remaining.toFixed(2)}</p>
+                  <p>
+                    Per expense: $
+                    {result.remaining_limits.per_expense_remaining.toFixed(2)}
+                  </p>
                 )}
                 {result.remaining_limits.daily_remaining != null && (
-                  <p>Daily: ${result.remaining_limits.daily_remaining.toFixed(2)}</p>
+                  <p>
+                    Daily: ${result.remaining_limits.daily_remaining.toFixed(2)}
+                  </p>
                 )}
                 {result.remaining_limits.monthly_remaining != null && (
-                  <p>Monthly: ${result.remaining_limits.monthly_remaining.toFixed(2)}</p>
+                  <p>
+                    Monthly: $
+                    {result.remaining_limits.monthly_remaining.toFixed(2)}
+                  </p>
                 )}
               </div>
             )}
@@ -1427,7 +1638,6 @@ const CheckExpenseView = () => {
     </div>
   );
 };
-
 
 // Request Rule View - employee asks admin for a new auto-approval rule
 const RequestRuleView = () => {
@@ -1499,12 +1709,23 @@ const RequestRuleView = () => {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Request Sent!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Request Sent!
+          </h2>
           <p className="text-gray-600 mb-6">
-            Your admin has been notified. They'll review your request and may set up an auto-approval rule for you.
+            Your admin has been notified. They'll review your request and may
+            set up an auto-approval rule for you.
           </p>
           <button
-            onClick={() => { setSubmitted(false); setFormData({ category: "", vendor: "", max_amount: "", reason: "" }); }}
+            onClick={() => {
+              setSubmitted(false);
+              setFormData({
+                category: "",
+                vendor: "",
+                max_amount: "",
+                reason: "",
+              });
+            }}
             className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
           >
             Submit Another Request
@@ -1519,10 +1740,14 @@ const RequestRuleView = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <div className="flex items-center space-x-3 mb-2">
           <Send className="w-6 h-6 text-purple-600" />
-          <h2 className="text-2xl font-bold text-gray-900">Request an Auto-Approval Rule</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Request an Auto-Approval Rule
+          </h2>
         </div>
         <p className="text-gray-600 mb-8">
-          Have a recurring expense that always needs manual approval? Ask your admin to set up an auto-approval rule so it gets approved instantly next time.
+          Have a recurring expense that always needs manual approval? Ask your
+          admin to set up an auto-approval rule so it gets approved instantly
+          next time.
         </p>
 
         {error && (
@@ -1534,24 +1759,34 @@ const RequestRuleView = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, category: e.target.value })
+                }
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
                 {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Vendor</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vendor
+              </label>
               <input
                 type="text"
                 value={formData.vendor}
-                onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, vendor: e.target.value })
+                }
                 placeholder="e.g., AWS, GitHub, Uber"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
@@ -1559,7 +1794,9 @@ const RequestRuleView = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Suggested Max Amount</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Suggested Max Amount
+            </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -1567,12 +1804,16 @@ const RequestRuleView = () => {
                 step="0.01"
                 min="0.01"
                 value={formData.max_amount}
-                onChange={(e) => setFormData({ ...formData, max_amount: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, max_amount: e.target.value })
+                }
                 placeholder="e.g., 500.00"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">The max amount per expense you'd like auto-approved</p>
+            <p className="text-xs text-gray-500 mt-1">
+              The max amount per expense you'd like auto-approved
+            </p>
           </div>
 
           <div>
@@ -1581,7 +1822,9 @@ const RequestRuleView = () => {
             </label>
             <textarea
               value={formData.reason}
-              onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, reason: e.target.value })
+              }
               rows="3"
               placeholder="e.g., I pay for our AWS bill every month ($450). Currently it takes 2 days to get approved each time..."
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
@@ -1610,7 +1853,9 @@ const RequestRuleView = () => {
       <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-3">
           <HelpCircle className="w-5 h-5 text-purple-600" />
-          <h4 className="font-medium text-purple-900">Tips for a good request</h4>
+          <h4 className="font-medium text-purple-900">
+            Tips for a good request
+          </h4>
         </div>
         <ul className="space-y-2 text-sm text-purple-800">
           <li className="flex items-start gap-2">
@@ -1627,14 +1872,14 @@ const RequestRuleView = () => {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-400 mt-0.5">-</span>
-            Your admin will see this as a notification and can create the rule from their AP2 settings
+            Your admin will see this as a notification and can create the rule
+            from their AP2 settings
           </li>
         </ul>
       </div>
     </div>
   );
 };
-
 
 // ── Analytics View ──────────────────────────────────────────────────
 const AnalyticsView = () => {
@@ -1705,25 +1950,41 @@ const AnalyticsView = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <p className="text-sm text-gray-500">Auto-Approval Rate</p>
-            <p className="text-3xl font-bold text-purple-700 mt-1">{savings.rate}%</p>
-            <p className="text-xs text-gray-400 mt-1">{savings.auto_approved_count} of {savings.total_count} expenses</p>
+            <p className="text-3xl font-bold text-purple-700 mt-1">
+              {savings.rate}%
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {savings.auto_approved_count} of {savings.total_count} expenses
+            </p>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <p className="text-sm text-gray-500">Time Saved</p>
-            <p className="text-3xl font-bold text-green-700 mt-1">{savings.hours_saved}h</p>
-            <p className="text-xs text-gray-400 mt-1">{savings.minutes_saved} minutes of manager review</p>
+            <p className="text-3xl font-bold text-green-700 mt-1">
+              {savings.hours_saved}h
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {savings.minutes_saved} minutes of manager review
+            </p>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <p className="text-sm text-gray-500">Est. Cost Savings</p>
-            <p className="text-3xl font-bold text-green-700 mt-1">${savings.estimated_dollar_savings.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-green-700 mt-1">
+              ${savings.estimated_dollar_savings.toLocaleString()}
+            </p>
             <p className="text-xs text-gray-400 mt-1">At $50/hr manager cost</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <p className="text-sm text-gray-500">Auto-Approved Amount</p>
             <p className="text-3xl font-bold text-indigo-700 mt-1">
-              ${savings.auto_approved_amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              $
+              {savings.auto_approved_amount.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </p>
-            <p className="text-xs text-gray-400 mt-1">Processed without delays</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Processed without delays
+            </p>
           </div>
         </div>
       )}
@@ -1731,27 +1992,51 @@ const AnalyticsView = () => {
       {/* Trend Chart (bar chart) */}
       {trends?.trend?.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Auto-Approval Trend</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Auto-Approval Trend
+          </h3>
           <div className="flex items-end gap-1 h-48 overflow-x-auto pb-2">
             {trends.trend.map((d) => {
-              const autoH = ((d.auto_mandate + d.auto_policy) / maxTrendTotal) * 100;
+              const autoH =
+                ((d.auto_mandate + d.auto_policy) / maxTrendTotal) * 100;
               const manualH = (d.manual / maxTrendTotal) * 100;
               return (
-                <div key={d.date} className="flex flex-col items-center flex-shrink-0" style={{ minWidth: trends.trend.length > 14 ? 20 : 36 }}>
+                <div
+                  key={d.date}
+                  className="flex flex-col items-center flex-shrink-0"
+                  style={{ minWidth: trends.trend.length > 14 ? 20 : 36 }}
+                >
                   <div className="flex flex-col-reverse w-full h-40">
-                    <div className="bg-green-500 rounded-t" style={{ height: `${autoH}%` }} title={`Auto: ${d.auto_mandate + d.auto_policy}`}></div>
-                    <div className="bg-yellow-400" style={{ height: `${manualH}%` }} title={`Manual: ${d.manual}`}></div>
+                    <div
+                      className="bg-green-500 rounded-t"
+                      style={{ height: `${autoH}%` }}
+                      title={`Auto: ${d.auto_mandate + d.auto_policy}`}
+                    ></div>
+                    <div
+                      className="bg-yellow-400"
+                      style={{ height: `${manualH}%` }}
+                      title={`Manual: ${d.manual}`}
+                    ></div>
                   </div>
                   <span className="text-[9px] text-gray-400 mt-1 whitespace-nowrap">
-                    {new Date(d.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    {new Date(d.date + "T00:00:00").toLocaleDateString(
+                      "en-US",
+                      { month: "short", day: "numeric" },
+                    )}
                   </span>
                 </div>
               );
             })}
           </div>
           <div className="flex gap-4 mt-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Auto-Approved</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"></span> Manual</span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>{" "}
+              Auto-Approved
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-yellow-400"></span>{" "}
+              Manual
+            </span>
           </div>
         </div>
       )}
@@ -1761,50 +2046,88 @@ const AnalyticsView = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Category Bottlenecks */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Categories Needing Rules</h3>
-            <p className="text-xs text-gray-500 mb-3">Categories with the lowest auto-approval rates</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Categories Needing Rules
+            </h3>
+            <p className="text-xs text-gray-500 mb-3">
+              Categories with the lowest auto-approval rates
+            </p>
             {bottlenecks.category_bottlenecks.length > 0 ? (
               <div className="space-y-3">
                 {bottlenecks.category_bottlenecks.slice(0, 6).map((b) => (
-                  <div key={b.name} className="flex items-center justify-between">
+                  <div
+                    key={b.name}
+                    className="flex items-center justify-between"
+                  >
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-800">{b.name.replace(/_/g, " ")}</span>
-                        <span className="text-xs text-gray-500">{b.total} expenses</span>
+                        <span className="text-sm font-medium text-gray-800">
+                          {b.name.replace(/_/g, " ")}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {b.total} expenses
+                        </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2 flex overflow-hidden">
-                        <div className="bg-green-500 h-full" style={{ width: `${b.auto_approval_rate}%` }}></div>
-                        <div className="bg-red-400 h-full" style={{ width: `${b.rejection_rate}%` }}></div>
+                        <div
+                          className="bg-green-500 h-full"
+                          style={{ width: `${b.auto_approval_rate}%` }}
+                        ></div>
+                        <div
+                          className="bg-red-400 h-full"
+                          style={{ width: `${b.rejection_rate}%` }}
+                        ></div>
                       </div>
                       <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
                         <span>{b.auto_approval_rate}% auto</span>
-                        {b.rejected > 0 && <span>{b.rejection_rate}% rejected</span>}
+                        {b.rejected > 0 && (
+                          <span>{b.rejection_rate}% rejected</span>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 text-center py-4">No data yet</p>
+              <p className="text-sm text-gray-400 text-center py-4">
+                No data yet
+              </p>
             )}
           </div>
 
           {/* Vendor Bottlenecks */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Vendors Needing Rules</h3>
-            <p className="text-xs text-gray-500 mb-3">Vendors with the most manual approvals</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Vendors Needing Rules
+            </h3>
+            <p className="text-xs text-gray-500 mb-3">
+              Vendors with the most manual approvals
+            </p>
             {bottlenecks.vendor_bottlenecks.length > 0 ? (
               <div className="space-y-3">
                 {bottlenecks.vendor_bottlenecks.slice(0, 6).map((b) => (
-                  <div key={b.name} className="flex items-center justify-between">
+                  <div
+                    key={b.name}
+                    className="flex items-center justify-between"
+                  >
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-800">{b.name}</span>
-                        <span className="text-xs text-gray-500">${b.amount.toLocaleString()} ({b.total})</span>
+                        <span className="text-sm font-medium text-gray-800">
+                          {b.name}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          ${b.amount.toLocaleString()} ({b.total})
+                        </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2 flex overflow-hidden">
-                        <div className="bg-green-500 h-full" style={{ width: `${b.auto_approval_rate}%` }}></div>
-                        <div className="bg-red-400 h-full" style={{ width: `${b.rejection_rate}%` }}></div>
+                        <div
+                          className="bg-green-500 h-full"
+                          style={{ width: `${b.auto_approval_rate}%` }}
+                        ></div>
+                        <div
+                          className="bg-red-400 h-full"
+                          style={{ width: `${b.rejection_rate}%` }}
+                        ></div>
                       </div>
                       <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
                         <span>{b.auto_approval_rate}% auto</span>
@@ -1815,7 +2138,9 @@ const AnalyticsView = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 text-center py-4">No data yet</p>
+              <p className="text-sm text-gray-400 text-center py-4">
+                No data yet
+              </p>
             )}
           </div>
         </div>
@@ -1823,6 +2148,5 @@ const AnalyticsView = () => {
     </div>
   );
 };
-
 
 export default AIAssistant;

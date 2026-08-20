@@ -70,7 +70,7 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
     if (files.length + validFiles.length > 10) {
       const remaining = 10 - files.length;
       showError(
-        `Cannot add ${validFiles.length} file(s). You can only add ${remaining} more file(s) (10 file maximum)`
+        `Cannot add ${validFiles.length} file(s). You can only add ${remaining} more file(s) (10 file maximum)`,
       );
       return;
     }
@@ -125,25 +125,28 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
         try {
           // Use filename as vendor, default amount $1.00
           const vendor = files[i].name.replace(/\.[^/.]+$/, ""); // Remove extension
-          const amount = 1.00;
+          const amount = 1.0;
 
-          const expenseResponse = await fetch("/api/v1/receipts/create-from-extraction", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token2}`,
-              "Content-Type": "application/json",
+          const expenseResponse = await fetch(
+            "/api/v1/receipts/create-from-extraction",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token2}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                vendor: vendor,
+                amount: amount,
+                category: "Other",
+                description: "Batch upload - please review and edit",
+                temp_filename: result.temp_filename,
+                original_filename: files[i].name,
+                content_type: result.content_type,
+                is_batch: true,
+              }),
             },
-            body: JSON.stringify({
-              vendor: vendor,
-              amount: amount,
-              category: "Other",
-              description: "Batch upload - please review and edit",
-              temp_filename: result.temp_filename,
-              original_filename: files[i].name,
-              content_type: result.content_type,
-              is_batch: true,
-            }),
-          });
+          );
 
           if (expenseResponse.ok) {
             successCount++;
@@ -165,20 +168,24 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
               "Content-Type": "application/json",
               ...(orgId ? { "X-Organization-Id": orgId } : {}),
             },
-            body: JSON.stringify({ count: successCount, total_amount: totalAmount }),
+            body: JSON.stringify({
+              count: successCount,
+              total_amount: totalAmount,
+            }),
           });
         } catch (err) {
           console.error("Failed to send batch notification:", err);
         }
       }
 
-      showSuccess(`Created ${successCount} expenses successfully! Please review and edit them.`);
+      showSuccess(
+        `Created ${successCount} expenses successfully! Please review and edit them.`,
+      );
 
       // Close modal and refresh
       setTimeout(() => {
         onSuccess();
       }, 1500);
-
     } catch (err) {
       showError(err.message || "Failed to upload receipts");
       console.error(err);
@@ -344,7 +351,9 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
               <div
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                onClick={() => files.length < 10 && fileInputRef.current?.click()}
+                onClick={() =>
+                  files.length < 10 && fileInputRef.current?.click()
+                }
                 className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
                   files.length >= 10
                     ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
@@ -412,10 +421,12 @@ const BatchReceiptUpload = ({ onSuccess, onCancel }) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-gray-900 mb-1">
-                        Ready to upload {files.length} file{files.length > 1 ? "s" : ""}
+                        Ready to upload {files.length} file
+                        {files.length > 1 ? "s" : ""}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Expenses will be created automatically with receipts attached
+                        Expenses will be created automatically with receipts
+                        attached
                       </p>
                     </div>
                     <button

@@ -11,12 +11,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from src.models import (
-    Expense,
-    ExpenseStatus,
-    IntentMandate,
-    OrganizationMember,
-)
+from src.models import Expense, ExpenseStatus, IntentMandate, OrganizationMember
 
 # ── Helpers ────────────────────────────────────────────────────────
 

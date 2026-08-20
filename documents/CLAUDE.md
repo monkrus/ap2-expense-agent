@@ -741,7 +741,7 @@ Changes needed:
 ---
 
 ### 2025-12-30: Error Prevention Safeguards ✅ **FULLY INTEGRATED**
-- ✅ **CI/CD Pipeline** (`.github/workflows/ci.yml`): Automated testing on push/PR
+- ✅ **CI/CD Pipeline** (`.github/workflows/ci-cd.yml`): Automated testing on push/PR
   - Backend tests (Python 3.10 & 3.11), frontend linting, integration tests
   - Security scanning (Bandit, npm audit)
   - ⚠️ Linters currently non-blocking (use `|| echo` fallback) - can be made blocking if desired

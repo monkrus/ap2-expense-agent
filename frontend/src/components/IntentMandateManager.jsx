@@ -26,7 +26,7 @@ const IntentMandateManager = ({
   onRefresh,
   onCreateMandate,
   showArchived,
-  setShowArchived
+  setShowArchived,
 }) => {
   const { success, error: showError } = useToast();
   const [expandedMandate, setExpandedMandate] = useState(null);
@@ -38,7 +38,8 @@ const IntentMandateManager = ({
   // Apply status filter
   const filteredMandates = intentMandates.filter((mandate) => {
     if (filter === "all") return true;
-    if (filter === "archived") return mandate.status === "deleted" || mandate.status === "revoked";
+    if (filter === "archived")
+      return mandate.status === "deleted" || mandate.status === "revoked";
     return mandate.status === filter;
   });
 
@@ -68,23 +69,28 @@ const IntentMandateManager = ({
   };
 
   const handleRevokeMandate = async (mandateId) => {
-    const reason = prompt("Please provide a reason for revoking this authorization (required for audit):");
+    const reason = prompt(
+      "Please provide a reason for revoking this authorization (required for audit):",
+    );
     if (!reason || !reason.trim()) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/ap2/intent-mandate/${mandateId}/revoke`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      const response = await fetch(
+        `/api/ap2/intent-mandate/${mandateId}/revoke`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+          body: JSON.stringify({
+            reason: reason.trim(),
+            revoke_dependents: true,
+          }),
         },
-        body: JSON.stringify({
-          reason: reason.trim(),
-          revoke_dependents: true,
-        }),
-      });
+      );
 
       if (response.ok) {
         success("Authorization revoked successfully");
@@ -112,7 +118,11 @@ const IntentMandateManager = ({
       deleted: { bg: "bg-gray-100", text: "text-gray-600", icon: Trash2 },
     };
 
-    const badge = badges[status] || { bg: "bg-gray-100", text: "text-gray-800", icon: AlertCircle };
+    const badge = badges[status] || {
+      bg: "bg-gray-100",
+      text: "text-gray-800",
+      icon: AlertCircle,
+    };
     const Icon = badge.icon;
 
     return (
@@ -130,9 +140,12 @@ const IntentMandateManager = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Reusable Authorizations</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Reusable Authorizations
+          </h2>
           <p className="text-gray-600 mt-1">
-            Create standing authorizations for ongoing AI purchases. These can be used multiple times for automatic expense approvals.
+            Create standing authorizations for ongoing AI purchases. These can
+            be used multiple times for automatic expense approvals.
           </p>
         </div>
         <button
@@ -149,13 +162,18 @@ const IntentMandateManager = ({
         <div className="flex items-start">
           <Shield className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
           <div className="text-sm text-blue-900">
-            <p className="font-medium mb-1">Standing Authorizations for Ongoing Automation</p>
+            <p className="font-medium mb-1">
+              Standing Authorizations for Ongoing Automation
+            </p>
             <p>
-              Create reusable authorizations that your AI agent can use multiple times.
-              Perfect for recurring purchases like monthly software subscriptions, office supplies, or regular travel expenses.
+              Create reusable authorizations that your AI agent can use multiple
+              times. Perfect for recurring purchases like monthly software
+              subscriptions, office supplies, or regular travel expenses.
             </p>
             <p className="mt-2 text-xs">
-              <strong>Need a one-time purchase?</strong> Use the "One-time Authorization" tab for quick autonomous purchases without setting up ongoing authorization.
+              <strong>Need a one-time purchase?</strong> Use the "One-time
+              Authorization" tab for quick autonomous purchases without setting
+              up ongoing authorization.
             </p>
           </div>
         </div>
@@ -163,32 +181,36 @@ const IntentMandateManager = ({
 
       {/* Filter Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1 inline-flex space-x-1">
-        {["all", "active", "expired", "revoked", "archived"].map((filterOption) => (
-          <button
-            key={filterOption}
-            onClick={() => {
-              setFilter(filterOption);
-              if (filterOption === "archived") setShowArchived(true);
-            }}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              filter === filterOption
-                ? "bg-purple-100 text-purple-700"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            {filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
-            <span className="ml-2 text-xs opacity-60">
-              (
-              {filterOption === "archived"
-                ? intentMandates.filter((m) => m.status === "deleted" || m.status === "revoked").length
-                : intentMandates.filter(
-                    (m) => filterOption === "all" || m.status === filterOption,
-                  ).length
-              }
-              )
-            </span>
-          </button>
-        ))}
+        {["all", "active", "expired", "revoked", "archived"].map(
+          (filterOption) => (
+            <button
+              key={filterOption}
+              onClick={() => {
+                setFilter(filterOption);
+                if (filterOption === "archived") setShowArchived(true);
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                filter === filterOption
+                  ? "bg-purple-100 text-purple-700"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              {filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
+              <span className="ml-2 text-xs opacity-60">
+                (
+                {filterOption === "archived"
+                  ? intentMandates.filter(
+                      (m) => m.status === "deleted" || m.status === "revoked",
+                    ).length
+                  : intentMandates.filter(
+                      (m) =>
+                        filterOption === "all" || m.status === filterOption,
+                    ).length}
+                )
+              </span>
+            </button>
+          ),
+        )}
       </div>
 
       {/* Mandates List */}
@@ -233,7 +255,11 @@ const IntentMandateManager = ({
           {showArchived && (
             <span className="text-xs text-gray-500">
               (Including{" "}
-              {intentMandates.filter(m => m.status === "deleted" || m.status === "revoked").length}{" "}
+              {
+                intentMandates.filter(
+                  (m) => m.status === "deleted" || m.status === "revoked",
+                ).length
+              }{" "}
               deleted/revoked)
             </span>
           )}
@@ -265,10 +291,13 @@ const MandateCard = ({
     console.error("Error parsing constraints:", e);
   }
 
-  const isArchived = mandate.status === "deleted" || mandate.status === "revoked";
+  const isArchived =
+    mandate.status === "deleted" || mandate.status === "revoked";
 
   return (
-    <div className={`rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow ${isArchived ? "bg-gray-50 border-gray-300 opacity-75" : "bg-white border-gray-200"}`}>
+    <div
+      className={`rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow ${isArchived ? "bg-gray-50 border-gray-300 opacity-75" : "bg-white border-gray-200"}`}
+    >
       {/* Header */}
       <div className="px-6 py-4 cursor-pointer" onClick={onToggle}>
         <div className="flex items-center justify-between">
@@ -299,28 +328,36 @@ const MandateCard = ({
               <div className="flex flex-wrap gap-3 text-sm">
                 {constraints.max_amount && (
                   <span className="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded">
-                    <DollarSign className="w-3 h-3 mr-1" />
-                    ${parseFloat(constraints.max_amount).toFixed(0)} max
+                    <DollarSign className="w-3 h-3 mr-1" />$
+                    {parseFloat(constraints.max_amount).toFixed(0)} max
                   </span>
                 )}
                 {constraints.monthly_limit && (
                   <span className="inline-flex items-center px-2 py-1 bg-orange-50 text-orange-700 rounded">
-                    <DollarSign className="w-3 h-3 mr-1" />
-                    ${parseFloat(constraints.monthly_limit).toFixed(0)}/mo
+                    <DollarSign className="w-3 h-3 mr-1" />$
+                    {parseFloat(constraints.monthly_limit).toFixed(0)}/mo
                   </span>
                 )}
-                {(constraints.merchant || (constraints.merchants && constraints.merchants.length > 0)) && (
+                {(constraints.merchant ||
+                  (constraints.merchants &&
+                    constraints.merchants.length > 0)) && (
                   <span className="inline-flex items-center px-2 py-1 bg-purple-50 text-purple-700 rounded">
                     <Store className="w-3 h-3 mr-1" />
                     {constraints.merchant || constraints.merchants[0]}
-                    {constraints.merchants && constraints.merchants.length > 1 && ` +${constraints.merchants.length - 1}`}
+                    {constraints.merchants &&
+                      constraints.merchants.length > 1 &&
+                      ` +${constraints.merchants.length - 1}`}
                   </span>
                 )}
-                {(constraints.category || (constraints.categories && constraints.categories.length > 0)) && (
+                {(constraints.category ||
+                  (constraints.categories &&
+                    constraints.categories.length > 0)) && (
                   <span className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded">
                     <Tag className="w-3 h-3 mr-1" />
                     {constraints.category || constraints.categories[0]}
-                    {constraints.categories && constraints.categories.length > 1 && ` +${constraints.categories.length - 1}`}
+                    {constraints.categories &&
+                      constraints.categories.length > 1 &&
+                      ` +${constraints.categories.length - 1}`}
                   </span>
                 )}
               </div>
@@ -401,7 +438,8 @@ const MandateCard = ({
             )}
 
             {/* Categories (array or single) */}
-            {(constraints.categories && constraints.categories.length > 0) || constraints.category ? (
+            {(constraints.categories && constraints.categories.length > 0) ||
+            constraints.category ? (
               <ConstraintItem
                 icon={<Tag className="w-5 h-5 text-blue-600" />}
                 label="Allowed Categories"
@@ -414,7 +452,8 @@ const MandateCard = ({
             ) : null}
 
             {/* Merchants (array or single) */}
-            {(constraints.merchants && constraints.merchants.length > 0) || constraints.merchant ? (
+            {(constraints.merchants && constraints.merchants.length > 0) ||
+            constraints.merchant ? (
               <ConstraintItem
                 icon={<Store className="w-5 h-5 text-purple-600" />}
                 label="Allowed Merchants"
@@ -441,7 +480,9 @@ const MandateCard = ({
                 icon={<CheckCircle className="w-5 h-5 text-yellow-600" />}
                 label="Approval Mode"
                 value={
-                  constraints.approval_required ? "Manual Approval" : "Auto-approve"
+                  constraints.approval_required
+                    ? "Manual Approval"
+                    : "Auto-approve"
                 }
               />
             )}
@@ -451,7 +492,10 @@ const MandateCard = ({
               <ConstraintItem
                 icon={<Clock className="w-5 h-5 text-indigo-600" />}
                 label="Recurring Pattern"
-                value={constraints.recurring.charAt(0).toUpperCase() + constraints.recurring.slice(1)}
+                value={
+                  constraints.recurring.charAt(0).toUpperCase() +
+                  constraints.recurring.slice(1)
+                }
               />
             )}
 

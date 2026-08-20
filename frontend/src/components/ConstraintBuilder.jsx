@@ -84,7 +84,9 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
       return;
     }
     if (!formData.monthlyLimit || parseFloat(formData.monthlyLimit) <= 0) {
-      setError("Monthly Spending Limit is required and must be greater than zero.");
+      setError(
+        "Monthly Spending Limit is required and must be greater than zero.",
+      );
       setLoading(false);
       return;
     }
@@ -110,7 +112,10 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
       // Calculate hours from the selected datetime
       const expirationDate = new Date(formData.expirationDateTime);
       const now = new Date();
-      const hoursUntilExpiration = Math.max(1, Math.ceil((expirationDate - now) / (1000 * 60 * 60)));
+      const hoursUntilExpiration = Math.max(
+        1,
+        Math.ceil((expirationDate - now) / (1000 * 60 * 60)),
+      );
 
       const response = await fetch("/api/ap2/intent-mandate", {
         method: "POST",
@@ -134,7 +139,9 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
       onSuccess(result);
     } catch (err) {
       console.error(err);
-      showError(err.message || "Failed to create Intent Mandate. Please try again.");
+      showError(
+        err.message || "Failed to create Intent Mandate. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -187,7 +194,9 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Create Reusable Authorization</h2>
+              <h2 className="text-xl font-bold">
+                Create Reusable Authorization
+              </h2>
               <p className="text-purple-100 text-sm">Step {step} of 3</p>
             </div>
           </div>
@@ -348,10 +357,10 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                   />
                 )}
                 <p className="text-xs text-gray-500 mt-1">
-                  Authorization will automatically expire after the selected duration.
+                  Authorization will automatically expire after the selected
+                  duration.
                 </p>
               </div>
-
             </div>
           )}
 
@@ -363,7 +372,8 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                   Advanced Rules
                 </h3>
                 <p className="text-sm text-gray-600 mb-6">
-                  Select at least one category to restrict the agent's spending scope. Merchants are optional.
+                  Select at least one category to restrict the agent's spending
+                  scope. Merchants are optional.
                 </p>
               </div>
 
@@ -406,14 +416,21 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                     onChange={(e) => setCategoryInput(e.target.value)}
                     onKeyPress={(e) =>
                       e.key === "Enter" &&
-                      (e.preventDefault(), addCategory(categoryInput.toUpperCase().replace(/\s+/g, "_")))
+                      (e.preventDefault(),
+                      addCategory(
+                        categoryInput.toUpperCase().replace(/\s+/g, "_"),
+                      ))
                     }
                     placeholder="Or type custom category..."
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                   />
                   <button
                     type="button"
-                    onClick={() => addCategory(categoryInput.toUpperCase().replace(/\s+/g, "_"))}
+                    onClick={() =>
+                      addCategory(
+                        categoryInput.toUpperCase().replace(/\s+/g, "_"),
+                      )
+                    }
                     className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                   >
                     Add
@@ -560,16 +577,19 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
 
                 <ReviewItem
                   label={`Expires On (${timezone})`}
-                  value={new Date(formData.expirationDateTime).toLocaleString("en-US", {
-                    weekday: "short",
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                    timeZone: timezone,
-                    timeZoneName: "short",
-                  })}
+                  value={new Date(formData.expirationDateTime).toLocaleString(
+                    "en-US",
+                    {
+                      weekday: "short",
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      timeZone: timezone,
+                      timeZoneName: "short",
+                    },
+                  )}
                   icon={<Calendar className="w-5 h-5 text-blue-600" />}
                 />
 
@@ -652,16 +672,27 @@ const ConstraintBuilder = ({ onClose, onSuccess }) => {
                 type="button"
                 onClick={() => {
                   if (step === 1) {
-                    if (!formData.maxAmount || parseFloat(formData.maxAmount) <= 0) {
+                    if (
+                      !formData.maxAmount ||
+                      parseFloat(formData.maxAmount) <= 0
+                    ) {
                       setError("Maximum Amount is required.");
                       return;
                     }
-                    if (!formData.monthlyLimit || parseFloat(formData.monthlyLimit) <= 0) {
+                    if (
+                      !formData.monthlyLimit ||
+                      parseFloat(formData.monthlyLimit) <= 0
+                    ) {
                       setError("Monthly Spending Limit is required.");
                       return;
                     }
-                    if (parseFloat(formData.monthlyLimit) < parseFloat(formData.maxAmount)) {
-                      setError("Monthly Spending Limit must be greater than or equal to Maximum Amount.");
+                    if (
+                      parseFloat(formData.monthlyLimit) <
+                      parseFloat(formData.maxAmount)
+                    ) {
+                      setError(
+                        "Monthly Spending Limit must be greater than or equal to Maximum Amount.",
+                      );
                       return;
                     }
                     setError("");

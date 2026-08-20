@@ -37,7 +37,7 @@ export function validateFileSize(file) {
     const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
     const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
     throw new Error(
-      `File too large: ${sizeMB}MB. Maximum size: ${maxSizeMB}MB`
+      `File too large: ${sizeMB}MB. Maximum size: ${maxSizeMB}MB`,
     );
   }
 }
@@ -56,11 +56,13 @@ export function validateFileType(file) {
 
   const validExtensions = [".xls", ".xlsx", ".csv"];
   const fileName = file.name.toLowerCase();
-  const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+  const hasValidExtension = validExtensions.some((ext) =>
+    fileName.endsWith(ext),
+  );
 
   if (!validTypes.includes(file.type) && !hasValidExtension) {
     throw new Error(
-      "Invalid file type. Please upload an Excel file (.xls, .xlsx) or CSV file."
+      "Invalid file type. Please upload an Excel file (.xls, .xlsx) or CSV file.",
     );
   }
 }
@@ -73,14 +75,22 @@ export function validateFileType(file) {
  * @param {number} timeout - Timeout in milliseconds (default: 5000ms)
  * @returns {Promise} Parsed result or timeout error
  */
-export async function parseWithTimeout(parseFunction, timeout = PARSING_TIMEOUT_MS) {
+export async function parseWithTimeout(
+  parseFunction,
+  timeout = PARSING_TIMEOUT_MS,
+) {
   return Promise.race([
     parseFunction(),
     new Promise((_, reject) =>
       setTimeout(
-        () => reject(new Error("Excel parsing timeout. File may be corrupted or too complex.")),
-        timeout
-      )
+        () =>
+          reject(
+            new Error(
+              "Excel parsing timeout. File may be corrupted or too complex.",
+            ),
+          ),
+        timeout,
+      ),
     ),
   ]);
 }
@@ -100,12 +110,12 @@ export function validateWorkbookStructure(workbook) {
   // Check number of sheets
   if (workbook.SheetNames.length > MAX_SHEETS) {
     throw new Error(
-      `Too many sheets: ${workbook.SheetNames.length}. Maximum: ${MAX_SHEETS}`
+      `Too many sheets: ${workbook.SheetNames.length}. Maximum: ${MAX_SHEETS}`,
     );
   }
 
   // Check rows per sheet
-  workbook.SheetNames.forEach(sheetName => {
+  workbook.SheetNames.forEach((sheetName) => {
     const sheet = workbook.Sheets[sheetName];
     if (!sheet) return;
 
@@ -122,7 +132,7 @@ export function validateWorkbookStructure(workbook) {
 
       if (rowCount > MAX_ROWS_PER_SHEET) {
         throw new Error(
-          `Sheet "${sheetName}" has too many rows: ${rowCount}. Maximum: ${MAX_ROWS_PER_SHEET}`
+          `Sheet "${sheetName}" has too many rows: ${rowCount}. Maximum: ${MAX_ROWS_PER_SHEET}`,
         );
       }
     }
@@ -178,10 +188,7 @@ export async function safeParseExcel(file, parseFunction, options = {}) {
   }
 
   // Step 3: Parse with timeout protection
-  const workbook = await parseWithTimeout(
-    () => parseFunction(file),
-    timeout
-  );
+  const workbook = await parseWithTimeout(() => parseFunction(file), timeout);
 
   // Step 4: Validate workbook structure
   if (!skipStructureValidation) {
@@ -211,7 +218,7 @@ export function getSafeErrorMessage(error) {
   ];
 
   // Check if error message contains safe keywords
-  const isSafe = safeMessages.some(safe => message.includes(safe));
+  const isSafe = safeMessages.some((safe) => message.includes(safe));
 
   if (isSafe) {
     return message;

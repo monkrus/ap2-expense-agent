@@ -106,7 +106,9 @@ export const apiFetch = async (url, options = {}) => {
         localStorage.removeItem("current_organization_id");
 
         window.location.href = "/login";
-        throw new Error("Your account has been suspended. Please contact your administrator.");
+        throw new Error(
+          "Your account has been suspended. Please contact your administrator.",
+        );
       }
     } catch (error) {
       // If it's already our custom error, re-throw it

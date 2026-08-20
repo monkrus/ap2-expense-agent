@@ -20,7 +20,11 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ (secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != '') || secrets.GCP_SERVICE_ACCOUNT_KEY != '' }}
+    env:
+      GCP_WIP: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SA: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      GCP_SA_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+    if: ${{ (env.GCP_WIP != '' && env.GCP_SA != '') || env.GCP_SA_KEY != '' }}
     permissions:
       contents: 'read'
       id-token: 'write'

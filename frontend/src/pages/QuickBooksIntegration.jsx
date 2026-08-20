@@ -76,7 +76,9 @@ const QuickBooksIntegration = () => {
   };
 
   const handleDisconnect = async () => {
-    if (!confirm("Disconnect QuickBooks? This will stop all expense syncing.")) {
+    if (
+      !confirm("Disconnect QuickBooks? This will stop all expense syncing.")
+    ) {
       return;
     }
     try {
@@ -191,9 +193,7 @@ const QuickBooksIntegration = () => {
               )}
 
               <div className="mt-8 text-left space-y-3">
-                <h3 className="font-medium text-gray-700">
-                  What gets synced:
-                </h3>
+                <h3 className="font-medium text-gray-700">What gets synced:</h3>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
@@ -320,9 +320,7 @@ const QuickBooksIntegration = () => {
                 {/* Sync result */}
                 {syncResult && (
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                    <p className="font-medium text-gray-800">
-                      Sync Complete
-                    </p>
+                    <p className="font-medium text-gray-800">Sync Complete</p>
                     <div className="flex gap-6 mt-2 text-sm">
                       <span className="text-green-700">
                         {syncResult.synced} synced
@@ -348,7 +346,8 @@ const QuickBooksIntegration = () => {
               </h4>
               <ul className="text-sm text-blue-800 space-y-1">
                 <li>
-                  Approved expenses are pushed to QuickBooks as Purchase entries.
+                  Approved expenses are pushed to QuickBooks as Purchase
+                  entries.
                 </li>
                 <li>
                   Categories are mapped to your QuickBooks Chart of Accounts
@@ -357,9 +356,7 @@ const QuickBooksIntegration = () => {
                 <li>
                   If a vendor doesn't exist in QuickBooks, it will be created.
                 </li>
-                <li>
-                  Tokens are refreshed automatically when they expire.
-                </li>
+                <li>Tokens are refreshed automatically when they expire.</li>
               </ul>
             </div>
           </div>

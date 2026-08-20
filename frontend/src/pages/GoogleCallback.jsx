@@ -30,8 +30,7 @@ const GoogleCallback = () => {
           localStorage.setItem("refresh_token", refresh_token);
 
           // Fetch user info to update auth context
-          const apiUrl =
-            import.meta.env.VITE_API_BASE_URL || "";
+          const apiUrl = import.meta.env.VITE_API_BASE_URL || "";
           const response = await fetch(`${apiUrl}/api/v1/auth/me`, {
             headers: {
               Authorization: `Bearer ${access_token}`,

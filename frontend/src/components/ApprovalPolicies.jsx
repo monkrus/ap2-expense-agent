@@ -111,7 +111,9 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
     if (prefillData) {
       const prefilled = {
         name: "",
-        description: prefillData.reason ? `Requested by employee: ${prefillData.reason}` : "",
+        description: prefillData.reason
+          ? `Requested by employee: ${prefillData.reason}`
+          : "",
         priority: "medium",
         auto_approve: true,
         require_receipt: false,
@@ -130,10 +132,15 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
 
       // Auto-generate name
       const parts = [];
-      if (prefillData.category) parts.push(prefillData.category.replace(/_/g, " "));
+      if (prefillData.category)
+        parts.push(prefillData.category.replace(/_/g, " "));
       if (prefillData.vendor) parts.push(prefillData.vendor);
-      if (prefillData.max_amount) parts.push(`up to $${prefillData.max_amount}`);
-      prefilled.name = parts.length > 0 ? `Auto-approve ${parts.join(" - ")}` : "New Auto-Approval Rule";
+      if (prefillData.max_amount)
+        parts.push(`up to $${prefillData.max_amount}`);
+      prefilled.name =
+        parts.length > 0
+          ? `Auto-approve ${parts.join(" - ")}`
+          : "New Auto-Approval Rule";
 
       setFormData(prefilled);
       setEditingPolicy(null);
@@ -187,21 +194,21 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
       // Validate limit logic
       if (maxPerExpense && dailyLimit && dailyLimit < maxPerExpense) {
         showError(
-          `Daily limit ($${dailyLimit}) must be at least $${maxPerExpense} (max per expense) to allow any expenses up to the maximum amount.`
+          `Daily limit ($${dailyLimit}) must be at least $${maxPerExpense} (max per expense) to allow any expenses up to the maximum amount.`,
         );
         return;
       }
 
       if (dailyLimit && monthlyLimit && monthlyLimit < dailyLimit) {
         showError(
-          `Monthly limit ($${monthlyLimit}) must be at least $${dailyLimit} (daily limit).`
+          `Monthly limit ($${monthlyLimit}) must be at least $${dailyLimit} (daily limit).`,
         );
         return;
       }
 
       if (monthlyLimit && yearlyLimit && yearlyLimit < monthlyLimit) {
         showError(
-          `Yearly limit ($${yearlyLimit}) must be at least $${monthlyLimit} (monthly limit).`
+          `Yearly limit ($${yearlyLimit}) must be at least $${monthlyLimit} (monthly limit).`,
         );
         return;
       }
@@ -283,9 +290,7 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
 
       if (!response.ok) throw new Error("Failed to update rule");
 
-      success(
-        policy.is_active ? "Rule deactivated!" : "Rule activated!"
-      );
+      success(policy.is_active ? "Rule deactivated!" : "Rule activated!");
       loadPolicies();
     } catch (err) {
       showError(err.message);
@@ -409,9 +414,7 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            Approval Rules
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-900">Approval Rules</h2>
           <p className="mt-1 text-sm text-gray-500">
             Reduce your approval workload with automatic rule-based approvals
           </p>
@@ -438,12 +441,16 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
               How Approval Rules Work
             </h3>
             <p className="mt-1 text-sm text-blue-700">
-              <strong>Save time on routine approvals.</strong> Rules automatically approve expenses that match your conditions (amount, category, etc.).
-              Rules are checked in priority order - if an expense matches a rule and stays within limits, it's instantly approved without manual review.
-              All other expenses still require your approval.
+              <strong>Save time on routine approvals.</strong> Rules
+              automatically approve expenses that match your conditions (amount,
+              category, etc.). Rules are checked in priority order - if an
+              expense matches a rule and stays within limits, it's instantly
+              approved without manual review. All other expenses still require
+              your approval.
             </p>
             <p className="mt-2 text-xs text-blue-600">
-              💡 Example: "Auto-approve meals under $50 with receipt" - instantly approves qualifying lunch expenses
+              💡 Example: "Auto-approve meals under $50 with receipt" -
+              instantly approves qualifying lunch expenses
             </p>
           </div>
         </div>
@@ -682,12 +689,14 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
                     <input
                       type="checkbox"
                       checked={formData.conditions.categories.includes(
-                        category
+                        category,
                       )}
                       onChange={() => toggleCategory(category)}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">{formatCategory(category)}</span>
+                    <span className="text-sm text-gray-700">
+                      {formatCategory(category)}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -767,7 +776,8 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
           Test Your Rules
         </h3>
         <p className="text-sm text-gray-600 mb-4">
-          Check if a sample expense would be automatically approved by your current rules
+          Check if a sample expense would be automatically approved by your
+          current rules
         </p>
 
         <form onSubmit={handleTest} className="space-y-4">
@@ -881,15 +891,14 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
                     : `⚠ ${testResult.reason}`}
                 </h4>
                 {testResult.would_auto_approve && (
-                  <p
-                    className="mt-1 text-sm text-green-700"
-                  >
+                  <p className="mt-1 text-sm text-green-700">
                     {testResult.reason}
                   </p>
                 )}
                 {testResult.matching_policy && (
                   <p className="mt-2 text-xs text-gray-600">
-                    Matched Rule: <strong>{testResult.matching_policy.name}</strong>
+                    Matched Rule:{" "}
+                    <strong>{testResult.matching_policy.name}</strong>
                   </p>
                 )}
                 {testResult.remaining_limits && (
@@ -902,7 +911,8 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
                     )}
                     {testResult.remaining_limits.monthly_remaining && (
                       <span className="ml-2">
-                        Monthly: ${testResult.remaining_limits.monthly_remaining}
+                        Monthly: $
+                        {testResult.remaining_limits.monthly_remaining}
                       </span>
                     )}
                   </div>
@@ -928,7 +938,8 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
               No approval rules yet
             </h3>
             <p className="text-gray-500 mb-4">
-              Create your first rule to automatically approve routine expenses and save time
+              Create your first rule to automatically approve routine expenses
+              and save time
             </p>
             <button
               onClick={() => setShowCreateForm(true)}
@@ -945,9 +956,7 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
               .map((policy) => (
                 <div
                   key={policy.id}
-                  className={`p-6 ${
-                    !policy.is_active ? "bg-gray-50" : ""
-                  }`}
+                  className={`p-6 ${!policy.is_active ? "bg-gray-50" : ""}`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -964,14 +973,20 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
                         >
                           {policy.is_active ? "Active" : "Inactive"}
                         </span>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          getPriorityLabel(policy.priority) === "high"
-                            ? "bg-red-100 text-red-800"
-                            : getPriorityLabel(policy.priority) === "medium"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}>
-                          {getPriorityLabel(policy.priority).charAt(0).toUpperCase() + getPriorityLabel(policy.priority).slice(1)} Priority
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            getPriorityLabel(policy.priority) === "high"
+                              ? "bg-red-100 text-red-800"
+                              : getPriorityLabel(policy.priority) === "medium"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {getPriorityLabel(policy.priority)
+                            .charAt(0)
+                            .toUpperCase() +
+                            getPriorityLabel(policy.priority).slice(1)}{" "}
+                          Priority
                         </span>
                       </div>
 
@@ -1012,8 +1027,7 @@ const ApprovalPolicies = ({ prefillData, onPrefillConsumed }) => {
                             ? policy.conditions.categories.length === 1
                               ? formatCategory(policy.conditions.categories[0])
                               : `${policy.conditions.categories.length} categories: ${policy.conditions.categories.map(formatCategory).join(", ")}`
-                            : "All Categories"
-                          }
+                            : "All Categories"}
                         </span>
                       </div>
                     </div>

@@ -57,10 +57,7 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
   };
 
   const calculateTotal = () => {
-    return items.reduce(
-      (sum, item) => sum + (parseFloat(item.amount) || 0),
-      0,
-    );
+    return items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
   };
 
   const handleSubmit = async (e) => {
@@ -78,7 +75,10 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
       }
 
       // Auto-derive constraints from items for one-time authorization
-      const total = validItems.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+      const total = validItems.reduce(
+        (sum, item) => sum + parseFloat(item.amount),
+        0,
+      );
       const primaryCategory = validItems[0].category;
       const maxAmount = Math.ceil(total * 1.05 * 100) / 100; // total + 5% buffer
 
@@ -114,7 +114,11 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
 
       const data = await response.json().catch(() => ({}));
       const method = data.payment_method || paymentMethod;
-      const methodLabels = { stripe: "Stripe", x402_stablecoin: "x402 Stablecoin", expense_reimbursement: "Reimbursement" };
+      const methodLabels = {
+        stripe: "Stripe",
+        x402_stablecoin: "x402 Stablecoin",
+        expense_reimbursement: "Reimbursement",
+      };
       success(
         `AP2 flow completed via ${methodLabels[method] || method}! Total: $${calculateTotal().toFixed(2)}`,
       );
@@ -140,14 +144,18 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
           <div className="text-sm text-purple-900">
             <p className="font-medium mb-1">Quick One-time Authorization</p>
             <p>
-              This flow creates a temporary authorization and executes the complete AP2 protocol in one transaction.
-              Perfect for one-time purchases where you don't need ongoing approval automation.
+              This flow creates a temporary authorization and executes the
+              complete AP2 protocol in one transaction. Perfect for one-time
+              purchases where you don't need ongoing approval automation.
             </p>
             <p className="mt-2">
-              <strong>How it works:</strong> Creates Intent → Cart → Payment mandates and executes payment automatically.
+              <strong>How it works:</strong> Creates Intent → Cart → Payment
+              mandates and executes payment automatically.
             </p>
             <p className="mt-2 text-xs">
-              💡 <strong>Tip:</strong> For recurring purchases (monthly software, regular expenses), use the "Reusable Authorizations" tab instead to set up standing permissions.
+              💡 <strong>Tip:</strong> For recurring purchases (monthly
+              software, regular expenses), use the "Reusable Authorizations" tab
+              instead to set up standing permissions.
             </p>
           </div>
         </div>
@@ -180,7 +188,9 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
                     step="0.01"
                     placeholder="0.00"
                     value={item.amount}
-                    onChange={(e) => updateItem(index, "amount", e.target.value)}
+                    onChange={(e) =>
+                      updateItem(index, "amount", e.target.value)
+                    }
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                     required
                   />
@@ -201,7 +211,9 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
                   <option value="UTILITIES">Utilities</option>
                   <option value="MARKETING">Marketing</option>
                   <option value="HARDWARE">Hardware</option>
-                  <option value="PROFESSIONAL_SERVICES">Professional Services</option>
+                  <option value="PROFESSIONAL_SERVICES">
+                    Professional Services
+                  </option>
                   <option value="OTHER">Other</option>
                 </select>
               </div>
@@ -239,9 +251,7 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
 
       {/* Merchant */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Merchant
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Merchant</h3>
         <input
           type="text"
           value={merchant}
@@ -251,7 +261,8 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
           required
         />
         <p className="mt-2 text-sm text-gray-500">
-          Authorization limit is automatically set to your item total + 5% buffer.
+          Authorization limit is automatically set to your item total + 5%
+          buffer.
         </p>
       </div>
 
@@ -325,7 +336,9 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
         <div className="flex items-start">
           <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
           <div className="text-sm text-blue-900">
-            <p className="font-medium mb-1">Complete Flow executes all 4 AP2 steps automatically:</p>
+            <p className="font-medium mb-1">
+              Complete Flow executes all 4 AP2 steps automatically:
+            </p>
             <ol className="list-decimal ml-4 space-y-1">
               <li>Creates Intent Mandate with your constraints</li>
               <li>Creates Cart Mandate with items</li>
@@ -333,7 +346,9 @@ const CompleteFlowForm = ({ mandates, onRefresh }) => {
               <li>Executes payment (if Stripe configured)</li>
             </ol>
             <p className="mt-2 text-xs">
-              <strong>When to use:</strong> Perfect for quick one-time authorizations where you trust the AI agent to make purchases within your specified constraints without manual approval.
+              <strong>When to use:</strong> Perfect for quick one-time
+              authorizations where you trust the AI agent to make purchases
+              within your specified constraints without manual approval.
             </p>
           </div>
         </div>

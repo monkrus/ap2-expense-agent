@@ -426,8 +426,6 @@ async def execute_payment(
     - Timestamp must be within ±5 minutes of server time
     - Each nonce can only be used once
     """
-    from datetime import datetime
-
     from ..security.nonce_service import get_nonce_service
 
     ensure_payment_mandate_owner(db, data.payment_mandate_id, current_user.id)
@@ -670,7 +668,6 @@ async def get_user_mandates(
         for mandate in intent_mandates:
             # Parse constraints JSON
             import json
-            from datetime import datetime
 
             constraints = {}
             try:
@@ -1668,7 +1665,7 @@ async def get_cost_savings(
         .filter(
             Expense.organization_id == org_id,
             Expense.created_at >= cutoff,
-            Expense.auto_approved == True,
+            Expense.auto_approved == True,  # noqa: E712
         )
         .scalar()
         or 0
@@ -1679,7 +1676,7 @@ async def get_cost_savings(
         .filter(
             Expense.organization_id == org_id,
             Expense.created_at >= cutoff,
-            Expense.auto_approved == True,
+            Expense.auto_approved == True,  # noqa: E712
         )
         .scalar()
         or 0
@@ -1753,7 +1750,7 @@ async def get_bottlenecks(
     for e in expenses:
         cat = e.category.value if hasattr(e.category, "value") else str(e.category)
         vendor = e.vendor or "Unknown"
-        status = e.status.value if hasattr(e.status, "value") else str(e.status)
+        status_val = e.status.value if hasattr(e.status, "value") else str(e.status)
         amt = float(e.amount)
 
         for stats, key in [(cat_stats, cat), (vendor_stats, vendor)]:
@@ -1761,9 +1758,9 @@ async def get_bottlenecks(
             stats[key]["amount"] += amt
             if e.auto_approved:
                 stats[key]["auto"] += 1
-            if status == "rejected":
+            if status_val == "rejected":
                 stats[key]["rejected"] += 1
-            if status == "pending":
+            if status_val == "pending":
                 stats[key]["pending"] += 1
 
     def build_bottleneck_list(stats_dict):

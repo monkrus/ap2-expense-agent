@@ -21,7 +21,7 @@ In response to "any things else to prevent that recurring issue?", I implemented
 
 ## 1. CI/CD Pipeline Configuration ✅
 
-**File:** `.github/workflows/ci.yml`
+**File:** `.github/workflows/ci-cd.yml`
 
 ### Purpose
 Automatically test every commit and pull request to catch errors before they reach production.
@@ -254,7 +254,7 @@ python backend/generate_api_docs.py
 
 ### Integration with CI/CD
 ```yaml
-# Add to .github/workflows/ci.yml
+# Add to .github/workflows/ci-cd.yml
 - name: Validate API documentation
   run: |
     python backend/generate_api_docs.py
@@ -398,7 +398,7 @@ PR #42: Add user creation endpoint
 9. `.pre-commit-config.yaml`
 
 **Newly Created (5 files):**
-10. `.github/workflows/ci.yml`
+10. `.github/workflows/ci-cd.yml`
 11. `backend/src/utils/startup_checks.py`
 12. `backend/src/utils/error_tracking.py`
 13. `backend/generate_api_docs.py`

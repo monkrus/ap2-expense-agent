@@ -215,19 +215,19 @@ const OrganizationManagement = () => {
         const errorData = err.data || {};
 
         //console.log("402 Error Data:", errorData); // Debug log
-       // console.log("Message field:", errorData.message); // Debug message field
+        // console.log("Message field:", errorData.message); // Debug message field
 
         // Extract just the message string, ensure it's not the entire object
-       // const messageText = typeof errorData.message === 'string'
-       //   ? errorData.message
-       //   : "You have reached your organization limit.You've reached your plan's limit of 1 organization. Upgrade to Starter ($29/month) to create up to 3 organizations";
+        // const messageText = typeof errorData.message === 'string'
+        //   ? errorData.message
+        //   : "You have reached your organization limit.You've reached your plan's limit of 1 organization. Upgrade to Starter ($29/month) to create up to 3 organizations";
 
-      const messageText =
-      typeof errorData.message === "string"
-       ? errorData.message
-       : "You have reached your plan's organization limit. Upgrade to create more organizations.";
+        const messageText =
+          typeof errorData.message === "string"
+            ? errorData.message
+            : "You have reached your plan's organization limit. Upgrade to create more organizations.";
 
-      console.log("Extracted message:", messageText); // Debug extracted message
+        console.log("Extracted message:", messageText); // Debug extracted message
 
         // Store tier info for upgrade prompt with new backend format
         setUpgradeTierInfo({
@@ -247,20 +247,26 @@ const OrganizationManagement = () => {
       }
       // Handle Pydantic validation errors (422 Unprocessable Entity)
       else if (err.status === 422 && err.data?.detail) {
-        const details = Array.isArray(err.data.detail) ? err.data.detail : [err.data.detail];
-        const errorMessages = details.map(detail => {
-          const field = detail.loc ? detail.loc[detail.loc.length - 1] : "field";
-          let msg = detail.msg || "Validation error";
+        const details = Array.isArray(err.data.detail)
+          ? err.data.detail
+          : [err.data.detail];
+        const errorMessages = details
+          .map((detail) => {
+            const field = detail.loc
+              ? detail.loc[detail.loc.length - 1]
+              : "field";
+            let msg = detail.msg || "Validation error";
 
-          // Make validation messages more user-friendly
-          if (msg.includes("at least 3 characters")) {
-            msg = "must be at least 3 characters long";
-          } else if (msg.includes("string does not match regex")) {
-            msg = "can only contain lowercase letters, numbers, and hyphens";
-          }
+            // Make validation messages more user-friendly
+            if (msg.includes("at least 3 characters")) {
+              msg = "must be at least 3 characters long";
+            } else if (msg.includes("string does not match regex")) {
+              msg = "can only contain lowercase letters, numbers, and hyphens";
+            }
 
-          return `${field}: ${msg}`;
-        }).join("\n");
+            return `${field}: ${msg}`;
+          })
+          .join("\n");
 
         showError(`Validation Error:\n${errorMessages}`);
       }
@@ -289,10 +295,13 @@ const OrganizationManagement = () => {
         // Fallback error handling - ensure we always show a string
         console.error("Organization creation error:", err);
         const errorMessage =
-          typeof err === "string" ? err :
-          typeof err.message === "string" ? err.message :
-          err.data?.message || err.data?.detail ||
-          "Failed to create organization. Please check your inputs and try again.";
+          typeof err === "string"
+            ? err
+            : typeof err.message === "string"
+              ? err.message
+              : err.data?.message ||
+                err.data?.detail ||
+                "Failed to create organization. Please check your inputs and try again.";
         showError(errorMessage);
       }
     } finally {
@@ -401,7 +410,9 @@ const OrganizationManagement = () => {
           );
         }
       } else {
-        success(`Successfully invited ${results.successful.length} employee(s)!`);
+        success(
+          `Successfully invited ${results.successful.length} employee(s)!`,
+        );
       }
 
       setBulkEmails("");
@@ -765,7 +776,9 @@ const OrganizationManagement = () => {
                           </dd>
                         </div>
                         <div>
-                          <dt className="text-sm text-gray-500">Max Employees</dt>
+                          <dt className="text-sm text-gray-500">
+                            Max Employees
+                          </dt>
                           <dd className="text-base font-medium">
                             {currentOrg.max_members}
                           </dd>
@@ -972,8 +985,8 @@ const OrganizationManagement = () => {
                           <p className="text-sm text-red-700">
                             Once you delete an organization, there is no going
                             back. This action will permanently delete the
-                            organization, all employees, expenses, and associated
-                            data.
+                            organization, all employees, expenses, and
+                            associated data.
                           </p>
                         </div>
                       </div>
@@ -1003,7 +1016,10 @@ const OrganizationManagement = () => {
         >
           <form onSubmit={handleCreateOrg} className="space-y-4">
             <div>
-              <label htmlFor="org-name" className="block text-sm font-medium mb-1">
+              <label
+                htmlFor="org-name"
+                className="block text-sm font-medium mb-1"
+              >
                 Organization Name*
               </label>
               <input
@@ -1088,7 +1104,10 @@ const OrganizationManagement = () => {
               )}
             </div>
             <div>
-              <label htmlFor="org-slug" className="block text-sm font-medium mb-1">
+              <label
+                htmlFor="org-slug"
+                className="block text-sm font-medium mb-1"
+              >
                 Organization ID*
               </label>
               <input
@@ -1114,8 +1133,8 @@ const OrganizationManagement = () => {
               />
               <p className="text-xs text-gray-500 mt-1">
                 <strong>Auto-generated from name</strong> (you can customize
-                it). Must be at least 3 characters. Use only lowercase letters, numbers, and hyphens. Example:
-                "Corex Inc" becomes "corex-inc"
+                it). Must be at least 3 characters. Use only lowercase letters,
+                numbers, and hyphens. Example: "Corex Inc" becomes "corex-inc"
               </p>
               {/* Real-time slug validation feedback */}
               {slugValidation.checking && (
@@ -1350,7 +1369,10 @@ const OrganizationManagement = () => {
         >
           <form onSubmit={handleUpdateOrg} className="space-y-4">
             <div>
-              <label htmlFor="edit-org-name" className="block text-sm font-medium mb-1">
+              <label
+                htmlFor="edit-org-name"
+                className="block text-sm font-medium mb-1"
+              >
                 Organization Name*
               </label>
               <input
@@ -1669,25 +1691,29 @@ const OrganizationManagement = () => {
                   )}
 
                   {/* Suggestions */}
-                  {validationErrorInfo.suggestions && validationErrorInfo.suggestions.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        Suggestions:
-                      </p>
-                      <ul className="list-disc list-inside space-y-1">
-                        {validationErrorInfo.suggestions.map((suggestion, idx) => (
-                          <li key={idx} className="text-sm text-gray-600">
-                            {suggestion}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {validationErrorInfo.suggestions &&
+                    validationErrorInfo.suggestions.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          Suggestions:
+                        </p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {validationErrorInfo.suggestions.map(
+                            (suggestion, idx) => (
+                              <li key={idx} className="text-sm text-gray-600">
+                                {suggestion}
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      </div>
+                    )}
 
                   {/* Requirement */}
                   {validationErrorInfo.requirement && (
                     <div className="text-sm text-gray-600 mb-4">
-                      <strong>Requirement:</strong> {validationErrorInfo.requirement}
+                      <strong>Requirement:</strong>{" "}
+                      {validationErrorInfo.requirement}
                     </div>
                   )}
 

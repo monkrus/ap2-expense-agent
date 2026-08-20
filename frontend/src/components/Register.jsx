@@ -123,7 +123,10 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
             aria-live="polite"
             id="register-error"
           >
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <AlertCircle
+              className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
             <p className="text-sm text-red-800">{error}</p>
           </div>
         )}
