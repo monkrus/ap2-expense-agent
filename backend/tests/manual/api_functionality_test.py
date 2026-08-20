@@ -3,6 +3,7 @@ COMPREHENSIVE API FUNCTIONALITY TEST
 Tests all critical API endpoints and user flows via HTTP requests
 """
 
+import os.path
 import time
 
 import requests
@@ -15,7 +16,6 @@ results = {"passed": 0, "failed": 0, "warnings": 0, "tests": []}
 
 def test(name, condition, message="", severity="error"):
     """Record test result"""
-    global results
     status = "PASS" if condition else ("WARN" if severity == "warning" else "FAIL")
 
     results["tests"].append(
@@ -308,8 +308,6 @@ except Exception as e:
 print("\n[SECTION 10] RECENT FIXES VERIFICATION")
 print("-" * 80)
 
-import os.path
-
 # Verify lazy loading implementation
 exp_export_path = "frontend/src/components/ExpenseExport.jsx"
 if os.path.exists(exp_export_path):
@@ -423,13 +421,13 @@ print(f"Failed: {results['failed']}")
 print(f"Warnings: {results['warnings']}")
 
 if results["failed"] > 0:
-    print(f"\n[FAILED TESTS]")
+    print("\n[FAILED TESTS]")
     for t in results["tests"]:
         if t["status"] == "FAIL":
             print(f"  - {t['name']}: {t['message']}")
 
 if results["warnings"] > 0:
-    print(f"\n[WARNINGS]")
+    print("\n[WARNINGS]")
     for t in results["tests"]:
         if t["status"] == "WARN":
             print(f"  - {t['name']}: {t['message']}")
