@@ -8,7 +8,13 @@
  * - Delete and edit flows
  */
 
-import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  act,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import OrganizationManagement from "../OrganizationManagement";
@@ -26,8 +32,8 @@ vi.mock("../../hooks/useToast", () => ({
     success: mockSuccess,
     error: mockError,
     toasts: [],
-    removeToast: vi.fn()
-  })
+    removeToast: vi.fn(),
+  }),
 }));
 
 describe("OrganizationManagement", () => {
@@ -35,13 +41,13 @@ describe("OrganizationManagement", () => {
     id: "1",
     username: "testuser",
     role: "admin",
-    email: "test@example.com"
+    email: "test@example.com",
   };
 
   const mockAuthContext = {
     user: mockUser,
     accessToken: "fake-token",
-    logout: vi.fn()
+    logout: vi.fn(),
   };
 
   beforeEach(() => {
@@ -52,8 +58,14 @@ describe("OrganizationManagement", () => {
     organizationAPI.listInvitations.mockResolvedValue([]);
     organizationAPI.getCurrentOrganizationId.mockReturnValue(null);
     organizationAPI.setCurrentOrganizationId.mockImplementation(() => {});
-    organizationAPI.checkNameAvailability.mockResolvedValue({ available: true, message: "Name is available" });
-    organizationAPI.checkSlugAvailability.mockResolvedValue({ available: true, message: "Slug is available" });
+    organizationAPI.checkNameAvailability.mockResolvedValue({
+      available: true,
+      message: "Name is available",
+    });
+    organizationAPI.checkSlugAvailability.mockResolvedValue({
+      available: true,
+      message: "Slug is available",
+    });
   });
 
   afterEach(() => {
@@ -67,7 +79,7 @@ describe("OrganizationManagement", () => {
       render(
         <AuthContext.Provider value={mockAuthContext}>
           <OrganizationManagement />
-        </AuthContext.Provider>
+        </AuthContext.Provider>,
       );
 
       // Wait for component to load
@@ -76,7 +88,9 @@ describe("OrganizationManagement", () => {
       });
 
       // Click "Create Your First Organization" button
-      const createButton = screen.getByRole("button", { name: /create.*organization/i });
+      const createButton = screen.getByRole("button", {
+        name: /create.*organization/i,
+      });
       await user.click(createButton);
 
       // Fill in form
@@ -94,31 +108,37 @@ describe("OrganizationManagement", () => {
 
       // Wait for validation to resolve (button becomes enabled)
       await waitFor(() => {
-        const submitBtn = screen.getByRole("button", { name: /^create organization$/i });
+        const submitBtn = screen.getByRole("button", {
+          name: /^create organization$/i,
+        });
         expect(submitBtn).not.toBeDisabled();
       });
 
       // Mock API error for validation
-      const validationError = new Error("slug: must be at least 3 characters long");
+      const validationError = new Error(
+        "slug: must be at least 3 characters long",
+      );
       validationError.status = 422;
       validationError.data = {
-        detail: [{
-          loc: ["body", "slug"],
-          msg: "String should have at least 3 characters",
-          type: "string_too_short"
-        }]
+        detail: [
+          {
+            loc: ["body", "slug"],
+            msg: "String should have at least 3 characters",
+            type: "string_too_short",
+          },
+        ],
       };
       organizationAPI.createOrganization.mockRejectedValue(validationError);
 
       // Submit form
-      const submitButton = screen.getByRole("button", { name: /^create organization$/i });
+      const submitButton = screen.getByRole("button", {
+        name: /^create organization$/i,
+      });
       await user.click(submitButton);
 
       // Verify error is shown
       await waitFor(() => {
-        expect(mockError).toHaveBeenCalledWith(
-          expect.stringContaining("slug")
-        );
+        expect(mockError).toHaveBeenCalledWith(expect.stringContaining("slug"));
       });
     });
 
@@ -127,13 +147,20 @@ describe("OrganizationManagement", () => {
 
       // Mock organization already exists
       organizationAPI.listOrganizations.mockResolvedValue([
-        { id: "1", name: "Existing Org", slug: "existing", currency: "USD", timezone: "UTC", max_members: 5 }
+        {
+          id: "1",
+          name: "Existing Org",
+          slug: "existing",
+          currency: "USD",
+          timezone: "UTC",
+          max_members: 5,
+        },
       ]);
 
       render(
         <AuthContext.Provider value={mockAuthContext}>
           <OrganizationManagement />
-        </AuthContext.Provider>
+        </AuthContext.Provider>,
       );
 
       await waitFor(() => {
@@ -141,7 +168,9 @@ describe("OrganizationManagement", () => {
       });
 
       // When orgs exist, the header shows "Create Organization" button
-      const createButton = await screen.findByRole("button", { name: /create organization/i });
+      const createButton = await screen.findByRole("button", {
+        name: /create organization/i,
+      });
       await user.click(createButton);
 
       // Fill form
@@ -158,13 +187,17 @@ describe("OrganizationManagement", () => {
       });
 
       await waitFor(() => {
-        const btns = screen.getAllByRole("button", { name: /^create organization$/i });
+        const btns = screen.getAllByRole("button", {
+          name: /^create organization$/i,
+        });
         // The last one is the modal submit button
         expect(btns[btns.length - 1]).not.toBeDisabled();
       });
 
       // Mock 402 error (tier limit)
-      const limitError = new Error("You've reached your Free plan's limit of 1 organization");
+      const limitError = new Error(
+        "You've reached your Free plan's limit of 1 organization",
+      );
       limitError.status = 402;
       limitError.data = {
         error: "limit_exceeded",
@@ -173,15 +206,18 @@ describe("OrganizationManagement", () => {
         current_limit: 1,
         current_count: 1,
         message: "You've reached your Free plan's limit of 1 organization",
-        upgrade_message: "Upgrade to Starter ($29/month) to create up to 3 organizations",
+        upgrade_message:
+          "Upgrade to Starter ($29/month) to create up to 3 organizations",
         upgrade_options: [
-          { tier: "Starter", price: "$29/month", organizations: 3 }
-        ]
+          { tier: "Starter", price: "$29/month", organizations: 3 },
+        ],
       };
       organizationAPI.createOrganization.mockRejectedValue(limitError);
 
       // Submit - use the modal's submit button (last matching button)
-      const submitButtons = screen.getAllByRole("button", { name: /^create organization$/i });
+      const submitButtons = screen.getAllByRole("button", {
+        name: /^create organization$/i,
+      });
       await user.click(submitButtons[submitButtons.length - 1]);
 
       // Verify upgrade prompt is shown
@@ -200,13 +236,13 @@ describe("OrganizationManagement", () => {
         is_active: true,
         currency: "USD",
         timezone: "UTC",
-        max_members: 5
+        max_members: 5,
       });
 
       render(
         <AuthContext.Provider value={mockAuthContext}>
           <OrganizationManagement />
-        </AuthContext.Provider>
+        </AuthContext.Provider>,
       );
 
       await waitFor(() => {
@@ -214,7 +250,9 @@ describe("OrganizationManagement", () => {
       });
 
       // Click create button
-      const createButton = screen.getByRole("button", { name: /create.*organization/i });
+      const createButton = screen.getByRole("button", {
+        name: /create.*organization/i,
+      });
       await user.click(createButton);
 
       // Fill form
@@ -231,12 +269,16 @@ describe("OrganizationManagement", () => {
       });
 
       await waitFor(() => {
-        const submitBtn = screen.getByRole("button", { name: /^create organization$/i });
+        const submitBtn = screen.getByRole("button", {
+          name: /^create organization$/i,
+        });
         expect(submitBtn).not.toBeDisabled();
       });
 
       // Submit
-      const submitButton = screen.getByRole("button", { name: /^create organization$/i });
+      const submitButton = screen.getByRole("button", {
+        name: /^create organization$/i,
+      });
       await user.click(submitButton);
 
       // Verify success
@@ -246,10 +288,10 @@ describe("OrganizationManagement", () => {
           slug: "new-org",
           description: "",
           currency: "USD",
-          timezone: "UTC"
+          timezone: "UTC",
         });
         expect(mockSuccess).toHaveBeenCalledWith(
-          expect.stringContaining("New Org")
+          expect.stringContaining("New Org"),
         );
       });
     });
@@ -266,12 +308,12 @@ describe("OrganizationManagement", () => {
         is_active: true,
         currency: "USD",
         timezone: "UTC",
-        max_members: 5
+        max_members: 5,
       };
 
       organizationAPI.listOrganizations
-        .mockResolvedValueOnce([mockOrg])  // Initial load
-        .mockResolvedValueOnce([]);        // After deletion
+        .mockResolvedValueOnce([mockOrg]) // Initial load
+        .mockResolvedValueOnce([]); // After deletion
 
       organizationAPI.deleteOrganization.mockResolvedValue();
 
@@ -283,11 +325,13 @@ describe("OrganizationManagement", () => {
       render(
         <AuthContext.Provider value={mockAuthContext}>
           <OrganizationManagement />
-        </AuthContext.Provider>
+        </AuthContext.Provider>,
       );
 
       await waitFor(() => {
-        expect(screen.getAllByText("Test Org").length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText("Test Org").length).toBeGreaterThanOrEqual(
+          1,
+        );
       });
 
       // Navigate to Settings tab where the delete button is
@@ -327,24 +371,26 @@ describe("OrganizationManagement", () => {
         is_active: true,
         currency: "USD",
         timezone: "UTC",
-        max_members: 5
+        max_members: 5,
       };
 
       organizationAPI.listOrganizations.mockResolvedValue([mockOrg]);
       organizationAPI.updateOrganization.mockResolvedValue({
         ...mockOrg,
         name: "Updated Name",
-        description: "Updated description"
+        description: "Updated description",
       });
 
       render(
         <AuthContext.Provider value={mockAuthContext}>
           <OrganizationManagement />
-        </AuthContext.Provider>
+        </AuthContext.Provider>,
       );
 
       await waitFor(() => {
-        expect(screen.getAllByText("Original Name").length).toBeGreaterThanOrEqual(1);
+        expect(
+          screen.getAllByText("Original Name").length,
+        ).toBeGreaterThanOrEqual(1);
       });
 
       // Navigate to Settings tab where the Edit button lives
@@ -369,8 +415,8 @@ describe("OrganizationManagement", () => {
         expect(organizationAPI.updateOrganization).toHaveBeenCalledWith(
           "123",
           expect.objectContaining({
-            name: "Updated Name"
-          })
+            name: "Updated Name",
+          }),
         );
         expect(mockSuccess).toHaveBeenCalled();
       });
@@ -383,13 +429,13 @@ describe("OrganizationManagement", () => {
 
       organizationAPI.checkSlugAvailability.mockResolvedValue({
         available: true,
-        message: "Slug is available"
+        message: "Slug is available",
       });
 
       render(
         <AuthContext.Provider value={mockAuthContext}>
           <OrganizationManagement />
-        </AuthContext.Provider>
+        </AuthContext.Provider>,
       );
 
       await waitFor(() => {
@@ -397,7 +443,9 @@ describe("OrganizationManagement", () => {
       });
 
       // Click create
-      const createButton = screen.getByRole("button", { name: /create.*organization/i });
+      const createButton = screen.getByRole("button", {
+        name: /create.*organization/i,
+      });
       await user.click(createButton);
 
       // Type slug
@@ -412,7 +460,9 @@ describe("OrganizationManagement", () => {
 
       // Wait for validation to resolve
       await waitFor(() => {
-        expect(organizationAPI.checkSlugAvailability).toHaveBeenCalledWith("test-slug");
+        expect(organizationAPI.checkSlugAvailability).toHaveBeenCalledWith(
+          "test-slug",
+        );
       });
 
       // Verify availability indicator
@@ -425,20 +475,22 @@ describe("OrganizationManagement", () => {
       organizationAPI.checkSlugAvailability.mockResolvedValue({
         available: false,
         message: "Slug is already taken",
-        suggestions: ["test-slug-1", "test-slug-2"]
+        suggestions: ["test-slug-1", "test-slug-2"],
       });
 
       render(
         <AuthContext.Provider value={mockAuthContext}>
           <OrganizationManagement />
-        </AuthContext.Provider>
+        </AuthContext.Provider>,
       );
 
       await waitFor(() => {
         expect(organizationAPI.listOrganizations).toHaveBeenCalled();
       });
 
-      const createButton = screen.getByRole("button", { name: /create.*organization/i });
+      const createButton = screen.getByRole("button", {
+        name: /create.*organization/i,
+      });
       await user.click(createButton);
 
       const slugInput = screen.getByLabelText(/organization id/i);

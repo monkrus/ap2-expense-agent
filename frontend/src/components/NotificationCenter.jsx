@@ -189,20 +189,26 @@ const NotificationCenter = ({ onNavigate, onRuleRequestAction }) => {
         const data = await response.json();
         // Find pending request matching this notification's details
         const matchingRequest = (data.requests || []).find(
-          (r) => r.status === "pending" &&
-            ((details.category && r.category === details.category) || !details.category) &&
-            ((details.vendor && r.vendor === details.vendor) || !details.vendor)
+          (r) =>
+            r.status === "pending" &&
+            ((details.category && r.category === details.category) ||
+              !details.category) &&
+            ((details.vendor && r.vendor === details.vendor) ||
+              !details.vendor),
         );
 
         if (matchingRequest) {
           // Approve it
-          await fetch(`/api/v1/expenses/rule-requests/${matchingRequest.id}/approve`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "X-Organization-Id": orgId,
+          await fetch(
+            `/api/v1/expenses/rule-requests/${matchingRequest.id}/approve`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "X-Organization-Id": orgId,
+              },
             },
-          });
+          );
         }
       }
     } catch (err) {
@@ -237,21 +243,27 @@ const NotificationCenter = ({ onNavigate, onRuleRequestAction }) => {
       if (response.ok) {
         const data = await response.json();
         const matchingRequest = (data.requests || []).find(
-          (r) => r.status === "pending" &&
-            ((details.category && r.category === details.category) || !details.category) &&
-            ((details.vendor && r.vendor === details.vendor) || !details.vendor)
+          (r) =>
+            r.status === "pending" &&
+            ((details.category && r.category === details.category) ||
+              !details.category) &&
+            ((details.vendor && r.vendor === details.vendor) ||
+              !details.vendor),
         );
 
         if (matchingRequest) {
-          await fetch(`/api/v1/expenses/rule-requests/${matchingRequest.id}/deny`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              "X-Organization-Id": orgId,
+          await fetch(
+            `/api/v1/expenses/rule-requests/${matchingRequest.id}/deny`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+                "X-Organization-Id": orgId,
+              },
+              body: JSON.stringify({ note: denyNote }),
             },
-            body: JSON.stringify({ note: denyNote }),
-          });
+          );
         }
       }
 
@@ -386,33 +398,34 @@ const NotificationCenter = ({ onNavigate, onRuleRequestAction }) => {
                         </div>
 
                         {/* Rule Request Actions - Admin only */}
-                        {notification.notification_type === "rule_request" && isAdmin && (
-                          <div className="flex items-center gap-2 mt-3">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleApproveRequest(notification);
-                              }}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              Approve & Create Rule
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDenyModal({
-                                  notificationId: notification.id,
-                                  message: notification.message,
-                                });
-                              }}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-700 text-xs font-medium rounded-lg hover:bg-red-200 transition-colors"
-                            >
-                              <XCircle className="w-3.5 h-3.5" />
-                              Deny
-                            </button>
-                          </div>
-                        )}
+                        {notification.notification_type === "rule_request" &&
+                          isAdmin && (
+                            <div className="flex items-center gap-2 mt-3">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApproveRequest(notification);
+                                }}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                Approve & Create Rule
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDenyModal({
+                                    notificationId: notification.id,
+                                    message: notification.message,
+                                  });
+                                }}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-700 text-xs font-medium rounded-lg hover:bg-red-200 transition-colors"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                                Deny
+                              </button>
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>
@@ -439,15 +452,26 @@ const NotificationCenter = ({ onNavigate, onRuleRequestAction }) => {
 
       {/* Deny Modal */}
       {denyModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => { setDenyModal(null); setDenyNote(""); }}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4"
+          onClick={() => {
+            setDenyModal(null);
+            setDenyNote("");
+          }}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
                 <XCircle className="w-5 h-5 text-red-600" />
               </div>
               <div>
                 <h3 className="font-bold text-gray-900">Deny Rule Request</h3>
-                <p className="text-sm text-gray-500">The employee will be notified</p>
+                <p className="text-sm text-gray-500">
+                  The employee will be notified
+                </p>
               </div>
             </div>
 
@@ -466,7 +490,10 @@ const NotificationCenter = ({ onNavigate, onRuleRequestAction }) => {
 
             <div className="flex gap-3">
               <button
-                onClick={() => { setDenyModal(null); setDenyNote(""); }}
+                onClick={() => {
+                  setDenyModal(null);
+                  setDenyNote("");
+                }}
                 className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
               >
                 Cancel

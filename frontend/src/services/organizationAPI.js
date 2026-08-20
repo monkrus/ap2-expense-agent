@@ -76,7 +76,7 @@ export const listOrganizations = async () => {
  */
 export const getOrganization = async (orgId) => {
   const response = await apiFetch(
-    `${API_BASE_URL}/api/v1/organizations/${orgId}`
+    `${API_BASE_URL}/api/v1/organizations/${orgId}`,
   );
 
   if (!response.ok) {
@@ -96,7 +96,7 @@ export const checkNameAvailability = async (name) => {
   }
 
   const response = await apiFetch(
-    `${API_BASE_URL}/api/v1/organizations/validate/name?name=${encodeURIComponent(name)}`
+    `${API_BASE_URL}/api/v1/organizations/validate/name?name=${encodeURIComponent(name)}`,
   );
 
   if (!response.ok) {
@@ -115,7 +115,7 @@ export const checkSlugAvailability = async (slug) => {
   }
 
   const response = await apiFetch(
-    `${API_BASE_URL}/api/v1/organizations/validate/slug?slug=${encodeURIComponent(slug)}`
+    `${API_BASE_URL}/api/v1/organizations/validate/slug?slug=${encodeURIComponent(slug)}`,
   );
 
   if (!response.ok) {
@@ -152,7 +152,7 @@ export const updateOrganization = async (orgId, data) => {
     {
       method: "PATCH",
       body: JSON.stringify(data),
-    }
+    },
   );
 
   if (!response.ok) {
@@ -171,7 +171,7 @@ export const deleteOrganization = async (orgId) => {
     `${API_BASE_URL}/api/v1/organizations/${orgId}`,
     {
       method: "DELETE",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -191,7 +191,7 @@ export const deleteOrganization = async (orgId) => {
  */
 export const listMembers = async (orgId) => {
   const response = await apiFetch(
-    `${API_BASE_URL}/api/v1/organizations/${orgId}/members`
+    `${API_BASE_URL}/api/v1/organizations/${orgId}/members`,
   );
 
   if (!response.ok) {
@@ -211,7 +211,7 @@ export const updateMemberRole = async (orgId, memberId, role) => {
     {
       method: "PATCH",
       body: JSON.stringify({ role }),
-    }
+    },
   );
 
   if (!response.ok) {
@@ -230,7 +230,7 @@ export const removeMember = async (orgId, memberId) => {
     `${API_BASE_URL}/api/v1/organizations/${orgId}/members/${memberId}`,
     {
       method: "DELETE",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -250,7 +250,7 @@ export const removeMember = async (orgId, memberId) => {
  */
 export const listInvitations = async (orgId) => {
   const response = await apiFetch(
-    `${API_BASE_URL}/api/v1/organizations/${orgId}/invitations`
+    `${API_BASE_URL}/api/v1/organizations/${orgId}/invitations`,
   );
 
   if (!response.ok) {
@@ -270,7 +270,7 @@ export const createInvitation = async (orgId, email, role = "employee") => {
     {
       method: "POST",
       body: JSON.stringify({ email, role }),
-    }
+    },
   );
 
   if (!response.ok) {
@@ -290,7 +290,7 @@ export const revokeInvitation = async (orgId, invitationId) => {
     `${API_BASE_URL}/api/v1/organizations/${orgId}/invitations/${invitationId}`,
     {
       method: "DELETE",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -309,7 +309,7 @@ export const acceptInvitation = async (token) => {
     `${API_BASE_URL}/api/v1/organizations/invitations/${token}/accept`,
     {
       method: "POST",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -369,7 +369,11 @@ export const bulkInviteMembersWithRoles = async (orgId, inviteList) => {
 
   for (const { email, role } of inviteList) {
     try {
-      const result = await createInvitation(orgId, email.trim(), role || "employee");
+      const result = await createInvitation(
+        orgId,
+        email.trim(),
+        role || "employee",
+      );
       results.successful.push({ email, role, result });
     } catch (error) {
       if (error.status === 402) {

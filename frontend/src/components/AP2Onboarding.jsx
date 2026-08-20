@@ -83,8 +83,9 @@ const AP2Onboarding = ({ onComplete }) => {
         Welcome to AP2 Automation
       </h2>
       <p className="text-gray-600 mb-8 max-w-md mx-auto">
-        AP2 uses Intent Mandates to auto-approve your routine expenses instantly.
-        No more waiting days for manager approval on everyday purchases.
+        AP2 uses Intent Mandates to auto-approve your routine expenses
+        instantly. No more waiting days for manager approval on everyday
+        purchases.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-lg mx-auto">
         <div className="bg-green-50 rounded-xl p-4 text-center">
@@ -119,16 +120,23 @@ const AP2Onboarding = ({ onComplete }) => {
       </h2>
       <div className="space-y-4 mb-8">
         <div className="flex items-start gap-4 p-4 bg-purple-50 rounded-xl">
-          <div className="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm">1</div>
+          <div className="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm">
+            1
+          </div>
           <div>
-            <p className="font-semibold text-purple-900">You create a rule (Intent Mandate)</p>
+            <p className="font-semibold text-purple-900">
+              You create a rule (Intent Mandate)
+            </p>
             <p className="text-sm text-purple-700 mt-1">
-              Example: "Auto-approve office supplies up to $100 each, max $300/month"
+              Example: "Auto-approve office supplies up to $100 each, max
+              $300/month"
             </p>
           </div>
         </div>
         <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-xl">
-          <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm">2</div>
+          <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm">
+            2
+          </div>
           <div>
             <p className="font-semibold text-blue-900">You submit an expense</p>
             <p className="text-sm text-blue-700 mt-1">
@@ -137,11 +145,16 @@ const AP2Onboarding = ({ onComplete }) => {
           </div>
         </div>
         <div className="flex items-start gap-4 p-4 bg-green-50 rounded-xl">
-          <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm">3</div>
+          <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm">
+            3
+          </div>
           <div>
-            <p className="font-semibold text-green-900">AI approves it instantly</p>
+            <p className="font-semibold text-green-900">
+              AI approves it instantly
+            </p>
             <p className="text-sm text-green-700 mt-1">
-              The AI agent checks your rule, sees it matches, and approves immediately. No manager needed!
+              The AI agent checks your rule, sees it matches, and approves
+              immediately. No manager needed!
             </p>
           </div>
         </div>
@@ -241,7 +254,11 @@ const AP2Onboarding = ({ onComplete }) => {
           <div
             key={i}
             className={`w-2.5 h-2.5 rounded-full transition-colors ${
-              i === step ? "bg-purple-600" : i < step ? "bg-purple-300" : "bg-gray-200"
+              i === step
+                ? "bg-purple-600"
+                : i < step
+                  ? "bg-purple-300"
+                  : "bg-gray-200"
             }`}
           />
         ))}

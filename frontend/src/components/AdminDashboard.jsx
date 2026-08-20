@@ -224,7 +224,7 @@ const AdminDashboard = () => {
       }
       const data = await expenseAPI.getAllPendingExpenses();
       // Handle both formats: {expenses: [...]} or plain [...]
-      const expenses = Array.isArray(data) ? data : (data.expenses || []);
+      const expenses = Array.isArray(data) ? data : data.expenses || [];
       setPendingExpenses(expenses);
     } catch (err) {
       console.error("Error fetching pending expenses:", err);
@@ -275,7 +275,7 @@ const AdminDashboard = () => {
       const data = await expenseAPI.getAllExpenses(filterValue);
 
       // Handle both formats: {expenses: [...]} or plain [...]
-      const expenses = Array.isArray(data) ? data : (data.expenses || []);
+      const expenses = Array.isArray(data) ? data : data.expenses || [];
       setAllExpenses(expenses);
     } catch (err) {
       console.error("Error fetching all expenses:", err);
@@ -394,7 +394,7 @@ const AdminDashboard = () => {
       }
       const data = await expenseAPI.getArchivedExpenses();
       // Handle both formats: {expenses: [...]} or plain [...]
-      const expenses = Array.isArray(data) ? data : (data.expenses || []);
+      const expenses = Array.isArray(data) ? data : data.expenses || [];
       setArchivedExpenses(expenses);
     } catch (err) {
       console.error("Error fetching archived expenses:", err);
@@ -567,7 +567,9 @@ const AdminDashboard = () => {
 
       // Clear selections and show success after data is refreshed
       setSelectedExpenses([]);
-      success(`Successfully restored ${selectedExpenses.length} expense(s)! Switched to "All Expenses" tab.`);
+      success(
+        `Successfully restored ${selectedExpenses.length} expense(s)! Switched to "All Expenses" tab.`,
+      );
     } catch (err) {
       const errorMsg =
         err instanceof APIError
@@ -782,9 +784,12 @@ const AdminDashboard = () => {
   const allExpensesStats = {
     total: allExpenses.length,
     totalAmount: allExpenses.reduce((sum, e) => sum + (e.amount || 0), 0),
-    pending: allExpenses.filter((e) => e.status?.toLowerCase() === "pending").length,
-    approved: allExpenses.filter((e) => e.status?.toLowerCase() === "approved").length,
-    rejected: allExpenses.filter((e) => e.status?.toLowerCase() === "rejected").length,
+    pending: allExpenses.filter((e) => e.status?.toLowerCase() === "pending")
+      .length,
+    approved: allExpenses.filter((e) => e.status?.toLowerCase() === "approved")
+      .length,
+    rejected: allExpenses.filter((e) => e.status?.toLowerCase() === "rejected")
+      .length,
     pendingAmount: allExpenses
       .filter((e) => e.status?.toLowerCase() === "pending")
       .reduce((sum, e) => sum + (e.amount || 0), 0),
@@ -1666,119 +1671,118 @@ const AdminDashboard = () => {
                             : "border-gray-200"
                         }`}
                       >
-                      {/* Row Number Badge */}
-                      <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold">
-                        {(currentPage - 1) * itemsPerPage + index + 1}
-                      </div>
+                        {/* Row Number Badge */}
+                        <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold">
+                          {(currentPage - 1) * itemsPerPage + index + 1}
+                        </div>
 
-                      {/* Selection Checkbox - Only show on "all" and "archived" tabs for admins */}
-                      {user?.role === "admin" &&
-                        (activeTab === "all" || activeTab === "archived") && (
-                          <div className="absolute top-3 right-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedExpenses.includes(expense.id)}
-                              onChange={() =>
-                                toggleExpenseSelection(expense.id)
-                              }
-                              disabled={
-                                activeTab === "all" &&
-                                expense.status?.toLowerCase() === "pending"
-                              }
-                              className={`w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 ${
-                                activeTab === "all" &&
-                                expense.status?.toLowerCase() === "pending"
-                                  ? "cursor-not-allowed opacity-50"
-                                  : "cursor-pointer"
-                              }`}
-                              title={
-                                activeTab === "all" &&
-                                expense.status?.toLowerCase() === "pending"
-                                  ? "Cannot archive pending expenses - approve or reject first"
-                                  : "Select this expense"
-                              }
-                            />
-                          </div>
-                        )}
-
-                      <div className="flex items-start justify-between mb-4 ml-10 mr-8">
-                        <div className="flex-1">
-                          {/* Employee Info */}
-                          <div className="flex items-center gap-2 mb-2">
-                            <Users className="w-4 h-4 text-gray-500" />
-                            <span className="text-sm font-medium text-gray-700">
-                              {expense.user_name || "Unknown User"}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              ({expense.user_email})
-                            </span>
-                          </div>
-
-                          {/* Expense Info */}
-                          <div className="flex items-center gap-2 mb-1">
-                            <button
-                              onClick={() => handleCopyExpenseId(expense.id)}
-                              className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
-                              title="Copy expense ID"
-                            >
-                              {copiedExpenseId === expense.id ? (
-                                <Check className="w-3.5 h-3.5 text-green-700" />
-                              ) : (
-                                <Copy className="w-3.5 h-3.5 text-gray-600" />
-                              )}
-                            </button>
-                            <span
-                              className="font-semibold text-gray-800 text-sm"
-                              title={expense.id}
-                            >
-                              {expense.id.substring(0, 8)}...
-                            </span>
-                            {getStatusBadge(expense.status)}
-                          </div>
-                          <p className="text-sm text-gray-600 mb-1">
-                            {expense.description}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {expense.vendor} • {expense.category} • Submitted{" "}
-                            {formatDate(expense.created_at || expense.date)}
-                          </p>
-
-                          {/* Approval/Rejection Info */}
-                          {expense.approved_at && (
-                            <p className="text-xs text-gray-600 mt-2">
-                          {isApproved ? "Approved" : "Rejected"}{" "}
-                              by {expense.approved_by_name || "Admin"} on{" "}
-                              {formatDate(expense.approved_at)}
-                            </p>
-                          )}
-
-                          {/* Transaction ID */}
-                          {expense.transaction_id && (
-                            <div className="flex items-center gap-2 mt-1">
-                              <p className="text-xs text-green-600 font-mono">
-                                TX: {expense.transaction_id}
-                              </p>
-                              <button
-                                onClick={() =>
-                                  handleCopyTransactionId(
-                                    expense.transaction_id,
-                                  )
+                        {/* Selection Checkbox - Only show on "all" and "archived" tabs for admins */}
+                        {user?.role === "admin" &&
+                          (activeTab === "all" || activeTab === "archived") && (
+                            <div className="absolute top-3 right-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedExpenses.includes(expense.id)}
+                                onChange={() =>
+                                  toggleExpenseSelection(expense.id)
                                 }
-                                className="p-1 hover:bg-green-100 rounded transition-colors"
-                                title="Copy transaction ID"
-                              >
-                                {copiedTxId === expense.transaction_id ? (
-                                  <Check className="w-3.5 h-3.5 text-green-700" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5 text-green-600" />
-                                )}
-                              </button>
+                                disabled={
+                                  activeTab === "all" &&
+                                  expense.status?.toLowerCase() === "pending"
+                                }
+                                className={`w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 ${
+                                  activeTab === "all" &&
+                                  expense.status?.toLowerCase() === "pending"
+                                    ? "cursor-not-allowed opacity-50"
+                                    : "cursor-pointer"
+                                }`}
+                                title={
+                                  activeTab === "all" &&
+                                  expense.status?.toLowerCase() === "pending"
+                                    ? "Cannot archive pending expenses - approve or reject first"
+                                    : "Select this expense"
+                                }
+                              />
                             </div>
                           )}
 
-                          {/* Rejection Reason */}
-                          {isRejected &&
-                            expense.rejection_reason && (
+                        <div className="flex items-start justify-between mb-4 ml-10 mr-8">
+                          <div className="flex-1">
+                            {/* Employee Info */}
+                            <div className="flex items-center gap-2 mb-2">
+                              <Users className="w-4 h-4 text-gray-500" />
+                              <span className="text-sm font-medium text-gray-700">
+                                {expense.user_name || "Unknown User"}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                ({expense.user_email})
+                              </span>
+                            </div>
+
+                            {/* Expense Info */}
+                            <div className="flex items-center gap-2 mb-1">
+                              <button
+                                onClick={() => handleCopyExpenseId(expense.id)}
+                                className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+                                title="Copy expense ID"
+                              >
+                                {copiedExpenseId === expense.id ? (
+                                  <Check className="w-3.5 h-3.5 text-green-700" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5 text-gray-600" />
+                                )}
+                              </button>
+                              <span
+                                className="font-semibold text-gray-800 text-sm"
+                                title={expense.id}
+                              >
+                                {expense.id.substring(0, 8)}...
+                              </span>
+                              {getStatusBadge(expense.status)}
+                            </div>
+                            <p className="text-sm text-gray-600 mb-1">
+                              {expense.description}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {expense.vendor} • {expense.category} • Submitted{" "}
+                              {formatDate(expense.created_at || expense.date)}
+                            </p>
+
+                            {/* Approval/Rejection Info */}
+                            {expense.approved_at && (
+                              <p className="text-xs text-gray-600 mt-2">
+                                {isApproved ? "Approved" : "Rejected"} by{" "}
+                                {expense.approved_by_name || "Admin"} on{" "}
+                                {formatDate(expense.approved_at)}
+                              </p>
+                            )}
+
+                            {/* Transaction ID */}
+                            {expense.transaction_id && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <p className="text-xs text-green-600 font-mono">
+                                  TX: {expense.transaction_id}
+                                </p>
+                                <button
+                                  onClick={() =>
+                                    handleCopyTransactionId(
+                                      expense.transaction_id,
+                                    )
+                                  }
+                                  className="p-1 hover:bg-green-100 rounded transition-colors"
+                                  title="Copy transaction ID"
+                                >
+                                  {copiedTxId === expense.transaction_id ? (
+                                    <Check className="w-3.5 h-3.5 text-green-700" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5 text-green-600" />
+                                  )}
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Rejection Reason */}
+                            {isRejected && expense.rejection_reason && (
                               <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
                                 <p className="text-xs font-medium text-red-800 mb-1">
                                   Rejection Reason:
@@ -1788,21 +1792,21 @@ const AdminDashboard = () => {
                                 </p>
                               </div>
                             )}
+                          </div>
+
+                          {/* Amount */}
+                          <div className="text-right ml-4">
+                            <p className="text-2xl font-bold text-gray-800">
+                              ${formatCurrency(expense.amount)}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {expense.category}
+                            </p>
+                          </div>
                         </div>
 
-                        {/* Amount */}
-                        <div className="text-right ml-4">
-                          <p className="text-2xl font-bold text-gray-800">
-                            ${formatCurrency(expense.amount)}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {expense.category}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons - Only for pending expenses */}
-                      {isPending && activeTab !== "archived" && (
+                        {/* Action Buttons - Only for pending expenses */}
+                        {isPending && activeTab !== "archived" && (
                           <>
                             {/* Manager Approval Limit Warning */}
                             {user?.role === "manager" &&
@@ -1865,33 +1869,33 @@ const AdminDashboard = () => {
                           </>
                         )}
 
-                      {/* Unarchive Button - Only for archived expenses (Admin only) */}
-                      {activeTab === "archived" && user?.role === "admin" && (
-                        <div className="flex gap-3 pt-4 border-t border-gray-200">
-                          <button
-                            onClick={() => handleUnarchiveExpense(expense.id)}
-                            disabled={processing}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
-                          >
-                            <Upload className="w-4 h-4" />
-                            Restore to Active
-                          </button>
-                        </div>
-                      )}
+                        {/* Unarchive Button - Only for archived expenses (Admin only) */}
+                        {activeTab === "archived" && user?.role === "admin" && (
+                          <div className="flex gap-3 pt-4 border-t border-gray-200">
+                            <button
+                              onClick={() => handleUnarchiveExpense(expense.id)}
+                              disabled={processing}
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                            >
+                              <Upload className="w-4 h-4" />
+                              Restore to Active
+                            </button>
+                          </div>
+                        )}
 
-                      {processing && (
-                        <div
-                          className={`mt-3 flex items-center justify-center gap-2 text-sm ${getTextColor()}`}
-                        >
+                        {processing && (
                           <div
-                            className={`animate-spin rounded-full h-4 w-4 border-b-2 ${getSpinnerClasses()}`}
-                          ></div>
-                          Processing with AP2 protocol...
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                            className={`mt-3 flex items-center justify-center gap-2 text-sm ${getTextColor()}`}
+                          >
+                            <div
+                              className={`animate-spin rounded-full h-4 w-4 border-b-2 ${getSpinnerClasses()}`}
+                            ></div>
+                            Processing with AP2 protocol...
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

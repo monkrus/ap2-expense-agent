@@ -63,7 +63,10 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
             aria-live="polite"
             id="login-error"
           >
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <AlertCircle
+              className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
             <p className="text-sm text-red-800">{error}</p>
           </div>
         )}
@@ -180,8 +183,7 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
 
           <button
             onClick={() => {
-              const apiUrl =
-                import.meta.env.VITE_API_BASE_URL || "";
+              const apiUrl = import.meta.env.VITE_API_BASE_URL || "";
               window.location.href = `${apiUrl}/api/v1/oauth2/google/login`;
             }}
             disabled={loading}

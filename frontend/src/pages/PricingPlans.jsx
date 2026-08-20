@@ -31,7 +31,11 @@ const PRICING_TIERS = [
     tagline: "Experience AP2 Automation",
     description:
       "Try our revolutionary AP2 payment protocol free forever. Perfect for individuals getting started.",
-    highlights: ["20 AP2 transactions/month", "OCR receipt scanning", "No credit card required"],
+    highlights: [
+      "20 AP2 transactions/month",
+      "OCR receipt scanning",
+      "No credit card required",
+    ],
     icon: Zap,
     color: "gray",
     buttonText: "Get Started Free",
@@ -62,7 +66,12 @@ const PRICING_TIERS = [
     tagline: "AI-Powered Productivity",
     description:
       "Stop manual categorization! Let AI handle your expenses automatically. Perfect for small teams.",
-    highlights: ["Everything in Free", "200 AI categorizations", "100 AP2 transactions", "Email support"],
+    highlights: [
+      "Everything in Free",
+      "200 AI categorizations",
+      "100 AP2 transactions",
+      "Email support",
+    ],
     icon: Users,
     color: "blue",
     buttonText: "Start Free Trial",
@@ -563,7 +572,8 @@ const PricingPlans = () => {
         <div className="max-w-4xl mx-auto mt-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 text-center text-white shadow-xl">
           <h3 className="text-2xl font-bold mb-3">Need more than 100 users?</h3>
           <p className="text-indigo-100 mb-6 text-lg">
-            We offer custom enterprise solutions with SSO, dedicated support, and tailored pricing for large teams.
+            We offer custom enterprise solutions with SSO, dedicated support,
+            and tailored pricing for large teams.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <a

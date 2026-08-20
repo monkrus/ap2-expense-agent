@@ -40,7 +40,7 @@ def validate_settings() -> None:
     insecure_origins = [
         o
         for o in origins
-        if "localhost" in o or "127.0.0.1" in o or o == "*" or o == "0.0.0.0"
+        if "localhost" in o or "127.0.0.1" in o or o == "*" or o == "0.0.0.0"  # nosec B104
     ]
     if insecure_origins:
         errors.append(

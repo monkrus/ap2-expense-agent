@@ -131,7 +131,9 @@ const ExpenseEdit = ({ expense, onSuccess, onCancel, currentUser }) => {
               <option value="UTILITIES">Utilities</option>
               <option value="MARKETING">Marketing</option>
               <option value="HARDWARE">Hardware</option>
-              <option value="PROFESSIONAL_SERVICES">Professional Services</option>
+              <option value="PROFESSIONAL_SERVICES">
+                Professional Services
+              </option>
               <option value="OTHER">Other</option>
             </select>
           </div>

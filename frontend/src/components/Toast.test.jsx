@@ -38,7 +38,11 @@ describe("Toast Component", () => {
     });
 
     it("should render error toast with error styling", () => {
-      const errorToast = { ...defaultToast, type: "error", message: "Error occurred" };
+      const errorToast = {
+        ...defaultToast,
+        type: "error",
+        message: "Error occurred",
+      };
       render(<Toast toast={errorToast} onClose={mockOnClose} />);
 
       expect(screen.getByText("Error occurred")).toBeInTheDocument();
@@ -46,14 +50,22 @@ describe("Toast Component", () => {
     });
 
     it("should render info toast", () => {
-      const infoToast = { ...defaultToast, type: "info", message: "Information message" };
+      const infoToast = {
+        ...defaultToast,
+        type: "info",
+        message: "Information message",
+      };
       render(<Toast toast={infoToast} onClose={mockOnClose} />);
 
       expect(screen.getByText("Information message")).toBeInTheDocument();
     });
 
     it("should render warning toast", () => {
-      const warningToast = { ...defaultToast, type: "warning", message: "Warning message" };
+      const warningToast = {
+        ...defaultToast,
+        type: "warning",
+        message: "Warning message",
+      };
       render(<Toast toast={warningToast} onClose={mockOnClose} />);
 
       expect(screen.getByText("Warning message")).toBeInTheDocument();

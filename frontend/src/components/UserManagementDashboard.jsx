@@ -97,7 +97,9 @@ const UserManagementDashboard = () => {
 
   const fetchOrganizations = async () => {
     try {
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/admin/organizations`);
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/v1/admin/organizations`,
+      );
       if (response.ok) {
         const data = await response.json().catch(() => ({}));
         setOrganizations(data.organizations || []);
@@ -132,7 +134,7 @@ const UserManagementDashboard = () => {
     const orgId = localStorage.getItem("current_organization_id");
     if (!orgId) {
       showError(
-        "No organization found. Please log out and log back in, or contact support if the issue persists."
+        "No organization found. Please log out and log back in, or contact support if the issue persists.",
       );
       return;
     }
@@ -255,10 +257,14 @@ const UserManagementDashboard = () => {
       }
 
       // Update organization if changed
-      const currentOrgId = selectedUser.organizations && selectedUser.organizations.length > 0
-        ? selectedUser.organizations[0].id
-        : "";
-      if (editForm.organization_id && editForm.organization_id !== currentOrgId) {
+      const currentOrgId =
+        selectedUser.organizations && selectedUser.organizations.length > 0
+          ? selectedUser.organizations[0].id
+          : "";
+      if (
+        editForm.organization_id &&
+        editForm.organization_id !== currentOrgId
+      ) {
         const orgResponse = await fetchWithAuth(
           `${API_BASE_URL}/api/v1/admin/users/${selectedUser.id}/organization`,
           {
@@ -469,9 +475,10 @@ const UserManagementDashboard = () => {
   const openEditModal = (user) => {
     setSelectedUser(user);
     // Get the first organization ID if user has organizations
-    const userOrgId = user.organizations && user.organizations.length > 0
-      ? user.organizations[0].id
-      : "";
+    const userOrgId =
+      user.organizations && user.organizations.length > 0
+        ? user.organizations[0].id
+        : "";
     setEditForm({
       username: user.username || "",
       full_name: user.full_name || "",
@@ -506,7 +513,8 @@ const UserManagementDashboard = () => {
     total: allUsers.length,
     active: allUsers.filter((u) => u.is_active).length,
     admins: allUsers.filter((u) => u.role?.toLowerCase() === "admin").length,
-    employees: allUsers.filter((u) => u.role?.toLowerCase() === "employee").length,
+    employees: allUsers.filter((u) => u.role?.toLowerCase() === "employee")
+      .length,
   };
 
   return (
@@ -667,9 +675,16 @@ const UserManagementDashboard = () => {
                         {user.organizations && user.organizations.length > 0 ? (
                           <div className="space-y-1">
                             {user.organizations.map((org, idx) => (
-                              <div key={idx} className="flex items-center gap-1">
-                                <span className="font-medium text-gray-700">{org.name}</span>
-                                <span className="text-xs text-gray-400">({org.role})</span>
+                              <div
+                                key={idx}
+                                className="flex items-center gap-1"
+                              >
+                                <span className="font-medium text-gray-700">
+                                  {org.name}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  ({org.role})
+                                </span>
                               </div>
                             ))}
                           </div>
@@ -1017,7 +1032,10 @@ const UserManagementDashboard = () => {
                   <select
                     value={editForm.organization_id}
                     onChange={(e) =>
-                      setEditForm({ ...editForm, organization_id: e.target.value })
+                      setEditForm({
+                        ...editForm,
+                        organization_id: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >

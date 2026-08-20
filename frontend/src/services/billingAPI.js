@@ -18,14 +18,17 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
  * @param {object} metadata - Optional metadata
  */
 export const trackUsage = async (usageType, quantity = 1, metadata = null) => {
-  const response = await apiFetch(`${API_BASE_URL}/api/billing/org/usage/track`, {
-    method: "POST",
-    body: JSON.stringify({
-      usage_type: usageType,
-      quantity,
-      metadata,
-    }),
-  });
+  const response = await apiFetch(
+    `${API_BASE_URL}/api/billing/org/usage/track`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        usage_type: usageType,
+        quantity,
+        metadata,
+      }),
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -59,7 +62,7 @@ export const getMonthlyUsage = async (usageType = null) => {
  */
 export const checkUsageLimit = async (usageType) => {
   const response = await apiFetch(
-    `${API_BASE_URL}/api/billing/org/usage/check-limit/${usageType}`
+    `${API_BASE_URL}/api/billing/org/usage/check-limit/${usageType}`,
   );
 
   if (!response.ok) {
@@ -79,7 +82,9 @@ export const checkUsageLimit = async (usageType) => {
  */
 export const getSubscription = async () => {
   // Use organization-based endpoint
-  const response = await apiFetch(`${API_BASE_URL}/api/billing/org/subscription`);
+  const response = await apiFetch(
+    `${API_BASE_URL}/api/billing/org/subscription`,
+  );
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -113,7 +118,9 @@ export const getAllTiers = async () => {
  * @param {string} tier - Tier name
  */
 export const getTierInfo = async (tier) => {
-  const response = await apiFetch(`${API_BASE_URL}/api/billing/org/tiers/${tier}`);
+  const response = await apiFetch(
+    `${API_BASE_URL}/api/billing/org/tiers/${tier}`,
+  );
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));

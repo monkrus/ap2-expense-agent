@@ -24,9 +24,13 @@ describe("AccessibleModal Component", () => {
   describe("Rendering", () => {
     it("should not render when isOpen is false", () => {
       render(
-        <AccessibleModal isOpen={false} onClose={mockOnClose} title="Test Modal">
+        <AccessibleModal
+          isOpen={false}
+          onClose={mockOnClose}
+          title="Test Modal"
+        >
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       expect(screen.queryByText("Test Modal")).not.toBeInTheDocument();
@@ -36,7 +40,7 @@ describe("AccessibleModal Component", () => {
       render(
         <AccessibleModal isOpen={true} onClose={mockOnClose} title="Test Modal">
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       expect(screen.getByText("Test Modal")).toBeInTheDocument();
@@ -52,7 +56,7 @@ describe("AccessibleModal Component", () => {
           description="This is a description"
         >
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       expect(screen.getByText("This is a description")).toBeInTheDocument();
@@ -62,10 +66,12 @@ describe("AccessibleModal Component", () => {
       render(
         <AccessibleModal isOpen={true} onClose={mockOnClose} title="Test Modal">
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
-      expect(screen.getByRole("button", { name: /close dialog/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /close dialog/i }),
+      ).toBeInTheDocument();
     });
 
     it("should not render close button when showCloseButton is false", () => {
@@ -77,10 +83,12 @@ describe("AccessibleModal Component", () => {
           showCloseButton={false}
         >
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
-      expect(screen.queryByRole("button", { name: /close dialog/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /close dialog/i }),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -89,7 +97,7 @@ describe("AccessibleModal Component", () => {
       render(
         <AccessibleModal isOpen={true} onClose={mockOnClose} title="Test Modal">
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -99,7 +107,7 @@ describe("AccessibleModal Component", () => {
       render(
         <AccessibleModal isOpen={true} onClose={mockOnClose} title="Test Modal">
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       const dialog = screen.getByRole("dialog");
@@ -110,7 +118,7 @@ describe("AccessibleModal Component", () => {
       render(
         <AccessibleModal isOpen={true} onClose={mockOnClose} title="Test Modal">
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       const dialog = screen.getByRole("dialog");
@@ -130,7 +138,7 @@ describe("AccessibleModal Component", () => {
           description="Test description"
         >
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       const dialog = screen.getByRole("dialog");
@@ -148,7 +156,7 @@ describe("AccessibleModal Component", () => {
       render(
         <AccessibleModal isOpen={true} onClose={mockOnClose} title="Test Modal">
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       await user.keyboard("{Escape}");
@@ -166,7 +174,7 @@ describe("AccessibleModal Component", () => {
           closeOnEscape={false}
         >
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       await user.keyboard("{Escape}");
@@ -181,7 +189,7 @@ describe("AccessibleModal Component", () => {
           <button>Button 1</button>
           <button>Button 2</button>
           <button>Button 3</button>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       // Initial focus should be on close button
@@ -196,7 +204,7 @@ describe("AccessibleModal Component", () => {
       render(
         <AccessibleModal isOpen={true} onClose={mockOnClose} title="Test Modal">
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       const closeButton = screen.getByRole("button", { name: /close dialog/i });
@@ -210,7 +218,7 @@ describe("AccessibleModal Component", () => {
       const { container } = render(
         <AccessibleModal isOpen={true} onClose={mockOnClose} title="Test Modal">
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       const backdrop = container.querySelector('[role="dialog"]').parentElement;
@@ -229,7 +237,7 @@ describe("AccessibleModal Component", () => {
           closeOnBackdropClick={false}
         >
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       const backdrop = container.querySelector('[role="dialog"]').parentElement;
@@ -242,9 +250,14 @@ describe("AccessibleModal Component", () => {
   describe("Size Variants", () => {
     it("should apply small size class", () => {
       const { container } = render(
-        <AccessibleModal isOpen={true} onClose={mockOnClose} title="Test Modal" size="small">
+        <AccessibleModal
+          isOpen={true}
+          onClose={mockOnClose}
+          title="Test Modal"
+          size="small"
+        >
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       const modal = container.querySelector(".max-w-md");
@@ -255,7 +268,7 @@ describe("AccessibleModal Component", () => {
       const { container } = render(
         <AccessibleModal isOpen={true} onClose={mockOnClose} title="Test Modal">
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       const modal = container.querySelector(".max-w-2xl");
@@ -264,9 +277,14 @@ describe("AccessibleModal Component", () => {
 
     it("should apply large size class", () => {
       const { container } = render(
-        <AccessibleModal isOpen={true} onClose={mockOnClose} title="Test Modal" size="large">
+        <AccessibleModal
+          isOpen={true}
+          onClose={mockOnClose}
+          title="Test Modal"
+          size="large"
+        >
           <p>Content</p>
-        </AccessibleModal>
+        </AccessibleModal>,
       );
 
       const modal = container.querySelector(".max-w-4xl");

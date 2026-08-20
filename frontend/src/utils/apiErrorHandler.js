@@ -21,7 +21,10 @@
  */
 export function createAPIError(response, errorData) {
   // DEBUG: Log the raw error data
-  console.log("[apiErrorHandler] Raw error data:", JSON.stringify(errorData, null, 2));
+  console.log(
+    "[apiErrorHandler] Raw error data:",
+    JSON.stringify(errorData, null, 2),
+  );
   console.log("[apiErrorHandler] Response status:", response.status);
 
   // Extract the most user-friendly error message
@@ -32,9 +35,15 @@ export function createAPIError(response, errorData) {
     console.log("[apiErrorHandler] Found error object format");
 
     // Check for validation errors in details.errors array (422 errors)
-    if (errorData.error.details && Array.isArray(errorData.error.details.errors)) {
-      console.log("[apiErrorHandler] Found validation errors array:", errorData.error.details.errors);
-      const errors = errorData.error.details.errors.map(err => {
+    if (
+      errorData.error.details &&
+      Array.isArray(errorData.error.details.errors)
+    ) {
+      console.log(
+        "[apiErrorHandler] Found validation errors array:",
+        errorData.error.details.errors,
+      );
+      const errors = errorData.error.details.errors.map((err) => {
         const field = err.field ? err.field.split(".").pop() : "field"; // Extract last part of "body.slug"
         let msg = err.message || "Validation error";
 
@@ -63,7 +72,7 @@ export function createAPIError(response, errorData) {
       message = errorData.detail;
     } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
       // Pydantic validation errors array (old format)
-      const errors = errorData.detail.map(err => {
+      const errors = errorData.detail.map((err) => {
         const field = err.loc ? err.loc[err.loc.length - 1] : "field";
         let msg = err.msg || "Validation error";
 
@@ -80,13 +89,17 @@ export function createAPIError(response, errorData) {
     } else if (typeof errorData.detail === "object") {
       // Structured detail object (e.g., 402 Payment Required)
       message =
-        typeof errorData.detail.message === "string" ? errorData.detail.message :
-        typeof errorData.detail.upgrade_message === "string" ? errorData.detail.upgrade_message :
-        typeof errorData.detail.error === "string" ? errorData.detail.error :
-        message;
+        typeof errorData.detail.message === "string"
+          ? errorData.detail.message
+          : typeof errorData.detail.upgrade_message === "string"
+            ? errorData.detail.upgrade_message
+            : typeof errorData.detail.error === "string"
+              ? errorData.detail.error
+              : message;
     }
   } else if (errorData.message) {
-    message = typeof errorData.message === "string" ? errorData.message : message;
+    message =
+      typeof errorData.message === "string" ? errorData.message : message;
   }
 
   console.log("[apiErrorHandler] Final message:", message);
@@ -164,7 +177,8 @@ export function extractTierLimitInfo(error) {
   }
 
   // Handle both new format (error.details) and legacy format (detail)
-  const errorData = error.data?.error?.details || error.data?.detail || error.data || {};
+  const errorData =
+    error.data?.error?.details || error.data?.detail || error.data || {};
 
   return {
     currentTier: errorData.current_tier || "Free",
@@ -189,20 +203,20 @@ export function extractTierLimitInfo(error) {
 export function validateAPIError(error) {
   if (!(error instanceof Error)) {
     throw new Error(
-      "API error must be an Error instance. Use createAPIError() to create errors."
+      "API error must be an Error instance. Use createAPIError() to create errors.",
     );
   }
 
   if (typeof error.status !== "number") {
     console.error("Invalid API error:", error);
     throw new Error(
-      `API error is missing 'status' property. Error: ${error.message}`
+      `API error is missing 'status' property. Error: ${error.message}`,
     );
   }
 
   if (!error.data) {
     console.warn(
-      `API error is missing 'data' property. Status: ${error.status}, Message: ${error.message}`
+      `API error is missing 'data' property. Status: ${error.status}, Message: ${error.message}`,
     );
   }
 

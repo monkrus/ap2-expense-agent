@@ -328,7 +328,9 @@ const ExpenseExport = ({ expenses, onClose }) => {
       doc.save(filename);
     } catch (err) {
       console.error("PDF Export Error:", err);
-      throw new Error(`PDF export failed: ${err.message || "Unknown error"}`, { cause: err });
+      throw new Error(`PDF export failed: ${err.message || "Unknown error"}`, {
+        cause: err,
+      });
     }
   };
 

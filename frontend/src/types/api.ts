@@ -62,7 +62,7 @@ export interface UserData {
 export interface UserCreatedResponse {
   success: true;
   message: string;
-  user: UserData;  // ← Nested structure!
+  user: UserData; // ← Nested structure!
 }
 
 export interface UserDeletedResponse {
@@ -87,7 +87,7 @@ export interface ExpenseData {
   vendor: string;
   category: string;
   description: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: "PENDING" | "APPROVED" | "REJECTED";
   date: string;
   created_at: string;
   approved_by?: string;
@@ -103,7 +103,7 @@ export interface ExpenseData {
 export interface ExpenseCreatedResponse {
   success: true;
   message: string;
-  expense?: ExpenseData;  // May be at root or nested
+  expense?: ExpenseData; // May be at root or nested
   // Actual response structure varies - check backend!
   id?: string;
   amount?: number;
@@ -158,28 +158,28 @@ export interface ValidationErrorResponse extends ErrorResponse {
 }
 
 export interface MissingHeaderError extends ErrorResponse {
-  error: 'MISSING_REQUIRED_HEADER';
+  error: "MISSING_REQUIRED_HEADER";
   required_header: string;
 }
 
 export interface UnauthorizedResponse extends ErrorResponse {
-  error: 'UNAUTHORIZED';
+  error: "UNAUTHORIZED";
 }
 
 export interface ForbiddenResponse extends ErrorResponse {
-  error: 'FORBIDDEN';
+  error: "FORBIDDEN";
 }
 
 export interface NotFoundResponse extends ErrorResponse {
-  error: 'NOT_FOUND';
+  error: "NOT_FOUND";
 }
 
 export interface ConflictResponse extends ErrorResponse {
-  error: 'CONFLICT';
+  error: "CONFLICT";
 }
 
 export interface PaymentRequiredResponse extends ErrorResponse {
-  error: 'PAYMENT_REQUIRED';
+  error: "PAYMENT_REQUIRED";
   upgrade_message?: string;
 }
 
@@ -192,7 +192,7 @@ export interface CreateUserRequest {
   username: string;
   full_name?: string;
   password: string;
-  role: 'employee' | 'admin' | 'manager';
+  role: "employee" | "admin" | "manager";
   department_id?: string;
 }
 
@@ -226,12 +226,18 @@ export function isErrorResponse(response: any): response is ErrorResponse {
   return response && response.success === false;
 }
 
-export function isUserCreatedResponse(response: any): response is UserCreatedResponse {
-  return isSuccessResponse(response) && 'user' in response && typeof response.user === 'object';
+export function isUserCreatedResponse(
+  response: any,
+): response is UserCreatedResponse {
+  return (
+    isSuccessResponse(response) &&
+    "user" in response &&
+    typeof response.user === "object"
+  );
 }
 
 export function isMissingHeaderError(error: any): error is MissingHeaderError {
-  return isErrorResponse(error) && error.error === 'MISSING_REQUIRED_HEADER';
+  return isErrorResponse(error) && error.error === "MISSING_REQUIRED_HEADER";
 }
 
 // ============================================================================
@@ -244,7 +250,7 @@ export function isMissingHeaderError(error: any): error is MissingHeaderError {
  */
 export function extractUserData(response: UserCreatedResponse | any): UserData {
   if (response.user) {
-    return response.user;  // Correct nested structure
+    return response.user; // Correct nested structure
   }
   // Fallback for legacy flat structure
   return {
@@ -269,7 +275,9 @@ export function extractErrorMessage(error: any): string {
     return error.detail || error.message;
   }
   if (error.detail) {
-    return typeof error.detail === 'string' ? error.detail : error.detail.message || 'An error occurred';
+    return typeof error.detail === "string"
+      ? error.detail
+      : error.detail.message || "An error occurred";
   }
-  return error.message || 'An unknown error occurred';
+  return error.message || "An unknown error occurred";
 }

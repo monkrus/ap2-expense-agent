@@ -12,8 +12,8 @@ global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     status: 200,
-    json: async () => []
-  })
+    json: async () => [],
+  }),
 );
 
 // Mock localStorage
@@ -40,9 +40,7 @@ Object.defineProperty(window, "localStorage", {
 // Wrapper for components
 const Wrapper = ({ children }) => (
   <ToastProvider>
-    <OrganizationProvider>
-      {children}
-    </OrganizationProvider>
+    <OrganizationProvider>{children}</OrganizationProvider>
   </ToastProvider>
 );
 
@@ -58,10 +56,12 @@ describe("AP2 Components", () => {
       render(
         <Wrapper>
           <ConstraintBuilder onClose={() => {}} onSuccess={() => {}} />
-        </Wrapper>
+        </Wrapper>,
       );
 
-      expect(screen.getByText("Create Reusable Authorization")).toBeInTheDocument();
+      expect(
+        screen.getByText("Create Reusable Authorization"),
+      ).toBeInTheDocument();
       expect(screen.getByText("Step 1 of 3")).toBeInTheDocument();
     });
 
@@ -69,13 +69,19 @@ describe("AP2 Components", () => {
       render(
         <Wrapper>
           <ConstraintBuilder onClose={() => {}} onSuccess={() => {}} />
-        </Wrapper>
+        </Wrapper>,
       );
 
       // Step labels appear in both the progress stepper and the form heading
-      expect(screen.getAllByText(/Basic Settings/i).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/Advanced Rules/i).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/Review & Create/i).length).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText(/Basic Settings/i).length,
+      ).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText(/Advanced Rules/i).length,
+      ).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText(/Review & Create/i).length,
+      ).toBeGreaterThanOrEqual(1);
     });
 
     it("should allow navigation between steps", async () => {
@@ -83,7 +89,7 @@ describe("AP2 Components", () => {
       render(
         <Wrapper>
           <ConstraintBuilder onClose={() => {}} onSuccess={() => {}} />
-        </Wrapper>
+        </Wrapper>,
       );
 
       // Fill required fields before navigating
@@ -97,7 +103,9 @@ describe("AP2 Components", () => {
       await user.click(nextButtons[0]);
 
       expect(screen.getByText("Step 2 of 3")).toBeInTheDocument();
-      expect(screen.getAllByText(/Advanced Rules/i).length).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText(/Advanced Rules/i).length,
+      ).toBeGreaterThanOrEqual(1);
     });
 
     it("should allow max amount input", async () => {
@@ -105,7 +113,7 @@ describe("AP2 Components", () => {
       render(
         <Wrapper>
           <ConstraintBuilder onClose={() => {}} onSuccess={() => {}} />
-        </Wrapper>
+        </Wrapper>,
       );
 
       const maxAmountInput = screen.getByPlaceholderText(/e.g., 1000.00/i);
@@ -119,7 +127,7 @@ describe("AP2 Components", () => {
       render(
         <Wrapper>
           <ConstraintBuilder onClose={() => {}} onSuccess={() => {}} />
-        </Wrapper>
+        </Wrapper>,
       );
 
       // Fill required fields before navigating
@@ -131,7 +139,9 @@ describe("AP2 Components", () => {
       await user.click(nextButtons[0]);
 
       // Find and fill merchant input
-      const merchantInput = screen.getByPlaceholderText(/e.g., Amazon, Starbucks/i);
+      const merchantInput = screen.getByPlaceholderText(
+        /e.g., Amazon, Starbucks/i,
+      );
       await user.type(merchantInput, "Starbucks");
 
       // Find and click the Add button next to merchant input
@@ -149,7 +159,7 @@ describe("AP2 Components", () => {
       render(
         <Wrapper>
           <ConstraintBuilder onClose={() => {}} onSuccess={() => {}} />
-        </Wrapper>
+        </Wrapper>,
       );
 
       // Fill required fields before navigating
@@ -161,7 +171,9 @@ describe("AP2 Components", () => {
       await user.click(nextButtons[0]);
 
       // Click a predefined category button
-      const officeSupplies = screen.getByRole("button", { name: /Office Supplies/i });
+      const officeSupplies = screen.getByRole("button", {
+        name: /Office Supplies/i,
+      });
       await user.click(officeSupplies);
 
       // Verify category is selected
@@ -177,7 +189,7 @@ describe("AP2 Components", () => {
       render(
         <Wrapper>
           <ConstraintBuilder onClose={() => {}} onSuccess={mockOnSuccess} />
-        </Wrapper>
+        </Wrapper>,
       );
 
       // Step 1: Add max amount and monthly limit
@@ -191,11 +203,15 @@ describe("AP2 Components", () => {
       await user.click(nextButtons[0]);
 
       // Add a category (required for Step 2 -> Step 3 navigation)
-      const officeSupplies = screen.getByRole("button", { name: /Office Supplies/i });
+      const officeSupplies = screen.getByRole("button", {
+        name: /Office Supplies/i,
+      });
       await user.click(officeSupplies);
 
       // Add a merchant
-      const merchantInput = screen.getByPlaceholderText(/e.g., Amazon, Starbucks/i);
+      const merchantInput = screen.getByPlaceholderText(
+        /e.g., Amazon, Starbucks/i,
+      );
       await user.type(merchantInput, "Amazon");
 
       const addButtons = screen.getAllByRole("button", { name: /^Add$/i });
@@ -206,7 +222,9 @@ describe("AP2 Components", () => {
       await user.click(nextButtons[0]);
 
       // Verify review page
-      expect(screen.getAllByText(/Review & Create/i).length).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText(/Review & Create/i).length,
+      ).toBeGreaterThanOrEqual(1);
       expect(screen.getByText("$1000.00")).toBeInTheDocument();
       expect(screen.getByText("Amazon")).toBeInTheDocument();
     });
@@ -216,7 +234,7 @@ describe("AP2 Components", () => {
       render(
         <Wrapper>
           <ConstraintBuilder onClose={() => {}} onSuccess={() => {}} />
-        </Wrapper>
+        </Wrapper>,
       );
 
       // Fill required fields before navigating
@@ -228,7 +246,9 @@ describe("AP2 Components", () => {
       await user.click(nextButtons[0]);
 
       // Find custom category input
-      const customCategoryInput = screen.getByPlaceholderText(/Or type custom category/i);
+      const customCategoryInput = screen.getByPlaceholderText(
+        /Or type custom category/i,
+      );
       await user.type(customCategoryInput, "COFFEE");
 
       // Click Add button
@@ -270,7 +290,7 @@ describe("AP2 Components", () => {
             showArchived={false}
             setShowArchived={() => {}}
           />
-        </Wrapper>
+        </Wrapper>,
       );
 
       expect(screen.getByText("Reusable Authorizations")).toBeInTheDocument();
@@ -287,13 +307,17 @@ describe("AP2 Components", () => {
             showArchived={false}
             setShowArchived={() => {}}
           />
-        </Wrapper>
+        </Wrapper>,
       );
 
       // Check that filter buttons exist
       expect(screen.getByRole("button", { name: /All/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Active/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Expired/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Active/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Expired/i }),
+      ).toBeInTheDocument();
     });
   });
 
@@ -302,7 +326,7 @@ describe("AP2 Components", () => {
       render(
         <Wrapper>
           <AP2CompleteFlow mandates={[]} />
-        </Wrapper>
+        </Wrapper>,
       );
 
       expect(screen.getByText("One-time Authorization")).toBeInTheDocument();
@@ -313,7 +337,7 @@ describe("AP2 Components", () => {
       render(
         <Wrapper>
           <AP2CompleteFlow mandates={[]} />
-        </Wrapper>
+        </Wrapper>,
       );
 
       // Find item description input
@@ -363,11 +387,13 @@ describe("AP2 Components", () => {
       render(
         <Wrapper>
           <ConstraintBuilder onClose={() => {}} onSuccess={() => {}} />
-        </Wrapper>
+        </Wrapper>,
       );
 
       // Check for semantic HTML
-      expect(screen.getByText("Create Reusable Authorization")).toBeInTheDocument();
+      expect(
+        screen.getByText("Create Reusable Authorization"),
+      ).toBeInTheDocument();
     });
 
     it("should support keyboard navigation", async () => {
@@ -375,7 +401,7 @@ describe("AP2 Components", () => {
       render(
         <Wrapper>
           <ConstraintBuilder onClose={() => {}} onSuccess={() => {}} />
-        </Wrapper>
+        </Wrapper>,
       );
 
       // Tab to first interactive element and verify it's focused

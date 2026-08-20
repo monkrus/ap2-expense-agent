@@ -218,7 +218,9 @@ const BillingDashboard = () => {
             <h3 className="font-semibold text-gray-900">{label}</h3>
             <p className="text-sm text-gray-500 mt-1">
               {isNotAvailable ? (
-                <span className="text-gray-400 italic">Manual only - Not available on this plan</span>
+                <span className="text-gray-400 italic">
+                  Manual only - Not available on this plan
+                </span>
               ) : (
                 <>
                   {current?.toLocaleString() || 0} {unit}
@@ -246,7 +248,10 @@ const BillingDashboard = () => {
 
         {isNotAvailable && (
           <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
-            <div className="h-2 rounded-full bg-gray-300" style={{ width: "0%" }} />
+            <div
+              className="h-2 rounded-full bg-gray-300"
+              style={{ width: "0%" }}
+            />
           </div>
         )}
 
@@ -304,7 +309,9 @@ const BillingDashboard = () => {
                 disabled={loading}
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                />
                 Refresh
               </button>
               <div className="border-l h-8"></div>
@@ -324,9 +331,7 @@ const BillingDashboard = () => {
                 className="flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors"
               >
                 <CreditCard className="w-5 h-5" />
-                <span className="text-sm font-medium">
-                  Manage Billing
-                </span>
+                <span className="text-sm font-medium">Manage Billing</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
             )}
@@ -406,7 +411,7 @@ const BillingDashboard = () => {
               </button>
             ) : (
               <button
-                onClick={() => window.location.href = "/pricing"}
+                onClick={() => (window.location.href = "/pricing")}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
               >
                 Upgrade Plan
@@ -429,7 +434,11 @@ const BillingDashboard = () => {
               {usage?.usage?.active_users?.quantity || 0}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              Limit: {subscription?.limits?.max_users === -1 || subscription?.limits?.max_users == null ? "Unlimited" : subscription?.limits?.max_users}
+              Limit:{" "}
+              {subscription?.limits?.max_users === -1 ||
+              subscription?.limits?.max_users == null
+                ? "Unlimited"
+                : subscription?.limits?.max_users}
             </p>
           </div>
 
@@ -604,11 +613,13 @@ const BillingDashboard = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Free Tier */}
-            <div className={`relative rounded-xl border-2 p-6 flex flex-col ${
-              subscription?.tier === "free"
-                ? "border-purple-600 bg-purple-50"
-                : "border-gray-200 hover:border-purple-300"
-            }`}>
+            <div
+              className={`relative rounded-xl border-2 p-6 flex flex-col ${
+                subscription?.tier === "free"
+                  ? "border-purple-600 bg-purple-50"
+                  : "border-gray-200 hover:border-purple-300"
+              }`}
+            >
               {subscription?.tier === "free" && (
                 <div className="absolute top-4 right-4">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
@@ -623,7 +634,9 @@ const BillingDashboard = () => {
                   <span className="text-4xl font-bold text-gray-900">$0</span>
                   <span className="text-gray-600">/month</span>
                 </div>
-                <p className="text-sm text-gray-600">Perfect for getting started</p>
+                <p className="text-sm text-gray-600">
+                  Perfect for getting started
+                </p>
               </div>
 
               <ul className="space-y-3 mb-6 flex-grow">
@@ -658,30 +671,32 @@ const BillingDashboard = () => {
               </ul>
 
               <div className="mt-auto">
-              {subscription?.tier === "free" ? (
-                <button
-                  disabled
-                  className="w-full py-3 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
-                >
-                  Current Plan
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleUpgrade("free")}
-                  className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200"
-                >
-                  Downgrade
-                </button>
-              )}
+                {subscription?.tier === "free" ? (
+                  <button
+                    disabled
+                    className="w-full py-3 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
+                  >
+                    Current Plan
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleUpgrade("free")}
+                    className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200"
+                  >
+                    Downgrade
+                  </button>
+                )}
               </div>
             </div>
 
             {/* Starter Tier */}
-            <div className={`relative rounded-xl border-2 p-6 flex flex-col ${
-              subscription?.tier === "starter"
-                ? "border-purple-600 bg-purple-50"
-                : "border-gray-200 hover:border-purple-300"
-            }`}>
+            <div
+              className={`relative rounded-xl border-2 p-6 flex flex-col ${
+                subscription?.tier === "starter"
+                  ? "border-purple-600 bg-purple-50"
+                  : "border-gray-200 hover:border-purple-300"
+              }`}
+            >
               {subscription?.tier === "starter" && (
                 <div className="absolute top-4 right-4">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
@@ -691,7 +706,9 @@ const BillingDashboard = () => {
               )}
 
               <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Starter</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Starter
+                </h3>
                 <div className="mb-4">
                   <span className="text-4xl font-bold text-gray-900">$29</span>
                   <span className="text-gray-600">/month</span>
@@ -731,30 +748,32 @@ const BillingDashboard = () => {
               </ul>
 
               <div className="mt-auto">
-              {subscription?.tier === "starter" ? (
-                <button
-                  disabled
-                  className="w-full py-3 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
-                >
-                  Current Plan
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleUpgrade("starter")}
-                  className="block w-full py-3 bg-purple-600 text-white text-center rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-                >
-                  {subscription?.tier === "free" ? "Upgrade" : "Change Plan"}
-                </button>
-              )}
+                {subscription?.tier === "starter" ? (
+                  <button
+                    disabled
+                    className="w-full py-3 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
+                  >
+                    Current Plan
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleUpgrade("starter")}
+                    className="block w-full py-3 bg-purple-600 text-white text-center rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                  >
+                    {subscription?.tier === "free" ? "Upgrade" : "Change Plan"}
+                  </button>
+                )}
               </div>
             </div>
 
             {/* Professional Tier */}
-            <div className={`relative rounded-xl border-2 p-6 flex flex-col ${
-              subscription?.tier === "professional"
-                ? "border-purple-600 bg-purple-50"
-                : "border-purple-300 hover:border-purple-400 shadow-lg"
-            }`}>
+            <div
+              className={`relative rounded-xl border-2 p-6 flex flex-col ${
+                subscription?.tier === "professional"
+                  ? "border-purple-600 bg-purple-50"
+                  : "border-purple-300 hover:border-purple-400 shadow-lg"
+              }`}
+            >
               {subscription?.tier === "professional" && (
                 <div className="absolute top-4 right-4">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
@@ -772,7 +791,9 @@ const BillingDashboard = () => {
               )}
 
               <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Professional</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Professional
+                </h3>
                 <div className="mb-4">
                   <span className="text-4xl font-bold text-gray-900">$99</span>
                   <span className="text-gray-600">/month</span>
@@ -795,7 +816,9 @@ const BillingDashboard = () => {
                 </li>
                 <li className="flex items-start gap-2 text-sm">
                   <span className="text-green-600 mt-0.5">✓</span>
-                  <span><strong>Unlimited</strong> AP2 Transactions</span>
+                  <span>
+                    <strong>Unlimited</strong> AP2 Transactions
+                  </span>
                 </li>
                 <li className="flex items-start gap-2 text-sm">
                   <span className="text-green-600 mt-0.5">✓</span>
@@ -816,27 +839,28 @@ const BillingDashboard = () => {
               </ul>
 
               <div className="mt-auto">
-              {subscription?.tier === "professional" ? (
-                <button
-                  disabled
-                  className="w-full py-3 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
-                >
-                  Current Plan
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleUpgrade("professional")}
-                  className="block w-full py-3 bg-purple-600 text-white text-center rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-                >
-                  Upgrade Now
-                </button>
-              )}
+                {subscription?.tier === "professional" ? (
+                  <button
+                    disabled
+                    className="w-full py-3 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed"
+                  >
+                    Current Plan
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleUpgrade("professional")}
+                    className="block w-full py-3 bg-purple-600 text-white text-center rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                  >
+                    Upgrade Now
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
           <div className="mt-6 text-center text-sm text-gray-600">
-            Payments processed securely via Stripe. Cancel or change plans anytime.
+            Payments processed securely via Stripe. Cancel or change plans
+            anytime.
           </div>
         </div>
 
@@ -849,7 +873,11 @@ const BillingDashboard = () => {
                 if (field === null || field === undefined) return '""';
                 const str = String(field);
                 // Wrap in quotes if contains comma, newline, or quote
-                if (str.includes(",") || str.includes("\n") || str.includes('"')) {
+                if (
+                  str.includes(",") ||
+                  str.includes("\n") ||
+                  str.includes('"')
+                ) {
                   return `"${str.replace(/"/g, '""')}"`;
                 }
                 return `"${str}"`;
@@ -862,14 +890,28 @@ const BillingDashboard = () => {
                 ["Organization", organization?.name || "N/A"],
                 ["", ""],
                 ["Current Plan", ""],
-                ["Tier", subscription?.tier_display_name || subscription?.tier || "N/A"],
+                [
+                  "Tier",
+                  subscription?.tier_display_name ||
+                    subscription?.tier ||
+                    "N/A",
+                ],
                 ["Monthly Price", `$${estimatedBill.toFixed(2)}`],
-                ["Billing Period", new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })],
+                [
+                  "Billing Period",
+                  new Date().toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  }),
+                ],
                 ["", ""],
                 ["Usage This Month", "Quantity"],
                 ["Active Users", usage?.usage?.active_users?.quantity || 0],
                 ["Expenses Submitted", usage?.usage?.expense?.quantity || 0],
-                ["AP2 Transactions", usage?.usage?.ap2_transaction?.quantity || 0],
+                [
+                  "AP2 Transactions",
+                  usage?.usage?.ap2_transaction?.quantity || 0,
+                ],
                 ["OCR Scans", usage?.usage?.ocr_scan?.quantity || 0],
                 ["", ""],
                 ["Estimated Bill", "Amount"],
@@ -908,10 +950,13 @@ const BillingDashboard = () => {
                 generated_at: new Date().toISOString(),
                 organization: {
                   name: organization?.name || "N/A",
-                  id: organization?.id
+                  id: organization?.id,
                 },
                 current_plan: {
-                  tier: subscription?.tier_display_name || subscription?.tier || "N/A",
+                  tier:
+                    subscription?.tier_display_name ||
+                    subscription?.tier ||
+                    "N/A",
                   monthly_price: estimatedBill,
                   billing_period: new Date().toLocaleDateString("en-US", {
                     month: "long",
@@ -921,15 +966,16 @@ const BillingDashboard = () => {
                 usage_this_month: {
                   active_users: usage?.usage?.active_users?.quantity || 0,
                   expenses_submitted: usage?.usage?.expense?.quantity || 0,
-                  ap2_transactions: usage?.usage?.ap2_transaction?.quantity || 0,
+                  ap2_transactions:
+                    usage?.usage?.ap2_transaction?.quantity || 0,
                   ocr_scans: usage?.usage?.ocr_scan?.quantity || 0,
                 },
                 estimated_bill: {
                   base_subscription: estimatedBill,
                   usage_overages: totalOverage,
                   total_estimated: totalEstimated,
-                  currency: "USD"
-                }
+                  currency: "USD",
+                },
               };
 
               const jsonContent = JSON.stringify(reportData, null, 2);

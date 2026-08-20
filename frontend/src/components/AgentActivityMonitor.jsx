@@ -26,7 +26,9 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
   const [sortedMandates, setSortedMandates] = useState([]);
 
   // Exclude intent mandates — they have their own Reusable Authorizations tab
-  const transactions = mandates.filter((m) => m.type === "cart" || m.type === "payment");
+  const transactions = mandates.filter(
+    (m) => m.type === "cart" || m.type === "payment",
+  );
 
   // Group cart + payment mandates by cart_mandate_id
   const { groupedItems, standalonePayments } = useMemo(() => {
@@ -89,7 +91,8 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
           m.id.toLowerCase().includes(query) ||
           (m.merchant && m.merchant.toLowerCase().includes(query)) ||
           (m.total && m.total.toString().includes(query)) ||
-          (m.payment_method && m.payment_method.toLowerCase().includes(query)) ||
+          (m.payment_method &&
+            m.payment_method.toLowerCase().includes(query)) ||
           (m._payment?.payment_method &&
             m._payment.payment_method.toLowerCase().includes(query)) ||
           (m._payment?.id && m._payment.id.toLowerCase().includes(query)),
@@ -114,7 +117,14 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
     });
 
     setSortedMandates(displayItems);
-  }, [groupedItems, standalonePayments, filter, statusFilter, searchQuery, sortBy]);
+  }, [
+    groupedItems,
+    standalonePayments,
+    filter,
+    statusFilter,
+    searchQuery,
+    sortBy,
+  ]);
 
   // Calculate statistics — count groups, not individual mandates
   const statsItems = useMemo(() => {
@@ -129,7 +139,9 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
   }, [groupedItems, standalonePayments, filter, mandates]);
 
   const totalTransactions = statsItems.length;
-  const completedCount = statsItems.filter((m) => m.status === "completed").length;
+  const completedCount = statsItems.filter(
+    (m) => m.status === "completed",
+  ).length;
   const activeCount = statsItems.filter((m) => m.status === "active").length;
   const pendingCount = statsItems.filter((m) => m.status === "pending").length;
   const failedCount = statsItems.filter((m) => m.status === "failed").length;
@@ -142,7 +154,9 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
         <h2 className="text-2xl font-bold text-gray-900 mb-1">
           Agent Activity
         </h2>
-        <p className="text-sm text-gray-500 mb-6">Purchase requests and payment history</p>
+        <p className="text-sm text-gray-500 mb-6">
+          Purchase requests and payment history
+        </p>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
@@ -231,19 +245,21 @@ const AgentActivityMonitor = ({ mandates, stats }) => {
             <span className="text-sm font-medium text-gray-700 self-center">
               Status:
             </span>
-            {["all", "active", "pending", "completed", "failed", "revoked"].map((status) => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === status
-                    ? "bg-purple-100 text-purple-700"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
+            {["all", "active", "pending", "completed", "failed", "revoked"].map(
+              (status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    statusFilter === status
+                      ? "bg-purple-100 text-purple-700"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ),
+            )}
           </div>
 
           {/* Sort */}
@@ -521,7 +537,11 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
 
           {/* Nested Payment Sub-row (visible without expanding) */}
           {payment && (
-            <PaymentSubRow payment={payment} getStatusConfig={getStatusConfig} formatDate={formatDate} />
+            <PaymentSubRow
+              payment={payment}
+              getStatusConfig={getStatusConfig}
+              formatDate={formatDate}
+            />
           )}
 
           {/* Expiration (for intent mandates) */}
@@ -661,7 +681,9 @@ const ActivityTimelineItem = ({ mandate, isFirst }) => {
                 </div>
                 <div>
                   <span className="text-gray-500">Status:</span>
-                  <p className="text-gray-900 mt-1 capitalize">{payment.status}</p>
+                  <p className="text-gray-900 mt-1 capitalize">
+                    {payment.status}
+                  </p>
                 </div>
                 {payment.payment_method && (
                   <div>

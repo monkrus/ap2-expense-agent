@@ -121,7 +121,9 @@ const AnalyticsDashboard = () => {
         <div className="flex items-center gap-3">
           <AlertCircle className="w-6 h-6 text-red-600" />
           <div>
-            <h3 className="font-semibold text-red-900">Failed to load analytics</h3>
+            <h3 className="font-semibold text-red-900">
+              Failed to load analytics
+            </h3>
             <p className="text-red-700 text-sm">{error}</p>
           </div>
         </div>
@@ -146,14 +148,16 @@ const AnalyticsDashboard = () => {
   // Calculate totals for category breakdown percentages
   const totalCategoryAmount = analytics.category_breakdown.reduce(
     (sum, cat) => sum + cat.amount,
-    0
+    0,
   );
 
   return (
     <div className="space-y-6">
       {/* Header with Time Range Selector */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h2>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Analytics Dashboard
+        </h2>
         <div className="flex gap-2">
           {[7, 30, 90].map((days) => (
             <button
@@ -187,14 +191,20 @@ const AnalyticsDashboard = () => {
               <>
                 <TrendingUp className="w-4 h-4 text-green-600 mr-1" />
                 <span className="text-green-600">
-                  {analytics.monthly_comparison.changes.amount_change_percent.toFixed(1)}%
+                  {analytics.monthly_comparison.changes.amount_change_percent.toFixed(
+                    1,
+                  )}
+                  %
                 </span>
               </>
             ) : (
               <>
                 <TrendingDown className="w-4 h-4 text-red-600 mr-1" />
                 <span className="text-red-600">
-                  {Math.abs(analytics.monthly_comparison.changes.amount_change_percent).toFixed(1)}%
+                  {Math.abs(
+                    analytics.monthly_comparison.changes.amount_change_percent,
+                  ).toFixed(1)}
+                  %
                 </span>
               </>
             )}
@@ -216,14 +226,20 @@ const AnalyticsDashboard = () => {
               <>
                 <TrendingUp className="w-4 h-4 text-green-600 mr-1" />
                 <span className="text-green-600">
-                  {analytics.monthly_comparison.changes.count_change_percent.toFixed(1)}%
+                  {analytics.monthly_comparison.changes.count_change_percent.toFixed(
+                    1,
+                  )}
+                  %
                 </span>
               </>
             ) : (
               <>
                 <TrendingDown className="w-4 h-4 text-red-600 mr-1" />
                 <span className="text-red-600">
-                  {Math.abs(analytics.monthly_comparison.changes.count_change_percent).toFixed(1)}%
+                  {Math.abs(
+                    analytics.monthly_comparison.changes.count_change_percent,
+                  ).toFixed(1)}
+                  %
                 </span>
               </>
             )}
@@ -234,10 +250,14 @@ const AnalyticsDashboard = () => {
         {/* Pending Approvals */}
         <div className="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-gray-600 text-sm font-medium">Pending Approval</p>
+            <p className="text-gray-600 text-sm font-medium">
+              Pending Approval
+            </p>
             <Clock className="w-5 h-5 text-yellow-500" />
           </div>
-          <p className="text-2xl font-bold text-gray-900">{summary.pending_approvals}</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {summary.pending_approvals}
+          </p>
           <p className="text-sm text-gray-500 mt-2">Awaiting review</p>
         </div>
 
@@ -247,7 +267,9 @@ const AnalyticsDashboard = () => {
             <p className="text-gray-600 text-sm font-medium">Active Users</p>
             <Users className="w-5 h-5 text-purple-500" />
           </div>
-          <p className="text-2xl font-bold text-gray-900">{summary.active_users}</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {summary.active_users}
+          </p>
           <p className="text-sm text-gray-500 mt-2">In organization</p>
         </div>
       </div>
@@ -266,7 +288,10 @@ const AnalyticsDashboard = () => {
                 tickFormatter={formatDate}
                 tick={{ fontSize: 12 }}
               />
-              <YAxis tickFormatter={(value) => `$${value}`} tick={{ fontSize: 12 }} />
+              <YAxis
+                tickFormatter={(value) => `$${value}`}
+                tick={{ fontSize: 12 }}
+              />
               <Tooltip
                 formatter={(value) => formatCurrency(value)}
                 labelFormatter={formatDate}
@@ -284,7 +309,9 @@ const AnalyticsDashboard = () => {
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <p className="text-gray-500 text-center py-12">No spending data available</p>
+          <p className="text-gray-500 text-center py-12">
+            No spending data available
+          </p>
         )}
       </div>
 
@@ -323,21 +350,30 @@ const AnalyticsDashboard = () => {
               </ResponsiveContainer>
               <div className="mt-4 space-y-2">
                 {analytics.category_breakdown.map((cat) => (
-                  <div key={cat.category} className="flex items-center justify-between text-sm">
+                  <div
+                    key={cat.category}
+                    className="flex items-center justify-between text-sm"
+                  >
                     <div className="flex items-center gap-2">
                       <div
                         className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: CATEGORY_COLORS[cat.category] || COLORS.teal }}
+                        style={{
+                          backgroundColor:
+                            CATEGORY_COLORS[cat.category] || COLORS.teal,
+                        }}
                       ></div>
                       <span className="text-gray-700">{cat.category}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-gray-600">{cat.count} expenses</span>
+                      <span className="text-gray-600">
+                        {cat.count} expenses
+                      </span>
                       <span className="font-semibold text-gray-900">
                         {formatCurrency(cat.amount)}
                       </span>
                       <span className="text-gray-500 text-xs">
-                        ({calculatePercentage(cat.amount, totalCategoryAmount)}%)
+                        ({calculatePercentage(cat.amount, totalCategoryAmount)}
+                        %)
                       </span>
                     </div>
                   </div>
@@ -345,35 +381,62 @@ const AnalyticsDashboard = () => {
               </div>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-12">No category data available</p>
+            <p className="text-gray-500 text-center py-12">
+              No category data available
+            </p>
           )}
         </div>
 
         {/* Top Spenders Bar Chart */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Spenders</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Top Spenders
+          </h3>
           {analytics.top_spenders.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={analytics.top_spenders.slice(0, 5)} layout="vertical">
+              <BarChart
+                data={analytics.top_spenders.slice(0, 5)}
+                layout="vertical"
+              >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" tickFormatter={(value) => `$${value}`} tick={{ fontSize: 12 }} />
-                <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                <XAxis
+                  type="number"
+                  tickFormatter={(value) => `$${value}`}
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  width={100}
+                  tick={{ fontSize: 12 }}
+                />
                 <Tooltip formatter={(value) => formatCurrency(value)} />
-                <Bar dataKey="total_amount" fill={COLORS.success} name="Total Spent" />
+                <Bar
+                  dataKey="total_amount"
+                  fill={COLORS.success}
+                  name="Total Spent"
+                />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-gray-500 text-center py-12">No spender data available</p>
+            <p className="text-gray-500 text-center py-12">
+              No spender data available
+            </p>
           )}
           <div className="mt-4 space-y-2">
             {analytics.top_spenders.slice(0, 5).map((spender, idx) => (
-              <div key={spender.username} className="flex items-center justify-between text-sm">
+              <div
+                key={spender.username}
+                className="flex items-center justify-between text-sm"
+              >
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 font-medium">#{idx + 1}</span>
                   <span className="text-gray-700">{spender.name}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-gray-600">{spender.expense_count} expenses</span>
+                  <span className="text-gray-600">
+                    {spender.expense_count} expenses
+                  </span>
                   <span className="font-semibold text-gray-900">
                     {formatCurrency(spender.total_amount)}
                   </span>
@@ -388,7 +451,9 @@ const AnalyticsDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Status Distribution */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Expense Status</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Expense Status
+          </h3>
           {analytics.status_distribution.length > 0 ? (
             <div>
               <ResponsiveContainer width="100%" height={250}>
@@ -415,16 +480,24 @@ const AnalyticsDashboard = () => {
               </ResponsiveContainer>
               <div className="mt-4 space-y-2">
                 {analytics.status_distribution.map((status) => (
-                  <div key={status.status} className="flex items-center justify-between text-sm">
+                  <div
+                    key={status.status}
+                    className="flex items-center justify-between text-sm"
+                  >
                     <div className="flex items-center gap-2">
                       <div
                         className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: STATUS_COLORS[status.status] || "#9CA3AF" }}
+                        style={{
+                          backgroundColor:
+                            STATUS_COLORS[status.status] || "#9CA3AF",
+                        }}
                       ></div>
                       <span className="text-gray-700">{status.status}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-gray-600">{status.count} expenses</span>
+                      <span className="text-gray-600">
+                        {status.count} expenses
+                      </span>
                       <span className="font-semibold text-gray-900">
                         {formatCurrency(status.amount)}
                       </span>
@@ -434,13 +507,17 @@ const AnalyticsDashboard = () => {
               </div>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-12">No status data available</p>
+            <p className="text-gray-500 text-center py-12">
+              No status data available
+            </p>
           )}
         </div>
 
         {/* Top Vendors */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Vendors</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Top Vendors
+          </h3>
           {analytics.top_vendors.length > 0 ? (
             <div className="space-y-3">
               {analytics.top_vendors.slice(0, 8).map((vendor, idx) => (
@@ -449,10 +526,16 @@ const AnalyticsDashboard = () => {
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-gray-500 font-semibold text-sm">#{idx + 1}</span>
+                    <span className="text-gray-500 font-semibold text-sm">
+                      #{idx + 1}
+                    </span>
                     <div>
-                      <p className="font-medium text-gray-900">{vendor.vendor}</p>
-                      <p className="text-sm text-gray-500">{vendor.count} transactions</p>
+                      <p className="font-medium text-gray-900">
+                        {vendor.vendor}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {vendor.count} transactions
+                      </p>
                     </div>
                   </div>
                   <span className="font-semibold text-gray-900">
@@ -462,7 +545,9 @@ const AnalyticsDashboard = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-12">No vendor data available</p>
+            <p className="text-gray-500 text-center py-12">
+              No vendor data available
+            </p>
           )}
         </div>
       </div>

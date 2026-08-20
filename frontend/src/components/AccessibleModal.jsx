@@ -59,7 +59,7 @@ const AccessibleModal = ({
 
     // Get all focusable elements
     const focusableElements = modal.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     );
     const firstElement = focusableElements[0];
     const lastElement = focusableElements[focusableElements.length - 1];
@@ -160,18 +160,12 @@ const AccessibleModal = ({
         <div className="flex items-start justify-between p-6 border-b border-gray-200">
           <div className="flex-1">
             {title && (
-              <h2
-                id="modal-title"
-                className="text-xl font-bold text-gray-900"
-              >
+              <h2 id="modal-title" className="text-xl font-bold text-gray-900">
                 {title}
               </h2>
             )}
             {description && (
-              <p
-                id="modal-description"
-                className="mt-1 text-sm text-gray-600"
-              >
+              <p id="modal-description" className="mt-1 text-sm text-gray-600">
                 {description}
               </p>
             )}

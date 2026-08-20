@@ -126,7 +126,12 @@ const EmployeeDashboard = () => {
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [showExpenseForm, newExpense.amount, newExpense.vendor, newExpense.category]);
+  }, [
+    showExpenseForm,
+    newExpense.amount,
+    newExpense.vendor,
+    newExpense.category,
+  ]);
 
   // Fetch user's expenses
   useEffect(() => {
@@ -255,7 +260,8 @@ const EmployeeDashboard = () => {
       setExpenses((prev) => prev.filter((e) => e.id !== expense.id));
       success("Expense archived");
     } catch (err) {
-      const errorMsg = err instanceof APIError ? err.message : "Failed to archive expense";
+      const errorMsg =
+        err instanceof APIError ? err.message : "Failed to archive expense";
       showError(errorMsg);
     }
   };
@@ -266,14 +272,15 @@ const EmployeeDashboard = () => {
       setArchivedExpenses((prev) => prev.filter((e) => e.id !== expense.id));
       success("Expense unarchived");
     } catch (err) {
-      const errorMsg = err instanceof APIError ? err.message : "Failed to unarchive expense";
+      const errorMsg =
+        err instanceof APIError ? err.message : "Failed to unarchive expense";
       showError(errorMsg);
     }
   };
 
   const handleArchiveAllHistory = async () => {
     const archivable = historyExpenses.filter(
-      (e) => e.status?.toLowerCase() !== "pending"
+      (e) => e.status?.toLowerCase() !== "pending",
     );
     if (archivable.length === 0) {
       showError("No expenses to archive");
@@ -281,7 +288,7 @@ const EmployeeDashboard = () => {
     }
     if (
       !window.confirm(
-        `Archive ${archivable.length} completed expense(s)? You can restore them from the Archived tab.`
+        `Archive ${archivable.length} completed expense(s)? You can restore them from the Archived tab.`,
       )
     ) {
       return;
@@ -373,10 +380,18 @@ const EmployeeDashboard = () => {
       });
 
       // Show different message based on auto-approval
-      if (result.auto_approved && result.auto_approved_via === "intent_mandate") {
+      if (
+        result.auto_approved &&
+        result.auto_approved_via === "intent_mandate"
+      ) {
         success("✨ Auto-approved by AI agent via Intent Mandate (AP2)!");
-      } else if (result.auto_approved && result.auto_approved_via === "approval_policy") {
-        success(`Auto-approved by policy: ${result.message || "Approval Policy"}`);
+      } else if (
+        result.auto_approved &&
+        result.auto_approved_via === "approval_policy"
+      ) {
+        success(
+          `Auto-approved by policy: ${result.message || "Approval Policy"}`,
+        );
       } else {
         success("Expense submitted successfully! Awaiting approval.");
       }
@@ -436,7 +451,9 @@ const EmployeeDashboard = () => {
         }),
       });
       if (response.ok) {
-        success("Intent Mandate created! Similar expenses will now auto-approve.");
+        success(
+          "Intent Mandate created! Similar expenses will now auto-approve.",
+        );
         setShowCreateMandateModal(false);
         setSuggestedMandate(null);
         setMandateExpense(null);
@@ -536,7 +553,9 @@ const EmployeeDashboard = () => {
   // IMPORTANT: Use .toLowerCase() for case-insensitive comparison as a defensive safeguard.
   // Backend now returns lowercase status values ("pending", "approved", etc.) but we normalize
   // here as well to prevent future case sensitivity issues if the backend changes.
-  const activeExpenses = expenses.filter((e) => e.status?.toLowerCase() === "pending");
+  const activeExpenses = expenses.filter(
+    (e) => e.status?.toLowerCase() === "pending",
+  );
   const historyExpenses = expenses.filter((e) => {
     // History tab should exclude pending expenses (those are in Active tab)
     if (e.status?.toLowerCase() === "pending") return false;
@@ -579,9 +598,12 @@ const EmployeeDashboard = () => {
   // Backend may return "PENDING" or "pending" depending on endpoint
   const stats = {
     total: expenses.reduce((sum, e) => sum + e.amount, 0),
-    pending: expenses.filter((e) => e.status?.toLowerCase() === "pending").length,
-    approved: expenses.filter((e) => e.status?.toLowerCase() === "approved").length,
-    rejected: expenses.filter((e) => e.status?.toLowerCase() === "rejected").length,
+    pending: expenses.filter((e) => e.status?.toLowerCase() === "pending")
+      .length,
+    approved: expenses.filter((e) => e.status?.toLowerCase() === "approved")
+      .length,
+    rejected: expenses.filter((e) => e.status?.toLowerCase() === "rejected")
+      .length,
   };
 
   const theme = getRoleTheme("EMPLOYEE");
@@ -689,9 +711,7 @@ const EmployeeDashboard = () => {
                   ${formatCurrency(stats.total)}
                 </p>
               </div>
-              <DollarSign
-                className="w-10 h-10 text-blue-600"
-              />
+              <DollarSign className="w-10 h-10 text-blue-600" />
             </div>
           </div>
 
@@ -933,7 +953,9 @@ const EmployeeDashboard = () => {
                     <option value="UTILITIES">Utilities</option>
                     <option value="MARKETING">Marketing</option>
                     <option value="HARDWARE">Hardware</option>
-                    <option value="PROFESSIONAL_SERVICES">Professional Services</option>
+                    <option value="PROFESSIONAL_SERVICES">
+                      Professional Services
+                    </option>
                     <option value="OTHER">Other</option>
                   </select>
                 </div>
@@ -983,42 +1005,50 @@ const EmployeeDashboard = () => {
               </div>
 
               {/* Auto-approval preview indicator */}
-              {newExpense.amount && newExpense.vendor && newExpense.category && (
-                <div className={`mt-2 p-3 rounded-lg border text-sm ${
-                  checkingAutoApproval
-                    ? "bg-gray-50 border-gray-200 text-gray-500"
-                    : autoApprovalPreview?.will_auto_approve
-                      ? "bg-green-50 border-green-200 text-green-800"
-                      : "bg-yellow-50 border-yellow-200 text-yellow-800"
-                }`}>
-                  {checkingAutoApproval ? (
-                    <span className="flex items-center gap-2">
-                      <span className="animate-spin h-3 w-3 border-2 border-gray-400 border-t-transparent rounded-full"></span>
-                      Checking auto-approval...
-                    </span>
-                  ) : autoApprovalPreview?.will_auto_approve ? (
-                    <span className="flex items-center gap-2">
-                      <Bot className="w-4 h-4 text-green-600" />
-                      <span>
-                        <strong>Will auto-approve</strong> via{" "}
-                        {autoApprovalPreview.via === "intent_mandate"
-                          ? "AI Agent (Intent Mandate)"
-                          : `Policy: ${autoApprovalPreview.policy_name || "Approval Policy"}`}
-                        {autoApprovalPreview.remaining_monthly != null && (
-                          <span className="text-green-600 ml-1">
-                            (${autoApprovalPreview.remaining_monthly.toFixed(2)} remaining this month)
-                          </span>
-                        )}
+              {newExpense.amount &&
+                newExpense.vendor &&
+                newExpense.category && (
+                  <div
+                    className={`mt-2 p-3 rounded-lg border text-sm ${
+                      checkingAutoApproval
+                        ? "bg-gray-50 border-gray-200 text-gray-500"
+                        : autoApprovalPreview?.will_auto_approve
+                          ? "bg-green-50 border-green-200 text-green-800"
+                          : "bg-yellow-50 border-yellow-200 text-yellow-800"
+                    }`}
+                  >
+                    {checkingAutoApproval ? (
+                      <span className="flex items-center gap-2">
+                        <span className="animate-spin h-3 w-3 border-2 border-gray-400 border-t-transparent rounded-full"></span>
+                        Checking auto-approval...
                       </span>
-                    </span>
-                  ) : autoApprovalPreview ? (
-                    <span className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-yellow-600" />
-                      <span>No matching mandate -- will require manual approval</span>
-                    </span>
-                  ) : null}
-                </div>
-              )}
+                    ) : autoApprovalPreview?.will_auto_approve ? (
+                      <span className="flex items-center gap-2">
+                        <Bot className="w-4 h-4 text-green-600" />
+                        <span>
+                          <strong>Will auto-approve</strong> via{" "}
+                          {autoApprovalPreview.via === "intent_mandate"
+                            ? "AI Agent (Intent Mandate)"
+                            : `Policy: ${autoApprovalPreview.policy_name || "Approval Policy"}`}
+                          {autoApprovalPreview.remaining_monthly != null && (
+                            <span className="text-green-600 ml-1">
+                              ($
+                              {autoApprovalPreview.remaining_monthly.toFixed(2)}{" "}
+                              remaining this month)
+                            </span>
+                          )}
+                        </span>
+                      </span>
+                    ) : autoApprovalPreview ? (
+                      <span className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-yellow-600" />
+                        <span>
+                          No matching mandate -- will require manual approval
+                        </span>
+                      </span>
+                    ) : null}
+                  </div>
+                )}
 
               <div className="flex gap-3 mt-6">
                 <button
@@ -1058,16 +1088,23 @@ const EmployeeDashboard = () => {
             {archivedLoading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
-                  <div className={`animate-spin rounded-full h-8 w-8 border-b-2 border-${theme.colors.primary} mx-auto mb-2`}></div>
-                  <p className="text-gray-600 text-sm">Loading archived expenses...</p>
+                  <div
+                    className={`animate-spin rounded-full h-8 w-8 border-b-2 border-${theme.colors.primary} mx-auto mb-2`}
+                  ></div>
+                  <p className="text-gray-600 text-sm">
+                    Loading archived expenses...
+                  </p>
                 </div>
               </div>
             ) : archivedExpenses.length === 0 ? (
               <div className="text-center py-12">
                 <Archive className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg font-medium">No archived expenses</p>
+                <p className="text-gray-500 text-lg font-medium">
+                  No archived expenses
+                </p>
                 <p className="text-gray-400 text-sm mt-2">
-                  Archive completed expenses from the History tab to keep your list clean.
+                  Archive completed expenses from the History tab to keep your
+                  list clean.
                 </p>
               </div>
             ) : (
@@ -1075,34 +1112,64 @@ const EmployeeDashboard = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b-2 border-gray-200">
-                      <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700 w-12">#</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">ID</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Category</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Vendor</th>
-                      <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
-                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
-                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                      <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700 w-12">
+                        #
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                        ID
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                        Date
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                        Category
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                        Vendor
+                      </th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">
+                        Amount
+                      </th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">
+                        Status
+                      </th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {archivedExpenses.map((expense, index) => (
-                      <tr key={expense.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td className="py-3 px-2 text-center text-sm font-medium text-gray-500">{index + 1}</td>
+                      <tr
+                        key={expense.id}
+                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-3 px-2 text-center text-sm font-medium text-gray-500">
+                          {index + 1}
+                        </td>
                         <td className="py-3 px-4">
-                          <span className="text-sm font-medium text-gray-800 truncate max-w-[120px]" title={expense.id}>
+                          <span
+                            className="text-sm font-medium text-gray-800 truncate max-w-[120px]"
+                            title={expense.id}
+                          >
                             {expense.id.substring(0, 8)}...
                           </span>
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
                           {formatDate(expense.date)}
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-700">{expense.category}</td>
-                        <td className="py-3 px-4 text-sm text-gray-700">{expense.vendor}</td>
+                        <td className="py-3 px-4 text-sm text-gray-700">
+                          {expense.category}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-700">
+                          {expense.vendor}
+                        </td>
                         <td className="py-3 px-4 text-right text-sm font-semibold text-gray-800 whitespace-nowrap">
                           ${formatCurrency(expense.amount)}
                         </td>
-                        <td className="py-3 px-4 text-center">{getStatusBadge(expense.status)}</td>
+                        <td className="py-3 px-4 text-center">
+                          {getStatusBadge(expense.status)}
+                        </td>
                         <td className="py-3 px-4">
                           <div className="flex gap-1 justify-center">
                             <button
@@ -1379,7 +1446,9 @@ const EmployeeDashboard = () => {
                                 <>
                                   {!expense.auto_approved && (
                                     <button
-                                      onClick={() => handleSuggestMandate(expense)}
+                                      onClick={() =>
+                                        handleSuggestMandate(expense)
+                                      }
                                       className="flex items-center gap-1 px-2 py-1.5 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors text-xs font-medium"
                                       title="Create an Intent Mandate to auto-approve similar expenses"
                                     >
@@ -1388,7 +1457,9 @@ const EmployeeDashboard = () => {
                                     </button>
                                   )}
                                   <button
-                                    onClick={() => handleArchiveExpense(expense)}
+                                    onClick={() =>
+                                      handleArchiveExpense(expense)
+                                    }
                                     className="flex items-center gap-1 px-2 py-1.5 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors text-xs font-medium"
                                     title="Archive this expense"
                                   >
@@ -1458,7 +1529,9 @@ const EmployeeDashboard = () => {
                                 </span>
                                 {expense.intent_mandate_id && (
                                   <span className="text-xs text-green-600 font-mono">
-                                    Mandate: {expense.intent_mandate_id.substring(0, 12)}...
+                                    Mandate:{" "}
+                                    {expense.intent_mandate_id.substring(0, 12)}
+                                    ...
                                   </span>
                                 )}
                               </div>
@@ -1635,19 +1708,33 @@ const EmployeeDashboard = () => {
               <div className="bg-purple-50 rounded-lg p-4 mb-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Max per expense:</span>
-                  <span className="font-semibold">${suggestedMandate.suggested_constraints.max_amount.toFixed(2)}</span>
+                  <span className="font-semibold">
+                    $
+                    {suggestedMandate.suggested_constraints.max_amount.toFixed(
+                      2,
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Monthly limit:</span>
-                  <span className="font-semibold">${suggestedMandate.suggested_constraints.monthly_limit.toFixed(2)}</span>
+                  <span className="font-semibold">
+                    $
+                    {suggestedMandate.suggested_constraints.monthly_limit.toFixed(
+                      2,
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Category:</span>
-                  <span className="font-semibold">{suggestedMandate.suggested_constraints.category}</span>
+                  <span className="font-semibold">
+                    {suggestedMandate.suggested_constraints.category}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Vendor:</span>
-                  <span className="font-semibold">{suggestedMandate.suggested_constraints.merchant}</span>
+                  <span className="font-semibold">
+                    {suggestedMandate.suggested_constraints.merchant}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Duration:</span>
@@ -1657,7 +1744,8 @@ const EmployeeDashboard = () => {
 
               {mandateExpense && (
                 <p className="text-xs text-gray-500 mb-4">
-                  Based on: ${mandateExpense.amount.toFixed(2)} at {mandateExpense.vendor}
+                  Based on: ${mandateExpense.amount.toFixed(2)} at{" "}
+                  {mandateExpense.vendor}
                 </p>
               )}
 

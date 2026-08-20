@@ -108,7 +108,8 @@ export const AuthProvider = ({ children }) => {
           } else if (response.status === 403) {
             errorMessage = "Account suspended. Contact your administrator.";
           } else if (!response.status) {
-            errorMessage = "Cannot connect to server. Please check your connection.";
+            errorMessage =
+              "Cannot connect to server. Please check your connection.";
           } else {
             errorMessage = "Login failed. Please try again.";
           }
@@ -121,7 +122,9 @@ export const AuthProvider = ({ children }) => {
       try {
         data = await response.json();
       } catch (jsonError) {
-        throw new Error("Server error. Please try again later.", { cause: jsonError });
+        throw new Error("Server error. Please try again later.", {
+          cause: jsonError,
+        });
       }
 
       setAccessToken(data.access_token);
@@ -179,7 +182,8 @@ export const AuthProvider = ({ children }) => {
           errorMessage = error.detail || error.error?.message || errorMessage;
         } catch {
           // Server returned non-JSON error (empty body, HTML, etc.)
-          if (response.status >= 500) errorMessage = "Server error. Please try again later.";
+          if (response.status >= 500)
+            errorMessage = "Server error. Please try again later.";
         }
         throw new Error(errorMessage);
       }
@@ -188,7 +192,9 @@ export const AuthProvider = ({ children }) => {
       try {
         data = await response.json();
       } catch {
-        throw new Error("Server returned an invalid response. Please try again.");
+        throw new Error(
+          "Server returned an invalid response. Please try again.",
+        );
       }
       return { success: true, user: data };
     } catch (error) {
@@ -317,7 +323,9 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         // Token refresh failed, logout user
         logout();
-        throw new Error("Session expired. Please login again.", { cause: error });
+        throw new Error("Session expired. Please login again.", {
+          cause: error,
+        });
       }
     }
 
